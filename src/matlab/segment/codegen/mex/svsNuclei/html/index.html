@@ -1,0 +1,250 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<title>Code Generation Report</title>
+<link rel="stylesheet" type="text/css" href="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/eml_report.css" />
+<link rel="stylesheet" type="text/css" href="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/jQuery/ui.resizable.css" />
+
+<script type="text/javascript" src="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/jQuery/jquery-1.3.2.min.js"></script>
+<script type="text/javascript" src="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/jQuery/jquery-ui-1.7.custom.min.js"></script>
+<script type="text/javascript" src="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/jQuery/jquery.tablesorter.mod.js"></script>
+<script type="text/javascript" src="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/jQuery/jquery.hotkeys-0.7.8.js"></script>
+<script type="text/javascript" src="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/eml_report_interactions.js"></script>
+<script type="text/javascript" src="file:////usr/local/MATLAB/R2011a/toolbox/coder/coder/resources/eml_report_layout.js"></script>
+<script type="text/javascript">
+var localizedMessages = {
+    infoForExpression: "Information for the selected expression:",
+    infoForVarHere: "Information for the selected variable:",
+    infoForVarThere: "Information for the selected variable:",
+    infoForVarNone: "This variable does not have information associated with it.",
+    infoForFilter: "Filter matches: {0}/{1} functions"
+};
+var keyBindings = {
+        selectMCodeTab: "Ctrl+m",
+    selectCallStackTab: "Ctrl+k",
+        selectCCodeTab: "Ctrl+c",
+     selectCenterPanel: "Ctrl+w",
+      selectSummaryTab: "Ctrl+s",
+     selectMessagesTab: "Ctrl+a",
+    selectWatchListTab: "Ctrl+v",
+     selectBuildLogTab: "Ctrl+t"
+};
+var functionInfoTable = {
+ MATLABcode1: "svsNuclei1_mcode.html",
+ fpath1: "/home/tcpan/PhD/path/nscale/src/matlab/segment/svsNuclei.m",
+ watch1: "svsNuclei1_watch.html",
+ title1: "Function: <span class='functionname'><a title='/home/tcpan/PhD/path/nscale/src/matlab/segment/svsNuclei.m' class='functionlink' href=\"matlab: open('/home/tcpan/PhD/path/nscale/src/matlab/segment/svsNuclei.m')\">svsNuclei</a></span>",
+ calls1: [  ],
+ MATLABcode8: "segNucleiMorphMeanshift8_mcode.html",
+ fpath8: "/home/tcpan/PhD/path/nscale/src/matlab/segment/svsNuclei.m",
+ watch8: "segNucleiMorphMeanshift8_watch.html",
+ title8: "Function: <span class='functionname'><a title='/home/tcpan/PhD/path/nscale/src/matlab/segment/svsNuclei.m' class='functionlink' href=\"matlab: open('/home/tcpan/PhD/path/nscale/src/matlab/segment/svsNuclei.m')\">svsNuclei &gt; segNucleiMorphMeanshift</a></span>",
+ calls8: [  ],
+ rootFcnID: "1",
+ htmlRoot: "/home/tcpan/PhD/path/nscale/src/matlab/segment/codegen/mex/svsNuclei/html/"
+};
+var scriptInfoTable = {
+ fpath1: "/home/tcpan/PhD/path/nscale/src/matlab/segment/svsNuclei.m",
+ fpath2: "/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/find.m",
+ fpath3: "/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/eml/eml_scalar_eg.m",
+ fpath4: "/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/length.m",
+};
+</script>
+</head>
+<body>
+
+<div class="west">
+<ul class="ui-tabs-nav">
+<li class="ui-tabs-nav-item ui-tabs-selected"><span class="tab-link" id="MATLABcode"><span>MATLAB code</span></span></li>
+<li class="ui-tabs-nav-item"><span class="tab-link" id="callstack"><span>Call stack</span></span></li>
+<li class="ui-tabs-nav-item"><span class="tab-link" id="ccode"><span>C code</span></span></li>
+</ul>
+
+<div id="MATLABcodebody" class="ui-tabs-panel">
+<table class="myfunc-filter-tbl"><tr>
+<td title="You may use this filter to display only functions that contain variables or expressions with the specified attributes." colspan="2" class="checkbox">
+<div class="myfunc-filterby-chk"><input type="checkbox" class="filterenable" />
+<div class="filter-enable-lbl">Filter function list by attributes</div></div></td></tr><tr>
+<td class="label"><div class="myfunc-filterby-lbl">Filter by:</div></td>
+<td class="select">
+<div class="filters">
+<select class="myfunc-filterby">
+<option id="size">Size</option>
+<option id="complex">Complexity</option>
+<option id="class">Class</option>
+</select>
+</div>
+</td>
+</tr>
+
+<tr>
+<td class="label"><div class="myfunc-filterstr-lbl">Filter:</div></td>
+<td class="input"><div>
+
+<div class="size">
+<select class="myfunc-filter size">
+<option value="1 8">1 x 1</option>
+<option value="1 8">1 x 1 x 3</option>
+<option value="1">1 x <b>:</b>?</option>
+<option value="8"><b>:</b>? x <b>:</b>?</option>
+</select>
+</div>
+
+<div class="complex">
+<select class="myfunc-filter complex">
+<option value="">Complex values</option>
+<option value="1 8">Real values</option>
+</select>
+</div>
+
+<div class="class"><select class="myfunc-filter class">
+<option value="1">MATLAB type</option>
+<option value="1">char</option>
+<option value="1 8">double</option>
+<option value="8">logical</option>
+<option value="1 8">uint8</option>
+<option value="8">unknown</option>
+</select>
+</div>
+</div></td>
+</tr>
+</table>
+
+<div class="myfunc-count"></div>
+<table class="myfunc-list" onmouseover="fcnListMouseOver(event);" onmouseout="fcnListMouseOut(event);" onclick="fcnListClick(event);" cellspacing="0" cellpadding="0">
+<tr class="fcn" id="F1N2:M1"><td class=" failed"><a href="#">svsNuclei</a></td></tr>
+<tr class="fcn" id="F8N3:M2"><td class=" failed"><a href="#">svsNuclei &gt; segNucleiMorphMeanshift</a></td></tr>
+</table>
+
+</div>
+
+<!-- Call Tree -->
+<div id="callstackbody" class="ui-tabs-panel hidden">
+<div class="treewrapper" onmouseover="callTreeMouseOver(event);" onmouseout="callTreeMouseOut(event);" onclick="callTreeClick(event);">
+<ol class="tree">
+<!-- Call Tree Root -->
+<li class="leaf failed"><a href="#" class="fcn" id="F1N2:L1">svsNuclei</a>
+</ol>
+<div class="callstacknodes hidden">
+</div>
+</div>
+</div>
+
+<div id="ccodebody" class="ui-tabs-panel hidden">
+</div>
+</div>
+<div class="aux hidden">
+<div class="tooltips">
+<div class="tooltip" id="TT1"><table class="tooltip"><tr><th>Size</th><td>1 x 1 x 3</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>uint8</td></tr></table></div>
+<div class="tooltip" id="TT2"><table class="tooltip"><tr><th>Size</th><td>1 x <b>:</b>?</td></tr><tr><th>Class</th><td>char</td></tr></table></div>
+<div class="tooltip" id="TT3"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>MATLAB type</td></tr></table></div>
+<div class="tooltip" id="TT4"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>logical</td></tr></table></div>
+<div class="tooltip" id="TT5"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>cell</td></tr></table></div>
+<div class="tooltip" id="TT6"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>double</td></tr></table></div>
+<div class="tooltip" id="TT7"><table class="tooltip"><tr><th>Size</th><td><b>:</b>? x <b>:</b>?</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>double</td></tr></table></div>
+<div class="tooltip" id="TT8"><table class="tooltip"><tr><th>Size</th><td>0 x 0</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>double</td></tr></table></div>
+<div class="tooltip" id="TT9"><table class="tooltip"><tr><th>Size</th><td>0 x 0</td></tr><tr><th>Class</th><td>logical</td></tr></table></div>
+<div class="tooltip" id="TT10"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>uint8</td></tr></table></div>
+<div class="tooltip" id="TT11"><table class="tooltip"><tr><th>Size</th><td>1 x 6</td></tr><tr><th>Class</th><td>char</td></tr></table></div>
+<div class="tooltip" id="TT12"><table class="tooltip"><tr><th>Size</th><td>1 x 2</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>double</td></tr></table></div>
+<div class="tooltip" id="TT13"><table class="tooltip"><tr><th>Size</th><td>1 x 2</td></tr><tr><th>Class</th><td>cell</td></tr></table></div>
+<div class="tooltip" id="TT14"><table class="tooltip"><tr><th>Size</th><td>1 x 3</td></tr><tr><th>Class</th><td>char</td></tr></table></div>
+<div class="tooltip" id="TT15"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>int32</td></tr></table></div>
+<div class="tooltip" id="TT16"><table class="tooltip"><tr><th>Size</th><td>1 x 5</td></tr><tr><th>Class</th><td>char</td></tr></table></div>
+<div class="tooltip" id="TT17"><table class="tooltip"><tr><th>Size</th><td><b>:</b>? x <b>:</b>?</td></tr><tr><th>Complex</th><td>No</td></tr><tr><th>Class</th><td>int32</td></tr></table></div>
+<div class="tooltip" id="TT18"><table class="tooltip"><tr><th>Size</th><td>1 x 8</td></tr><tr><th>Class</th><td>char</td></tr></table></div>
+<div class="tooltip" id="TT19"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>char</td></tr></table></div>
+<div class="tooltip" id="TT20"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>unknown</td></tr></table></div>
+<div class="tooltip" id="TT21"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>function</td></tr></table></div>
+<div class="tooltip" id="TT22"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>unknown</td></tr></table></div>
+<div class="tooltip" id="TT23"><table class="tooltip"><tr><th>Size</th><td>1 x 1</td></tr><tr><th>Class</th><td>unknown</td></tr></table></div>
+</div>
+</div>
+
+<div class="south">
+<ul class="ui-tabs-nav">
+<li class="ui-tabs-nav-item"><span class="tab-link" id="summary"><span>Summary</span></span></li>
+<li class="ui-tabs-nav-item ui-tabs-selected"><span class="tab-link" id="messages"><span>All Messages (2)</span></span></li>
+<li class="ui-tabs-nav-item"><span class="tab-link" id="watchlist"><span>Variables</span></span></li>
+<li class="ui-tabs-nav-item hidden"><span class="tab-link" id="watchload"><span>Variables</span></span></li>
+</ul>
+
+<!-- Compilation Summary -->
+<div id="summarybody" class="ui-tabs-panel hidden">
+<table cellpadding="1" cellspacing="4">
+<tr><td>MATLAB code generation attempted on:</td><td>20-Jun-2011 18:18:36</td></tr>
+<tr><td>Coding target:</td><td>C MEX Function</td></tr>
+<tr><td>Number of errors:</td><td><a href="javascript:selectMessagesTab();">2</a></td></tr>
+<tr><td>Number of warnings:</td><td><a href="javascript:selectMessagesTab();">0</a></td></tr>
+</table>
+<p/><p/><table>
+<tr><td><b>Provide Feedback</b></td></tr>
+<tr><td>We value your feedback. Please take a few minutes to answer this short survey regarding the Code Generation Report.</td></tr>
+<tr><td><a href="matlab: web('http://www.customersat3.com/TakeSurvey.asp?si=ELu7GTnTYtk%3D','-browser');">&gt;&gt;Take Survey</a></td></tr>
+</table>
+</div>
+
+<!-- Message Table -->
+<div id="messagesbody" class="ui-tabs-panel">
+<table class="grid" summary="This table lists the messages produced during code generation." cellspacing="0" cellpadding="6">
+<thead>
+<tr>
+<th id="msgorder" scope="col"><div class="d1"><div class="d2"><a href="#">Order</a></div></div></th>
+<th id="msgtype" scope="col"><div class="d1"><div class="d2"><a href="#">Type</a></div></div></th>
+<th id="function" scope="col"><div class="d1"><div class="d2"><a href="#">Function</a></div></div></th>
+<th id="location" scope="col"><div class="d1"><div class="d2"><a href="#">Line</a></div></div></th>
+<th id="text" scope="col"><div class="d1"><div class="d2"><a href="#">Description</a></div></div></th>
+</tr>
+</thead>
+<tbody onmouseover="messagesMouseOver(event);" onmouseout="messagesMouseOut(event);" onclick="messagesClick(event);"">
+<tr class="message error" id="M1F1">
+<td class="msgorder" headers="msgorder"><a href="#">1</a></td>
+<td class="failed" headers="msgtype"></td>
+<td class="function" headers="function"><div>svsNuclei</div></td>
+<td class="location" headers="location"><div>58</div></td>
+<td class="text" headers="text"><div>Expected either a logical, char, int, fi, single, or double. Found a MATLAB type. MATLAB types are returned from calls to the MATLAB interpreter and are not supported inside expressions. They may only be used on the right-hand side of assignments and as arguments to MATLAB calls.</div></td>
+</tr>
+<tr class="message fatal" id="M2F8">
+<td class="msgorder" headers="msgorder"><a href="#">2</a></td>
+<td class="failed" headers="msgtype"></td>
+<td class="function" headers="function"><div>svsNuclei &gt; segNucleiMorphMeanshift</div></td>
+<td class="location" headers="location"><div>126</div></td>
+<td class="text" headers="text"><div>The function 'bwselect' is not supported for standalone code generation. See the documentation for coder.extrinsic to learn how you can use this function in simulation.</div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Watchlist Table -->
+<div id="watchlistbody" class="ui-tabs-panel hidden">
+</div>
+<div id="watchloadbody" class="ui-tabs-panel hidden">
+Loading Variables table ...
+</div>
+
+</div>
+<!-- Begin MATLAB Code Panel -->
+<div class="center">
+<div class="center-title">
+<div class="ui-tabs-nav-item ui-tabs-selected">
+<span class="functiontitle">
+</span>
+<!-- Begin Call Sites -->
+<span id="callsiteselecttable" class="call-sites-tbl">
+<span id="callsiteselectlabel" class="filtered">Callers:</span>
+<select id="callsiteselect" onchange="callSiteChange(event)">
+<option value="callsiteprompt">Select a function call-site:</option>
+</select>
+</span>
+<!-- End Call Sites -->
+</div>
+</div>
+<div class="ui-tabs-panel">
+<div class="code" onmouseover="mcodeMouseOver(event);" onmouseout="mcodeMouseOut(event);"onclick="mcodeClick(event);">
+</div>
+</div>
+</div>
+<!-- End MATLAB Code Panel -->
+</body>
+
+</html>
