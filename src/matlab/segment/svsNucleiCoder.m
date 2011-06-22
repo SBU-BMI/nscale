@@ -1,5 +1,5 @@
 %#codegen
-function svsNuclei(impath,filename,resultpath, folder,tile)
+function svsNucleiCoder(impath,filename,resultpath, folder,tile)
     
     % removed return var of "nuclei"
     if nargin==0
@@ -14,7 +14,7 @@ function svsNuclei(impath,filename,resultpath, folder,tile)
             impath='/Users/kongj/Glioma/Whole_TCGA_Slides/4K/code20x/';
             filename=image{i};
             resultpath=impath;
-            svsNuclei(impath,filename,resultpath,0,0);
+            svsNucleiCoder(impath,filename,resultpath,0,0);
         end
         return;
     end
