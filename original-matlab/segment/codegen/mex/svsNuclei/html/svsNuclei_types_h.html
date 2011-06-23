@@ -1,0 +1,96 @@
+<HTML>
+<HEAD>
+<TITLE>RTW Report - svsNuclei_types.h </TITLE>
+</HEAD>
+<BODY BGCOLOR="#eeeeee" TEXT="#1122aa" ONLOAD="if (top) { if (top.rtwFileOnLoad) top.rtwFileOnLoad(window);}">
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="6" WIDTH="100%" HEIGHT="100%"><TR><TD WIDTH="100%" VALIGN="top" BGCOLOR="#ffffff">
+<H4>File: <A HREF="file:///home/tcpan/PhD/path/src/nscale/src/matlab/segment/codegen/mex/svsNuclei/svsNuclei_types.h" TARGET="rtwreport_document_frame">/home/tcpan/PhD/path/src/nscale/src/matlab/segment/codegen/mex/svsNuclei/svsNuclei_types.h</A></H4>
+<PRE id="RTWcode">
+<FONT COLOR="#888888"><I>    1   </I></FONT><FONT COLOR="#117755"><I>/*</I></FONT>
+<FONT COLOR="#888888"><I>    2   </I></FONT><FONT COLOR="#117755"><I> * svsNuclei_types.h</I></FONT>
+<FONT COLOR="#888888"><I>    3   </I></FONT><FONT COLOR="#117755"><I> *</I></FONT>
+<FONT COLOR="#888888"><I>    4   </I></FONT><FONT COLOR="#117755"><I> * Code generation for function 'svsNuclei'</I></FONT>
+<FONT COLOR="#888888"><I>    5   </I></FONT><FONT COLOR="#117755"><I> *</I></FONT>
+<FONT COLOR="#888888"><I>    6   </I></FONT><FONT COLOR="#117755"><I> * C source code generated on: Tue Jun 21 16:24:30 2011</I></FONT>
+<FONT COLOR="#888888"><I>    7   </I></FONT><FONT COLOR="#117755"><I> *</I></FONT>
+<FONT COLOR="#888888"><I>    8   </I></FONT><FONT COLOR="#117755"><I> */</I></FONT>
+<FONT COLOR="#888888"><I>    9   </I></FONT>
+<FONT COLOR="#888888"><I>   10   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>ifndef</B></FONT> __SVSNUCLEI_TYPES_H__
+<FONT COLOR="#888888"><I>   11   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>define</B></FONT> __SVSNUCLEI_TYPES_H__
+<FONT COLOR="#888888"><I>   12   </I></FONT>
+<FONT COLOR="#888888"><I>   13   </I></FONT><FONT COLOR="#117755"><I>/* Type Definitions */</I></FONT>
+<FONT COLOR="#888888"><I>   14   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>ifndef</B></FONT> struct_emxArray__common
+<FONT COLOR="#888888"><I>   15   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>define</B></FONT> struct_emxArray__common
+<FONT COLOR="#888888"><I>   16   </I></FONT><FONT COLOR="#112266"><B>typedef</B></FONT> <FONT COLOR="#112266"><B>struct</B></FONT> <A HREF="svsNuclei_types_h.html#type_emxArray__common" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray__common')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray__common</FONT></A>
+<FONT COLOR="#888888"><I>   17   </I></FONT><B>{</B>
+<FONT COLOR="#888888"><I>   18   </I></FONT>    <FONT COLOR="#112266"><B>void</B></FONT> *data;
+<FONT COLOR="#888888"><I>   19   </I></FONT>    int32_T *size;
+<FONT COLOR="#888888"><I>   20   </I></FONT>    int32_T allocatedSize;
+<FONT COLOR="#888888"><I>   21   </I></FONT>    int32_T numDimensions;
+<FONT COLOR="#888888"><I>   22   </I></FONT>    boolean_T canFreeData;
+<FONT COLOR="#888888"><I>   23   </I></FONT><B>}</B> <A NAME="type_emxArray__common">emxArray__common</A>;
+<FONT COLOR="#888888"><I>   24   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>endif</B></FONT>
+<FONT COLOR="#888888"><I>   25   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>ifndef</B></FONT> struct_emxArray_char_T
+<FONT COLOR="#888888"><I>   26   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>define</B></FONT> struct_emxArray_char_T
+<FONT COLOR="#888888"><I>   27   </I></FONT><FONT COLOR="#112266"><B>typedef</B></FONT> <FONT COLOR="#112266"><B>struct</B></FONT> <A HREF="svsNuclei_types_h.html#type_emxArray_char_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_char_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_char_T</FONT></A>
+<FONT COLOR="#888888"><I>   28   </I></FONT><B>{</B>
+<FONT COLOR="#888888"><I>   29   </I></FONT>    char_T *data;
+<FONT COLOR="#888888"><I>   30   </I></FONT>    int32_T *size;
+<FONT COLOR="#888888"><I>   31   </I></FONT>    int32_T allocatedSize;
+<FONT COLOR="#888888"><I>   32   </I></FONT>    int32_T numDimensions;
+<FONT COLOR="#888888"><I>   33   </I></FONT>    boolean_T canFreeData;
+<FONT COLOR="#888888"><I>   34   </I></FONT><B>}</B> <A NAME="type_emxArray_char_T">emxArray_char_T</A>;
+<FONT COLOR="#888888"><I>   35   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>endif</B></FONT>
+<FONT COLOR="#888888"><I>   36   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>ifndef</B></FONT> struct_emxArray_int32_T
+<FONT COLOR="#888888"><I>   37   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>define</B></FONT> struct_emxArray_int32_T
+<FONT COLOR="#888888"><I>   38   </I></FONT><FONT COLOR="#112266"><B>typedef</B></FONT> <FONT COLOR="#112266"><B>struct</B></FONT> <A HREF="svsNuclei_types_h.html#type_emxArray_int32_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_int32_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_int32_T</FONT></A>
+<FONT COLOR="#888888"><I>   39   </I></FONT><B>{</B>
+<FONT COLOR="#888888"><I>   40   </I></FONT>    int32_T *data;
+<FONT COLOR="#888888"><I>   41   </I></FONT>    int32_T *size;
+<FONT COLOR="#888888"><I>   42   </I></FONT>    int32_T allocatedSize;
+<FONT COLOR="#888888"><I>   43   </I></FONT>    int32_T numDimensions;
+<FONT COLOR="#888888"><I>   44   </I></FONT>    boolean_T canFreeData;
+<FONT COLOR="#888888"><I>   45   </I></FONT><B>}</B> <A NAME="type_emxArray_int32_T">emxArray_int32_T</A>;
+<FONT COLOR="#888888"><I>   46   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>endif</B></FONT>
+<FONT COLOR="#888888"><I>   47   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>ifndef</B></FONT> struct_emxArray_real_T
+<FONT COLOR="#888888"><I>   48   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>define</B></FONT> struct_emxArray_real_T
+<FONT COLOR="#888888"><I>   49   </I></FONT><FONT COLOR="#112266"><B>typedef</B></FONT> <FONT COLOR="#112266"><B>struct</B></FONT> <A HREF="svsNuclei_types_h.html#type_emxArray_real_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_real_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_real_T</FONT></A>
+<FONT COLOR="#888888"><I>   50   </I></FONT><B>{</B>
+<FONT COLOR="#888888"><I>   51   </I></FONT>    real_T *data;
+<FONT COLOR="#888888"><I>   52   </I></FONT>    int32_T *size;
+<FONT COLOR="#888888"><I>   53   </I></FONT>    int32_T allocatedSize;
+<FONT COLOR="#888888"><I>   54   </I></FONT>    int32_T numDimensions;
+<FONT COLOR="#888888"><I>   55   </I></FONT>    boolean_T canFreeData;
+<FONT COLOR="#888888"><I>   56   </I></FONT><B>}</B> <A NAME="type_emxArray_real_T">emxArray_real_T</A>;
+<FONT COLOR="#888888"><I>   57   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>endif</B></FONT>
+<FONT COLOR="#888888"><I>   58   </I></FONT><FONT COLOR="#112266"><B>typedef</B></FONT> <FONT COLOR="#112266"><B>struct</B></FONT>
+<FONT COLOR="#888888"><I>   59   </I></FONT><B>{</B>
+<FONT COLOR="#888888"><I>   60   </I></FONT>    <FONT COLOR="#112266"><B>struct</B></FONT>
+<FONT COLOR="#888888"><I>   61   </I></FONT>    <B>{</B>
+<FONT COLOR="#888888"><I>   62   </I></FONT>        real_T imR2G[16777216];
+<FONT COLOR="#888888"><I>   63   </I></FONT>        uint32_T water[16777216];
+<FONT COLOR="#888888"><I>   64   </I></FONT>        boolean_T b_imR2G[16777216];
+<FONT COLOR="#888888"><I>   65   </I></FONT>        boolean_T rbc[16777216];
+<FONT COLOR="#888888"><I>   66   </I></FONT>        boolean_T bw[16777216];
+<FONT COLOR="#888888"><I>   67   </I></FONT>        uint8_T rc[16777216];
+<FONT COLOR="#888888"><I>   68   </I></FONT>        uint8_T rc_recon[16777216];
+<FONT COLOR="#888888"><I>   69   </I></FONT>    <B>}</B> f0;
+<FONT COLOR="#888888"><I>   70   </I></FONT>    <FONT COLOR="#112266"><B>struct</B></FONT>
+<FONT COLOR="#888888"><I>   71   </I></FONT>    <B>{</B>
+<FONT COLOR="#888888"><I>   72   </I></FONT>        real_T L[16777216];
+<FONT COLOR="#888888"><I>   73   </I></FONT>        uint8_T I[50331648];
+<FONT COLOR="#888888"><I>   74   </I></FONT>        boolean_T BW[16777216];
+<FONT COLOR="#888888"><I>   75   </I></FONT>        uint8_T R[16777216];
+<FONT COLOR="#888888"><I>   76   </I></FONT>        uint8_T G[16777216];
+<FONT COLOR="#888888"><I>   77   </I></FONT>        uint8_T B[16777216];
+<FONT COLOR="#888888"><I>   78   </I></FONT>    <B>}</B> f1;
+<FONT COLOR="#888888"><I>   79   </I></FONT><B>}</B> <A NAME="type_svsNucleiStackData">svsNucleiStackData</A>;
+<FONT COLOR="#888888"><I>   80   </I></FONT>
+<FONT COLOR="#888888"><I>   81   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>endif</B></FONT>
+<FONT COLOR="#888888"><I>   82   </I></FONT><FONT COLOR="#117755"><I>/* End of code generation (svsNuclei_types.h) */</I></FONT>
+<FONT COLOR="#888888"><I>   83   </I></FONT></PRE>
+</TD></TR></TABLE>
+</P>
+</BODY>
+</HTML>

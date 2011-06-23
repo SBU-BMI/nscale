@@ -1,0 +1,9 @@
+MEX {
+	global:
+		mexFunction;
+		svsNuclei;
+		svsNuclei_initialize;
+		svsNuclei_terminate;
+	local:
+		*;
+};

@@ -1,0 +1,178 @@
+<HTML>
+<HEAD>
+<TITLE>RTW Report - ind2sub.c </TITLE>
+</HEAD>
+<BODY BGCOLOR="#eeeeee" TEXT="#1122aa" ONLOAD="if (top) { if (top.rtwFileOnLoad) top.rtwFileOnLoad(window);}">
+<P>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="6" WIDTH="100%" HEIGHT="100%"><TR><TD WIDTH="100%" VALIGN="top" BGCOLOR="#ffffff">
+<H4>File: <A HREF="file:///home/tcpan/PhD/path/src/nscale/src/matlab/segment/codegen/mex/svsNuclei/ind2sub.c" TARGET="rtwreport_document_frame">/home/tcpan/PhD/path/src/nscale/src/matlab/segment/codegen/mex/svsNuclei/ind2sub.c</A></H4>
+<PRE id="RTWcode">
+<FONT COLOR="#888888"><I>    1   </I></FONT><FONT COLOR="#117755"><I>/*</I></FONT>
+<FONT COLOR="#888888"><I>    2   </I></FONT><FONT COLOR="#117755"><I> * ind2sub.c</I></FONT>
+<FONT COLOR="#888888"><I>    3   </I></FONT><FONT COLOR="#117755"><I> *</I></FONT>
+<FONT COLOR="#888888"><I>    4   </I></FONT><FONT COLOR="#117755"><I> * Code generation for function 'ind2sub'</I></FONT>
+<FONT COLOR="#888888"><I>    5   </I></FONT><FONT COLOR="#117755"><I> *</I></FONT>
+<FONT COLOR="#888888"><I>    6   </I></FONT><FONT COLOR="#117755"><I> * C source code generated on: Tue Jun 21 16:24:31 2011</I></FONT>
+<FONT COLOR="#888888"><I>    7   </I></FONT><FONT COLOR="#117755"><I> *</I></FONT>
+<FONT COLOR="#888888"><I>    8   </I></FONT><FONT COLOR="#117755"><I> */</I></FONT>
+<FONT COLOR="#888888"><I>    9   </I></FONT>
+<FONT COLOR="#888888"><I>   10   </I></FONT><FONT COLOR="#117755"><I>/* Include files */</I></FONT>
+<FONT COLOR="#888888"><I>   11   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>include</B></FONT> <FONT COLOR="#992211">&quot;rt_nonfinite.h&quot;</FONT>
+<FONT COLOR="#888888"><I>   12   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>include</B></FONT> <FONT COLOR="#992211">&quot;svsNuclei.h&quot;</FONT>
+<FONT COLOR="#888888"><I>   13   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>include</B></FONT> <FONT COLOR="#992211">&quot;ind2sub.h&quot;</FONT>
+<FONT COLOR="#888888"><I>   14   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>include</B></FONT> <FONT COLOR="#992211">&quot;svsNuclei_emxutil.h&quot;</FONT>
+<FONT COLOR="#888888"><I>   15   </I></FONT><FONT COLOR="#992211">#</FONT><FONT COLOR="#992211"><B>include</B></FONT> <FONT COLOR="#992211">&quot;svsNuclei_mexutil.h&quot;</FONT>
+<FONT COLOR="#888888"><I>   16   </I></FONT>
+<FONT COLOR="#888888"><I>   17   </I></FONT><FONT COLOR="#117755"><I>/* Type Definitions */</I></FONT>
+<FONT COLOR="#888888"><I>   18   </I></FONT>
+<FONT COLOR="#888888"><I>   19   </I></FONT><FONT COLOR="#117755"><I>/* Named Constants */</I></FONT>
+<FONT COLOR="#888888"><I>   20   </I></FONT>
+<FONT COLOR="#888888"><I>   21   </I></FONT><FONT COLOR="#117755"><I>/* Variable Declarations */</I></FONT>
+<FONT COLOR="#888888"><I>   22   </I></FONT>
+<FONT COLOR="#888888"><I>   23   </I></FONT><FONT COLOR="#117755"><I>/* Variable Definitions */</I></FONT>
+<FONT COLOR="#888888"><I>   24   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtRSInfo <A NAME="var_lb_emlrtRSI">lb_emlrtRSI</A> = <B>{</B> 32, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   25   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtRSInfo <A NAME="var_mb_emlrtRSI">mb_emlrtRSI</A> = <B>{</B> 32, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   26   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtRSInfo <A NAME="var_nb_emlrtRSI">nb_emlrtRSI</A> = <B>{</B> 38, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   27   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtMCInfo <A NAME="var_ab_emlrtMCI">ab_emlrtMCI</A> = <B>{</B> 33, 5, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   28   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtMCInfo <A NAME="var_bb_emlrtMCI">bb_emlrtMCI</A> = <B>{</B> 32, 15, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   29   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtRTEInfo <A NAME="var_f_emlrtRTEI">f_emlrtRTEI</A> = <B>{</B> 1, 22, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   30   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtRTEInfo <A NAME="var_g_emlrtRTEI">g_emlrtRTEI</A> = <B>{</B> 34, 1, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   31   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtRTEInfo <A NAME="var_h_emlrtRTEI">h_emlrtRTEI</A> = <B>{</B> 36, 5, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   32   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtECInfo <A NAME="var_b_emlrtECI">b_emlrtECI</A> = <B>{</B> 1, 11, 5, <FONT COLOR="#1122ff">&quot;eml_index_minus&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/eml/eml_index_minus.m&quot;</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   33   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtBCInfo <A NAME="var_i_emlrtBCI">i_emlrtBCI</A> = <B>{</B> -1, -1, 61, 10, <FONT COLOR="#1122ff">&quot;&quot;</FONT>, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT>, 0 <B>}</B>;
+<FONT COLOR="#888888"><I>   34   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> emlrtBCInfo <A NAME="var_j_emlrtBCI">j_emlrtBCI</A> = <B>{</B> -1, -1, 61, 24, <FONT COLOR="#1122ff">&quot;&quot;</FONT>, <FONT COLOR="#1122ff">&quot;ind2sub&quot;</FONT>, <FONT COLOR="#1122ff">&quot;/usr/local/MATLAB/R2011a/toolbox/eml/lib/matlab/elmat/ind2sub.m&quot;</FONT>, 0 <B>}</B>;
+<FONT COLOR="#888888"><I>   35   </I></FONT>
+<FONT COLOR="#888888"><I>   36   </I></FONT><FONT COLOR="#117755"><I>/* Function Declarations */</I></FONT>
+<FONT COLOR="#888888"><I>   37   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> <FONT COLOR="#112266"><B>const</B></FONT> mxArray *<A HREF="ind2sub_c.html#fcn_message" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_message');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">message</FONT></A>(<FONT COLOR="#112266"><B>const</B></FONT> mxArray *b, emlrtMCInfo *location);
+<FONT COLOR="#888888"><I>   38   </I></FONT>
+<FONT COLOR="#888888"><I>   39   </I></FONT><FONT COLOR="#117755"><I>/* Function Definitions */</I></FONT>
+<FONT COLOR="#888888"><I>   40   </I></FONT>
+<FONT COLOR="#888888"><I>   41   </I></FONT><FONT COLOR="#112266"><B>static</B></FONT> <FONT COLOR="#112266"><B>const</B></FONT> mxArray *<A NAME="fcn_message">message</A>(<FONT COLOR="#112266"><B>const</B></FONT> mxArray *b, emlrtMCInfo *location)
+<FONT COLOR="#888888"><I>   42   </I></FONT><B>{</B>
+<FONT COLOR="#888888"><I>   43   </I></FONT>    <FONT COLOR="#112266"><B>const</B></FONT> mxArray *pArray;
+<FONT COLOR="#888888"><I>   44   </I></FONT>    <FONT COLOR="#112266"><B>const</B></FONT> mxArray *m28;
+<FONT COLOR="#888888"><I>   45   </I></FONT>    pArray = b;
+<FONT COLOR="#888888"><I>   46   </I></FONT>    <FONT COLOR="#112266"><B>return</B></FONT> emlrtCallMATLAB(1, &amp;m28, 1, &amp;pArray, <FONT COLOR="#1122ff">&quot;message&quot;</FONT>, TRUE, location);
+<FONT COLOR="#888888"><I>   47   </I></FONT><B>}</B>
+<FONT COLOR="#888888"><I>   48   </I></FONT>
+<FONT COLOR="#888888"><I>   49   </I></FONT><FONT COLOR="#117755"><I>/*</I></FONT>
+<FONT COLOR="#888888"><I>   50   </I></FONT><FONT COLOR="#117755"><I> * </I></FONT>
+<FONT COLOR="#888888"><I>   51   </I></FONT><FONT COLOR="#117755"><I> */</I></FONT>
+<FONT COLOR="#888888"><I>   52   </I></FONT><FONT COLOR="#112266"><B>void</B></FONT> <A NAME="fcn_ind2sub">ind2sub</A>(<FONT COLOR="#112266"><B>const</B></FONT> <A HREF="svsNuclei_types_h.html#type_emxArray_real_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_real_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_real_T</FONT></A> *ndx, <A HREF="svsNuclei_types_h.html#type_emxArray_real_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_real_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_real_T</FONT></A> *varargout_1, <A HREF="svsNuclei_types_h.html#type_emxArray_real_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_real_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_real_T</FONT></A> *varargout_2)
+<FONT COLOR="#888888"><I>   53   </I></FONT><B>{</B>
+<FONT COLOR="#888888"><I>   54   </I></FONT>    uint32_T k;
+<FONT COLOR="#888888"><I>   55   </I></FONT>    int32_T exitg1;
+<FONT COLOR="#888888"><I>   56   </I></FONT>    boolean_T b0;
+<FONT COLOR="#888888"><I>   57   </I></FONT>    <FONT COLOR="#112266"><B>const</B></FONT> mxArray *y;
+<FONT COLOR="#888888"><I>   58   </I></FONT>    <FONT COLOR="#112266"><B>static</B></FONT> <FONT COLOR="#112266"><B>const</B></FONT> int32_T iv24[2] = <B>{</B> 1, 36 <B>}</B>;
+<FONT COLOR="#888888"><I>   59   </I></FONT>    <FONT COLOR="#112266"><B>const</B></FONT> mxArray *m2;
+<FONT COLOR="#888888"><I>   60   </I></FONT>    <FONT COLOR="#112266"><B>static</B></FONT> <FONT COLOR="#112266"><B>const</B></FONT> char_T cv6[36] = <B>{</B> <FONT COLOR="#1122ff">'C'</FONT>, <FONT COLOR="#1122ff">'o'</FONT>, <FONT COLOR="#1122ff">'d'</FONT>, <FONT COLOR="#1122ff">'e'</FONT>, <FONT COLOR="#1122ff">'r'</FONT>, <FONT COLOR="#1122ff">':'</FONT>, <FONT COLOR="#1122ff">'M'</FONT>, <FONT COLOR="#1122ff">'A'</FONT>, <FONT COLOR="#1122ff">'T'</FONT>, <FONT COLOR="#1122ff">'L'</FONT>, <FONT COLOR="#1122ff">'A'</FONT>, <FONT COLOR="#1122ff">'B'</FONT>, <FONT COLOR="#1122ff">':'</FONT>, <FONT COLOR="#1122ff">'i'</FONT>, <FONT COLOR="#1122ff">'n'</FONT>, <FONT COLOR="#1122ff">'d'</FONT>, <FONT COLOR="#1122ff">'2'</FONT>, <FONT COLOR="#1122ff">'s'</FONT>, <FONT COLOR="#1122ff">'u'</FONT>, <FONT COLOR="#1122ff">'b'</FONT>, <FONT COLOR="#1122ff">'_'</FONT>, <FONT COLOR="#1122ff">'I'</FONT>, <FONT COLOR="#1122ff">'n'</FONT>, <FONT COLOR="#1122ff">'d'</FONT>, <FONT COLOR="#1122ff">'e'</FONT>, <FONT COLOR="#1122ff">'x'</FONT>, <FONT COLOR="#1122ff">'O'</FONT>, <FONT COLOR="#1122ff">'u'</FONT>, <FONT COLOR="#1122ff">'t'</FONT>, <FONT COLOR="#1122ff">'O'</FONT>, <FONT COLOR="#1122ff">'f'</FONT>, <FONT COLOR="#1122ff">'R'</FONT>, <FONT COLOR="#1122ff">'a'</FONT>, <FONT COLOR="#1122ff">'n'</FONT>, <FONT COLOR="#1122ff">'g'</FONT>, <FONT COLOR="#1122ff">'e'</FONT> <B>}</B>;
+<FONT COLOR="#888888"><I>   61   </I></FONT>    <A HREF="svsNuclei_types_h.html#type_emxArray_int32_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_int32_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_int32_T</FONT></A> *v1;
+<FONT COLOR="#888888"><I>   62   </I></FONT>    int32_T i2;
+<FONT COLOR="#888888"><I>   63   </I></FONT>    int32_T loop_ub;
+<FONT COLOR="#888888"><I>   64   </I></FONT>    real_T d0;
+<FONT COLOR="#888888"><I>   65   </I></FONT>    int32_T i3;
+<FONT COLOR="#888888"><I>   66   </I></FONT>    <A HREF="svsNuclei_types_h.html#type_emxArray_int32_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray_int32_T')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray_int32_T</FONT></A> *vk;
+<FONT COLOR="#888888"><I>   67   </I></FONT>    emlrtHeapReferenceStackEnterFcn();
+<FONT COLOR="#888888"><I>   68   </I></FONT>    EMLRTPUSHRTSTACK(&amp;<A HREF="ind2sub_c.html#var_lb_emlrtRSI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_lb_emlrtRSI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">lb_emlrtRSI</FONT></A>);
+<FONT COLOR="#888888"><I>   69   </I></FONT>    k = 1U;
+<FONT COLOR="#888888"><I>   70   </I></FONT>    <FONT COLOR="#112266"><B>do</B></FONT> <B>{</B>
+<FONT COLOR="#888888"><I>   71   </I></FONT>        exitg1 = 0U;
+<FONT COLOR="#888888"><I>   72   </I></FONT>        <FONT COLOR="#112266"><B>if</B></FONT> (k &lt;= (uint32_T)ndx-&gt;size[0]) <B>{</B>
+<FONT COLOR="#888888"><I>   73   </I></FONT>            <FONT COLOR="#112266"><B>if</B></FONT> ((ndx-&gt;data[emlrtDynamicBoundsCheckR2011a((int32_T)k, 1, ndx-&gt;size[0], &amp;<A HREF="ind2sub_c.html#var_i_emlrtBCI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_i_emlrtBCI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">i_emlrtBCI</FONT></A>, &amp;<A HREF="svsNuclei_mex_c.html#var_emlrtContextGlobal" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_emlrtContextGlobal');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emlrtContextGlobal</FONT></A>) - 1] &gt;= 1.0) &amp;&amp; (ndx-&gt;data[emlrtDynamicBoundsCheckR2011a((int32_T)k, 1, ndx-&gt;size[0], &amp;<A HREF="ind2sub_c.html#var_j_emlrtBCI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_j_emlrtBCI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">j_emlrtBCI</FONT></A>, &amp;<A HREF="svsNuclei_mex_c.html#var_emlrtContextGlobal" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_emlrtContextGlobal');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emlrtContextGlobal</FONT></A>) - 1] &lt;= 1.6777216E+7)) <B>{</B>
+<FONT COLOR="#888888"><I>   74   </I></FONT>                b0 = TRUE;
+<FONT COLOR="#888888"><I>   75   </I></FONT>            <B>}</B> <FONT COLOR="#112266"><B>else</B></FONT> <B>{</B>
+<FONT COLOR="#888888"><I>   76   </I></FONT>                b0 = FALSE;
+<FONT COLOR="#888888"><I>   77   </I></FONT>            <B>}</B>
+<FONT COLOR="#888888"><I>   78   </I></FONT>            <FONT COLOR="#112266"><B>if</B></FONT> (!b0) <B>{</B>
+<FONT COLOR="#888888"><I>   79   </I></FONT>                b0 = FALSE;
+<FONT COLOR="#888888"><I>   80   </I></FONT>                exitg1 = 1U;
+<FONT COLOR="#888888"><I>   81   </I></FONT>            <B>}</B> <FONT COLOR="#112266"><B>else</B></FONT> <B>{</B>
+<FONT COLOR="#888888"><I>   82   </I></FONT>                k++;
+<FONT COLOR="#888888"><I>   83   </I></FONT>            <B>}</B>
+<FONT COLOR="#888888"><I>   84   </I></FONT>        <B>}</B> <FONT COLOR="#112266"><B>else</B></FONT> <B>{</B>
+<FONT COLOR="#888888"><I>   85   </I></FONT>            b0 = TRUE;
+<FONT COLOR="#888888"><I>   86   </I></FONT>            exitg1 = 1U;
+<FONT COLOR="#888888"><I>   87   </I></FONT>        <B>}</B>
+<FONT COLOR="#888888"><I>   88   </I></FONT>    <B>}</B> <FONT COLOR="#112266"><B>while</B></FONT> (exitg1 == 0U);
+<FONT COLOR="#888888"><I>   89   </I></FONT>    EMLRTPOPRTSTACK(&amp;<A HREF="ind2sub_c.html#var_lb_emlrtRSI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_lb_emlrtRSI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">lb_emlrtRSI</FONT></A>);
+<FONT COLOR="#888888"><I>   90   </I></FONT>    <FONT COLOR="#112266"><B>if</B></FONT> (b0) <B>{</B>
+<FONT COLOR="#888888"><I>   91   </I></FONT>    <B>}</B> <FONT COLOR="#112266"><B>else</B></FONT> <B>{</B>
+<FONT COLOR="#888888"><I>   92   </I></FONT>        EMLRTPUSHRTSTACK(&amp;<A HREF="ind2sub_c.html#var_mb_emlrtRSI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_mb_emlrtRSI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">mb_emlrtRSI</FONT></A>);
+<FONT COLOR="#888888"><I>   93   </I></FONT>        y = NULL;
+<FONT COLOR="#888888"><I>   94   </I></FONT>        m2 = mxCreateCharArray(2, iv24);
+<FONT COLOR="#888888"><I>   95   </I></FONT>        emlrtInitCharArray(36, m2, cv6);
+<FONT COLOR="#888888"><I>   96   </I></FONT>        emlrtAssign(&amp;y, m2);
+<FONT COLOR="#888888"><I>   97   </I></FONT>        <A HREF="svsNuclei_mexutil_c.html#fcn_error" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_error');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">error</FONT></A>(<A HREF="ind2sub_c.html#fcn_message" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_message');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">message</FONT></A>(y, &amp;<A HREF="ind2sub_c.html#var_ab_emlrtMCI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_ab_emlrtMCI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">ab_emlrtMCI</FONT></A>), &amp;<A HREF="ind2sub_c.html#var_bb_emlrtMCI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_bb_emlrtMCI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">bb_emlrtMCI</FONT></A>);
+<FONT COLOR="#888888"><I>   98   </I></FONT>        EMLRTPOPRTSTACK(&amp;<A HREF="ind2sub_c.html#var_mb_emlrtRSI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_mb_emlrtRSI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">mb_emlrtRSI</FONT></A>);
+<FONT COLOR="#888888"><I>   99   </I></FONT>    <B>}</B>
+<FONT COLOR="#888888"><I>  100   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxInit_int32_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxInit_int32_T');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxInit_int32_T</FONT></A>(&amp;v1, 1, &amp;<A HREF="ind2sub_c.html#var_g_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_g_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">g_emlrtRTEI</FONT></A>, TRUE);
+<FONT COLOR="#888888"><I>  101   </I></FONT>    i2 = v1-&gt;size[0];
+<FONT COLOR="#888888"><I>  102   </I></FONT>    v1-&gt;size[0] = ndx-&gt;size[0];
+<FONT COLOR="#888888"><I>  103   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxEnsureCapacity" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxEnsureCapacity');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxEnsureCapacity</FONT></A>((<A HREF="svsNuclei_types_h.html#type_emxArray__common" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray__common')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray__common</FONT></A> *)v1, i2, (int32_T)<FONT COLOR="#112266"><B>sizeof</B></FONT>(int32_T), &amp;<A HREF="ind2sub_c.html#var_f_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_f_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">f_emlrtRTEI</FONT></A>);
+<FONT COLOR="#888888"><I>  104   </I></FONT>    loop_ub = ndx-&gt;size[0] - 1;
+<FONT COLOR="#888888"><I>  105   </I></FONT>    <FONT COLOR="#112266"><B>for</B></FONT> (i2 = 0; i2 &lt;= loop_ub; i2++) <B>{</B>
+<FONT COLOR="#888888"><I>  106   </I></FONT>        d0 = ndx-&gt;data[i2];
+<FONT COLOR="#888888"><I>  107   </I></FONT>        d0 = d0 &lt; 0.0 ? muDoubleScalarCeil(d0 - 0.5) : muDoubleScalarFloor(d0 + 0.5);
+<FONT COLOR="#888888"><I>  108   </I></FONT>        <FONT COLOR="#112266"><B>if</B></FONT> (d0 &lt; 2.147483648E+9) <B>{</B>
+<FONT COLOR="#888888"><I>  109   </I></FONT>            <FONT COLOR="#112266"><B>if</B></FONT> (d0 &gt;= -2.147483648E+9) <B>{</B>
+<FONT COLOR="#888888"><I>  110   </I></FONT>                i3 = (int32_T)d0;
+<FONT COLOR="#888888"><I>  111   </I></FONT>            <B>}</B> <FONT COLOR="#112266"><B>else</B></FONT> <B>{</B>
+<FONT COLOR="#888888"><I>  112   </I></FONT>                i3 = MIN_int32_T;
+<FONT COLOR="#888888"><I>  113   </I></FONT>            <B>}</B>
+<FONT COLOR="#888888"><I>  114   </I></FONT>        <B>}</B> <FONT COLOR="#112266"><B>else</B></FONT> <FONT COLOR="#112266"><B>if</B></FONT> (d0 &gt;= 2.147483648E+9) <B>{</B>
+<FONT COLOR="#888888"><I>  115   </I></FONT>            i3 = MAX_int32_T;
+<FONT COLOR="#888888"><I>  116   </I></FONT>        <B>}</B> <FONT COLOR="#112266"><B>else</B></FONT> <B>{</B>
+<FONT COLOR="#888888"><I>  117   </I></FONT>            i3 = 0;
+<FONT COLOR="#888888"><I>  118   </I></FONT>        <B>}</B>
+<FONT COLOR="#888888"><I>  119   </I></FONT>        v1-&gt;data[i2] = i3 - 1;
+<FONT COLOR="#888888"><I>  120   </I></FONT>    <B>}</B>
+<FONT COLOR="#888888"><I>  121   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxInit_int32_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxInit_int32_T');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxInit_int32_T</FONT></A>(&amp;vk, 1, &amp;<A HREF="ind2sub_c.html#var_h_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_h_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">h_emlrtRTEI</FONT></A>, TRUE);
+<FONT COLOR="#888888"><I>  122   </I></FONT>    i2 = vk-&gt;size[0];
+<FONT COLOR="#888888"><I>  123   </I></FONT>    vk-&gt;size[0] = v1-&gt;size[0];
+<FONT COLOR="#888888"><I>  124   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxEnsureCapacity" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxEnsureCapacity');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxEnsureCapacity</FONT></A>((<A HREF="svsNuclei_types_h.html#type_emxArray__common" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray__common')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray__common</FONT></A> *)vk, i2, (int32_T)<FONT COLOR="#112266"><B>sizeof</B></FONT>(int32_T), &amp;<A HREF="ind2sub_c.html#var_f_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_f_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">f_emlrtRTEI</FONT></A>);
+<FONT COLOR="#888888"><I>  125   </I></FONT>    loop_ub = v1-&gt;size[0] - 1;
+<FONT COLOR="#888888"><I>  126   </I></FONT>    <FONT COLOR="#112266"><B>for</B></FONT> (i2 = 0; i2 &lt;= loop_ub; i2++) <B>{</B>
+<FONT COLOR="#888888"><I>  127   </I></FONT>        i3 = v1-&gt;data[i2];
+<FONT COLOR="#888888"><I>  128   </I></FONT>        i3 += i3 &lt; 0 ? 4095 : 0;
+<FONT COLOR="#888888"><I>  129   </I></FONT>        vk-&gt;data[i2] = i3 &gt;= 0 ? (int32_T)((uint32_T)i3 &gt;&gt; 12) : ~(int32_T)((uint32_T)~i3 &gt;&gt; 12);
+<FONT COLOR="#888888"><I>  130   </I></FONT>    <B>}</B>
+<FONT COLOR="#888888"><I>  131   </I></FONT>    i2 = varargout_2-&gt;size[0];
+<FONT COLOR="#888888"><I>  132   </I></FONT>    varargout_2-&gt;size[0] = vk-&gt;size[0];
+<FONT COLOR="#888888"><I>  133   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxEnsureCapacity" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxEnsureCapacity');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxEnsureCapacity</FONT></A>((<A HREF="svsNuclei_types_h.html#type_emxArray__common" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray__common')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray__common</FONT></A> *)varargout_2, i2, (int32_T)<FONT COLOR="#112266"><B>sizeof</B></FONT>(real_T), &amp;<A HREF="ind2sub_c.html#var_f_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_f_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">f_emlrtRTEI</FONT></A>);
+<FONT COLOR="#888888"><I>  134   </I></FONT>    loop_ub = vk-&gt;size[0] - 1;
+<FONT COLOR="#888888"><I>  135   </I></FONT>    <FONT COLOR="#112266"><B>for</B></FONT> (i2 = 0; i2 &lt;= loop_ub; i2++) <B>{</B>
+<FONT COLOR="#888888"><I>  136   </I></FONT>        varargout_2-&gt;data[i2] = (real_T)(vk-&gt;data[i2] + 1);
+<FONT COLOR="#888888"><I>  137   </I></FONT>    <B>}</B>
+<FONT COLOR="#888888"><I>  138   </I></FONT>    EMLRTPUSHRTSTACK(&amp;<A HREF="ind2sub_c.html#var_nb_emlrtRSI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_nb_emlrtRSI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">nb_emlrtRSI</FONT></A>);
+<FONT COLOR="#888888"><I>  139   </I></FONT>    i2 = vk-&gt;size[0];
+<FONT COLOR="#888888"><I>  140   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxEnsureCapacity" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxEnsureCapacity');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxEnsureCapacity</FONT></A>((<A HREF="svsNuclei_types_h.html#type_emxArray__common" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray__common')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray__common</FONT></A> *)vk, i2, (int32_T)<FONT COLOR="#112266"><B>sizeof</B></FONT>(int32_T), &amp;<A HREF="ind2sub_c.html#var_f_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_f_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">f_emlrtRTEI</FONT></A>);
+<FONT COLOR="#888888"><I>  141   </I></FONT>    loop_ub = vk-&gt;size[0] - 1;
+<FONT COLOR="#888888"><I>  142   </I></FONT>    <FONT COLOR="#112266"><B>for</B></FONT> (i2 = 0; i2 &lt;= loop_ub; i2++) <B>{</B>
+<FONT COLOR="#888888"><I>  143   </I></FONT>        vk-&gt;data[i2] &lt;&lt;= 12;
+<FONT COLOR="#888888"><I>  144   </I></FONT>    <B>}</B>
+<FONT COLOR="#888888"><I>  145   </I></FONT>    emlrtSizeEqCheckNDR2011a(*(int32_T (*)[1])v1-&gt;size, *(int32_T (*)[1])vk-&gt;size, &amp;<A HREF="ind2sub_c.html#var_b_emlrtECI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_b_emlrtECI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">b_emlrtECI</FONT></A>, &amp;<A HREF="svsNuclei_mex_c.html#var_emlrtContextGlobal" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_emlrtContextGlobal');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emlrtContextGlobal</FONT></A>);
+<FONT COLOR="#888888"><I>  146   </I></FONT>    i2 = v1-&gt;size[0];
+<FONT COLOR="#888888"><I>  147   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxEnsureCapacity" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxEnsureCapacity');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxEnsureCapacity</FONT></A>((<A HREF="svsNuclei_types_h.html#type_emxArray__common" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray__common')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray__common</FONT></A> *)v1, i2, (int32_T)<FONT COLOR="#112266"><B>sizeof</B></FONT>(int32_T), &amp;<A HREF="ind2sub_c.html#var_f_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_f_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">f_emlrtRTEI</FONT></A>);
+<FONT COLOR="#888888"><I>  148   </I></FONT>    loop_ub = v1-&gt;size[0] - 1;
+<FONT COLOR="#888888"><I>  149   </I></FONT>    <FONT COLOR="#112266"><B>for</B></FONT> (i2 = 0; i2 &lt;= loop_ub; i2++) <B>{</B>
+<FONT COLOR="#888888"><I>  150   </I></FONT>        v1-&gt;data[i2] -= vk-&gt;data[i2];
+<FONT COLOR="#888888"><I>  151   </I></FONT>    <B>}</B>
+<FONT COLOR="#888888"><I>  152   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxFree_int32_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxFree_int32_T');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxFree_int32_T</FONT></A>(&amp;vk);
+<FONT COLOR="#888888"><I>  153   </I></FONT>    EMLRTPOPRTSTACK(&amp;<A HREF="ind2sub_c.html#var_nb_emlrtRSI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_nb_emlrtRSI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">nb_emlrtRSI</FONT></A>);
+<FONT COLOR="#888888"><I>  154   </I></FONT>    i2 = varargout_1-&gt;size[0];
+<FONT COLOR="#888888"><I>  155   </I></FONT>    varargout_1-&gt;size[0] = v1-&gt;size[0];
+<FONT COLOR="#888888"><I>  156   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxEnsureCapacity" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxEnsureCapacity');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxEnsureCapacity</FONT></A>((<A HREF="svsNuclei_types_h.html#type_emxArray__common" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'type_emxArray__common')" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxArray__common</FONT></A> *)varargout_1, i2, (int32_T)<FONT COLOR="#112266"><B>sizeof</B></FONT>(real_T), &amp;<A HREF="ind2sub_c.html#var_f_emlrtRTEI" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'var_f_emlrtRTEI');" TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">f_emlrtRTEI</FONT></A>);
+<FONT COLOR="#888888"><I>  157   </I></FONT>    loop_ub = v1-&gt;size[0] - 1;
+<FONT COLOR="#888888"><I>  158   </I></FONT>    <FONT COLOR="#112266"><B>for</B></FONT> (i2 = 0; i2 &lt;= loop_ub; i2++) <B>{</B>
+<FONT COLOR="#888888"><I>  159   </I></FONT>        varargout_1-&gt;data[i2] = (real_T)(v1-&gt;data[i2] + 1);
+<FONT COLOR="#888888"><I>  160   </I></FONT>    <B>}</B>
+<FONT COLOR="#888888"><I>  161   </I></FONT>    <A HREF="svsNuclei_emxutil_c.html#fcn_emxFree_int32_T" ONCLICK="if (top) if (top.docHiliteMe) top.docHiliteMe(window, 'fcn_emxFree_int32_T');"  TARGET="rtwreport_document_frame"><FONT COLOR="#1122aa">emxFree_int32_T</FONT></A>(&amp;v1);
+<FONT COLOR="#888888"><I>  162   </I></FONT>    emlrtHeapReferenceStackLeaveFcn();
+<FONT COLOR="#888888"><I>  163   </I></FONT><B>}</B>
+<FONT COLOR="#888888"><I>  164   </I></FONT><FONT COLOR="#117755"><I>/* End of code generation (ind2sub.c) */</I></FONT>
+<FONT COLOR="#888888"><I>  165   </I></FONT></PRE>
+</TD></TR></TABLE>
+</P>
+</BODY>
+</HTML>
