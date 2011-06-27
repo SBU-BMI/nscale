@@ -97,7 +97,8 @@ AC_TYPE_UINTMAX_T
 AC_EXEEXT
 
 
-AC_CHECK_HEADERS(unistd.h malloc.h sys/types.h sys/sysctl.h sched.h execinfo.h dlib/matrix.h)
+AC_CHECK_HEADERS(unistd.h malloc.h sys/types.h sys/sysctl.h sched.h execinfo.h)
+# dlib/matrix.h)
 
 #AC_CHECK_FUNCS()
 AC_CHECK_DECLS([_SC_PHYS_PAGES,_SC_PAGE_SIZE,HW_PAGESIZE,HW_MEMSIZE],
