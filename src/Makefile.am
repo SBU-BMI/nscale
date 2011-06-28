@@ -1,4 +1,4 @@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS="-Im4"
 
-SUBDIRS = segment features dimreduc classify
+SUBDIRS = dimreduc classify

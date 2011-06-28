@@ -1,2 +1,5 @@
 .svn
+*.exe
+*.o
+autom4te.cache
 src/matlab/segment/codegen
