@@ -14,6 +14,8 @@ class ComponentLabel {
 public:
 	ComponentLabel();
 	virtual ~ComponentLabel();
+
+	bwSelect();
 };
 
 }

@@ -22,13 +22,19 @@
 <targetPlatform id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.targetPlatform.176790454" isAbstract="false" name="GNU Autotools Target Platform" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.targetPlatform"/>
 <builder id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.builder.1687874370" keepEnvironmentInBuildfile="false" managedBuildOn="true" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.builder"/>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.gnu.toolchain.tool.configure.1400593219" name="configure" superClass="org.eclipse.linuxtools.cdt.autotools.core.gnu.toolchain.tool.configure">
-<option id="org.eclipse.linuxtools.cdt.autotools.core.option.configure.name.875079191" superClass="org.eclipse.linuxtools.cdt.autotools.core.option.configure.name" value="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.539555473" valueType="string"/>
+<option id="org.eclipse.linuxtools.cdt.autotools.core.option.configure.name.875079191" name="Name" superClass="org.eclipse.linuxtools.cdt.autotools.core.option.configure.name" value="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.539555473" valueType="string"/>
 </tool>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen.412395088" name="autogen.sh" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen"/>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc.1762811375" name="GCC C Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc">
+<option id="gnu.c.compiler.option.include.paths.287127332" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="/usr/local/include/opencv"/>
+</option>
 <inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1320890926" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 </tool>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp.832888105" name="GCC C++ Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp">
+<option id="gnu.cpp.compiler.option.include.paths.1094234211" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="/usr/local/include/opencv"/>
+</option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.988087543" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 </toolChain>
@@ -285,6 +291,8 @@
 </profile>
 </scannerConfigBuildInfo>
 </storageModule>
+<storageModule moduleId="org.eclipse.cdt.core.language.mapping"/>
+<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cconfiguration>
 </storageModule>
 <storageModule moduleId="cdtBuildSystem" version="4.0.0">

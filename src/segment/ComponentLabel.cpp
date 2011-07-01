@@ -18,6 +18,11 @@ ComponentLabel::~ComponentLabel() {
 	// TODO Auto-generated destructor stub
 }
 
+ComponentLabel::bwSelect() {
+	// TODO Auto-generated destructor stub
+}
+
+
 }
 
 
