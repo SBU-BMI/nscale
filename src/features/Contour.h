@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
+using namespace std;
 
 /*!
 	This is the basic class used in our analysis. It implements methods to return basic
@@ -23,6 +24,7 @@
 	that require an analysis of nested objects is handled at Blob level - See Blob Class
 	for details.
  */
+
 // TODO: Make sure we have 6 or more points in a Contour before fitting an Ellipse
 class Contour {
 private:
@@ -40,24 +42,27 @@ private:
 	float convexArea;
 	float convexDeficiency;
 	float eccentricity;
-	float ellipseAngle;
+
 	float equivalentDiameter;
 	float extent;
-	float majorAxisLength;
-	float minorAxisLength;
 	float perimeter;
-	float perimeterCurvature;
+	float bendingEnergy;
 	float solidity;
-	float sphericity;
 
 	//! List of points defining this contour.
 	CvSeq *c_l;
 
 	//! Ellipse fitting the contour
-	CvBox2D min_fitting_ellipse;
+	//CvBox2D min_fitting_ellipse;
+
+	//! Moments of the contour
+	CvMoments m_moments;
 
 	//! Minimum bounding box
 	CvBox2D min_bounding_box;
+
+	//! Bounding box without inclination
+	CvRect m_bounding_box;
 
 	//! Convex Hull of the given Contour
 	CvSeq *convexHull;
@@ -81,6 +86,10 @@ public:
 
 	//! A simple class destructor that takes care of deallocate used data structures
 	virtual ~Contour();
+
+
+	CvSeq *getCl();
+	double getMoment(int p, int q);
 
 	/*!
 	 * Calculates the area inside the contour
@@ -117,22 +126,6 @@ public:
     float getConvexDeficiency();
 
     /*!
-     * Calculates Contour's Eccentricity. The Eccentricity calculation depends on
-     * characteristics of the Ellipse fitting the contours: Its definition is:
-     *
-     * 	Eccentricity = ( 2* ((MajorAxis/2)^2 - (MinorAxis/2)^2)^1/2 )/MajorAxis, where
-     * 	Major/Minor Axis refers to the fitting ellipse
-     */
-    float getEccentricity();
-
-    /*!
-     * Calculates a Contour's Orientation. The Orientations is defined by the angle
-     * among the fitting Ellipse Major Axis and the x-axis. Thus, it obviously depends
-     * on fitting an Ellipse.
-     */
-    float getOrientation();
-
-    /*!
      * Calculates a Contour's Equivalent Diameter, which is the diameter of the circle
      * with the same area as the Contour. Follows the definition:
      *
@@ -147,20 +140,6 @@ public:
      *	Extent = Area / (bounding.box.width*bounding.box.height)
      */
     float getExtent();
-
-    /*!
-     * Calculates a Contour's Major Axis that is the longest diameter of an ellipse, which
-     * passes through the center and foci. It requires fitting an ellipse to the contour, and
-     * then checking the highest value among its width and height.
-     */
-    float getMajorAxisLength();
-
-    /*!
-     * Calculates a Contour's Minor Axis. It is a line through the center of an ellipse that
-     * is also perpendicular to the Major Axis. As in the Major Axis, it requires fitting an
-     * ellipse.
-     */
-    float getMinorAxisLength();
 
     /*!
      * It calculates Contour's Perimeter. The function calculates it as sum of lengths of
@@ -186,21 +165,12 @@ public:
     float getBoundingBoxHeight();
 
     /*!
-     * Calculate the Contour's Ellipticity, which is actually based on the Contour fitting
-     * Ellipse. It is a measure of the ``squashing'' of the spheroi's pole, towards its
-     * equator.
-     *
-     * 	Ellipticity = (MajorAxis-MinorAxis)/MajorAxis
+     * Calculates the Contour's bounding box without inclination
      */
-    float getEllipticity();
+    CvRect getNonInclinedBoundingBox(CvSize originalImageSize );
 
-    /*!
-     *  This function is not implemented. It requires fitting a circle external to the contour, which i
-     */
-    float getSphericity();
 
-    // This function is not implemented. I still in doubts about how to calculate it, but I think we can do it.
-    float getPerimeterCurvature();
+    float getBendingEnergy();
 };
 
 #endif /* CONTOUR_H_ */

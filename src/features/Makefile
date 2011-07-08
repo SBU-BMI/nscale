@@ -1,4 +1,4 @@
-CXX_FLAGS = -g
+CXX_FLAGS = -O3 #-g -DVISUAL_DEBUG
 
 all: Contour.o Blob.o RegionalMorphologyAnalysis.o testRegional testContour testBlob features 
 	
@@ -11,18 +11,21 @@ Contour.o: Contour.h Contour.cpp
 	
 Blob.o: Blob.h Blob.cpp
 	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -c Blob.cpp
-	
+
+DrawAuxiliar.o: DrawAuxiliar.h DrawAuxiliar.cpp
+	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -c DrawAuxiliar.cpp
+
 RegionalMorphologyAnalysis.o: RegionalMorphologyAnalysis.h RegionalMorphologyAnalysis.cpp
 	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -c RegionalMorphologyAnalysis.cpp
 	
 testContour: Test.cpp Contour.o
 	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -o testContour Test.cpp Contour.o
 
-testBlob: TestBlob.cpp Contour.o Blob.o
-	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -o testBlob TestBlob.cpp Contour.o Blob.o
+testBlob: TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o
+	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -o testBlob TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o
 
-testRegional: TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o
-	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -o testRegional TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o
+testRegional: TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o DrawAuxiliar.o
+	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -o testRegional TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o DrawAuxiliar.o
 
 clean:
 	rm -rf features *.o testContour testBlob testRegional

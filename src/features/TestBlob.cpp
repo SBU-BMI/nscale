@@ -33,6 +33,7 @@ int main (int argc, char **argv){
 	int n=0;
 	printf("Total Contours Detected: %d\n", Nc);
 
+
 	for(CvSeq* c= first_contour; c!= NULL; c=c->h_next){
 		cvCvtColor(img_8uc1, img_8uc3, CV_GRAY2BGR);
 		cvDrawContours(
@@ -46,20 +47,58 @@ int main (int argc, char **argv){
 			2,
 			8
 		);
-		Blob* curBlob = new Blob(c);
+		Blob* curBlob = new Blob(c, cvGetSize(img_8uc1));
 		printf("Blob #%d - perimeter=%lf - area=%lf ED=%lf ",  n, curBlob->getPerimeter(), curBlob->getArea(), curBlob->getEquivalentDiameter());
 
 		if(c->total >= 6){
 			printf(" MajorAxisLength=%lf MinorAxisLength=%lf Orientation=%lf", curBlob->getMajorAxisLength(), curBlob->getMinorAxisLength(), curBlob->getOrientation());
-			printf(" Circularity = %lf Extent = %lf Eccentricity = %lf", curBlob->getCircularity(), curBlob->getExtent(), curBlob->getEccentricity());
+			printf(" Extent = %lf Eccentricity = %lf", curBlob->getExtent(), curBlob->getEccentricity());
 			printf(" ConvexArea = %lf Solidity = %lf Deficiency = %lf", curBlob->getConvexArea(), curBlob->getSolidity(), curBlob->getConvexDeficiency());
 			printf(" Compactness = %lf FilledArea = %lf Euler# = %d Porosity = %lf\n", curBlob->getCompacteness(), curBlob->getFilledArea(), curBlob->getEulerNumber(), curBlob->getPorosity());
 		}else{
 			printf("\n");
 		}
+
+
+		CvRect rect = curBlob->getNonInclinedBoundingBox();
+		CvPoint pt1 = cvPoint( rect.x, rect.y );
+		CvPoint pt2 = cvPoint( rect.x + rect.width - 1, rect.y + rect.height - 1 );
+
+		cvRectangle( img_8uc3, pt1, pt2, CV_RGB(0x00,0x00,0xff), 2 );
+
+		IplImage* mask = curBlob->getMask();
+
+
+		CvPoint offset;
+		offset.x = -rect.x;
+		offset.y = -rect.y;
+
+		IplImage* mask_8uc3 = cvCreateImage( cvGetSize(mask), 8, 3 );
+		cvCvtColor(mask, mask_8uc3, CV_GRAY2BGR);
+
+		cvDrawContours(
+			mask_8uc3,
+			c,
+			CV_RGB(0xff,0x00,0x00),
+			CV_RGB(0x00,0x00,0xff),
+			0,
+			2,
+			8,
+			offset
+			);
+		pt1 = cvPoint( 0, 0 );
+		pt2 = cvPoint( rect.width - 1, rect.height - 1 );
+
+		cvRectangle( mask_8uc3, pt1, pt2, CV_RGB(0x00,0x00,0xff), 2);
+
+		cvShowImage("Mask", mask_8uc3);
+
 		cvShowImage(argv[0], img_8uc3);
 		cvWaitKey(0);
 		n++;
+
+		cvReleaseImage(&mask);
+		cvReleaseImage(&mask_8uc3);
 		delete curBlob;
 	}
 

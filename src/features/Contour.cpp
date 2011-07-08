@@ -19,6 +19,8 @@ Contour::Contour(CvSeq *c_l)
 	 // Copy the given list sequence of objects defining the Contour
 	 this->c_l = cvCloneSeq(c_l, this->self_storage);
 
+
+
 	 // Initialize contour features, which is used to
 	 // check whether it was calculated before or not
 	 this->area = -1.0;
@@ -27,18 +29,21 @@ Contour::Contour(CvSeq *c_l)
 	 this->convexArea = -1.0;
 	 this->convexDeficiency = -1.0;
 	 this->eccentricity = -1.0;
-	 this->ellipseAngle = -1.0;
+//	 this->ellipseAngle = -1.0;
 	 this->equivalentDiameter = -1.0;
 	 this->extent = -1.0;
-	 this->majorAxisLength = -1.0;
-	 this->minorAxisLength = -1.0;
+//	this->majorAxisLength = -1.0;
+//	 this->minorAxisLength = -1.0;
 	 this->perimeter = -1.0;
-	 this->perimeterCurvature = -1.0;
+	 this->bendingEnergy = -1.0;
 	 this->solidity = -1.0;
-	 this->sphericity = -1.0;
-	 this->min_fitting_ellipse.size.width = -1.0;
+//	 this->sphericity = -1.0;
+//	 this->min_fitting_ellipse.size.width = -1.0;
 	 this->min_bounding_box.size.width = -1.0;
+	 this->min_bounding_box.size.height = -1.0;
+	 this->m_bounding_box.width = -1.0;
 	 this->convexHull = NULL;
+	 this->m_moments.m00 = -1.0;
 }
 
 Contour::~Contour() {
@@ -78,71 +83,7 @@ float Contour::getCompacteness()
     return compacteness;
 }
 
-float Contour::getMajorAxisLength()
-{
-	if(majorAxisLength == -1.0){
-		// Do we have to fit the ellipse?
-		if(min_fitting_ellipse.size.width == -1.0){
-			min_fitting_ellipse = cvFitEllipse2(c_l);
-		}
-		if(min_fitting_ellipse.size.width > min_fitting_ellipse.size.height){
-			majorAxisLength = min_fitting_ellipse.size.width;
-		}else{
-			majorAxisLength = min_fitting_ellipse.size.height;
-		}
-	}
-    return majorAxisLength;
-}
 
-float Contour::getMinorAxisLength()
-{
-	if(minorAxisLength == -1.0){
-		// Do we have to fit the elipse?
-		if(min_fitting_ellipse.size.width == -1.0){
-			min_fitting_ellipse = cvFitEllipse2(c_l);
-		}
-		if(min_fitting_ellipse.size.width > min_fitting_ellipse.size.height){
-			minorAxisLength = min_fitting_ellipse.size.height;
-		}else{
-			minorAxisLength = min_fitting_ellipse.size.width;
-		}
-	}
-    return minorAxisLength;
-}
-
-float Contour::getOrientation()
-{
-	if(ellipseAngle == -1.0){
-		// Do we have to fit the elipse?
-		if(min_fitting_ellipse.size.width == -1.0){
-			min_fitting_ellipse = cvFitEllipse2(c_l);
-		}
-		ellipseAngle = min_fitting_ellipse.angle;
-		if(ellipseAngle > 90){
-			ellipseAngle -= 180;
-		}
-	}
-    return ellipseAngle;
-}
-
-float Contour::getEccentricity()
-{
-	if(eccentricity == -1.0){
-		float foci = pow((getMajorAxisLength()/2),2) - pow((getMinorAxisLength()/2), 2);
-
-		if(foci > 0){
-			foci =  sqrtf(foci);
-		}else{
-			foci = 0.0;
-		}
-
-		eccentricity = foci / getMajorAxisLength();
-#ifdef DEBUG
-		cout << "Eccentricity = "<< eccentricity<<endl<< " majorAxis ="<< getMajorAxisLength() << " minorAxis = "<< getMinorAxisLength() << " foci = "<<foci<<endl;
-#endif
-	}
-    return eccentricity;
-}
 
 float Contour::getCircularity()
 {
@@ -215,6 +156,7 @@ float Contour::getExtent()
 			min_bounding_box = cvMinAreaRect2(c_l);
 		}
 
+
 		// Calculate area of the given bounding box
 		float minBoxArea = min_bounding_box.size.width * min_bounding_box.size.height;
 		extent = getArea() / minBoxArea;
@@ -256,26 +198,134 @@ float Contour::getBoundingBoxHeight()
 	if(min_bounding_box.size.width == -1.0){
 		min_bounding_box = cvMinAreaRect2(c_l);
 	}
+
 	return min_bounding_box.size.height;
 }
 
-float Contour::getEllipticity()
+CvRect Contour::getNonInclinedBoundingBox(CvSize originalImageSize )
 {
-	return ((getMajorAxisLength()-getMinorAxisLength())/getMajorAxisLength());
+	// it is calculated?
+	if( m_bounding_box.width != -1 )
+	{
+		return m_bounding_box;
+	}
+
+
+	CvSeqReader reader;
+	CvPoint actualPoint;
+
+
+	// it is an empty blob?
+	if( !c_l )
+	{
+		m_bounding_box.x = 0;
+		m_bounding_box.y = 0;
+		m_bounding_box.width = 0;
+		m_bounding_box.height = 0;
+
+		return m_bounding_box;
+	}
+
+	cvStartReadSeq( c_l, &reader);
+
+	m_bounding_box.x = originalImageSize.width;
+	m_bounding_box.y = originalImageSize.height;
+	m_bounding_box.width = 0;
+	m_bounding_box.height = 0;
+
+	for( int i=0; i< c_l->total; i++)
+	{
+		CV_READ_SEQ_ELEM( actualPoint, reader);
+
+		m_bounding_box.x = MIN( actualPoint.x, m_bounding_box.x );
+		m_bounding_box.y = MIN( actualPoint.y, m_bounding_box.y );
+
+		m_bounding_box.width = MAX( actualPoint.x, m_bounding_box.width );
+		m_bounding_box.height = MAX( actualPoint.y, m_bounding_box.height );
+	}
+
+	//m_boundingBox.x = max( m_boundingBox.x , 0 );
+	//m_boundingBox.y = max( m_boundingBox.y , 0 );
+
+	m_bounding_box.width -= m_bounding_box.x;
+	m_bounding_box.height -= m_bounding_box.y;
+
+	return m_bounding_box;
 }
 
-float Contour::getSphericity()
+
+
+/*float Contour::getEllipticity()
+{
+	return ((getMajorAxisLength()-getMinorAxisLength())/getMajorAxisLength());
+}*/
+
+
+double Contour::getMoment(int p, int q)
+{
+	// is a valid moment?
+	if ( p < 0 || q < 0 || p > 3 || q > 3 )
+	{
+		return -1;
+	}
+
+	// Has been calculated?
+	if( m_moments.m00 == -1)
+	{
+		cvMoments( this->getCl(), &m_moments );
+	}
+
+	return cvGetSpatialMoment( &m_moments, p, q );
+
+}
+
+/*float Contour::getSphericity()
 {
 	// TODO: implement
     return sphericity;
+}*/
+
+
+
+CvSeq *Contour::getCl()
+{
+	return this->c_l;
 }
 
-
-
-float Contour::getPerimeterCurvature()
+float Contour::getBendingEnergy()
 {
-	// TODO: implement
-    return perimeterCurvature;
+
+	if(bendingEnergy == -1.0){
+		CvSeqReader reader;
+		CvPoint actualPoint;
+		CvPoint nextPoint;
+
+		cvStartReadSeq( c_l, &reader);
+
+		bendingEnergy = 0.0;
+
+		// Iterate on contour points calculating Bending Energy as summation of
+		// perimeter curvature for each pair of points on the blob Contour
+		if(c_l->total <= 1){
+			bendingEnergy = 0.0;
+		}else{
+			CV_READ_SEQ_ELEM( actualPoint, reader);
+
+			for( int i=0; i< c_l->total-1; i++){
+				CV_READ_SEQ_ELEM( nextPoint, reader);
+
+				bendingEnergy += atan( (float)(nextPoint.y-actualPoint.y)/(float)(nextPoint.x-actualPoint.x) );
+
+				actualPoint = nextPoint;
+			}
+			// calculate perimeter curvature for the last and first points of the Contour,
+			// which is different since the n+1 point is the first point of the Contour
+			cvStartReadSeq( c_l, &reader);
+			CV_READ_SEQ_ELEM( nextPoint, reader);
+			bendingEnergy += atan( (float)(nextPoint.y-actualPoint.y)/(float)(nextPoint.x-actualPoint.x) );
+		}
+	}
+	return bendingEnergy;
 }
 
 
