@@ -7,16 +7,16 @@ features: features.cpp
 	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -o features features.cpp
 
 Contour.o: Contour.h Contour.cpp
-	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -c Contour.cpp
+	g++ `pkg-config --cflags opencv` ${CXX_FLAGS} -c Contour.cpp
 	
 Blob.o: Blob.h Blob.cpp
-	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -c Blob.cpp
+	g++ `pkg-config --cflags opencv` ${CXX_FLAGS} -c Blob.cpp
 
 DrawAuxiliar.o: DrawAuxiliar.h DrawAuxiliar.cpp
-	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -c DrawAuxiliar.cpp
+	g++ `pkg-config --cflags opencv` ${CXX_FLAGS} -c DrawAuxiliar.cpp
 
 RegionalMorphologyAnalysis.o: RegionalMorphologyAnalysis.h RegionalMorphologyAnalysis.cpp
-	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -c RegionalMorphologyAnalysis.cpp
+	g++ `pkg-config --cflags opencv` ${CXX_FLAGS} -c RegionalMorphologyAnalysis.cpp
 	
 testContour: Test.cpp Contour.o
 	g++ `pkg-config --cflags opencv --libs opencv` ${CXX_FLAGS} -lstdc++  -o testContour Test.cpp Contour.o
