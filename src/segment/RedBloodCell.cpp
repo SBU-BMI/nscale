@@ -6,26 +6,25 @@
  */
 
 #include "RedBloodCell.h"
+#include <iostream>
+#include "highgui.h"
+#include "float.h"
+
 
 namespace nscale {
-RedBloodCell::RedBloodCell() {
-	// TODO Auto-generated constructor stub
 
+Mat RedBloodCell::rbcMask(Mat img) {
+	std::vector<Mat> bgr;
+	split(img, bgr);
+	return rbcMask(bgr);
 }
 
-RedBloodCell::~RedBloodCell() {
-	// TODO Auto-generated destructor stub
-}
-
-cv::Mat RedBloodCell::rbcMask(cv::Mat img) {
-	std::vector<cv::Mat> rgb;
-	cv::split(img, rgb);
-	return rbcMask(rgb);
-}
-
-cv::Mat RedBloodCell::rbcMask(std::vector<cv::Mat> rgb) {
+Mat RedBloodCell::rbcMask(std::vector<Mat> bgr) {
 	/*
-    imR2G = double(r)./(double(g)+eps);
+	%T1=2.5; T2=2;
+    T1=5; T2=4;
+
+	imR2G = double(r)./(double(g)+eps);
     bw1 = imR2G > T1;
     bw2 = imR2G > T2;
     ind = find(bw1);
@@ -36,17 +35,45 @@ cv::Mat RedBloodCell::rbcMask(std::vector<cv::Mat> rgb) {
         rbc = zeros(size(imR2G));
     end
 	 */
-	cv::Mat imR2G(rgb[0].size(), CV_64FC1);
-	cv::Mat temp(rgb[0].size(), imR2G.type());
-	double eps = 2.2204E-16;
-	rgb[1].convertTo(temp, temp.type(), 1.0, eps);
-	rgb[0].convertTo(imR2G, imR2G.type(), 1.0, 0.0);
+	std::cout.precision(5);
+	double T1 = 5.0;
+	double T2 = 4.0;
+	Size s = bgr[0].size();
+	Mat bd(s, CV_64FC1);
+	Mat gd(s, bd.type());
+	Mat rd(s, bd.type());
 
-	imR2G = imR2G / temp;
+	bgr[0].convertTo(bd, bd.type(), 1.0, DBL_EPSILON);
+	bgr[1].convertTo(gd, gd.type(), 1.0, DBL_EPSILON);
+	bgr[2].convertTo(rd, rd.type(), 1.0, 0.0);
 
-	cv::Mat imR2G(rgb[0].size(), CV_64FC1);
-	cv::Mat temp(rgb[0].size(), CV_64FC1);
+	Mat imR2G = rd / gd;
+	Mat bw1 = imR2G > T1;
+	Mat bw2 = imR2G > T2;
+	Mat bw3 = ~bw2;
 
+	// multiple seeds.  need to get the ids and then iterate through
+	Mat rbc = Mat::zeros(s, CV_8UC1);
+	uchar * rowPointer;
+	if (countNonZero(bw1) > 0) {
+		// iterate over all pixels
+		// internals of bwselect
+		for (int j = 0; j < bw1.rows; j++) {
+			rowPointer = bw1.ptr<uchar>(j);
+			for (int i = 0; i < bw1.cols; i++) {
+				if (rowPointer[i] == 0) continue;
+				// comparison operation produces 0 and 255.  need to fill with 255.
+				bw3 = floodFill(bw3, Point(i, j), 255, NULL, Scalar(), Scalar(), 8);
+			}
+		}
+		// internals of bwselect
+		Mat bw4 = bw2 & bw3;
+
+		// now the rest
+		rbc = bw4 & ((rd / bd) > 1.0);
+	}
+
+	return rbc;
 }
 
 }

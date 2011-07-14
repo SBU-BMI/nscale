@@ -9,7 +9,7 @@ CXXFLAGS=-g -O3 -msse4.2 -fopenmp
 
 RM=/bin/rm -rf
 
-SRC= test.cpp
+SRC= test.cpp RedBloodCell.cpp MorphologicOperation.cpp
 
 SRCO= ${SRC:.cpp=.o}
 
@@ -26,3 +26,7 @@ clean:
 	
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
+
+%.o: %.c
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
+	

@@ -11,6 +11,12 @@
 #include <vector>
 #include <string>
 #include <errno.h>
+#include "RedBloodCell.h"
+#include <time.h>
+#include "MorphologicOperation.h"
+
+using namespace cv;
+
 
 int main (int argc, char **argv){
 /*	// allow walk through of the directory
@@ -37,12 +43,17 @@ int main (int argc, char **argv){
 
 	// need to go through filesystem
 
-	cv::Mat img = cv::imread(imagename);
+	Mat img = imread(imagename);
 
 	if (!img.data) return -1;
-	cv::namedWindow("orig image", CV_WINDOW_AUTOSIZE);
-	cv::imshow("orig image", img);
 
+
+	// image in BGR format
+
+//	Mat img2(Size(1024,1024), img.type());
+//	resize(img, img2, Size(1024,1024));
+//	namedWindow("orig image", CV_WINDOW_AUTOSIZE);
+//	imshow("orig image", img2);
 
 	/*
 	* this part to decide if the tile is background or foreground
@@ -54,26 +65,50 @@ int main (int argc, char **argv){
         return;
     end
 	 */
+	Mat gray(img.size(), CV_8UC1);
+	cvtColor(img, gray, CV_BGR2GRAY);
 
-	cv::Mat gray(img.size(), CV_8UC1);
-	cv::cvtColor(img, gray, CV_RGB2GRAY);
-
-	std::vector<cv::Mat> rgb;
-	cv::split(img, rgb);
-	cv::Mat background(img.size(), CV_8UC1);
-	background = (rgb[0] > 220) & (rgb[1] > 220) & (rgb[2] > 220);
-	int bgArea = cv::countNonZero(background);
+	std::vector<Mat> bgr;
+	split(img, bgr);
+	Mat background = (bgr[0] > 220) & (bgr[1] > 220) & (bgr[2] > 220);
+	int bgArea = countNonZero(background);
 	float ratio = (float)bgArea / (float)(img.size().area());
 	if (ratio >= 0.9) {
 		std::cout << "background.  next." << std::endl;
 		return -1;
 	}
 
+	time_t first = time(NULL);
+
+	Mat rbc = nscale::RedBloodCell::rbcMask(bgr);
+	imwrite("/home/tcpan/PhD/path/rbc.pbm", rbc);
+
+//	resize(rbc, img2, Size(1024,1024));
+//	namedWindow("rbc image", CV_WINDOW_AUTOSIZE);
+//	imshow("rbc image", img2);
+
+	Mat rbc2(rbc.size(), rbc.type());
+	Mat el = getStructuringElement(MORPH_RECT, Size(3,3));
+	dilate(rbc, rbc2, el, Point(-1, -1), 3);
+	imwrite("/home/tcpan/PhD/path/rbc2.pbm", rbc2);
+
+
+	Mat_<uchar> rbc2_ = rbc2;
+	Mat_<uchar> rbc_ = rbc;
+	Mat_<uchar> out = nscale::imreconstruct(rbc2_, rbc_, 8);
+	imwrite("/home/tcpan/PhD/path/imrecon.pbm", out);
 
 
 
+	Mat rc = 255 - bgr[2];
+	Mat rc_dilate(rc.size(), rc.type());
 
-	cv::waitKey();
+
+	time_t second = time(NULL);
+	double elapsed = difftime(second, first);
+	std::cout << "rbc took " << elapsed << " s" << std::endl;
+
+//	waitKey();
 
 	return 0;
 }

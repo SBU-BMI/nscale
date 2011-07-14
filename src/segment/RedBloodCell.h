@@ -10,15 +10,18 @@
 
 #include "cv.h"
 
+using namespace cv;
+
 namespace nscale {
 
 class RedBloodCell {
-public:
-	RedBloodCell();
-	virtual ~RedBloodCell();
+protected:
+	RedBloodCell() {};
+	virtual ~RedBloodCell() {};
 
-	cv::Mat rbcMask(cv::Mat img);
-	cv::Mat rbcMask(std::vector<cv::Mat> rgb);
+public:
+	static Mat rbcMask(Mat img);
+	static Mat rbcMask(std::vector<Mat> rgb);
 };
 
 }
