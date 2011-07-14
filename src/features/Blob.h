@@ -26,7 +26,11 @@ private:
 	//! Ellipse fitting the blob
 	CvBox2D min_fitting_ellipse;
 
+	//! Mask image provided for this Blob
 	IplImage *mask;
+
+	//! Image header set to the ROI in the original image
+	IplImage *ROISubImage;
 
 	CvHistogram* intensity_hist;
 	unsigned int intensity_hist_points;
@@ -50,6 +54,11 @@ private:
 	unsigned int getGradHistPoints(){
 		return grad_hist_points;
 	}
+
+	// Retrieves the pointes to the ROI of this
+	// blob in the original input image
+	IplImage *getROISubImage(IplImage *img);
+
 	double getMoment(int p, int q);
 	CvBox2D getEllipse();
 

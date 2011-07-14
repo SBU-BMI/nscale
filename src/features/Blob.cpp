@@ -32,6 +32,7 @@ Blob::Blob(CvSeq* first_contour, CvSize originalImageSize ) {
 		}
 	}
 	this->mask = NULL;
+	this->ROISubImage = NULL;
 	this->intensity_hist = NULL;
 	this->grad_hist = NULL;
 	this->min_fitting_ellipse.size.width = -1.0;
@@ -55,6 +56,9 @@ Blob::~Blob() {
 	}
 	if(grad_hist != NULL){
 		cvReleaseHist(&grad_hist);
+	}
+	if(ROISubImage != NULL){
+		cvReleaseImageHeader(&ROISubImage);
 	}
 }
 
@@ -326,13 +330,15 @@ void Blob::calcIntensityHistogram(IplImage *img)
 		float *ranges[] = { range };
 		intensity_hist = cvCreateHist(1, &numBins, CV_HIST_ARRAY, ranges, 1);
 
-
 		// Region of interest is the same as the bounding box of the blob
-		cvSetImageROI(img, blob_bounding_box);
+		IplImage *ROISubImage = getROISubImage(img);
+
+		// Do not be silly and use the cvSetImageROI as bellow. It will store the ROI in the
+		// Image itself, and as the library may be multithreaded it is likely to incurr in errors.
+//		cvSetImageROI(img, blob_bounding_box);
 
 		// Calculates the histogram in the input image for the pixels in the input mask
-		cvCalcHist(&img, intensity_hist, 0, this->getMask());
-
+		cvCalcHist(&ROISubImage, intensity_hist, 0, this->getMask());
 
 		intensity_hist_points = 0;
 
@@ -341,9 +347,6 @@ void Blob::calcIntensityHistogram(IplImage *img)
 				intensity_hist_points += (unsigned int)histValue;
 		}
 
-
-		// Restore the Region of interest to the entire original image
-		cvResetImageROI( img );
 
 #ifdef VISUAL_DEBUG
 		IplImage* histDraw = DrawAuxiliar::DrawHistogram(intensity_hist);
@@ -643,9 +646,9 @@ void Blob::calcGradientHistogram(IplImage *img)
 			float *ranges[] = { range };
 			grad_hist = cvCreateHist(1, &numBins, CV_HIST_ARRAY, ranges, 1);
 		}
-
 		// Region of interest is the same as the bounding box of the blob
-		cvSetImageROI(img, blob_bounding_box);
+		IplImage *ROISubImage = getROISubImage(img);
+
 
 		// This is the data used to store the gradient results
 		IplImage* magImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
@@ -653,7 +656,7 @@ void Blob::calcGradientHistogram(IplImage *img)
 		// This is a temporary structure required by the MorphologyEx operation we'll perform
 		IplImage* tempImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
 
-		cvMorphologyEx(img, magImg, tempImg, NULL, CV_MOP_GRADIENT);
+		cvMorphologyEx(ROISubImage, magImg, tempImg, NULL, CV_MOP_GRADIENT);
 		// Calculates the histogram in the input image for the pixels in the input mask
 		cvCalcHist(&magImg, grad_hist, 0, this->getMask());
 
@@ -665,12 +668,12 @@ void Blob::calcGradientHistogram(IplImage *img)
 
 		// This operation is available in opencv.. So it can be used as a ground truth
  		// Region of interest is the same as the bounding box of the blob
-		CvScalar avgScalar = cvAvg(magImg, this->getMask());
+//		CvScalar avgScalar = cvAvg(magImg, this->getMask());
 //		cout << "OpenCV Mean Magnitude = "<< avgScalar.val[0]<<endl;
 
 		cvReleaseImage(&tempImg);
 		cvReleaseImage(&magImg);
-		cvResetImageROI( img );
+
 
 /*		// Images used to store temporary results with gradient values
 		IplImage* drv = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_16S, 1);
@@ -949,20 +952,19 @@ unsigned int Blob::getCannyArea(IplImage *img, double lowThresh, double highThre
 	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img )){
 		// Create edge image to store the result of applying
 		// the Canny with the same size as the bounding box
-//		IplImage *edges = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
+		IplImage *edges = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
 
-		// Region of interest is the same as the bounding box of the blob
-		cvSetImageROI(img, blob_bounding_box);
+		IplImage *roiImg = getROISubImage(img);
 
 		// Make a copy only of the ROI in this image
-		IplImage *edges = (IplImage*)cvClone(img);
+		cvCopy(roiImg, edges, NULL);
 
 		cvAnd(edges, this->getMask(), edges);
 
 		cvCanny(edges, edges, lowThresh, highThresh, apertureSize);
 
 		// Calculate the #white pixels and divide by blob area
-		cannyArea = countNonZero(edges);
+		cannyArea = cvCountNonZero(edges);
 
 
 #ifdef VISUAL_DEBUG
@@ -980,8 +982,6 @@ unsigned int Blob::getCannyArea(IplImage *img, double lowThresh, double highThre
 		// release temporary image used to calculate Canny
 		cvReleaseImage(&edges);
 
-		// Set the ROI to the entire original image
-		cvResetImageROI(img);
 
 	}
 	return cannyArea;
@@ -1001,13 +1001,13 @@ unsigned int Blob::getSobelArea(IplImage *img, int xorder, int yorder, int apert
 		IplImage *edges = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_16S, 1);
 
 		// Region of interest is the same as the bounding box of the blob
-		cvSetImageROI(img, blob_bounding_box);
+		IplImage *roiImg = getROISubImage(img);
+//		cvSetImageROI(img, blob_bounding_box);
 
-
-		cvSobel(img, edges, xorder, yorder, apertureSize);
+		cvSobel(roiImg, edges, xorder, yorder, apertureSize);
 
 		// Calculate the #white pixels
-		sobelArea = countNonZero(edges);
+		sobelArea = cvCountNonZero(edges);
 
 #ifdef VISUAL_DEBUG
 
@@ -1024,7 +1024,7 @@ unsigned int Blob::getSobelArea(IplImage *img, int xorder, int yorder, int apert
 		cvReleaseImage(&edges);
 
 		// Set the ROI to the entire original image
-		cvResetImageROI(img);
+//		cvResetImageROI(img);
 
 	}
 	return sobelArea;
@@ -1053,8 +1053,8 @@ float Blob::getReflectionSymmetry()
 		cvDestroyWindow("ReflectionSymmetry - Symmetric of mask");
 		cvDestroyWindow("CommonArea");
 #endif
-		unsigned int pixelsInMaskAndSymmetric = countNonZero(flipMask);
-		unsigned int pixelsMask = countNonZero(mask);
+		unsigned int pixelsInMaskAndSymmetric = cvCountNonZero(flipMask);
+		unsigned int pixelsMask = cvCountNonZero(mask);
 
 		reflectionSymmetry = (float)pixelsInMaskAndSymmetric / (float)pixelsMask;
 
@@ -1069,6 +1069,18 @@ float Blob::getBendingEnery()
 	return external_contour->getBendingEnergy();
 }
 
+
+IplImage *Blob::getROISubImage(IplImage *img)
+{
+	if(ROISubImage == NULL){
+		CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+		ROISubImage = cvCreateImageHeader(cvSize(blob_bounding_box.width, blob_bounding_box.height), img->depth, img->nChannels);
+		ROISubImage->origin = img->origin;
+		ROISubImage->widthStep = img->widthStep;
+		ROISubImage->imageData = img->imageData + blob_bounding_box.y * img->widthStep + blob_bounding_box.x * img->nChannels;
+	}
+	return ROISubImage;
+}
 
 float Blob::getNonInclinedBoundingBoxArea()
 {
