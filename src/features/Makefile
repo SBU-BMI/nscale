@@ -1,35 +1,37 @@
-CXX_FLAGS = -O3 #-g -DVISUAL_DEBUG
+CXX=g++
+CXX_FLAGS = -O3 -fopenmp #-g -DVISUAL_DEBUG
+OBJS=Contour.o Blob.o RegionalMorphologyAnalysis.o
 OPENCV_INCLUDE=/usr/local/include/opencv/
-OPENCV_LIB=-lopencv_core -lopencv_highgui -lopencv_imgproc
+OPENCV_LIBS=-lopencv_core -lopencv_highgui -lopencv_imgproc
+OPENCV_LIBS_GPU=${OPENCV_LIBS} -lopencv_gpu
+EXAMPLES_DIR=./examples
 
-all: Contour.o Blob.o RegionalMorphologyAnalysis.o testRegional testContour testBlob features 
+all: libfeatures.so examples
+
+examples: features testContour testBlob testRegional gpu
+
 
 #`pkg-config --cflags opencv2 --libs opencv2`
+libfeatures.so: $(OBJS)
+	$(CXX) ${CXX_FLAGS} -I${OPENCV_INCLUDE} -shared -o libfeatures.so ${OBJS} ${OPENCV_LIBS}
+
+%.o: %.cpp
+	$(CXX) ${CXX_FLAGS} -I${OPENCV_INCLUDE} -c $<
 	
-	
-features: features.cpp
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -o features features.cpp
+features: ${EXAMPLES_DIR}/features.cpp
+	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -I. ${EXAMPLES_DIR}/features.cpp -o ${EXAMPLES_DIR}/features  ${OPENCV_LIBS}
 
-Contour.o: Contour.h Contour.cpp
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -c Contour.cpp
-	
-Blob.o: Blob.h Blob.cpp
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -c Blob.cpp
+testContour: ${EXAMPLES_DIR}/Test.cpp Contour.o
+	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -I. ${EXAMPLES_DIR}/Test.cpp Contour.o -o ${EXAMPLES_DIR}/testContour  ${OPENCV_LIBS}
 
-DrawAuxiliar.o: DrawAuxiliar.h DrawAuxiliar.cpp
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -c DrawAuxiliar.cpp
+testBlob: ${EXAMPLES_DIR}/TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o
+	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -I. ${EXAMPLES_DIR}/TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o -o ${EXAMPLES_DIR}/testBlob ${OPENCV_LIBS}
 
-RegionalMorphologyAnalysis.o: RegionalMorphologyAnalysis.h RegionalMorphologyAnalysis.cpp
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -c RegionalMorphologyAnalysis.cpp
-	
-testContour: Test.cpp Contour.o
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -o testContour Test.cpp Contour.o ${OPENCV_LIB} 
+testRegional: ${EXAMPLES_DIR}/TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o DrawAuxiliar.o
+	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -I. ${EXAMPLES_DIR}/TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o DrawAuxiliar.o -o ${EXAMPLES_DIR}/testRegional ${OPENCV_LIBS} 
 
-testBlob: TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -o testBlob TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o ${OPENCV_LIB}
-
-testRegional: TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o DrawAuxiliar.o
-	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -o testRegional TestRegional.cpp RegionalMorphologyAnalysis.o Contour.o Blob.o DrawAuxiliar.o ${OPENCV_LIB} 
+gpu: ${EXAMPLES_DIR}/gpu.cpp
+	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -I. ${EXAMPLES_DIR}/gpu.cpp -o ${EXAMPLES_DIR}/gpu  ${OPENCV_LIBS_GPU}
 
 clean:
-	rm -rf features *.o testContour testBlob testRegional
+	rm -rf  ${EXAMPLES_DIR}/gpu ${EXAMPLES_DIR}/features ${EXAMPLES_DIR}/testRegional ${EXAMPLES_DIR}/testBlob ${EXAMPLES_DIR}/testContour *.o libfeatures.so
