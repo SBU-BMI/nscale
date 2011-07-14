@@ -49,8 +49,8 @@ int main (int argc, char **argv){
 		printf("Contour #%d - perimeter=%lf - area=%lf ED=%lf ",  n, curContour->getPerimeter(), curContour->getArea(), curContour->getEquivalentDiameter());
 
 		if(c->total >= 6){
-			printf("MajorAxisLength=%lf MinorAxisLength=%lf Orientation=%lf", curContour->getMajorAxisLength(), curContour->getMinorAxisLength(), curContour->getOrientation());
-			printf(" Circularity = %lf Extent = %lf Eccentricity = %lf", curContour->getCircularity(), curContour->getExtent(), curContour->getEccentricity());
+//			printf("MajorAxisLength=%lf MinorAxisLength=%lf Orientation=%lf", curContour->getMajorAxisLength(), curContour->getMinorAxisLength(), curContour->getOrientation());
+			//printf(" Circularity = %lf Extent = %lf Eccentricity = %lf", curContour->getCircularity(), curContour->getExtent(), curContour->getEccentricity());
 			printf(" ConvexArea = %lf Solidity = %lf Deficiency = %lf", curContour->getConvexArea(), curContour->getSolidity(), curContour->getConvexDeficiency());
 			printf(" Compactness = %lf\n", curContour->getCompacteness());
 		}else{
