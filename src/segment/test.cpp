@@ -14,6 +14,7 @@
 #include "RedBloodCell.h"
 #include <time.h>
 #include "MorphologicOperation.h"
+#include "utils.h"
 
 using namespace cv;
 
@@ -78,35 +79,22 @@ int main (int argc, char **argv){
 		return -1;
 	}
 
-	time_t first = time(NULL);
+	uint64_t t1 = cciutils::ClockGetTime();
 
 	Mat rbc = nscale::RedBloodCell::rbcMask(bgr);
+
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
+
 	imwrite("/home/tcpan/PhD/path/rbc.pbm", rbc);
 
 //	resize(rbc, img2, Size(1024,1024));
 //	namedWindow("rbc image", CV_WINDOW_AUTOSIZE);
 //	imshow("rbc image", img2);
 
-	Mat rbc2(rbc.size(), rbc.type());
-	Mat el = getStructuringElement(MORPH_RECT, Size(3,3));
-	dilate(rbc, rbc2, el, Point(-1, -1), 3);
-	imwrite("/home/tcpan/PhD/path/rbc2.pbm", rbc2);
-
-
-	Mat_<uchar> rbc2_ = rbc2;
-	Mat_<uchar> rbc_ = rbc;
-	Mat_<uchar> out = nscale::imreconstruct(rbc2_, rbc_, 8);
-	imwrite("/home/tcpan/PhD/path/imrecon.pbm", out);
-
-
 
 	Mat rc = 255 - bgr[2];
 	Mat rc_dilate(rc.size(), rc.type());
-
-
-	time_t second = time(NULL);
-	double elapsed = difftime(second, first);
-	std::cout << "rbc took " << elapsed << " s" << std::endl;
 
 //	waitKey();
 

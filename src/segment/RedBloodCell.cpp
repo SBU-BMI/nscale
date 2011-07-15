@@ -9,7 +9,7 @@
 #include <iostream>
 #include "highgui.h"
 #include "float.h"
-
+#include "utils.h"
 
 namespace nscale {
 
@@ -57,6 +57,8 @@ Mat RedBloodCell::rbcMask(std::vector<Mat> bgr) {
 	uchar * rowPointer;
 	if (countNonZero(bw1) > 0) {
 		// iterate over all pixels
+
+		uint64_t t1 = cciutils::ClockGetTime();
 		// internals of bwselect
 		for (int j = 0; j < bw1.rows; j++) {
 			rowPointer = bw1.ptr<uchar>(j);
@@ -68,6 +70,8 @@ Mat RedBloodCell::rbcMask(std::vector<Mat> bgr) {
 		}
 		// internals of bwselect
 		Mat bw4 = bw2 & bw3;
+		uint64_t t2 = cciutils::ClockGetTime();
+		std::cout << " bwselect took " << t2 - t1 << "ms" << std::endl;
 
 		// now the rest
 		rbc = bw4 & ((rd / bd) > 1.0);

@@ -15,6 +15,11 @@ namespace nscale {
 
 template <typename T>
 cv::Mat_<T> imreconstruct(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn);
+template <typename T>
+cv::Mat_<T> imreconstruct2(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn);
+
+template <typename T>
+cv::Mat_<T> imreconstructBinary(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn) {};
 
 }
 
