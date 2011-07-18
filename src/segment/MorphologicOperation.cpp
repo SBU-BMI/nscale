@@ -10,11 +10,36 @@
 #include <queue>
 #include <iostream>
 #include <limits>
+#include "utils.h"
+#include "highgui.h"
+
 
 using namespace cv;
 
 
 namespace nscale {
+
+struct PixelLocation {
+	int x;
+	int y;
+};
+
+
+template <typename T>
+inline void propagate(const Mat_<T>& image, Mat_<T>& output, std::queue<int>& xQ, std::queue<int>& yQ,
+		int x, int y, const T& pval) {
+	T qval = output[y][x];
+	T ival = image[y][x];
+	if ((qval < pval) && (ival != qval)) {
+		output[y][x] = min(pval, ival);
+		xQ.push(x);
+		yQ.push(y);
+	}
+}
+
+template
+inline void propagate(const Mat_<uchar>&, Mat_<uchar>&, std::queue<int>&, std::queue<int>&,
+		int, int, const uchar&);
 
 
 /** slightly optimized serial implementation,
@@ -28,7 +53,10 @@ namespace nscale {
  */
 template <typename T>
 Mat_<T> imreconstruct(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
-	Mat_<T> output = seeds.clone();
+	Mat_<T> output(seeds.size() + Size(2,2));
+	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat_<T> input(image.size() + Size(2,2));
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
 	T pval;
 	int xminus, xplus, yminus, yplus;
@@ -37,82 +65,73 @@ Mat_<T> imreconstruct(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
 	std::queue<int> xQ;
 	std::queue<int> yQ;
 	bool shouldAdd;
+	T* oPtr;
+	T* oPtrMinus;
+	T* oPtrPlus;
+	T* iPtr;
+	T* iPtrPlus;
 
+	uint64_t t1 = cciutils::ClockGetTime();
 
 	// raster scan
-	// do the first row
-	for (int x = 1; x < output.cols; x++) {
-		pval = output[0][x];
-		// walk through the neighbor pixels, left and up (N+(p)) only
-		pval = max(pval, output[0][x-1]);
-		output[0][x] = min(pval, image[0][x]);
-	}
-	// can't do the first col when it's 8 conn.
-	for (int y = 1; y < output.rows; y++) {
-		for (int x = 0; x < output.cols; x++) {
+	for (int y = 1; y < maxy; y++) {
 
-			pval = output[y][x];
+		oPtr = output.ptr(y);
+		oPtrMinus = output.ptr(y-1);
+		iPtr = input.ptr(y);
+
+		for (int x = 1; x < maxx; x++) {
+			xminus = x-1;
+			xplus = x+1;
+			pval = oPtr[x];
 
 			// walk through the neighbor pixels, left and up (N+(p)) only
-			if (x > 0) pval = max(pval, output[y][x-1]);
-			pval = max(pval, output[y-1][x]);
+			pval = max(pval, max(oPtr[xminus], oPtrMinus[x]));
 
 			if (conn == 8) {
-				if (x < maxx) pval = max(pval, output[y-1][x+1]);
-				if (x > 0) pval = max(pval, output[y-1][x-1]);
+				pval = max(pval, max(oPtrMinus[xplus], oPtrMinus[xminus]));
 			}
-			output[y][x] = min(pval, image[y][x]);
+			oPtr[x] = min(pval, iPtr[x]);
 		}
 	}
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "scan time = " << t2-t1 << "ms" << std::endl;
+
+	imwrite("/home/tcpan/PhD/path/reconstep1.ppm", output(Range(1,maxy), Range(1, maxx)));
 
 	// anti-raster scan
-	// do the last row
-	for (int x = maxx-1; x >= 0; x--) {
+	for (int y = maxy-1; y > 0; y--) {
+		oPtr = output.ptr(y);
+		oPtrPlus = output.ptr(y+1);
+		oPtrMinus = output.ptr(y-1);
+		iPtr = input.ptr(y);
+		iPtrPlus = input.ptr(y+1);
 
-		pval = output[maxy][x];
+		for (int x = maxx-1; x > 0; x--) {
+			xminus = x-1;
+			xplus = x+1;
 
-		// walk through the neighbor pixels, right and down (N-(p)) only
-		pval = max(pval, output[maxy][x+1]);
-
-		output[maxy][x] = min(pval, image[maxy][x]);
-
-		// capture the seeds
-		// walk through the neighbor pixels, right and down (N-(p)) only
-		if ((output[maxy][x+1] < output[maxy][x]) && (output[maxy][x+1] < image[maxy][x+1])) {
-			xQ.push(x);
-			yQ.push(maxy);
-		}
-	}
-	// can't do the last col for 8 conn
-	// do the remaining
-	for (int y = maxy - 1; y >= 0; y--) {
-		for (int x = maxx; x >= 0; x--) {
-
-			pval = output[y][x];
+			pval = oPtr[x];
 
 			// walk through the neighbor pixels, right and down (N-(p)) only
-			if (x < maxx) pval = max(pval, output[y][x+1]);
-			pval = max(pval, output[y+1][x]);
+			pval = max(pval, max(oPtr[xplus], oPtrPlus[x]));
 
 			if (conn == 8) {
-				if (x < maxx) pval = max(pval, output[y+1][x+1]);
-				if (x > 0) pval = max(pval, output[y+1][x-1]);
+				pval = max(pval, max(oPtrPlus[xplus], oPtrPlus[xminus]));
 			}
 
-			output[y][x] = min(pval, image[y][x]);
+			oPtr[x] = min(pval, iPtr[x]);
 
 			// capture the seeds
 			shouldAdd = false;
 			// walk through the neighbor pixels, right and down (N-(p)) only
-			pval = output[y][x];
-			if (x < maxx) {
-				if ((output[y][x+1] < pval) && (output[y][x+1] < image[y][x+1])) shouldAdd = true;
-			}
-			if ((output[y+1][x] < pval) && (output[y+1][x] < image[y+1][x])) shouldAdd = true;
+			pval = oPtr[x];
+			if ((oPtr[xplus] < pval) && (oPtr[xplus] < iPtr[xplus])) shouldAdd = true;
+			if ((oPtrPlus[x] < pval) && (oPtrPlus[x] < iPtrPlus[x])) shouldAdd = true;
 
 			if (conn == 8) {
-				if (x < maxx) if ((output[y+1][x+1] < pval) && (output[y+1][x+1] < image[y+1][x+1])) shouldAdd = true;
-				if (x > 0) if ((output[y+1][x-1] < pval) && (output[y+1][x-1] < image[y+1][x-1])) shouldAdd = true;
+				if ((oPtrPlus[xplus] < pval) && (oPtrPlus[xplus] < iPtrPlus[xplus])) shouldAdd = true;
+				if ((oPtrPlus[xminus] < pval) && (oPtrPlus[xminus] < iPtrPlus[xminus])) shouldAdd = true;
 			}
 			if (shouldAdd) {
 				xQ.push(x);
@@ -120,6 +139,10 @@ Mat_<T> imreconstruct(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
 			}
 		}
 	}
+
+	t2 = cciutils::ClockGetTime();
+	std::cout << "scan time = " << t2-t1 << "ms" << std::endl;
+	imwrite("/home/tcpan/PhD/path/reconstep2.ppm", output(Range(1,maxy), Range(1, maxx)));
 
 	// now process the queue.
 	T qval, ival;
@@ -129,45 +152,25 @@ Mat_<T> imreconstruct(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
 		y = yQ.front();
 		xQ.pop();
 		yQ.pop();
+		xminus = x-1;
+		yminus = y-1;
+		yplus = y+1;
+		xplus = x+1;
 
 		pval = output[y][x];
 
 		// look at the 4 connected components
 		if (y > 0) {
-			qval = output[y-1][x];
-			ival = image[y-1][x];
-			if ((qval < pval) && (ival != qval)) {
-				output[y-1][x] = min(pval, ival);
-				xQ.push(x);
-				yQ.push(y-1);
-			}
+			propagate<T>(input, output, xQ, yQ, x, yminus, pval);
 		}
 		if (y < maxy) {
-			qval = output[y+1][x];
-			ival = image[y+1][x];
-			if ((qval < pval) && (ival != qval)) {
-				output[y+1][x] = min(pval, ival);
-				xQ.push(x);
-				yQ.push(y+1);
-			}
+			propagate<T>(input, output, xQ, yQ, x, yplus, pval);
 		}
 		if (x > 0) {
-			qval = output[y][x-1];
-			ival = image[y][x-1];
-			if ((qval < pval) && (ival != qval)) {
-				output[y][x-1] = min(pval, ival);
-				xQ.push(x-1);
-				yQ.push(y);
-			}
+			propagate<T>(input, output, xQ, yQ, xminus, y, pval);
 		}
 		if (x < maxx) {
-			qval = output[y][x+1];
-			ival = image[y][x+1];
-			if ((qval < pval) && (ival != qval)) {
-				output[y][x+1] = min(pval, ival);
-				xQ.push(x+1);
-				yQ.push(y);
-			}
+			propagate<T>(input, output, xQ, yQ, xplus, y, pval);
 		}
 
 		// now 8 connected
@@ -175,43 +178,19 @@ Mat_<T> imreconstruct(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
 
 			if (y > 0) {
 				if (x > 0) {
-					qval = output[y-1][x-1];
-					ival = image[y-1][x-1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y-1][x-1] = min(pval, ival);
-						xQ.push(x-1);
-						yQ.push(y-1);
-					}
+					propagate<T>(input, output, xQ, yQ, xminus, yminus, pval);
 				}
 				if (x < maxx) {
-					qval = output[y-1][x+1];
-					ival = image[y-1][x+1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y-1][x+1] = min(pval, ival);
-						xQ.push(x+1);
-						yQ.push(y-1);
-					}
+					propagate<T>(input, output, xQ, yQ, xplus, yminus, pval);
 				}
 
 			}
 			if (y < maxy) {
 				if (x > 0) {
-					qval = output[y+1][x-1];
-					ival = image[y+1][x-1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y+1][x-1] = min(pval, ival);
-						xQ.push(x-1);
-						yQ.push(y+1);
-					}
+					propagate<T>(input, output, xQ, yQ, xminus, yplus, pval);
 				}
 				if (x < maxx) {
-					qval = output[y+1][x+1];
-					ival = image[y+1][x+1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y+1][x+1] = min(pval, ival);
-						xQ.push(x+1);
-						yQ.push(y+1);
-					}
+					propagate<T>(input, output, xQ, yQ, xplus, yplus, pval);
 				}
 
 			}
@@ -219,244 +198,31 @@ Mat_<T> imreconstruct(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
 	}
 
 
-
-	return output;
-
-}
+	uint64_t t3 = cciutils::ClockGetTime();
+	std::cout << "queue time = " << t3-t2 << "ms" << std::endl;
 
 
-template <typename T>
-void propagate(const Mat_<T>& image, Mat_<T>& output, std::queue<T>& xQ, std::queue<T>& yQ,
-		const int& x, const int& y, const T& pval) {
-	T qval = output[y][x];
-	T ival = image[y][x];
-	if ((qval < pval) && (ival != qval)) {
-		output[y][x] = min(pval, ival);
-		xQ.push(x);
-		yQ.push(y);
-	}
-}
-
-
-
-/** slightly optimized serial implementation,
- from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
-
- this is the fast hybrid grayscale reconstruction
-
- connectivity is either 4 or 8, default 4.
-
- this is slightly optimized by avoiding conditional where possible.
- */
-template <typename T>
-Mat_<T> imreconstruct2(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
-	Mat_<T> output = seeds.clone();
-
-	T pval;
-	int xminus, xplus, yminus, yplus;
-	int maxx = output.cols - 1;
-	int maxy = output.rows - 1;
-	std::queue<int> xQ;
-	std::queue<int> yQ;
-	bool shouldAdd;
-
-
-	// raster scan
-	// do the first row
-	for (int x = 1; x < output.cols; x++) {
-		pval = output[0][x];
-		// walk through the neighbor pixels, left and up (N+(p)) only
-		pval = max(pval, output[0][x-1]);
-		output[0][x] = min(pval, image[0][x]);
-	}
-	// can't do the first col when it's 8 conn.
-	for (int y = 1; y < output.rows; y++) {
-		for (int x = 0; x < output.cols; x++) {
-
-			pval = output[y][x];
-
-			// walk through the neighbor pixels, left and up (N+(p)) only
-			if (x > 0) pval = max(pval, output[y][x-1]);
-			pval = max(pval, output[y-1][x]);
-
-			if (conn == 8) {
-				if (x < maxx) pval = max(pval, output[y-1][x+1]);
-				if (x > 0) pval = max(pval, output[y-1][x-1]);
-			}
-			output[y][x] = min(pval, image[y][x]);
-		}
-	}
-
-	// anti-raster scan
-	// do the last row
-	for (int x = maxx-1; x >= 0; x--) {
-
-		pval = output[maxy][x];
-
-		// walk through the neighbor pixels, right and down (N-(p)) only
-		pval = max(pval, output[maxy][x+1]);
-
-		output[maxy][x] = min(pval, image[maxy][x]);
-
-		// capture the seeds
-		// walk through the neighbor pixels, right and down (N-(p)) only
-		if ((output[maxy][x+1] < output[maxy][x]) && (output[maxy][x+1] < image[maxy][x+1])) {
-			xQ.push(x);
-			yQ.push(maxy);
-		}
-	}
-	// can't do the last col for 8 conn
-	// do the remaining
-	for (int y = maxy - 1; y >= 0; y--) {
-		for (int x = maxx; x >= 0; x--) {
-
-			pval = output[y][x];
-
-			// walk through the neighbor pixels, right and down (N-(p)) only
-			if (x < maxx) pval = max(pval, output[y][x+1]);
-			pval = max(pval, output[y+1][x]);
-
-			if (conn == 8) {
-				if (x < maxx) pval = max(pval, output[y+1][x+1]);
-				if (x > 0) pval = max(pval, output[y+1][x-1]);
-			}
-
-			output[y][x] = min(pval, image[y][x]);
-
-			// capture the seeds
-			shouldAdd = false;
-			// walk through the neighbor pixels, right and down (N-(p)) only
-			pval = output[y][x];
-			if (x < maxx) {
-				if ((output[y][x+1] < pval) && (output[y][x+1] < image[y][x+1])) shouldAdd = true;
-			}
-			if ((output[y+1][x] < pval) && (output[y+1][x] < image[y+1][x])) shouldAdd = true;
-
-			if (conn == 8) {
-				if (x < maxx) if ((output[y+1][x+1] < pval) && (output[y+1][x+1] < image[y+1][x+1])) shouldAdd = true;
-				if (x > 0) if ((output[y+1][x-1] < pval) && (output[y+1][x-1] < image[y+1][x-1])) shouldAdd = true;
-			}
-			if (shouldAdd) {
-				xQ.push(x);
-				yQ.push(y);
-			}
-		}
-	}
-
-	// now process the queue.
-	T qval, ival;
-	int x, y;
-	while (!(xQ.empty())) {
-		x = xQ.front();
-		y = yQ.front();
-		xQ.pop();
-		yQ.pop();
-
-		pval = output[y][x];
-
-		// look at the 4 connected components
-		if (y > 0) {
-			qval = output[y-1][x];
-			ival = image[y-1][x];
-			if ((qval < pval) && (ival != qval)) {
-				output[y-1][x] = min(pval, ival);
-				xQ.push(x);
-				yQ.push(y-1);
-			}
-		}
-		if (y < maxy) {
-			qval = output[y+1][x];
-			ival = image[y+1][x];
-			if ((qval < pval) && (ival != qval)) {
-				output[y+1][x] = min(pval, ival);
-				xQ.push(x);
-				yQ.push(y+1);
-			}
-		}
-		if (x > 0) {
-			qval = output[y][x-1];
-			ival = image[y][x-1];
-			if ((qval < pval) && (ival != qval)) {
-				output[y][x-1] = min(pval, ival);
-				xQ.push(x-1);
-				yQ.push(y);
-			}
-		}
-		if (x < maxx) {
-			qval = output[y][x+1];
-			ival = image[y][x+1];
-			if ((qval < pval) && (ival != qval)) {
-				output[y][x+1] = min(pval, ival);
-				xQ.push(x+1);
-				yQ.push(y);
-			}
-		}
-
-		// now 8 connected
-		if (conn == 8) {
-
-			if (y > 0) {
-				if (x > 0) {
-					qval = output[y-1][x-1];
-					ival = image[y-1][x-1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y-1][x-1] = min(pval, ival);
-						xQ.push(x-1);
-						yQ.push(y-1);
-					}
-				}
-				if (x < maxx) {
-					qval = output[y-1][x+1];
-					ival = image[y-1][x+1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y-1][x+1] = min(pval, ival);
-						xQ.push(x+1);
-						yQ.push(y-1);
-					}
-				}
-
-			}
-			if (y < maxy) {
-				if (x > 0) {
-					qval = output[y+1][x-1];
-					ival = image[y+1][x-1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y+1][x-1] = min(pval, ival);
-						xQ.push(x-1);
-						yQ.push(y+1);
-					}
-				}
-				if (x < maxx) {
-					qval = output[y+1][x+1];
-					ival = image[y+1][x+1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y+1][x+1] = min(pval, ival);
-						xQ.push(x+1);
-						yQ.push(y+1);
-					}
-				}
-
-			}
-		}
-	}
-
-
-
-	return output;
+	return output(Range(1, maxy), Range(1, maxx));
 
 }
 
 
 
+
+
 template <typename T>
-void propagateBinary(const Mat_<T>& image, Mat_<T>& output, std::queue<T>& xQ, std::queue<T>& yQ,
-		const int& x, const int& y, const T& foreground) {
+inline void propagateBinary(const Mat_<T>& image, Mat_<T>& output, std::queue<int>& xQ, std::queue<int>& yQ,
+		int x, int y, const T& foreground) {
 	if ((output[y][x] == 0) && (image[y][x] != 0)) {
 		output[y][x] = foreground;
 		xQ.push(x);
 		yQ.push(y);
 	}
 }
+
+template
+inline void propagateBinary(const Mat_<uchar>&, Mat_<uchar>&, std::queue<int>&, std::queue<int>&,
+		int, int, const uchar&);
 
 
 /** optimized serial implementation for binary,
@@ -467,43 +233,135 @@ void propagateBinary(const Mat_<T>& image, Mat_<T>& output, std::queue<T>& xQ, s
  */
 template <typename T>
 Mat_<T> imreconstructBinary(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
-	Mat_<T> output = seeds.clone();
+	Mat_<T> output(seeds.size() + Size(2,2));
+	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat_<T> input(image.size() + Size(2,2));
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
-	T pval;
+	T pval, ival;
 	int xminus, xplus, yminus, yplus;
 	int maxx = output.cols - 1;
 	int maxy = output.rows - 1;
-	std::cout<< "max x = " << maxx << "  max y = " << maxy << std::endl;
-	//std::queue<Point> pixQ;
 	std::queue<int> xQ;
 	std::queue<int> yQ;
-	bool shouldAdd;
+	bool added;
+	T* oPtr;
+	T* oPtrPlus;
+	T* oPtrMinus;
+	T* iPtr;
+
+	uint64_t t1 = cciutils::ClockGetTime();
 
 
-	// contour pixel determination
+	// contour pixel determination.  if any neighbor of a 1 pixel is 0, and the image is 1, then boundary
+	for (int y = 1; y < maxy; y++) {
+		oPtr = output.ptr(y);
+		oPtrPlus = output.ptr(y+1);
+		oPtrMinus = output.ptr(y-1);
+		iPtr = input.ptr(y);
+
+		for (int x = 1; x < maxx; x++) {
+
+			pval = oPtr[x];
+			ival = iPtr[x];
+			added = false;
+
+			if (pval != 0 && ival != 0) {
+				xminus = x == 0 ? 0 : x - 1;
+//				yminus = y == 0 ? 0 : y - 1;
+				xplus = x == maxx ? maxx : x + 1;
+//				yplus = y == maxy ? maxy : y + 1;
+				// check neighbors
+
+//				if (conn == 8) {
+//					for (int j = yminus; j <= yplus; j++) {
+//						for (int i = xminus; i <= xplus; i++) {
+//							if (output[j][i] == 0) {
+//								xQ.push(x);
+//								yQ.push(y);
+//								added = true;
+//								break;
+//							}
+//						}
+//						if (added) break;
+//					}
+//				} else {
+//					for (int j = yminus; j <= yplus; j++) {
+//						if (output[j][x] == 0) {
+//							xQ.push(x);
+//							yQ.push(y);
+//							added = true;
+//							break;
+//						}
+//					}
+//					if (added) continue;
+//					for (int i = xminus; i <= xplus; i++) {
+//						if (output[y][i] == 0) {
+//							xQ.push(x);
+//							yQ.push(y);
+//							added = true;
+//							break;
+//						}
+//					}
+//				}
+
+				// 4 connected
+				if ((oPtrMinus[x] == 0) ||
+						(oPtrPlus[x] == 0) ||
+						(oPtr[xplus] == 0) ||
+						(oPtr[xminus] == 0)) {
+					xQ.push(x);
+					yQ.push(y);
+					continue;
+				}
+
+				// 8 connected
+
+				if (conn == 8) {
+					if ((oPtrMinus[xminus] == 0) ||
+						(oPtrMinus[xplus] == 0) ||
+						(oPtrPlus[xminus] == 0) ||
+						(oPtrPlus[xplus] == 0)) {
+								xQ.push(x);
+								yQ.push(y);
+								continue;
+					}
+				}
+			}
+		}
+	}
+
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "scan time = " << t2-t1 << "ms" << std::endl;
+
 
 	// now process the queue.
-	T qval, ival;
+	T qval;
 	T outval = std::numeric_limits<T>::max();
 	int x, y;
+	PixelLocation p;
 	while (!(xQ.empty())) {
 		x = xQ.front();
 		y = yQ.front();
 		xQ.pop();
 		yQ.pop();
+		xminus = x-1;
+		yminus = y-1;
+		yplus = y+1;
+		xplus = x+1;
 
 		// look at the 4 connected components
 		if (y > 0) {
-			nscale::propagateBinary<T>(image, output, xQ, yQ, x, y-1, outval);
+			propagateBinary<T>(input, output, xQ, yQ, x, yminus, outval);
 		}
 		if (y < maxy) {
-			nscale::propagateBinary<T>(image, output, xQ, yQ, x, y+1, outval);
+			propagateBinary<T>(input, output, xQ, yQ, x, yplus, outval);
 		}
 		if (x > 0) {
-			nscale::propagateBinary<T>(image, output, xQ, yQ, x-1, y, outval);
+			propagateBinary<T>(input, output, xQ, yQ, xminus, y, outval);
 		}
 		if (x < maxx) {
-			nscale::propagateBinary<T>(image, output, xQ, yQ, x+1, y, outval);
+			propagateBinary<T>(input, output, xQ, yQ, xplus, y, outval);
 		}
 
 		// now 8 connected
@@ -511,261 +369,147 @@ Mat_<T> imreconstructBinary(const Mat_<T>& image, const Mat_<T>& seeds, int conn
 
 			if (y > 0) {
 				if (x > 0) {
-					nscale::propagateBinary<T>(image, output, xQ, yQ, x-1, y-1, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xminus, yminus, outval);
 				}
 				if (x < maxx) {
-					nscale::propagateBinary<T>(image, output, xQ, yQ, x+1, y-1, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xplus, yminus, outval);
 				}
 
 			}
 			if (y < maxy) {
 				if (x > 0) {
-					nscale::propagateBinary<T>(image, output, xQ, yQ, x-1, y+1, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xminus, yplus, outval);
 				}
 				if (x < maxx) {
-					nscale::propagateBinary<T>(image, output, xQ, yQ, x+1, y+1, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xplus, yplus, outval);
 				}
 
 			}
 		}
+
 	}
 
-	return output;
+	uint64_t t3 = cciutils::ClockGetTime();
+	std::cout << "queue time = " << t3-t2 << "ms" << std::endl;
+
+	return output(Range(1, maxy), Range(1, maxx));
 
 }
 
 template Mat_<uchar> imreconstruct(const Mat_<uchar>&, const Mat_<uchar>&, int);
-template Mat_<uchar> imreconstruct2(const Mat_<uchar>&, const Mat_<uchar>&, int);
 template Mat_<uchar> imreconstructBinary(const Mat_<uchar>&, const Mat_<uchar>&, int);
-
-}
-
+template Mat_<uchar> imreconstructScan(const Mat_<uchar> &, const Mat_<uchar>&, int);
 
 
-/** fast hybrid serial implementation,
+
+
+
+/** serial implementation,
  from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
 
  this is the fast hybrid grayscale reconstruction
 
  connectivity is either 4 or 8, default 4.
 
- retired.
- */ /*
+ this is slightly optimized by avoiding conditional where possible.
+ */
 template <typename T>
-Mat_<T> imreconstruct(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
+Mat_<T> imreconstructScan(const Mat_<T>& image, const Mat_<T>& seeds, int conn) {
 	Mat_<T> output = seeds.clone();
 
-	T pval;
-	int xminus, xplus, yminus, yplus;
+	T pval, oldval;
 	int maxx = output.cols - 1;
 	int maxy = output.rows - 1;
-	std::cout<< "max x = " << maxx << "  max y = " << maxy << std::endl;
-	//std::queue<Point> pixQ;
-	std::queue<int> xQ;
-	std::queue<int> yQ;
-	bool shouldAdd;
+	bool hasChange;
+	int i;
 
-
-	// raster scan
-	for (int y = 0; y < output.rows; y++) {
-		for (int x = 0; x < output.cols; x++) {
-
-			pval = output[y][x];
-
+	do {
+		hasChange = false;
+		// raster scan
+		// do the first row
+		for (int x = 1; x < output.cols; x++) {
+			oldval = output[0][x];
+			pval = oldval;
 			// walk through the neighbor pixels, left and up (N+(p)) only
-			if (x > 0) pval = max(pval, output[y][x-1]);
-			if (y > 0) {
+			pval = max(pval, output[0][x-1]);
+			pval = min(pval, image[0][x]);
+			if (pval != oldval) {
+				output[0][x] = pval;
+				hasChange = true;
+			}
+		}
+		// can't do the first col when it's 8 conn.
+		for (int y = 1; y < output.rows; y++) {
+			for (int x = 0; x < output.cols; x++) {
+
+				oldval = output[y][x];
+				pval = oldval;
+
+				// walk through the neighbor pixels, left and up (N+(p)) only
+				if (x > 0) pval = max(pval, output[y][x-1]);
 				pval = max(pval, output[y-1][x]);
 
 				if (conn == 8) {
 					if (x < maxx) pval = max(pval, output[y-1][x+1]);
 					if (x > 0) pval = max(pval, output[y-1][x-1]);
 				}
+				pval = min(pval, image[y][x]);
+				if (pval != oldval) {
+					output[y][x] = pval;
+					hasChange = true;
+				}
+
 			}
-			output[y][x] = min(pval, image[y][x]);
 		}
-	}
 
-	// anti-raster scan
-	for (int y = maxy; y >= 0; y--) {
-		for (int x = maxx; x >= 0; x--) {
+		// anti-raster scan
+		// do the last row
+		for (int x = maxx-1; x >= 0; x--) {
 
-			pval = output[y][x];
+			oldval = output[maxy][x];
+			pval = oldval;
 
 			// walk through the neighbor pixels, right and down (N-(p)) only
-			if (x < maxx) pval = max(pval, output[y][x+1]);
-			if (y < maxy) {
+			pval = max(pval, output[maxy][x+1]);
+
+			pval = min(pval, image[maxy][x]);
+			if (pval != oldval) {
+				output[maxy][x] = pval;
+				hasChange = true;
+			}
+		}
+		// can't do the last col for 8 conn
+		// do the remaining
+		for (int y = maxy - 1; y >= 0; y--) {
+			for (int x = maxx; x >= 0; x--) {
+
+				oldval = output[y][x];
+				pval = oldval;
+
+				// walk through the neighbor pixels, right and down (N-(p)) only
+				if (x < maxx) pval = max(pval, output[y][x+1]);
 				pval = max(pval, output[y+1][x]);
 
 				if (conn == 8) {
 					if (x < maxx) pval = max(pval, output[y+1][x+1]);
 					if (x > 0) pval = max(pval, output[y+1][x-1]);
 				}
-			}
 
-			output[y][x] = min(pval, image[y][x]);
-
-			// capture the seeds
-			shouldAdd = false;
-			// walk through the neighbor pixels, right and down (N-(p)) only
-			pval = output[y][x];
-			if (x < maxx) {
-				if ((output[y][x+1] < pval) && (output[y][x+1] < image[y][x+1])) shouldAdd = true;
-			}
-			if (y < maxy) {
-				if ((output[y+1][x] < pval) && (output[y+1][x] < image[y+1][x])) shouldAdd = true;
-
-				if (conn == 8) {
-					if (x < maxx) if ((output[y+1][x+1] < pval) && (output[y+1][x+1] < image[y+1][x+1])) shouldAdd = true;
-					if (x > 0) if ((output[y+1][x-1] < pval) && (output[y+1][x-1] < image[y+1][x-1])) shouldAdd = true;
-				}
-			}
-			if (shouldAdd) {
-				//pixQ.push(Point(x, y));
-				xQ.push(x);
-				yQ.push(y);
-				if (x > maxx) {
-					std::cout << "ERROR x too big " << x << "," << y << std::endl;
-				}
-				if (y > maxy) {
-					std::cout << "ERROR y too big " << x << "," << y << std::endl;
+				pval = min(pval, image[y][x]);
+				if (pval != oldval) {
+					output[y][x] = pval;
+					hasChange = true;
 				}
 			}
 		}
-	}
 
-	// now process the queue.
-	Point p;
-	T qval, ival;
-	int x, y;
-//	while (!(pixQ.empty())) {
-	while (!(xQ.empty())) {
-		//p = pixQ.front();
-		//pixQ.pop();
-		//x = p.x;
-		//y = p.y;
-		x = xQ.front();
-		y = yQ.front();
-		xQ.pop();
-		yQ.pop();
-		if (x > maxx) {
-			//std::cout << "ERROR processing.  x too big " << x << "," << y << std::endl;
-		}
-		if (y > maxy) {
-			//std::cout << "ERROR processing.  y too big " << x << "," << y << std::endl;
-		}
-
-		pval = output[y][x];
-
-		// look at the 4 connected components
-		if (y > 0) {
-			qval = output[y-1][x];
-			ival = image[y-1][x];
-			if ((qval < pval) && (ival != qval)) {
-				output[y-1][x] = min(pval, ival);
-				//pixQ.push(Point(x, y-1));
-				xQ.push(x);
-				yQ.push(y-1);
-				if (x > maxx) {
-					std::cout << "ERROR x too big " << x << "," << y-1 << std::endl;
-				}
-				if (y > maxy) {
-					std::cout << "ERROR y+1 too big " << x << "," << y-1 << std::endl;
-				}
-
-			}
-		}
-		if (y < maxy) {
-			qval = output[y+1][x];
-			ival = image[y+1][x];
-			if ((qval < pval) && (ival != qval)) {
-				output[y+1][x] = min(pval, ival);
-				//pixQ.push(Point(x, y+1));
-				xQ.push(x);
-				yQ.push(y+1);
-				if (x > maxx) {
-					std::cout << "ERROR x too big " << x << "," << y+1 << std::endl;
-				}
-				if (y > maxy) {
-					std::cout << "ERROR y+1 too big " << x << "," << y+1 << std::endl;
-				}
-			}
-		}
-		if (x > 0) {
-			qval = output[y][x-1];
-			ival = image[y][x-1];
-			if ((qval < pval) && (ival != qval)) {
-				output[y][x-1] = min(pval, ival);
-				//pixQ.push(Point(x-1, y));
-				xQ.push(x-1);
-				yQ.push(y);
-			}
-		}
-		if (x < maxx) {
-			qval = output[y][x+1];
-			ival = image[y][x+1];
-			if ((qval < pval) && (ival != qval)) {
-				output[y][x+1] = min(pval, ival);
-				//pixQ.push(Point(x+1, y));
-				xQ.push(x+1);
-				yQ.push(y);
-			}
-		}
-
-		// now 8 connected
-		if (conn == 8) {
-
-			if (y > 0) {
-				if (x > 0) {
-					qval = output[y-1][x-1];
-					ival = image[y-1][x-1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y-1][x-1] = min(pval, ival);
-						//pixQ.push(Point(x-1, y-1));
-						xQ.push(x-1);
-						yQ.push(y-1);
-					}
-				}
-				if (x < maxx) {
-					qval = output[y-1][x+1];
-					ival = image[y-1][x+1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y-1][x+1] = min(pval, ival);
-						//pixQ.push(Point(x+1, y-1));
-						xQ.push(x+1);
-						yQ.push(y-1);
-					}
-				}
-
-			}
-			if (y < maxy) {
-				if (x > 0) {
-					qval = output[y+1][x-1];
-					ival = image[y+1][x-1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y+1][x-1] = min(pval, ival);
-						//pixQ.push(Point(x-1, y+1));
-						xQ.push(x-1);
-						yQ.push(y+1);
-					}
-				}
-				if (x < maxx) {
-					qval = output[y+1][x+1];
-					ival = image[y+1][x+1];
-					if ((qval < pval) && (ival != qval)) {
-						output[y+1][x+1] = min(pval, ival);
-						//pixQ.push(Point(x+1, y+1));
-						xQ.push(x+1);
-						yQ.push(y+1);
-					}
-				}
-
-			}
-		}
-	}
+		i++;
+	} while (hasChange);
 
 
 	return output;
 
 }
-*/
+
+}
+

@@ -9,17 +9,20 @@
 #define MORPHOLOGICOPERATION_H_
 
 #include "cv.h"
+#include <queue>
 
 
 namespace nscale {
-
+// DOES NOT WORK WITH MULTICHANNEL.
 template <typename T>
 cv::Mat_<T> imreconstruct(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn);
-template <typename T>
-cv::Mat_<T> imreconstruct2(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn);
 
 template <typename T>
-cv::Mat_<T> imreconstructBinary(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn) {};
+cv::Mat_<T> imreconstructScan(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn);
+
+template <typename T>
+cv::Mat_<T> imreconstructBinary(const cv::Mat_<T>& image, const cv::Mat_<T>& seeds, int conn);
+
 
 }
 
