@@ -11,9 +11,8 @@
 #include <vector>
 #include <string>
 #include <errno.h>
-#include "RedBloodCell.h"
+#include "HistologicalEntities.h"
 #include <time.h>
-#include "MorphologicOperation.h"
 #include "utils.h"
 
 using namespace cv;
@@ -81,7 +80,7 @@ int main (int argc, char **argv){
 
 	uint64_t t1 = cciutils::ClockGetTime();
 
-	Mat rbc = nscale::RedBloodCell::rbcMask(bgr);
+	Mat rbc = nscale::HistologicalEntities::rbcMask(bgr);
 
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;

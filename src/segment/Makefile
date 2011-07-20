@@ -9,10 +9,12 @@ CXXFLAGS=-g -O3 -msse4.2 -fopenmp
 
 RM=/bin/rm -rf
 
-SRC= test.cpp RedBloodCell.cpp MorphologicOperation.cpp
-MOP_SRC = imreconTest.cpp MorphologicOperation.cpp
+SRC= test.cpp HistologicalEntities.cpp MorphologicOperations.cpp 
+MOP_SRC = imreconTest.cpp MorphologicOperations.cpp ImageOperations.cpp
+
 
 SRCO= ${SRC:.cpp=.o}
+
 MOP_SRCO= ${MOP_SRC:.cpp=.o}
 
 CXXFLAGS	+= `pkg-config opencv --cflags` 
@@ -21,9 +23,8 @@ LDFLAGS		+= `pkg-config opencv --libs`
 
 test.exe: ${SRCO}
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o test.exe ${SRCO}
-
 imrecontest.exe: ${MOP_SRCO}
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o imreconTest.exe ${MOP_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o imrecontest.exe ${MOP_SRCO}
 	
 clean:
 	$(RM) *.o *.exe

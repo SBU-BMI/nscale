@@ -9,16 +9,15 @@
 #define IMAGEOPERATIONS_H_
 #include "cv.h"
 
-using namespace cv;
 
 namespace nscale {
 
-class ImageOperations {
-public:
-	static Mat bwselect(Mat input, Mat seeds, int connectivity);
-	static Mat imfill(Mat input, Mat seeds, int connectivity);
+template <typename T>
+cv::Mat bwselect(cv::Mat binaryImage, cv::Mat seeds, int connectivity);
 
-};
+template <typename T>
+cv::Mat imfill(cv::Mat binaryImage, cv::Mat seeds, int connectivity);
+
 
 }
 
