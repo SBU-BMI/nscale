@@ -26,19 +26,19 @@ struct PixelLocation {
 
 
 template <typename T>
-inline void propagate(const Mat_<T>& image, Mat_<T>& output, std::queue<int>& xQ, std::queue<int>& yQ,
+inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
 		int x, int y, const T& pval) {
-	T qval = output[y][x];
-	T ival = image[y][x];
+	T qval = output.ptr(y)[x];
+	T ival = image.ptr(y)[x];
 	if ((qval < pval) && (ival != qval)) {
-		output[y][x] = min(pval, ival);
+		output.ptr(y)[x] = min(pval, ival);
 		xQ.push(x);
 		yQ.push(y);
 	}
 }
 
 template
-inline void propagate(const Mat_<uchar>&, Mat_<uchar>&, std::queue<int>&, std::queue<int>&,
+inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, const uchar&);
 
 
@@ -52,10 +52,10 @@ inline void propagate(const Mat_<uchar>&, Mat_<uchar>&, std::queue<int>&, std::q
  this is slightly optimized by avoiding conditional where possible.
  */
 template <typename T>
-Mat_<T> imreconstruct(const Mat_<T>& seeds, const Mat_<T>& image, int conn) {
-	Mat_<T> output(seeds.size() + Size(2,2));
+Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
+	Mat output(seeds.size() + Size(2,2), seeds.type());
 	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-	Mat_<T> input(image.size() + Size(2,2));
+	Mat input(image.size() + Size(2,2), image.type());
 	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
 	T pval;
@@ -152,7 +152,7 @@ Mat_<T> imreconstruct(const Mat_<T>& seeds, const Mat_<T>& image, int conn) {
 		yplus = y+1;
 		xplus = x+1;
 
-		pval = output[y][x];
+		pval = output.ptr(y)[x];
 
 		// look at the 4 connected components
 		if (y > 0) {
@@ -359,120 +359,171 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int conn) {
 
 }
 
-template Mat_<uchar> imreconstruct(const Mat_<uchar>&, const Mat_<uchar>&, int);
-template Mat imreconstructBinary<uchar>(const Mat&, const Mat&, int);
-template Mat_<uchar> imreconstructScan(const Mat_<uchar> &, const Mat_<uchar>&, int);
 
 
-
-
-
-/** serial implementation,
- from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
-
- this is the fast hybrid grayscale reconstruction
-
- connectivity is either 4 or 8, default 4.
-
- this is slightly optimized by avoiding conditional where possible.
- */
+// Operates on BINARY IMAGES ONLY
 template <typename T>
-Mat_<T> imreconstructScan(const Mat_<T>& seeds, const Mat_<T>& image, int conn) {
-	Mat_<T> output = seeds.clone();
+Mat imfillBinary(Mat binaryImage, Mat seeds, int connectivity=8) {
 
-	T pval, oldval;
-	int maxx = output.cols - 1;
-	int maxy = output.rows - 1;
-	bool hasChange;
-	int i;
+	/* MatLAB imfill code:
+	 *     mask = imcomplement(I);
+    marker = mask;
+    marker(:) = 0;
+    marker(locations) = mask(locations);
+    marker = imreconstruct(marker, mask, conn);
+    I2 = I | marker;
+	 */
 
-	do {
-		hasChange = false;
-		// raster scan
-		// do the first row
-		for (int x = 1; x < output.cols; x++) {
-			oldval = output[0][x];
-			pval = oldval;
-			// walk through the neighbor pixels, left and up (N+(p)) only
-			pval = max(pval, output[0][x-1]);
-			pval = min(pval, image[0][x]);
-			if (pval != oldval) {
-				output[0][x] = pval;
-				hasChange = true;
-			}
-		}
-		// can't do the first col when it's 8 conn.
-		for (int y = 1; y < output.rows; y++) {
-			for (int x = 0; x < output.cols; x++) {
+	T mx = std::numeric_limits<T>::max();
+	Mat mask = mx - binaryImage;  // validated
 
-				oldval = output[y][x];
-				pval = oldval;
+	Mat marker = Mat::zeros(mask.size(), mask.type());
 
-				// walk through the neighbor pixels, left and up (N+(p)) only
-				if (x > 0) pval = max(pval, output[y][x-1]);
-				pval = max(pval, output[y-1][x]);
+	mask.copyTo(marker, seeds);
 
-				if (conn == 8) {
-					if (x < maxx) pval = max(pval, output[y-1][x+1]);
-					if (x > 0) pval = max(pval, output[y-1][x-1]);
-				}
-				pval = min(pval, image[y][x]);
-				if (pval != oldval) {
-					output[y][x] = pval;
-					hasChange = true;
-				}
+	marker = imreconstructBinary<uchar>(marker, mask, connectivity);
 
-			}
-		}
-
-		// anti-raster scan
-		// do the last row
-		for (int x = maxx-1; x >= 0; x--) {
-
-			oldval = output[maxy][x];
-			pval = oldval;
-
-			// walk through the neighbor pixels, right and down (N-(p)) only
-			pval = max(pval, output[maxy][x+1]);
-
-			pval = min(pval, image[maxy][x]);
-			if (pval != oldval) {
-				output[maxy][x] = pval;
-				hasChange = true;
-			}
-		}
-		// can't do the last col for 8 conn
-		// do the remaining
-		for (int y = maxy - 1; y >= 0; y--) {
-			for (int x = maxx; x >= 0; x--) {
-
-				oldval = output[y][x];
-				pval = oldval;
-
-				// walk through the neighbor pixels, right and down (N-(p)) only
-				if (x < maxx) pval = max(pval, output[y][x+1]);
-				pval = max(pval, output[y+1][x]);
-
-				if (conn == 8) {
-					if (x < maxx) pval = max(pval, output[y+1][x+1]);
-					if (x > 0) pval = max(pval, output[y+1][x-1]);
-				}
-
-				pval = min(pval, image[y][x]);
-				if (pval != oldval) {
-					output[y][x] = pval;
-					hasChange = true;
-				}
-			}
-		}
-
-		i++;
-	} while (hasChange);
-
-
-	return output;
-
+	return binaryImage | marker;
 }
+
+// Operates on BINARY IMAGES ONLY
+template <typename T>
+Mat imfillHolesBinary(Mat binaryImage, int connectivity=8) {
+
+	/* MatLAB imfill code:
+    if islogical(I)
+        mask = uint8(I);
+    else
+        mask = I;
+    end
+    mask = padarray(mask, ones(1,ndims(mask)), -Inf, 'both');
+
+    marker = mask;
+    idx = cell(1,ndims(I));
+    for k = 1:ndims(I)
+        idx{k} = 2:(size(marker,k) - 1);
+    end
+    marker(idx{:}) = Inf;
+
+    mask = imcomplement(mask);
+    marker = imcomplement(marker);
+    I2 = imreconstruct(marker, mask, conn);
+    I2 = imcomplement(I2);
+    I2 = I2(idx{:});
+
+    if islogical(I)
+        I2 = I2 ~= 0;
+    end
+	 */
+
+	T mn = std::numeric_limits<T>::min();
+	T mx = std::numeric_limits<T>::max();
+	Rect roi = Rect(1, 1, binaryImage.cols, binaryImage.rows);
+
+	// copy the input and pad with -inf.
+	Mat mask(binaryImage.size() + Size(2,2), binaryImage.type());
+	copyMakeBorder(binaryImage, mask, 1, 1, 1, 1, BORDER_CONSTANT, mn);
+	// create marker with inf inside and -inf at border, and take its complement
+	Mat marker(mask.size(), mask.type());
+	Mat marker2(marker, roi);
+	marker2 = Scalar(mn);
+	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
+	copyMakeBorder(marker2, marker, 1, 1, 1, 1, BORDER_CONSTANT, mx);
+
+	// now do the work...
+	mask = mx - mask;
+	Mat output = imreconstructBinary<T>(marker, mask, connectivity);
+	output = mx - output;
+
+	return output(roi);
+}
+
+// Operates on BINARY IMAGES ONLY
+template <typename T>
+Mat imfillHoles(Mat image, int connectivity=8) {
+
+	/* MatLAB imfill code:
+    if islogical(I)
+        mask = uint8(I);
+    else
+        mask = I;
+    end
+    mask = padarray(mask, ones(1,ndims(mask)), -Inf, 'both');
+
+    marker = mask;
+    idx = cell(1,ndims(I));
+    for k = 1:ndims(I)
+        idx{k} = 2:(size(marker,k) - 1);
+    end
+    marker(idx{:}) = Inf;
+
+    mask = imcomplement(mask);
+    marker = imcomplement(marker);
+    I2 = imreconstruct(marker, mask, conn);
+    I2 = imcomplement(I2);
+    I2 = I2(idx{:});
+
+    if islogical(I)
+        I2 = I2 ~= 0;
+    end
+	 */
+
+
+	T mn = std::numeric_limits<T>::min();
+	T mx = std::numeric_limits<T>::max();
+	Rect roi = Rect(1, 1, image.cols, image.rows);
+
+	// copy the input and pad with -inf.
+	Mat mask(image.size() + Size(2,2), image.type());
+	copyMakeBorder(image, mask, 1, 1, 1, 1, BORDER_CONSTANT, mn);
+	// create marker with inf inside and -inf at border, and take its complement
+	Mat marker(mask.size(), mask.type());
+	Mat marker2(marker, roi);
+	marker2 = Scalar(mn);
+	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
+	copyMakeBorder(marker2, marker, 1, 1, 1, 1, BORDER_CONSTANT, mx);
+
+	// now do the work...
+	mask = mx - mask;
+	Mat output = imreconstruct<T>(marker, mask, connectivity);
+	output = mx - output;
+
+	return output(roi);
+}
+
+// Operates on BINARY IMAGES ONLY
+template <typename T>
+Mat bwselectBinary(Mat binaryImage, Mat seeds, int connectivity=8) {
+	// only works for binary images.  ~I and MAX-I are the same....
+
+	/** adopted from bwselect and imfill
+	 * bwselet:
+	 * seed_indices = sub2ind(size(BW), r(:), c(:));
+		BW2 = imfill(~BW, seed_indices, n);
+		BW2 = BW2 & BW;
+	 *
+	 * imfill:
+	 * see below.
+	 */
+
+	Mat marker = Mat::zeros(seeds.size(), seeds.type());
+	binaryImage.copyTo(marker, seeds);
+
+	marker = imreconstructBinary<uchar>(marker, binaryImage, connectivity);
+
+	return marker & binaryImage;
+}
+
+
+template Mat bwselectBinary<uchar>(Mat image, Mat seeds, int connectivity);
+
+
+template Mat imreconstruct<uchar>(const Mat&, const Mat&, int);
+template Mat imreconstructBinary<uchar>(const Mat&, const Mat&, int);
+template Mat imfillBinary<uchar>(Mat image, Mat seeds, int connectivity);
+template Mat imfillHoles<uchar>(Mat image, int connectivity);
+template Mat imfillHolesBinary<uchar>(Mat image, int connectivity);
+
 
 }
 

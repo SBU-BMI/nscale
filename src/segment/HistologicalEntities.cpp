@@ -7,19 +7,20 @@
 
 #include "HistologicalEntities.h"
 #include <iostream>
+#include "MorphologicOperations.h"
 #include "highgui.h"
 #include "float.h"
 #include "utils.h"
 
 namespace nscale {
 
-Mat HistologicalEntities::rbcMask(Mat img) {
+Mat HistologicalEntities::getRBC(Mat img) {
 	std::vector<Mat> bgr;
 	split(img, bgr);
-	return rbcMask(bgr);
+	return getRBC(bgr);
 }
 
-Mat HistologicalEntities::rbcMask(std::vector<Mat> bgr) {
+Mat HistologicalEntities::getRBC(std::vector<Mat> bgr) {
 	/*
 	%T1=2.5; T2=2;
     T1=5; T2=4;
@@ -48,33 +49,14 @@ Mat HistologicalEntities::rbcMask(std::vector<Mat> bgr) {
 	bgr[2].convertTo(rd, rd.type(), 1.0, 0.0);
 
 	Mat imR2G = rd / gd;
+	Mat imR2B = (rd / bd) > 1.0;
 	Mat bw1 = imR2G > T1;
 	Mat bw2 = imR2G > T2;
-	Mat bw3 = ~bw2;
-
-	// multiple seeds.  need to get the ids and then iterate through
-	Mat rbc = Mat::zeros(s, CV_8UC1);
-	uchar * rowPointer;
+	Mat rbc;
 	if (countNonZero(bw1) > 0) {
-		// iterate over all pixels
-
-		uint64_t t1 = cciutils::ClockGetTime();
-		// internals of bwselect
-		for (int j = 0; j < bw1.rows; j++) {
-			rowPointer = bw1.ptr<uchar>(j);
-			for (int i = 0; i < bw1.cols; i++) {
-				if (rowPointer[i] == 0) continue;
-				// comparison operation produces 0 and 255.  need to fill with 255.
-				bw3 = floodFill(bw3, Point(i, j), 255, NULL, Scalar(), Scalar(), 8);
-			}
-		}
-		// internals of bwselect
-		Mat bw4 = bw2 & bw3;
-		uint64_t t2 = cciutils::ClockGetTime();
-		std::cout << " bwselect took " << t2 - t1 << "ms" << std::endl;
-
-		// now the rest
-		rbc = bw4 & ((rd / bd) > 1.0);
+		rbc = bwselectBinary<uchar>(bw2, bw1, 8) & imR2B;
+	} else {
+		rbc = Mat::zeros(bw2.size(), bw2.type());
 	}
 
 	return rbc;

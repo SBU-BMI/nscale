@@ -20,8 +20,8 @@ protected:
 	virtual ~HistologicalEntities() {};
 
 public:
-	static Mat rbcMask(Mat img);
-	static Mat rbcMask(std::vector<Mat> rgb);
+	static Mat getRBC(Mat img);
+	static Mat getRBC(std::vector<Mat> rgb);
 };
 
 }

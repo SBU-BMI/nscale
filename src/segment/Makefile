@@ -9,8 +9,8 @@ CXXFLAGS=-g -O3 -msse4.2 -fopenmp
 
 RM=/bin/rm -rf
 
-SRC= test.cpp HistologicalEntities.cpp MorphologicOperations.cpp 
-MOP_SRC = imreconTest.cpp MorphologicOperations.cpp ImageOperations.cpp
+SRC= test.cpp HistologicalEntities.cpp MorphologicOperations.cpp
+MOP_SRC = imreconTest.cpp MorphologicOperations.cpp
 
 
 SRCO= ${SRC:.cpp=.o}

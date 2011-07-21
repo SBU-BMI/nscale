@@ -12,11 +12,11 @@
 #include <string>
 #include <errno.h>
 #include "HistologicalEntities.h"
+#include "MorphologicOperations.h"
 #include <time.h>
 #include "utils.h"
 
 using namespace cv;
-
 
 int main (int argc, char **argv){
 /*	// allow walk through of the directory
@@ -80,20 +80,41 @@ int main (int argc, char **argv){
 
 	uint64_t t1 = cciutils::ClockGetTime();
 
-	Mat rbc = nscale::HistologicalEntities::rbcMask(bgr);
+	Mat rbc = nscale::HistologicalEntities::getRBC(bgr);
 
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
 
 	imwrite("/home/tcpan/PhD/path/rbc.pbm", rbc);
 
-//	resize(rbc, img2, Size(1024,1024));
-//	namedWindow("rbc image", CV_WINDOW_AUTOSIZE);
-//	imshow("rbc image", img2);
+	/*
+	rc = 255 - r;
+    rc_open = imopen(rc, strel('disk',10));
+    rc_recon = imreconstruct(rc_open,rc);
+    diffIm = rc-rc_recon;
+	 */
+
+	Mat rc = std::numeric_limits<uchar>::max() - bgr[2];
+	Mat rc_open(rc.size(), rc.type());
+	Mat el = getStructuringElement(MORPH_ELLIPSE, Size(21,21));
+	morphologyEx(rc, rc_open, CV_MOP_OPEN, el, Point(-1, -1), 1);
+	Mat rc_recon = nscale::imreconstruct<uchar>(rc_open, rc, 8);
+	Mat diffIm = rc - rc_recon;
+
+/*
+    G1=80; G2=45; % default settings
+    %G1=80; G2=30;  % 2nd run
+
+    bw1 = imfill(diffIm>G1,'holes');
+ *
+ */
+	uchar G1 = 80;
+	Mat diffIm2 = diffIm > G1;
+	Mat bw1 = nscale::imfillHolesBinary<uchar>(diffIm2, 8);
 
 
-	Mat rc = 255 - bgr[2];
-	Mat rc_dilate(rc.size(), rc.type());
+
+
 
 //	waitKey();
 
