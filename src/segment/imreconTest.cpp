@@ -15,7 +15,9 @@
 #include "MorphologicOperations.h"
 #include "utils.h"
 
-using namespace cv;
+namespace {
+
+using ::cv;
 
 
 int main (int argc, char **argv){
@@ -50,7 +52,7 @@ int main (int argc, char **argv){
 
 	// imfill testing
 	t1 = cciutils::ClockGetTime();
-	Mat filled = nscale::imfillBinary<uchar>(255 - maskb, markerb, 8);
+	Mat filled = nscale::imfill<uchar>(255 - maskb, markerb, true, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill took " << t2-t1 << "ms" << std::endl;
 	imwrite("/home/tcpan/PhD/path/imfilled.pbm", filled);
@@ -58,7 +60,7 @@ int main (int argc, char **argv){
 
 	// bwselect testing
 	t1 = cciutils::ClockGetTime();
-	Mat bwselected = nscale::bwselectBinary<uchar>(maskb, markerb, 8);
+	Mat bwselected = nscale::bwselect<uchar>(maskb, markerb, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwselect took " << t2-t1 << "ms" << std::endl;
 	imwrite("/home/tcpan/PhD/path/bwselected.pbm", bwselected);
@@ -67,4 +69,6 @@ int main (int argc, char **argv){
 	waitKey();
 
 	return 0;
+}
+
 }

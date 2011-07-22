@@ -10,18 +10,14 @@
 
 #include "cv.h"
 
-using namespace cv;
-
 namespace nscale {
 
 class HistologicalEntities {
-protected:
-	HistologicalEntities() {};
-	virtual ~HistologicalEntities() {};
 
 public:
-	static Mat getRBC(Mat img);
-	static Mat getRBC(std::vector<Mat> rgb);
+	static cv::Mat getRBC(cv::Mat img);
+	static cv::Mat getRBC(std::vector<cv::Mat> rgb);
+
 };
 
 }

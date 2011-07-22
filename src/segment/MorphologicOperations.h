@@ -12,30 +12,44 @@
 
 
 namespace nscale {
+
 // DOES NOT WORK WITH MULTICHANNEL.
 template <typename T>
-cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity = 8);
+cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
 template <typename T>
-cv::Mat imreconstructBinary(const cv::Mat& seeds, const cv::Mat& image, int connectivity = 8);
-
-
-template <typename T>
-cv::Mat bwselectBinary(cv::Mat binaryImage, cv::Mat seeds, int connectivity);
-
-//template <typename T>
-//cv::Mat bwlabel(cv::Mat binaryImage, int connectivity);
+cv::Mat imreconstructBinary(const cv::Mat& seeds, const cv::Mat& binaryImage, int connectivity);
 
 
 template <typename T>
-cv::Mat imfillBinary(cv::Mat binaryImage, cv::Mat seeds, int connectivity);
+cv::Mat imfill(const cv::Mat& image, const cv::Mat& seeds, bool binary, int connectivity);
 
 template <typename T>
-cv::Mat imfillHoles(cv::Mat binaryImage, int connectivity);
+cv::Mat imfillHoles(const cv::Mat& image, bool binary, int connectivity);
+
+
+
 template <typename T>
-cv::Mat imfillHolesBinary(cv::Mat image, int connectivity);
+cv::Mat bwselect(const cv::Mat& binaryImage, const cv::Mat& seeds, int connectivity);
 
+cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, int connectivity);
+// incorporates a filter for the contours.
+template <typename T>
+cv::Mat bwlabelFiltered(const cv::Mat& binaryImage, bool binaryOutput,
+		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int), int connectivity);
 
+// inclusive min, exclusive max
+bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea);
+
+// inclusive min, exclusive max.
+template <typename T>
+cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity);
+
+template <typename T>
+cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
 }
+
+cv::Mat watershed2(const cv::Mat& image, int connectivity);
+cv::Mat localMinima(const cv::Mat& image, int connectivity);
 
 #endif /* MORPHOLOGICOPERATION_H_ */

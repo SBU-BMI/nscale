@@ -14,15 +14,11 @@
 #include "highgui.h"
 
 
-using namespace cv;
 
 
 namespace nscale {
 
-struct PixelLocation {
-	int x;
-	int y;
-};
+using namespace cv;
 
 
 template <typename T>
@@ -52,7 +48,11 @@ inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
  this is slightly optimized by avoiding conditional where possible.
  */
 template <typename T>
-Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
+Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+
+
 	Mat output(seeds.size() + Size(2,2), seeds.type());
 	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 	Mat input(image.size() + Size(2,2), image.type());
@@ -74,13 +74,13 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
 	uint64_t t1 = cciutils::ClockGetTime();
 
 	// raster scan
-	for (int y = 1; y < maxy; y++) {
+	for (int y = 1; y < maxy; ++y) {
 
 		oPtr = output.ptr(y);
 		oPtrMinus = output.ptr(y-1);
 		iPtr = input.ptr(y);
 
-		for (int x = 1; x < maxx; x++) {
+		for (int x = 1; x < maxx; ++x) {
 			xminus = x-1;
 			xplus = x+1;
 			pval = oPtr[x];
@@ -88,7 +88,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
 			// walk through the neighbor pixels, left and up (N+(p)) only
 			pval = max(pval, max(oPtr[xminus], oPtrMinus[x]));
 
-			if (conn == 8) {
+			if (connectivity == 8) {
 				pval = max(pval, max(oPtrMinus[xplus], oPtrMinus[xminus]));
 			}
 			oPtr[x] = min(pval, iPtr[x]);
@@ -96,14 +96,14 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
 	}
 
 	// anti-raster scan
-	for (int y = maxy-1; y > 0; y--) {
+	for (int y = maxy-1; y > 0; --y) {
 		oPtr = output.ptr(y);
 		oPtrPlus = output.ptr(y+1);
 		oPtrMinus = output.ptr(y-1);
 		iPtr = input.ptr(y);
 		iPtrPlus = input.ptr(y+1);
 
-		for (int x = maxx-1; x > 0; x--) {
+		for (int x = maxx-1; x > 0; --x) {
 			xminus = x-1;
 			xplus = x+1;
 
@@ -112,7 +112,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
 			// walk through the neighbor pixels, right and down (N-(p)) only
 			pval = max(pval, max(oPtr[xplus], oPtrPlus[x]));
 
-			if (conn == 8) {
+			if (connectivity == 8) {
 				pval = max(pval, max(oPtrPlus[xplus], oPtrPlus[xminus]));
 			}
 
@@ -125,7 +125,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
 			if ((oPtr[xplus] < pval) && (oPtr[xplus] < iPtr[xplus])) shouldAdd = true;
 			if ((oPtrPlus[x] < pval) && (oPtrPlus[x] < iPtrPlus[x])) shouldAdd = true;
 
-			if (conn == 8) {
+			if (connectivity == 8) {
 				if ((oPtrPlus[xplus] < pval) && (oPtrPlus[xplus] < iPtrPlus[xplus])) shouldAdd = true;
 				if ((oPtrPlus[xminus] < pval) && (oPtrPlus[xminus] < iPtrPlus[xminus])) shouldAdd = true;
 			}
@@ -169,7 +169,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int conn) {
 		}
 
 		// now 8 connected
-		if (conn == 8) {
+		if (connectivity == 8) {
 
 			if (y > 0) {
 				if (x > 0) {
@@ -227,7 +227,7 @@ inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&
 
  */
 template <typename T>
-Mat imreconstructBinary(const Mat& seeds, const Mat& image, int conn) {
+Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
 
@@ -252,13 +252,13 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int conn) {
 
 
 	// contour pixel determination.  if any neighbor of a 1 pixel is 0, and the image is 1, then boundary
-	for (int y = 1; y < maxy; y++) {
+	for (int y = 1; y < maxy; ++y) {
 		oPtr = output.ptr(y);
 		oPtrPlus = output.ptr(y+1);
 		oPtrMinus = output.ptr(y-1);
 		iPtr = input.ptr(y);
 
-		for (int x = 1; x < maxx; x++) {
+		for (int x = 1; x < maxx; ++x) {
 
 			pval = oPtr[x];
 			ival = iPtr[x];
@@ -280,7 +280,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int conn) {
 
 				// 8 connected
 
-				if (conn == 8) {
+				if (connectivity == 8) {
 					if ((oPtrMinus[xminus] == 0) ||
 						(oPtrMinus[xplus] == 0) ||
 						(oPtrPlus[xminus] == 0) ||
@@ -328,7 +328,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int conn) {
 		}
 
 		// now 8 connected
-		if (conn == 8) {
+		if (connectivity == 8) {
 
 			if (y > 0) {
 				if (x > 0) {
@@ -363,7 +363,9 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int conn) {
 
 // Operates on BINARY IMAGES ONLY
 template <typename T>
-Mat imfillBinary(Mat binaryImage, Mat seeds, int connectivity=8) {
+Mat imfill(const Mat& image, const Mat& seeds, bool binary, int connectivity) {
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
 
 	/* MatLAB imfill code:
 	 *     mask = imcomplement(I);
@@ -374,23 +376,24 @@ Mat imfillBinary(Mat binaryImage, Mat seeds, int connectivity=8) {
     I2 = I | marker;
 	 */
 
-	T mx = std::numeric_limits<T>::max();
-	Mat mask = mx - binaryImage;  // validated
+	Mat mask = std::numeric_limits<T>::max() - image;  // validated
 
 	Mat marker = Mat::zeros(mask.size(), mask.type());
 
 	mask.copyTo(marker, seeds);
 
-	marker = imreconstructBinary<uchar>(marker, mask, connectivity);
+	if (binary) marker = imreconstructBinary<T>(marker, mask, connectivity);
+	else marker = imreconstruct<T>(marker, mask, connectivity);
 
-	return binaryImage | marker;
+	return image | marker;
 }
 
 // Operates on BINARY IMAGES ONLY
 template <typename T>
-Mat imfillHolesBinary(Mat binaryImage, int connectivity=8) {
+Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
+	CV_Assert(image.channels() == 1);
 
-	/* MatLAB imfill code:
+	/* MatLAB imfill hole code:
     if islogical(I)
         mask = uint8(I);
     else
@@ -415,59 +418,6 @@ Mat imfillHolesBinary(Mat binaryImage, int connectivity=8) {
         I2 = I2 ~= 0;
     end
 	 */
-
-	T mn = std::numeric_limits<T>::min();
-	T mx = std::numeric_limits<T>::max();
-	Rect roi = Rect(1, 1, binaryImage.cols, binaryImage.rows);
-
-	// copy the input and pad with -inf.
-	Mat mask(binaryImage.size() + Size(2,2), binaryImage.type());
-	copyMakeBorder(binaryImage, mask, 1, 1, 1, 1, BORDER_CONSTANT, mn);
-	// create marker with inf inside and -inf at border, and take its complement
-	Mat marker(mask.size(), mask.type());
-	Mat marker2(marker, roi);
-	marker2 = Scalar(mn);
-	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
-	copyMakeBorder(marker2, marker, 1, 1, 1, 1, BORDER_CONSTANT, mx);
-
-	// now do the work...
-	mask = mx - mask;
-	Mat output = imreconstructBinary<T>(marker, mask, connectivity);
-	output = mx - output;
-
-	return output(roi);
-}
-
-// Operates on BINARY IMAGES ONLY
-template <typename T>
-Mat imfillHoles(Mat image, int connectivity=8) {
-
-	/* MatLAB imfill code:
-    if islogical(I)
-        mask = uint8(I);
-    else
-        mask = I;
-    end
-    mask = padarray(mask, ones(1,ndims(mask)), -Inf, 'both');
-
-    marker = mask;
-    idx = cell(1,ndims(I));
-    for k = 1:ndims(I)
-        idx{k} = 2:(size(marker,k) - 1);
-    end
-    marker(idx{:}) = Inf;
-
-    mask = imcomplement(mask);
-    marker = imcomplement(marker);
-    I2 = imreconstruct(marker, mask, conn);
-    I2 = imcomplement(I2);
-    I2 = I2(idx{:});
-
-    if islogical(I)
-        I2 = I2 ~= 0;
-    end
-	 */
-
 
 	T mn = std::numeric_limits<T>::min();
 	T mx = std::numeric_limits<T>::max();
@@ -485,7 +435,9 @@ Mat imfillHoles(Mat image, int connectivity=8) {
 
 	// now do the work...
 	mask = mx - mask;
-	Mat output = imreconstruct<T>(marker, mask, connectivity);
+	Mat output;
+	if (binary) output = imreconstructBinary<T>(marker, mask, connectivity);
+	else output = imreconstruct<T>(marker, mask, connectivity);
 	output = mx - output;
 
 	return output(roi);
@@ -493,8 +445,10 @@ Mat imfillHoles(Mat image, int connectivity=8) {
 
 // Operates on BINARY IMAGES ONLY
 template <typename T>
-Mat bwselectBinary(Mat binaryImage, Mat seeds, int connectivity=8) {
-	// only works for binary images.  ~I and MAX-I are the same....
+Mat bwselect(const Mat& binaryImage, const Mat& seeds, int connectivity) {
+	CV_Assert(binaryImage.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+	// only works for binary images.  ~I and max-I are the same....
 
 	/** adopted from bwselect and imfill
 	 * bwselet:
@@ -503,26 +457,206 @@ Mat bwselectBinary(Mat binaryImage, Mat seeds, int connectivity=8) {
 		BW2 = BW2 & BW;
 	 *
 	 * imfill:
-	 * see below.
+	 * see imfill function.
 	 */
 
 	Mat marker = Mat::zeros(seeds.size(), seeds.type());
 	binaryImage.copyTo(marker, seeds);
 
-	marker = imreconstructBinary<uchar>(marker, binaryImage, connectivity);
+	marker = imreconstructBinary<T>(marker, binaryImage, connectivity);
 
 	return marker & binaryImage;
 }
 
+// Operates on BINARY IMAGES ONLY
+// ideally, output should be 64 bit unsigned.
+//	maximum number of labels in a single image is 18 exa-labels, in an image with minimum size of 2^32 x 2^32 pixels.
+// rationale for going to this size is that if we go with 32 bit, even if unsigned, we can support 4 giga labels,
+//  in an image with minimum size of 2^16 x 2^16 pixels, which is only 65k x 65k.
+// however, since the contour finding algorithm uses Vec4i, the maximum index can only be an int.  similarly, the image size is
+//  bound by Point's internal representation, so only int.  The Mat will therefore be of type CV_32S, or int.
+Mat_<int> bwlabel(const Mat& binaryImage, int connectivity) {
+	CV_Assert(binaryImage.channels() == 1);
+	// only works for binary images.
 
-template Mat bwselectBinary<uchar>(Mat image, Mat seeds, int connectivity);
+	// based on example from
+	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
+	// only outputs
+
+	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
+
+	std::vector<std::vector<Point> > contours;
+	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
+
+	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
+	findContours(binaryImage, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+
+	int color = 1;
+	// iterate over all top level contours (all siblings, draw with own label color
+	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
+		// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
+		drawContours( output, contours, idx, Scalar(color), CV_FILLED, 8, hierarchy );
+	}
+	return output;
+}
+
+// Operates on BINARY IMAGES ONLY
+// ideally, output should be 64 bit unsigned.
+//	maximum number of labels in a single image is 18 exa-labels, in an image with minimum size of 2^32 x 2^32 pixels.
+// rationale for going to this size is that if we go with 32 bit, even if unsigned, we can support 4 giga labels,
+//  in an image with minimum size of 2^16 x 2^16 pixels, which is only 65k x 65k.
+// however, since the contour finding algorithm uses Vec4i, the maximum index can only be an int.  similarly, the image size is
+//  bound by Point's internal representation, so only int.  The Mat will therefore be of type CV_32S, or int.
+template <typename T>
+Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
+		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int), int connectivity) {
+	// only works for binary images.
+	if (contourFilter == NULL) {
+		return bwlabel(binaryImage, connectivity);
+	}
+	CV_Assert(binaryImage.channels() == 1);
 
 
-template Mat imreconstruct<uchar>(const Mat&, const Mat&, int);
-template Mat imreconstructBinary<uchar>(const Mat&, const Mat&, int);
-template Mat imfillBinary<uchar>(Mat image, Mat seeds, int connectivity);
-template Mat imfillHoles<uchar>(Mat image, int connectivity);
-template Mat imfillHolesBinary<uchar>(Mat image, int connectivity);
+	// based on example from
+	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
+	// only outputs
+
+	Mat output = Mat::zeros(binaryImage.size(), (binaryOutput ? binaryImage.type() : CV_32S));
+
+	std::vector<std::vector<Point> > contours;
+	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
+
+	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
+	findContours(binaryImage, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+
+	if (binaryOutput) {
+		Scalar color(std::numeric_limits<T>::max());
+		// iterate over all top level contours (all siblings, draw with own label color
+		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
+			if (contourFilter(contours, hierarchy, idx)) {
+				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
+				drawContours( output, contours, idx, color, CV_FILLED, 8, hierarchy );
+			}
+		}
+
+	} else {
+		int color = 1;
+		// iterate over all top level contours (all siblings, draw with own label color
+		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
+			if (contourFilter(contours, hierarchy, idx)) {
+				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
+				drawContours( output, contours, idx, Scalar(color), CV_FILLED, 8, hierarchy );
+			}
+		}
+	}
+	return output;
+}
+
+// inclusive min, exclusive max
+bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea) {
+
+	int area = contourArea(Mat(contours[idx]));
+	if (area < minArea) return false;
+
+	int i = hierarchy[idx][2];
+	for ( ; i >= 0; i = hierarchy[i][0]) {
+		area -= contourArea(Mat(contours[i]));
+		if (area < minArea) return false;
+	}
+
+	if (area >= maxArea) return false;
+	return true;
+}
+
+// inclusive min, exclusive max
+template <typename T>
+Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivity) {
+	// only works for binary images.
+	CV_Assert(binaryImage.channels() == 1);
+
+	// based on example from
+	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
+	// only outputs
+
+	Mat output = Mat::zeros(binaryImage.size(), binaryImage.type());
+
+	std::vector<std::vector<Point> > contours;
+	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
+
+	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
+	findContours(binaryImage, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+
+	Scalar color(std::numeric_limits<T>::max());
+	// iterate over all top level contours (all siblings, draw with own label color
+	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
+		if (contourAreaFilter(contours, hierarchy, idx, minSize, maxSize)) {
+			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
+			drawContours(output, contours, idx, color, CV_FILLED, 8, hierarchy );
+		}
+	}
+	return output;
+}
+
+template <typename T>
+Mat imhmin(const Mat& image, T h, int connectivity) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+
+	//	IMHMIN(I,H) suppresses all minima in I whose depth is less than h
+	// MatLAB implementation:
+	/**
+	 *
+		I = imcomplement(I);
+		I2 = imreconstruct(imsubtract(I,h), I, conn);
+		I2 = imcomplement(I2);
+	 *
+	 */
+	T mx = std::numeric_limits<T>::max();
+	Mat mask = mx - image;
+	Mat marker = image - h;
+	Mat output = imreconstruct<T>(marker, mask, connectivity);
+	return mx - output;
+}
+
+Mat watershed2(const Mat& image, int connectivity) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+
+	/*
+	 * MatLAB implementation:
+		cc = bwconncomp(imregionalmin(A, conn), conn);
+		L = watershed_meyer(A,conn,cc);
+
+	 */
+	Mat minima = localMinima(image, connectivity);
+	Mat_<int> labels = bwlabel(minima, connectivity);
+	Mat image3(image.size(), CV_8UC3);
+	cvtColor(image, image3, CV_GRAY2BGR);
+	watershed(image3, labels);
+
+	return labels;
+}
+
+Mat localMinima(const Mat& image, int connectivity) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+
+	// find the local minima
+
+
+}
+
+
+template Mat imreconstruct<uchar>(const Mat& seeds, const Mat& image, int connectivity);
+template Mat imreconstructBinary<uchar>(const Mat& seeds, const Mat& binaryImage, int connectivity);
+template Mat imfill<uchar>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
+template Mat imfillHoles<uchar>(const Mat& image, bool binary, int connectivity);
+template Mat bwselect<uchar>(const Mat& binaryImage, const Mat seeds, int connectivity);
+template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
+		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
+		int connectivity);
+template Mat bwareaopen<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
+template Mat imhmin<uchar>(const Mat& image, uchar h, int connectivity);
 
 
 }
