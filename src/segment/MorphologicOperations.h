@@ -50,6 +50,16 @@ cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
 }
 
 cv::Mat watershed2(const cv::Mat& image, int connectivity);
+
+template <typename T>
+cv::Mat localMaxima(const cv::Mat& image, int connectivity);
+template <typename T>
 cv::Mat localMinima(const cv::Mat& image, int connectivity);
+
+// based on itk ValuedRegionalExtremaImageFilter - using a stack for floodfill.
+template <typename T>
+cv::Mat localMaxima2(const cv::Mat& image, int connectivity);
+template <typename T>
+cv::Mat localMinima2(const cv::Mat& image, int connectivity);
 
 #endif /* MORPHOLOGICOPERATION_H_ */

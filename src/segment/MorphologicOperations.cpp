@@ -613,7 +613,7 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 	 */
 	T mx = std::numeric_limits<T>::max();
 	Mat mask = mx - image;
-	Mat marker = image - h;
+	Mat marker = mask - h;
 	Mat output = imreconstruct<T>(marker, mask, connectivity);
 	return mx - output;
 }
@@ -628,7 +628,7 @@ Mat watershed2(const Mat& image, int connectivity) {
 		L = watershed_meyer(A,conn,cc);
 
 	 */
-	Mat minima = localMinima(image, connectivity);
+	Mat minima = localMinima<float>(image, connectivity);
 	Mat_<int> labels = bwlabel(minima, connectivity);
 	Mat image3(image.size(), CV_8UC3);
 	cvtColor(image, image3, CV_GRAY2BGR);
@@ -637,14 +637,64 @@ Mat watershed2(const Mat& image, int connectivity) {
 	return labels;
 }
 
+// only works with integer images
+template <typename T>
+Mat localMaxima(const Mat& image, int connectivity) {
+	CV_Assert(image.channels() == 1);
+
+	// use morphologic reconstruction.
+	Mat marker = image - 1;
+//	return (image - imreconstruct(marker, image, 8)) >= (1 - std::numeric_limits<T>::epsilon());
+	return (marker + std::numeric_limits<T>::epsilon()) >= imreconstruct(marker, image, connectivity);
+}
+template <typename T>
 Mat localMinima(const Mat& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
-	// find the local minima
+	Mat cimage = std::numeric_limits<T>::max() - image;
+	return localMaxima<T>(cimage, connectivity);
+}
+
+
+// only works with integer images
+template <typename T>
+Mat localMaxima2(const Mat& image, int connectivity) {
+	CV_Assert(image.channels() == 1);
+
+	//	using floodfill
+
+	// next check for flat image
+
+
+	// first pad the border
+	Mat output(seeds.size() + Size(2,2), seeds.type());
+	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat input(image.size() + Size(2,2), image.type());
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+
+
+	// next iterate over image, and set non-max to MIN (via floodfill)
+
 
 
 }
+template <typename T>
+Mat localMinima2(const Mat& image, int connectivity) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+
+	//	using floodfill
+
+	// first pad the border
+
+	// next check for flat image
+
+	// next iterate over image, and set non-min to MAX (via floodfill)
+
+
+}
+
 
 
 template Mat imreconstruct<uchar>(const Mat& seeds, const Mat& image, int connectivity);
@@ -657,7 +707,10 @@ template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
 		int connectivity);
 template Mat bwareaopen<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
 template Mat imhmin<uchar>(const Mat& image, uchar h, int connectivity);
-
+template Mat localMaxima<float>(const Mat& image, int connectivity);
+template Mat localMinima<float>(const Mat& image, int connectivity);
+template Mat localMaxima2<float>(const Mat& image, int connectivity);
+template Mat localMinima2<float>(const Mat& image, int connectivity);
 
 }
 
