@@ -662,25 +662,73 @@ template <typename T>
 Mat localMaxima2(const Mat& image, int connectivity) {
 	CV_Assert(image.channels() == 1);
 
+	bool flat = true;
+	T firstval;
 	//	using floodfill
-
+	Mat output = ;
+	T mx = std::numeric_limits<T>::max();
+	
 	// next check for flat image
-
-
+	MatConstIterator_<T> it = image.begin<T>();
+	MatConstIterator_<T> it_end = image.end<T>();
+	if (it != it_end) {
+		firstval = *it;
+		++it;
+	} else {
+		return Mat::zeros(image.size(), image.type());
+	}
+	for ( ; it != it_end; ++it) {
+		if (*it != firstval) flat = false;
+	}
+	if (flat) {
+		return Mat::ones(image.size(), image.type());
+	}
+	
 	// first pad the border
-	Mat output(seeds.size() + Size(2,2), seeds.type());
-	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat output(image.size() + Size(2,2), image.type());
+	copyMakeBorder(image, output, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<T>::max());
 	Mat input(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-
-
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<T>::min());
+	int maxy = input.rows-1;
+	int maxx = input.cols-1;
+	T localmin;
+	T* iPtrMinus, iPtrPlus, oPtr;
+	Mat square = getStructuringElement(MORPH_RECT, Size(3,3));
+	bool noMax;
+	
 	// next iterate over image, and set non-max to MIN (via floodfill)
+	for (int y = 1; y < maxy; ++y) {
+
+		iPtr = input.ptr(y);
+		iPtrMinus = input.ptr(y-1);
+		iPtrPlus = input.ptr(y+1);
+		oPtr = output.ptr(y);
+		
+		for (int x = 1; x < maxx; ++x) {
+			
+			// if already visited, skip to next.
+			if (oPtr[x] == mx) continue;
+			
+			val = iPtr[x];
+			// compare values and flood fill.
+			
+			// 4 connected
+			if (val > iPtrMinus[x]) {
+				// flood and continue;
+				
+			}
+			
+			
+			
+		
+		}
+	}
 
 
 
 }
 template <typename T>
-Mat localMinima2(const Mat& image, int connectivity) {
+Mat_<uchar> localMinima2(const Mat& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
