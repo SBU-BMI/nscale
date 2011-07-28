@@ -16,9 +16,8 @@
 #include <time.h>
 #include "utils.h"
 
-namespace {
 
-using ::cv;
+using namespace cv;
 
 bool areaThreshold1(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx) {
 	return nscale::contourAreaFilter(contours, hierarchy, idx, 11, 1000);
@@ -136,8 +135,8 @@ int main (int argc, char **argv){
     end
  *
  */
-	Mat bw1 = nscale::bwareaopen<uchar>(bw1, areaThreshold1, std::numeric_limits<uchar>::max(), 8);
-	if (countNonZero(bw1) == 0) return;
+	bw1 = nscale::bwareaopen<uchar>(bw1, 10, 1000, 8);
+	if (countNonZero(bw1) == 0) return 0;
 
 	uchar G2 = 45;
 	Mat bw2 = diffIm > G2;
@@ -168,7 +167,8 @@ int main (int argc, char **argv){
 	 *
 	 */
 	// bwareaopen is done as a area threshold.
-	Mat seg_big_t = nscale::bwareaopen<uchar>(seg_open, 30, std::numeric_limits<uchar>::max(), 8);
+	Mat seg_big_t = nscale::bwareaopen<uchar>(seg_open, 30, std::numeric_limits<int>::max(), 8);
+	Mat seg_big = Mat::zeros(seg_big_t.size(), seg_big_t.type());
 	dilate(seg_big_t, seg_big, disk3);
 	// distance transform:  matlab code is doing this:
 	// invert the image so nuclei candidates are holes
@@ -213,7 +213,7 @@ int main (int argc, char **argv){
 	 *
 	 */
 	Mat seg = nscale::bwareaopen<uchar>(seg_nonoverlap, 21, 1000, 4);
-	if (countNonZero(seg) == 0) return;
+	if (countNonZero(seg) == 0) return 0;
 
 
 	/*
@@ -233,4 +233,4 @@ int main (int argc, char **argv){
 	return 0;
 }
 
-}
+

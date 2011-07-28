@@ -60,7 +60,7 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr) {
 	Mat bw2 = imR2G > T2;
 	Mat rbc;
 	if (countNonZero(bw1) > 0) {
-		rbc = bwselectBinary<uchar>(bw2, bw1, 8) & imR2B;
+		rbc = bwselect<uchar>(bw2, bw1, 8) & imR2B;
 	} else {
 		rbc = Mat::zeros(bw2.size(), bw2.type());
 	}

@@ -15,8 +15,8 @@ namespace nscale {
 class HistologicalEntities {
 
 public:
-	static cv::Mat getRBC(cv::Mat img);
-	static cv::Mat getRBC(std::vector<cv::Mat> rgb);
+	static cv::Mat getRBC(const cv::Mat& img);
+	static cv::Mat getRBC(const std::vector<cv::Mat>& rgb);
 
 };
 

@@ -36,10 +36,10 @@ cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, int connectivity);
 // incorporates a filter for the contours.
 template <typename T>
 cv::Mat bwlabelFiltered(const cv::Mat& binaryImage, bool binaryOutput,
-		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int), int connectivity);
+		bool (*contourFilter)(const std::vector<std::vector<cv::Point> >&, const std::vector<cv::Vec4i>&, int), int connectivity);
 
 // inclusive min, exclusive max
-bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea);
+bool contourAreaFilter(const std::vector<std::vector<cv::Point> >& contours, const std::vector<cv::Vec4i>& hierarchy, int idx, int minArea, int maxArea);
 
 // inclusive min, exclusive max.
 template <typename T>
@@ -47,7 +47,6 @@ cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int con
 
 template <typename T>
 cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
-}
 
 cv::Mat watershed2(const cv::Mat& image, int connectivity);
 
@@ -61,5 +60,8 @@ template <typename T>
 cv::Mat localMaxima2(const cv::Mat& image, int connectivity);
 template <typename T>
 cv::Mat localMinima2(const cv::Mat& image, int connectivity);
+
+}
+
 
 #endif /* MORPHOLOGICOPERATION_H_ */

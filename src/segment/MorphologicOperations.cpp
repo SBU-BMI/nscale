@@ -24,10 +24,10 @@ using namespace cv;
 template <typename T>
 inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
 		int x, int y, const T& pval) {
-	T qval = output.ptr(y)[x];
-	T ival = image.ptr(y)[x];
+	T qval = output.ptr<T>(y)[x];
+	T ival = image.ptr<T>(y)[x];
 	if ((qval < pval) && (ival != qval)) {
-		output.ptr(y)[x] = min(pval, ival);
+		output.ptr<T>(y)[x] = min(pval, ival);
 		xQ.push(x);
 		yQ.push(y);
 	}
@@ -36,6 +36,9 @@ inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::q
 template
 inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, const uchar&);
+template
+inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
+		int, int, const float&);
 
 
 /** slightly optimized serial implementation,
@@ -76,9 +79,9 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	// raster scan
 	for (int y = 1; y < maxy; ++y) {
 
-		oPtr = output.ptr(y);
-		oPtrMinus = output.ptr(y-1);
-		iPtr = input.ptr(y);
+		oPtr = output.ptr<T>(y);
+		oPtrMinus = output.ptr<T>(y-1);
+		iPtr = input.ptr<T>(y);
 
 		for (int x = 1; x < maxx; ++x) {
 			xminus = x-1;
@@ -97,11 +100,11 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 
 	// anti-raster scan
 	for (int y = maxy-1; y > 0; --y) {
-		oPtr = output.ptr(y);
-		oPtrPlus = output.ptr(y+1);
-		oPtrMinus = output.ptr(y-1);
-		iPtr = input.ptr(y);
-		iPtrPlus = input.ptr(y+1);
+		oPtr = output.ptr<T>(y);
+		oPtrPlus = output.ptr<T>(y+1);
+		oPtrMinus = output.ptr<T>(y-1);
+		iPtr = input.ptr<T>(y);
+		iPtrPlus = input.ptr<T>(y+1);
 
 		for (int x = maxx-1; x > 0; --x) {
 			xminus = x-1;
@@ -152,7 +155,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 		yplus = y+1;
 		xplus = x+1;
 
-		pval = output.ptr(y)[x];
+		pval = output.ptr<T>(y)[x];
 
 		// look at the 4 connected components
 		if (y > 0) {
@@ -208,8 +211,8 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 template <typename T>
 inline void propagateBinary(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
 		int x, int y, const T& foreground) {
-	if ((output.ptr(y)[x] == 0) && (image.ptr(y)[x] != 0)) {
-		output.ptr(y)[x] = foreground;
+	if ((output.ptr<T>(y)[x] == 0) && (image.ptr<T>(y)[x] != 0)) {
+		output.ptr<T>(y)[x] = foreground;
 		xQ.push(x);
 		yQ.push(y);
 	}
@@ -218,7 +221,9 @@ inline void propagateBinary(const Mat& image, Mat& output, std::queue<int>& xQ, 
 template
 inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, const uchar&);
-
+template
+inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
+		int, int, const float&);
 
 /** optimized serial implementation for binary,
  from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
@@ -253,10 +258,10 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 
 	// contour pixel determination.  if any neighbor of a 1 pixel is 0, and the image is 1, then boundary
 	for (int y = 1; y < maxy; ++y) {
-		oPtr = output.ptr(y);
-		oPtrPlus = output.ptr(y+1);
-		oPtrMinus = output.ptr(y-1);
-		iPtr = input.ptr(y);
+		oPtr = output.ptr<T>(y);
+		oPtrPlus = output.ptr<T>(y+1);
+		oPtrMinus = output.ptr<T>(y-1);
+		iPtr = input.ptr<T>(y);
 
 		for (int x = 1; x < maxx; ++x) {
 
@@ -302,7 +307,6 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 	T qval;
 	T outval = std::numeric_limits<T>::max();
 	int x, y;
-	PixelLocation p;
 	while (!(xQ.empty())) {
 		x = xQ.front();
 		y = yQ.front();
@@ -484,12 +488,13 @@ Mat_<int> bwlabel(const Mat& binaryImage, int connectivity) {
 	// only outputs
 
 	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
+	Mat input = binaryImage.clone();
 
 	std::vector<std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-	findContours(binaryImage, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
 	int color = 1;
 	// iterate over all top level contours (all siblings, draw with own label color
@@ -522,12 +527,13 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 	// only outputs
 
 	Mat output = Mat::zeros(binaryImage.size(), (binaryOutput ? binaryImage.type() : CV_32S));
+	Mat input = binaryImage.clone();
 
 	std::vector<std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-	findContours(binaryImage, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
 	if (binaryOutput) {
 		Scalar color(std::numeric_limits<T>::max());
@@ -579,12 +585,13 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	// only outputs
 
 	Mat output = Mat::zeros(binaryImage.size(), binaryImage.type());
+	Mat input = binaryImage.clone();
 
 	std::vector<std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-	findContours(binaryImage, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
 	Scalar color(std::numeric_limits<T>::max());
 	// iterate over all top level contours (all siblings, draw with own label color
@@ -644,9 +651,77 @@ Mat localMaxima(const Mat& image, int connectivity) {
 
 	// use morphologic reconstruction.
 	Mat marker = image - 1;
+	Mat candidates =
+			marker < imreconstruct<T>(marker, image, connectivity);
+//		marker >= imreconstruct<T>(marker, image, connectivity);
 //	return (image - imreconstruct(marker, image, 8)) >= (1 - std::numeric_limits<T>::epsilon());
-	return (marker + std::numeric_limits<T>::epsilon()) >= imreconstruct(marker, image, connectivity);
+	//return candidates;
+
+	// now check the candidates
+	// first pad the border
+	T mn = std::numeric_limits<T>::min();
+	T mx = std::numeric_limits<T>::max();
+	Mat output(candidates.size() + Size(2,2), candidates.type());
+	copyMakeBorder(candidates, output, 1, 1, 1, 1, BORDER_CONSTANT, mx);
+	Mat input(image.size() + Size(2,2), image.type());
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, mn);
+
+	int maxy = input.rows-1;
+	int maxx = input.cols-1;
+	int xminus, xplus;
+	T val;
+	T *iPtr, *iPtrMinus, *iPtrPlus, *oPtr;
+	Rect reg(1, 1, image.cols, image.rows);
+	Scalar zero(0);
+	Scalar smx(mx);
+	Range xrange(1, maxx);
+	Range yrange(1, maxy);
+	Mat inputBlock = input(yrange, xrange);
+
+	// next iterate over image, and set candidates that are non-max to 0 (via floodfill)
+	for (int y = 1; y < maxy; ++y) {
+
+		iPtr = input.ptr<T>(y);
+		iPtrMinus = input.ptr<T>(y-1);
+		iPtrPlus = input.ptr<T>(y+1);
+		oPtr = output.ptr<T>(y);
+
+		for (int x = 1; x < maxx; ++x) {
+
+			// not a candidate, continue.
+			if (oPtr[x] > 0) continue;
+
+			xminus = x-1;
+			xplus = x+1;
+
+			val = iPtr[x];
+			// compare values
+
+			// 4 connected
+			if ((val < iPtrMinus[x]) || (val < iPtrPlus[x]) || (val < iPtr[xminus]) || (val < iPtr[xplus])) {
+				std::cout << ".";
+				// flood with type minimum value (only time when the whole image may have mn is if it's flat)
+				floodFill(inputBlock, output, Point(xminus, y-1), smx, &reg, zero, zero, FLOODFILL_FIXED_RANGE | FLOODFILL_MASK_ONLY | connectivity);
+				continue;
+			}
+
+			// 8 connected
+			if (connectivity == 8) {
+				if ((val < iPtrMinus[xminus]) || (val < iPtrMinus[xplus]) || (val < iPtrPlus[xminus]) || (val < iPtrPlus[xplus])) {
+					std::cout << "*";
+					// flood with type minimum value (only time when the whole image may have mn is if it's flat)
+					floodFill(inputBlock, output, Point(xminus, y-1), smx, &reg, zero, zero, FLOODFILL_FIXED_RANGE | FLOODFILL_MASK_ONLY | connectivity);
+					continue;
+				}
+			}
+
+		}
+	}
+	std::cout << std::endl;
+	return output(yrange, xrange) == 0;
+
 }
+
 template <typename T>
 Mat localMinima(const Mat& image, int connectivity) {
 	// only works for intensity images.
@@ -665,8 +740,7 @@ Mat localMaxima2(const Mat& image, int connectivity) {
 	bool flat = true;
 	T firstval;
 	//	using floodfill
-	Mat output = ;
-	T mx = std::numeric_limits<T>::max();
+	T mn = std::numeric_limits<T>::min();
 	
 	// next check for flat image
 	MatConstIterator_<T> it = image.begin<T>();
@@ -681,84 +755,99 @@ Mat localMaxima2(const Mat& image, int connectivity) {
 		if (*it != firstval) flat = false;
 	}
 	if (flat) {
-		return Mat::ones(image.size(), image.type());
+		return Mat::ones(image.size(), image.type());  // return 1s when it's flat (instead of type max)
 	}
 	
 	// first pad the border
 	Mat output(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, output, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<T>::max());
+	copyMakeBorder(image, output, 1, 1, 1, 1, BORDER_CONSTANT, mn);
 	Mat input(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<T>::min());
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, mn);
+
 	int maxy = input.rows-1;
 	int maxx = input.cols-1;
-	T localmin;
-	T* iPtrMinus, iPtrPlus, oPtr;
-	Mat square = getStructuringElement(MORPH_RECT, Size(3,3));
-	bool noMax;
+	int xminus, xplus;
+	T val;
+	T *iPtr, *iPtrMinus, *iPtrPlus, *oPtr;
+	Rect reg(1, 1, image.cols, image.rows);
+	Scalar zero(0);
+	Scalar smn(mn);
+	Range xrange(1, maxx);
+	Range yrange(1, maxy);
+
 	
 	// next iterate over image, and set non-max to MIN (via floodfill)
 	for (int y = 1; y < maxy; ++y) {
 
-		iPtr = input.ptr(y);
-		iPtrMinus = input.ptr(y-1);
-		iPtrPlus = input.ptr(y+1);
-		oPtr = output.ptr(y);
+		iPtr = input.ptr<T>(y);
+		iPtrMinus = input.ptr<T>(y-1);
+		iPtrPlus = input.ptr<T>(y+1);
+		oPtr = output.ptr<T>(y);
 		
 		for (int x = 1; x < maxx; ++x) {
+			xminus = x-1;
+			xplus = x+1;
 			
 			// if already visited, skip to next.
-			if (oPtr[x] == mx) continue;
+			if (oPtr[x] == mn) continue;
 			
 			val = iPtr[x];
 			// compare values and flood fill.
 			
 			// 4 connected
-			if (val > iPtrMinus[x]) {
-				// flood and continue;
-				
+			if ((val < iPtrMinus[x]) || (val < iPtrPlus[x]) || (val < iPtr[xminus]) || (val < iPtr[xplus])) {
+				// flood with type minimum value (only time when the whole image may have mn is if it's flat)
+				floodFill(output, Point(x, y), smn, &reg, zero, zero, FLOODFILL_FIXED_RANGE | connectivity);
+				continue;
+			}  // note that if flat region, nothing is changed.  if the flat region is max, it's not going to be changed
+			// if flat region is not max, at the edge floodfill will kick in.
+
+			// 8 connected
+			if (connectivity == 8) {
+				if ((val < iPtrMinus[xminus]) || (val < iPtrMinus[xplus]) || (val < iPtrPlus[xminus]) || (val < iPtrPlus[xplus])) {
+					// flood with type minimum value (only time when the whole image may have mn is if it's flat)
+					floodFill(output, Point(x, y), smn, &reg, zero, zero, FLOODFILL_FIXED_RANGE | connectivity);
+					continue;
+				}
 			}
-			
-			
-			
-		
 		}
 	}
 
-
-
+	return output(yrange, xrange) > mn;
 }
+
 template <typename T>
-Mat_<uchar> localMinima2(const Mat& image, int connectivity) {
+Mat localMinima2(const Mat& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
-	//	using floodfill
-
-	// first pad the border
-
-	// next check for flat image
-
-	// next iterate over image, and set non-min to MAX (via floodfill)
-
-
+	Mat cimage = std::numeric_limits<T>::max() - image;
+	return localMaxima2<T>(cimage, connectivity);
 }
 
 
 
 template Mat imreconstruct<uchar>(const Mat& seeds, const Mat& image, int connectivity);
+template Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
+
 template Mat imreconstructBinary<uchar>(const Mat& seeds, const Mat& binaryImage, int connectivity);
 template Mat imfill<uchar>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
 template Mat imfillHoles<uchar>(const Mat& image, bool binary, int connectivity);
-template Mat bwselect<uchar>(const Mat& binaryImage, const Mat seeds, int connectivity);
+template Mat bwselect<uchar>(const Mat& binaryImage, const Mat& seeds, int connectivity);
 template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
 		int connectivity);
 template Mat bwareaopen<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
-template Mat imhmin<uchar>(const Mat& image, uchar h, int connectivity);
+template Mat imhmin(const Mat& image, uchar h, int connectivity);
+template Mat imhmin(const Mat& image, float h, int connectivity);
 template Mat localMaxima<float>(const Mat& image, int connectivity);
 template Mat localMinima<float>(const Mat& image, int connectivity);
 template Mat localMaxima2<float>(const Mat& image, int connectivity);
 template Mat localMinima2<float>(const Mat& image, int connectivity);
+template Mat localMaxima<uchar>(const Mat& image, int connectivity);
+template Mat localMinima<uchar>(const Mat& image, int connectivity);
+template Mat localMaxima2<uchar>(const Mat& image, int connectivity);
+template Mat localMinima2<uchar>(const Mat& image, int connectivity);
 
 }
 
