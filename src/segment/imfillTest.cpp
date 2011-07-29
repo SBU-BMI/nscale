@@ -50,7 +50,7 @@ int main (int argc, char **argv){
         figure, imshow(I), figure, imshow(I2)
 
 	 */
-	Mat imfilldata = imread("test/imfillTest.png");
+	Mat imfilldata = imread("test/imfillTest.pbm", 0);
 	Mat imfillinput = repeat(imfilldata, 512, 512);
 	Mat seeds = Mat::zeros(imfilldata.size(), CV_8U);
 	seeds.ptr(2)[2] = 1;
@@ -70,14 +70,14 @@ int main (int argc, char **argv){
 	imwrite("test/out-holesfilled.pbm", filled);
 
 	// grayscale fill holes
-	imfilldata = imread("test/tire.tif");
+	imfilldata = imread("test/tire.tif", 0);
 	imfillinput = repeat(imfilldata, 20, 17);
 
 	t1 = cciutils::ClockGetTime();
 	filled = nscale::imfillHoles<uchar>(imfillinput, false, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill holes gray took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-holesfilled-gray.pbm", filled);
+	imwrite("test/out-holesfilled-gray.ppm", filled);
 
 
 	// bwselect testing
@@ -88,7 +88,7 @@ int main (int argc, char **argv){
         BW2 = bwselect(BW1,c,r,4);
 	 *
 	 */
-	imfilldata = imread("test/text.png");
+	imfilldata = imread("test/text.png", 0);
 	imfillinput = repeat(imfilldata, 16, 16);
 	seeds = Mat::zeros(imfilldata.size(), CV_8U);
 	seeds.ptr(125)[33] = 1;

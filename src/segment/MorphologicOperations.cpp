@@ -122,19 +122,23 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 			oPtr[x] = min(pval, iPtr[x]);
 
 			// capture the seeds
-			shouldAdd = false;
 			// walk through the neighbor pixels, right and down (N-(p)) only
 			pval = oPtr[x];
-			if ((oPtr[xplus] < pval) && (oPtr[xplus] < iPtr[xplus])) shouldAdd = true;
-			if ((oPtrPlus[x] < pval) && (oPtrPlus[x] < iPtrPlus[x])) shouldAdd = true;
 
-			if (connectivity == 8) {
-				if ((oPtrPlus[xplus] < pval) && (oPtrPlus[xplus] < iPtrPlus[xplus])) shouldAdd = true;
-				if ((oPtrPlus[xminus] < pval) && (oPtrPlus[xminus] < iPtrPlus[xminus])) shouldAdd = true;
-			}
-			if (shouldAdd) {
+			if ((oPtr[xplus] < min(pval, iPtr[xplus])) ||
+					(oPtrPlus[x] < min(pval, iPtrPlus[x]))) {
 				xQ.push(x);
 				yQ.push(y);
+				continue;
+			}
+
+			if (connectivity == 8) {
+				if ((oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) ||
+						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus]))) {
+					xQ.push(x);
+					yQ.push(y);
+					continue;
+				}
 			}
 		}
 	}
@@ -145,7 +149,9 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	// now process the queue.
 	T qval, ival;
 	int x, y;
+	int count = 0;
 	while (!(xQ.empty())) {
+		++count;
 		x = xQ.front();
 		y = yQ.front();
 		xQ.pop();
@@ -197,7 +203,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 
 
 	uint64_t t3 = cciutils::ClockGetTime();
-	std::cout << "    queue time = " << t3-t2 << "ms" << std::endl;
+	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 
 
 	return output(Range(1, maxy), Range(1, maxx));
@@ -439,9 +445,14 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 
 	// now do the work...
 	mask = mx - mask;
+
+	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
 	if (binary) output = imreconstructBinary<T>(marker, mask, connectivity);
 	else output = imreconstruct<T>(marker, mask, connectivity);
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
+
 	output = mx - output;
 
 	return output(roi);
@@ -487,22 +498,30 @@ Mat_<int> bwlabel(const Mat& binaryImage, int connectivity) {
 	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
 	// only outputs
 
-	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
-	Mat input = binaryImage.clone();
+//	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
+//	Mat input = binaryImage.clone();
+	Mat_<int> output = Mat_<int>::zeros(binaryImage.size() + Size(2,2));
+	Mat input(output.size(), binaryImage.type());
+	copyMakeBorder(binaryImage, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
 	std::vector<std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
 	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	std::cout << "num contours = " << contours.size() << std::endl;
 
 	int color = 1;
+	uint64_t t1 = cciutils::ClockGetTime();
 	// iterate over all top level contours (all siblings, draw with own label color
 	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 		// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-		drawContours( output, contours, idx, Scalar(color), CV_FILLED, 8, hierarchy );
+		drawContours( output, contours, idx, Scalar(color), CV_FILLED, connectivity, hierarchy );
 	}
-	return output;
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
+
+	return output(Rect(1,1,binaryImage.cols, binaryImage.rows));
 }
 
 // Operates on BINARY IMAGES ONLY
@@ -541,7 +560,7 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
 			if (contourFilter(contours, hierarchy, idx)) {
 				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-				drawContours( output, contours, idx, color, CV_FILLED, 8, hierarchy );
+				drawContours( output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
 			}
 		}
 
@@ -551,7 +570,7 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 			if (contourFilter(contours, hierarchy, idx)) {
 				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-				drawContours( output, contours, idx, Scalar(color), CV_FILLED, 8, hierarchy );
+				drawContours( output, contours, idx, Scalar(color), CV_FILLED, connectivity, hierarchy );
 			}
 		}
 	}
@@ -579,6 +598,8 @@ template <typename T>
 Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivity) {
 	// only works for binary images.
 	CV_Assert(binaryImage.channels() == 1);
+	CV_Assert(minSize > 0);
+	CV_Assert(maxSize > 0);
 
 	// based on example from
 	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
@@ -598,7 +619,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
 		if (contourAreaFilter(contours, hierarchy, idx, minSize, maxSize)) {
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-			drawContours(output, contours, idx, color, CV_FILLED, 8, hierarchy );
+			drawContours(output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
 		}
 	}
 	return output;

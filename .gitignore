@@ -2,4 +2,8 @@
 *.exe
 *.o
 autom4te.cache
-src/matlab/segment/codegen
+original-matlab/segment/codegen
+out-*.pbm
+out-*.ppm
+out-*.raw
+*.m~

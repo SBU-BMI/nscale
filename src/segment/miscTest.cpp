@@ -37,8 +37,8 @@ int main (int argc, char **argv){
 	cvtColor(img, gray, CV_BGR2GRAY);
 	namedWindow("gray image", CV_WINDOW_AUTOSIZE);
 	imshow("gray image", gray);
-	imwrite("/home/tcpan/PhD/path/gray.tif", gray);
-	imwrite("/home/tcpan/PhD/path/gray.ppm", gray);
+	imwrite("test/out-gray.tif", gray);
+	imwrite("test/out-gray.ppm", gray);
 
 	waitKey();
 

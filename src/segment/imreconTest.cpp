@@ -14,6 +14,7 @@
 #include <time.h>
 #include "MorphologicOperations.h"
 #include "utils.h"
+#include <stdio.h>
 
 
 using namespace cv;
@@ -50,14 +51,6 @@ int main (int argc, char **argv){
 
 
 
-	// bwlabel testing
-	t1 = cciutils::ClockGetTime();
-	Mat bwselected = nscale::bwlabel(maskb, 8);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwlabel took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwlabel.pbm", bwselected);
-
-
 	// bwareaopen testing
 	t1 = cciutils::ClockGetTime();
 	Mat bwareaopen = nscale::bwareaopen<uchar>(maskb, 30, 100, 8);
@@ -65,14 +58,33 @@ int main (int argc, char **argv){
 	std::cout << "bwareaopen 30-100 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-bwareaopen-30-100.pbm", bwareaopen);
 	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 0, 30, 8);
+	bwareaopen = nscale::bwareaopen<uchar>(maskb, 1, 30, 8);
 	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen 0-30 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen-0-30.pbm", bwareaopen);	t1 = cciutils::ClockGetTime();
+	std::cout << "bwareaopen 1-30 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwareaopen-1-30.pbm", bwareaopen);
+	t1 = cciutils::ClockGetTime();
 	bwareaopen = nscale::bwareaopen<uchar>(maskb, 100, 255, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwareaopen 100-255 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-bwareaopen-100-255.pbm", bwareaopen);
+
+
+	// bwlabel testing
+	t1 = cciutils::ClockGetTime();
+	Mat bwselected = nscale::bwlabel(maskb, 8);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "bwlabel took " << t2-t1 << "ms" << std::endl;
+	// write the raw image
+	char * filename = new char[128];
+	sprintf(filename, "test/out-bwlabel_%d_x_%d.raw", bwselected.cols, bwselected.rows);
+	FILE* fid = fopen(filename, "wb");
+	uchar* bwsPtr;
+	for (int j = 0; j < bwselected.rows; ++j) {
+		bwsPtr = bwselected.ptr(j);
+
+		fwrite(bwsPtr, sizeof(int), bwselected.cols, fid);
+	}
+	fclose(fid);
 
 
 
