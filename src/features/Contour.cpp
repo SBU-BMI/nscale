@@ -11,13 +11,13 @@
 Contour::Contour() {
 }
 
-Contour::Contour(CvSeq *c_l)
+Contour::Contour(CvSeq *c_l_param)
 {
 	// Initialize memory block used to store Contour structs
-	 this->self_storage = cvCreateMemStorage();
+	 self_storage = cvCreateMemStorage();
 
 	 // Copy the given list sequence of objects defining the Contour
-	 this->c_l = cvCloneSeq(c_l, this->self_storage);
+	 this->c_l = cvCloneSeq(c_l_param, self_storage);
 
 
 
@@ -29,16 +29,11 @@ Contour::Contour(CvSeq *c_l)
 	 this->convexArea = -1.0;
 	 this->convexDeficiency = -1.0;
 	 this->eccentricity = -1.0;
-//	 this->ellipseAngle = -1.0;
 	 this->equivalentDiameter = -1.0;
 	 this->extent = -1.0;
-//	this->majorAxisLength = -1.0;
-//	 this->minorAxisLength = -1.0;
 	 this->perimeter = -1.0;
 	 this->bendingEnergy = -1.0;
 	 this->solidity = -1.0;
-//	 this->sphericity = -1.0;
-//	 this->min_fitting_ellipse.size.width = -1.0;
 	 this->min_bounding_box.size.width = -1.0;
 	 this->min_bounding_box.size.height = -1.0;
 	 this->m_bounding_box.width = -1.0;
@@ -47,7 +42,7 @@ Contour::Contour(CvSeq *c_l)
 }
 
 Contour::~Contour() {
-	cvClearMemStorage(this->self_storage);
+	cvReleaseMemStorage(&self_storage);
 }
 
 float Contour::getArea()
@@ -124,7 +119,7 @@ float Contour::getConvexArea()
 		convexArea =  cvContourArea(ptseq) ;
 
 		// Release memory used to allocate points describing the convex hull
-		cvClearMemStorage(local_storage);
+		cvReleaseMemStorage(&local_storage);
 	}
     return convexArea;
 }
@@ -255,12 +250,6 @@ CvRect Contour::getNonInclinedBoundingBox(CvSize originalImageSize )
 
 
 
-/*float Contour::getEllipticity()
-{
-	return ((getMajorAxisLength()-getMinorAxisLength())/getMajorAxisLength());
-}*/
-
-
 double Contour::getMoment(int p, int q)
 {
 	// is a valid moment?
@@ -278,12 +267,6 @@ double Contour::getMoment(int p, int q)
 	return cvGetSpatialMoment( &m_moments, p, q );
 
 }
-
-/*float Contour::getSphericity()
-{
-	// TODO: implement
-    return sphericity;
-}*/
 
 
 

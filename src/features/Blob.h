@@ -16,7 +16,7 @@ using namespace std;
 using namespace cv;
 
 class Blob {
-private:
+protected:
 	Contour *external_contour;
 	vector<Contour*> internal_contours;
 
@@ -65,7 +65,7 @@ private:
 	float majorAxisLength;
 	float minorAxisLength;
 
-	Blob();
+	Blob(){};
 	friend class DrawAuxiliar;
 public:
 	Blob(CvSeq* c, CvSize originalImageSize );
