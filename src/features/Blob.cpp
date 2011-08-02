@@ -31,13 +31,13 @@ Blob::Blob(CvSeq* first_contour, CvSize originalImageSize ) {
 			internal_contours.push_back(contour);
 		}
 	}
-	this->mask = NULL;
-	this->ROISubImage = NULL;
-	this->intensity_hist = NULL;
-	this->grad_hist = NULL;
-	this->min_fitting_ellipse.size.width = -1.0;
-	this->majorAxisLength = -1.0;
-	this->minorAxisLength = -1.0;
+	mask = NULL;
+	ROISubImage = NULL;
+	intensity_hist = NULL;
+	grad_hist = NULL;
+	min_fitting_ellipse.size.width = -1.0;
+	majorAxisLength = -1.0;
+	minorAxisLength = -1.0;
 
 
 }
@@ -46,8 +46,15 @@ Blob::~Blob() {
 	if(external_contour != NULL){
 		delete external_contour;
 	}
+
+	for(int i = 0; i < internal_contours.size(); i++){
+		delete internal_contours[i];
+	}
+
 	internal_contours.clear();
-	cvClearMemStorage(self_storage);
+
+	cvReleaseMemStorage(&self_storage);
+
 	if(mask != NULL){
 		cvReleaseImage(&mask);
 	}
@@ -60,6 +67,7 @@ Blob::~Blob() {
 	if(ROISubImage != NULL){
 		cvReleaseImageHeader(&ROISubImage);
 	}
+
 }
 
 float Blob::getArea()
@@ -326,7 +334,7 @@ void Blob::calcIntensityHistogram(IplImage *img)
 		// This is the first time we're calculating the histogram, so
 		// we have to create its structure.
 		int numBins = 256;
-		float range[] = {0, 255};
+		float range[] = {0, 256};
 		float *ranges[] = { range };
 		intensity_hist = cvCreateHist(1, &numBins, CV_HIST_ARRAY, ranges, 1);
 
@@ -345,8 +353,10 @@ void Blob::calcIntensityHistogram(IplImage *img)
 		for(int i=0;i<256;i++){
 				float histValue = cvQueryHistValue_1D(intensity_hist, i);
 				intensity_hist_points += (unsigned int)histValue;
+//				cout<< "mat["<<i<<"]="<<histValue<<endl;
 		}
-
+//		cvAnd(ROISubImage, this->getMask(), ROISubImage);
+//		cout << "NonZero = " << cvCountNonZero(ROISubImage) <<" histPoints = " << intensity_hist_points <<endl;
 
 #ifdef VISUAL_DEBUG
 		IplImage* histDraw = DrawAuxiliar::DrawHistogram(intensity_hist);
@@ -428,7 +438,7 @@ double Blob::getMeanIntensity(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
@@ -467,7 +477,7 @@ unsigned int Blob::getMedianIntensity(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
@@ -505,7 +515,7 @@ unsigned int Blob::getMinIntensity(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
@@ -532,7 +542,7 @@ unsigned int Blob::getMaxIntensity(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
@@ -559,7 +569,7 @@ unsigned int Blob::getFirstQuartileIntensity(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
@@ -597,7 +607,7 @@ unsigned int Blob::getThirdQuartileIntensity(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
@@ -642,7 +652,7 @@ void Blob::calcGradientHistogram(IplImage *img)
 			// This is the first time we're calculating the histogram, so
 			// we have to create its structure.
 			int numBins = 256;
-			float range[] = {0, 255};
+			float range[] = {0, 256};
 			float *ranges[] = { range };
 			grad_hist = cvCreateHist(1, &numBins, CV_HIST_ARRAY, ranges, 1);
 		}
@@ -657,6 +667,7 @@ void Blob::calcGradientHistogram(IplImage *img)
 		IplImage* tempImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
 
 		cvMorphologyEx(ROISubImage, magImg, tempImg, NULL, CV_MOP_GRADIENT);
+
 		// Calculates the histogram in the input image for the pixels in the input mask
 		cvCalcHist(&magImg, grad_hist, 0, this->getMask());
 
@@ -744,7 +755,7 @@ double Blob::getMeanGradMagnitude(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculate the histogram
 		this->calcGradientHistogram(img);
@@ -774,7 +785,7 @@ unsigned int Blob::getMedianGradMagnitude(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcGradientHistogram(img);
@@ -817,7 +828,7 @@ unsigned int Blob::getMinGradMagnitude(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcGradientHistogram(img);
@@ -845,7 +856,7 @@ unsigned int Blob::getMaxGradMagnitude(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcGradientHistogram(img);
@@ -872,7 +883,7 @@ unsigned int Blob::getFirstQuartileGradMagnitude(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcGradientHistogram(img);
@@ -913,7 +924,7 @@ unsigned int Blob::getThirdQuartileGradMagnitude(IplImage *img)
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img ))
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 		// Calculates the histogram
 		this->calcGradientHistogram(img);
@@ -949,7 +960,7 @@ unsigned int Blob::getCannyArea(IplImage *img, double lowThresh, double highThre
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img )){
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img )){
 		// Create edge image to store the result of applying
 		// the Canny with the same size as the bounding box
 		IplImage *edges = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
@@ -963,7 +974,7 @@ unsigned int Blob::getCannyArea(IplImage *img, double lowThresh, double highThre
 
 		cvCanny(edges, edges, lowThresh, highThresh, apertureSize);
 
-		// Calculate the #white pixels and divide by blob area
+		// Calculate the #white pixels
 		cannyArea = cvCountNonZero(edges);
 
 
@@ -981,8 +992,6 @@ unsigned int Blob::getCannyArea(IplImage *img, double lowThresh, double highThre
 
 		// release temporary image used to calculate Canny
 		cvReleaseImage(&edges);
-
-
 	}
 	return cannyArea;
 }
@@ -995,7 +1004,7 @@ unsigned int Blob::getSobelArea(IplImage *img, int xorder, int yorder, int apert
 	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
 
 	// if parameters are okay, so calculate the mean intensity
-	if (blob_bounding_box.height != 0 || blob_bounding_box.width != 0 || CV_IS_IMAGE( img )){
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img )){
 		// Create edge image to store the result of applying
 		// the Sobel with the same size as the bounding box
 		IplImage *edges = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_16S, 1);

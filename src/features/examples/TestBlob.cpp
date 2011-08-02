@@ -11,17 +11,18 @@
 int main (int argc, char **argv){
 
 	cvNamedWindow(argv[0], 1);
-	IplImage* img_8uc1 = cvLoadImage( argv[1], CV_LOAD_IMAGE_GRAYSCALE );
+	IplImage* img_8uc1 = cvLoadImage( argv[1], CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage* originalImage = cvLoadImage( argv[2], CV_LOAD_IMAGE_GRAYSCALE );
 	IplImage* img_edge = cvCreateImage( cvGetSize(img_8uc1), 8, 1 );
 	IplImage* img_8uc3 = cvCreateImage( cvGetSize(img_8uc1), 8, 3 );
 
-	cvThreshold(img_8uc1, img_edge, 128, 255, CV_THRESH_BINARY );
+//	cvThreshold(img_8uc1, img_edge, 128, 255, CV_THRESH_BINARY );
 
 	CvMemStorage* storage = cvCreateMemStorage();
 	CvSeq* first_contour = NULL;
 
 	int Nc = cvFindContours(
-		img_edge,
+		img_8uc1,
 		storage,
 		&first_contour,
 		sizeof(CvContour),
@@ -54,7 +55,8 @@ int main (int argc, char **argv){
 			printf(" MajorAxisLength=%lf MinorAxisLength=%lf Orientation=%lf", curBlob->getMajorAxisLength(), curBlob->getMinorAxisLength(), curBlob->getOrientation());
 			printf(" Extent = %lf Eccentricity = %lf", curBlob->getExtent(), curBlob->getEccentricity());
 			printf(" ConvexArea = %lf Solidity = %lf Deficiency = %lf", curBlob->getConvexArea(), curBlob->getSolidity(), curBlob->getConvexDeficiency());
-			printf(" Compactness = %lf FilledArea = %lf Euler# = %d Porosity = %lf\n", curBlob->getCompacteness(), curBlob->getFilledArea(), curBlob->getEulerNumber(), curBlob->getPorosity());
+			printf(" Compactness = %lf FilledArea = %lf Euler# = %d Porosity = %lf", curBlob->getCompacteness(), curBlob->getFilledArea(), curBlob->getEulerNumber(), curBlob->getPorosity());
+			printf(" MeanIntensity = %lf", curBlob->getMeanIntensity(originalImage));
 		}else{
 			printf("\n");
 		}
@@ -97,7 +99,6 @@ int main (int argc, char **argv){
 		cvWaitKey(0);
 		n++;
 
-		cvReleaseImage(&mask);
 		cvReleaseImage(&mask_8uc3);
 		delete curBlob;
 	}
