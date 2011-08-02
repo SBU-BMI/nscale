@@ -2,7 +2,7 @@ all: nu-segment.exe imrecontest.exe localmaxtest.exe misctest.exe imfilltest.exe
 
 CXX=g++ 
 #CXX=g++44
-CXXFLAGS=-g -O3 -msse4.2 -fopenmp
+CXXFLAGS=-g -pg -O3 -msse4.2 -fopenmp
 #CXXFLAGS=-O2 -msse4.2 -fopenmp
 #CXX=icc
 #CXXFLAGS=-g -fast -openmp -msse4.2

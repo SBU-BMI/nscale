@@ -18,6 +18,8 @@ public:
 	static cv::Mat getRBC(const cv::Mat& img);
 	static cv::Mat getRBC(const std::vector<cv::Mat>& rgb);
 
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& output);
+
 };
 
 }

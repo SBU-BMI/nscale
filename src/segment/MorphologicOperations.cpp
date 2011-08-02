@@ -23,11 +23,11 @@ using namespace cv;
 
 template <typename T>
 inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
-		int x, int y, const T& pval) {
-	T qval = output.ptr<T>(y)[x];
-	T ival = image.ptr<T>(y)[x];
+		int x, int y, T* iPtr, T* oPtr, const T& pval) {
+	T qval = oPtr[x];
+	T ival = iPtr[x];
 	if ((qval < pval) && (ival != qval)) {
-		output.ptr<T>(y)[x] = min(pval, ival);
+		oPtr[x] = min(pval, ival);
 		xQ.push(x);
 		yQ.push(y);
 	}
@@ -35,10 +35,10 @@ inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::q
 
 template
 inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
-		int, int, const uchar&);
+		int, int, uchar* iPtr, uchar* oPtr, const uchar&);
 template
 inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
-		int, int, const float&);
+		int, int, float* iPtr, float* oPtr, const float&);
 
 
 /** slightly optimized serial implementation,
@@ -61,7 +61,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	Mat input(image.size() + Size(2,2), image.type());
 	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
-	T pval;
+	T pval, preval;
 	int xminus, xplus, yminus, yplus;
 	int maxx = output.cols - 1;
 	int maxy = output.rows - 1;
@@ -73,6 +73,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	T* oPtrPlus;
 	T* iPtr;
 	T* iPtrPlus;
+	T* iPtrMinus;
 
 	uint64_t t1 = cciutils::ClockGetTime();
 
@@ -83,22 +84,25 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 		oPtrMinus = output.ptr<T>(y-1);
 		iPtr = input.ptr<T>(y);
 
+		preval = oPtr[0];
 		for (int x = 1; x < maxx; ++x) {
 			xminus = x-1;
 			xplus = x+1;
 			pval = oPtr[x];
 
 			// walk through the neighbor pixels, left and up (N+(p)) only
-			pval = max(pval, max(oPtr[xminus], oPtrMinus[x]));
+			pval = max(pval, max(preval, oPtrMinus[x]));
 
 			if (connectivity == 8) {
 				pval = max(pval, max(oPtrMinus[xplus], oPtrMinus[xminus]));
 			}
-			oPtr[x] = min(pval, iPtr[x]);
+			preval = min(pval, iPtr[x]);
+			oPtr[x] = preval;
 		}
 	}
 
 	// anti-raster scan
+	int count = 0;
 	for (int y = maxy-1; y > 0; --y) {
 		oPtr = output.ptr<T>(y);
 		oPtrPlus = output.ptr<T>(y+1);
@@ -106,6 +110,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 		iPtr = input.ptr<T>(y);
 		iPtrPlus = input.ptr<T>(y+1);
 
+		preval = oPtr[maxx];
 		for (int x = maxx-1; x > 0; --x) {
 			xminus = x-1;
 			xplus = x+1;
@@ -113,13 +118,14 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 			pval = oPtr[x];
 
 			// walk through the neighbor pixels, right and down (N-(p)) only
-			pval = max(pval, max(oPtr[xplus], oPtrPlus[x]));
+			pval = max(pval, max(preval, oPtrPlus[x]));
 
 			if (connectivity == 8) {
 				pval = max(pval, max(oPtrPlus[xplus], oPtrPlus[xminus]));
 			}
 
-			oPtr[x] = min(pval, iPtr[x]);
+			preval = min(pval, iPtr[x]);
+			oPtr[x] = preval;
 
 			// capture the seeds
 			// walk through the neighbor pixels, right and down (N-(p)) only
@@ -129,6 +135,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 					(oPtrPlus[x] < min(pval, iPtrPlus[x]))) {
 				xQ.push(x);
 				yQ.push(y);
+				++count;
 				continue;
 			}
 
@@ -137,6 +144,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus]))) {
 					xQ.push(x);
 					yQ.push(y);
+					++count;
 					continue;
 				}
 			}
@@ -144,12 +152,12 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	}
 
 	uint64_t t2 = cciutils::ClockGetTime();
-	std::cout << "    scan time = " << t2-t1 << "ms" << std::endl;
+	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries."<< std::endl;
 
 	// now process the queue.
 	T qval, ival;
 	int x, y;
-	int count = 0;
+	count = 0;
 	while (!(xQ.empty())) {
 		++count;
 		x = xQ.front();
@@ -157,24 +165,31 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 		xQ.pop();
 		yQ.pop();
 		xminus = x-1;
+		xplus = x+1;
 		yminus = y-1;
 		yplus = y+1;
-		xplus = x+1;
 
-		pval = output.ptr<T>(y)[x];
+		oPtr = output.ptr<T>(y);
+		oPtrPlus = output.ptr<T>(yplus);
+		oPtrMinus = output.ptr<T>(yminus);
+		iPtr = input.ptr<T>(y);
+		iPtrPlus = input.ptr<T>(yplus);
+		iPtrMinus = input.ptr<T>(yminus);
+
+		pval = oPtr[x];
 
 		// look at the 4 connected components
 		if (y > 0) {
-			propagate<T>(input, output, xQ, yQ, x, yminus, pval);
+			propagate<T>(input, output, xQ, yQ, x, yminus, iPtrMinus, oPtrMinus, pval);
 		}
 		if (y < maxy) {
-			propagate<T>(input, output, xQ, yQ, x, yplus, pval);
+			propagate<T>(input, output, xQ, yQ, x, yplus, iPtrPlus, oPtrPlus,pval);
 		}
 		if (x > 0) {
-			propagate<T>(input, output, xQ, yQ, xminus, y, pval);
+			propagate<T>(input, output, xQ, yQ, xminus, y, iPtr, oPtr,pval);
 		}
 		if (x < maxx) {
-			propagate<T>(input, output, xQ, yQ, xplus, y, pval);
+			propagate<T>(input, output, xQ, yQ, xplus, y, iPtr, oPtr,pval);
 		}
 
 		// now 8 connected
@@ -182,19 +197,19 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 
 			if (y > 0) {
 				if (x > 0) {
-					propagate<T>(input, output, xQ, yQ, xminus, yminus, pval);
+					propagate<T>(input, output, xQ, yQ, xminus, yminus, iPtrMinus, oPtrMinus, pval);
 				}
 				if (x < maxx) {
-					propagate<T>(input, output, xQ, yQ, xplus, yminus, pval);
+					propagate<T>(input, output, xQ, yQ, xplus, yminus, iPtrMinus, oPtrMinus, pval);
 				}
 
 			}
 			if (y < maxy) {
 				if (x > 0) {
-					propagate<T>(input, output, xQ, yQ, xminus, yplus, pval);
+					propagate<T>(input, output, xQ, yQ, xminus, yplus, iPtrPlus, oPtrPlus,pval);
 				}
 				if (x < maxx) {
-					propagate<T>(input, output, xQ, yQ, xplus, yplus, pval);
+					propagate<T>(input, output, xQ, yQ, xplus, yplus, iPtrPlus, oPtrPlus,pval);
 				}
 
 			}
@@ -216,9 +231,9 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 
 template <typename T>
 inline void propagateBinary(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
-		int x, int y, const T& foreground) {
-	if ((output.ptr<T>(y)[x] == 0) && (image.ptr<T>(y)[x] != 0)) {
-		output.ptr<T>(y)[x] = foreground;
+		int x, int y, T* iPtr, T* oPtr, const T& foreground) {
+	if ((oPtr[x] == 0) && (iPtr[x] != 0)) {
+		oPtr[x] = foreground;
 		xQ.push(x);
 		yQ.push(y);
 	}
@@ -226,10 +241,10 @@ inline void propagateBinary(const Mat& image, Mat& output, std::queue<int>& xQ, 
 
 template
 inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
-		int, int, const uchar&);
+		int, int, uchar* iPtr, uchar* oPtr, const uchar&);
 template
 inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
-		int, int, const float&);
+		int, int, float* iPtr, float* oPtr, const float&);
 
 /** optimized serial implementation for binary,
  from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
@@ -253,15 +268,16 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 	int maxy = output.rows - 1;
 	std::queue<int> xQ;
 	std::queue<int> yQ;
-	bool added;
 	T* oPtr;
 	T* oPtrPlus;
 	T* oPtrMinus;
 	T* iPtr;
+	T* iPtrPlus;
+	T* iPtrMinus;
 
 	uint64_t t1 = cciutils::ClockGetTime();
 
-
+	int count = 0;
 	// contour pixel determination.  if any neighbor of a 1 pixel is 0, and the image is 1, then boundary
 	for (int y = 1; y < maxy; ++y) {
 		oPtr = output.ptr<T>(y);
@@ -273,11 +289,10 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 
 			pval = oPtr[x];
 			ival = iPtr[x];
-			added = false;
 
 			if (pval != 0 && ival != 0) {
-				xminus = x == 0 ? 0 : x - 1;
-				xplus = x == maxx ? maxx : x + 1;
+				xminus = x - 1;
+				xplus = x + 1;
 
 				// 4 connected
 				if ((oPtrMinus[x] == 0) ||
@@ -286,6 +301,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 						(oPtr[xminus] == 0)) {
 					xQ.push(x);
 					yQ.push(y);
+//					++count;
 					continue;
 				}
 
@@ -298,6 +314,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 						(oPtrPlus[xplus] == 0)) {
 								xQ.push(x);
 								yQ.push(y);
+//								++count;
 								continue;
 					}
 				}
@@ -306,14 +323,16 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 	}
 
 	uint64_t t2 = cciutils::ClockGetTime();
-	std::cout << "    scan time = " << t2-t1 << "ms" << std::endl;
+	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queued "<< std::endl;
 
 
 	// now process the queue.
 	T qval;
 	T outval = std::numeric_limits<T>::max();
 	int x, y;
+	count = 0;
 	while (!(xQ.empty())) {
+		++count;
 		x = xQ.front();
 		y = yQ.front();
 		xQ.pop();
@@ -323,18 +342,25 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 		yplus = y+1;
 		xplus = x+1;
 
+		oPtr = output.ptr<T>(y);
+		oPtrMinus = output.ptr<T>(y-1);
+		oPtrPlus = output.ptr<T>(y+1);
+		iPtr = input.ptr<T>(y);
+		iPtrMinus = input.ptr<T>(y-1);
+		iPtrPlus = input.ptr<T>(y+1);
+
 		// look at the 4 connected components
 		if (y > 0) {
-			propagateBinary<T>(input, output, xQ, yQ, x, yminus, outval);
+			propagateBinary<T>(input, output, xQ, yQ, x, yminus, iPtrMinus, oPtrMinus, outval);
 		}
 		if (y < maxy) {
-			propagateBinary<T>(input, output, xQ, yQ, x, yplus, outval);
+			propagateBinary<T>(input, output, xQ, yQ, x, yplus, iPtrPlus, oPtrPlus, outval);
 		}
 		if (x > 0) {
-			propagateBinary<T>(input, output, xQ, yQ, xminus, y, outval);
+			propagateBinary<T>(input, output, xQ, yQ, xminus, y, iPtr, oPtr, outval);
 		}
 		if (x < maxx) {
-			propagateBinary<T>(input, output, xQ, yQ, xplus, y, outval);
+			propagateBinary<T>(input, output, xQ, yQ, xplus, y, iPtr, oPtr, outval);
 		}
 
 		// now 8 connected
@@ -342,19 +368,19 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 
 			if (y > 0) {
 				if (x > 0) {
-					propagateBinary<T>(input, output, xQ, yQ, xminus, yminus, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xminus, yminus, iPtrMinus, oPtrMinus, outval);
 				}
 				if (x < maxx) {
-					propagateBinary<T>(input, output, xQ, yQ, xplus, yminus, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xplus, yminus, iPtrMinus, oPtrMinus, outval);
 				}
 
 			}
 			if (y < maxy) {
 				if (x > 0) {
-					propagateBinary<T>(input, output, xQ, yQ, xminus, yplus, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xminus, yplus, iPtrPlus, oPtrPlus,outval);
 				}
 				if (x < maxx) {
-					propagateBinary<T>(input, output, xQ, yQ, xplus, yplus, outval);
+					propagateBinary<T>(input, output, xQ, yQ, xplus, yplus, iPtrPlus, oPtrPlus,outval);
 				}
 
 			}
@@ -363,7 +389,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 	}
 
 	uint64_t t3 = cciutils::ClockGetTime();
-	std::cout << "    queue time = " << t3-t2 << "ms" << std::endl;
+	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queued" << std::endl;
 
 	return output(Range(1, maxy), Range(1, maxx));
 
@@ -508,7 +534,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, int connectivity) {
 	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 	std::cout << "num contours = " << contours.size() << std::endl;
 
 	int color = 1;
@@ -552,7 +578,7 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 
 	if (binaryOutput) {
 		Scalar color(std::numeric_limits<T>::max());
@@ -581,15 +607,27 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea) {
 
 	int area = contourArea(Mat(contours[idx]));
+	int circum = contours[idx].size();
+
+	std::cout << idx << " start  area = " << area << " circumference = " << contours[idx].size() << std::endl;
+	area += circum;
+
+//	if (area < 36) {
+//		std::cout << "area= " << area << " contour points " << contours[idx] << std::endl;
+//	}
+
 	if (area < minArea) return false;
 
 	int i = hierarchy[idx][2];
 	for ( ; i >= 0; i = hierarchy[i][0]) {
-		area -= contourArea(Mat(contours[i]));
+		area -= (contourArea(Mat(contours[i])) + contours[idx].size());
+		//std::cout << "  hole " << i << " reduced area to " << area << std::endl;
 		if (area < minArea) return false;
 	}
 
 	if (area >= maxArea) return false;
+	//std::cout << idx << " total area = " << area << std::endl;
+
 	return true;
 }
 
@@ -605,14 +643,15 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
 	// only outputs
 
-	Mat output = Mat::zeros(binaryImage.size(), binaryImage.type());
+	Mat_<T> output = Mat_<T>::zeros(binaryImage.size());
 	Mat input = binaryImage.clone();
 
 	std::vector<std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
+	std::cout << "num contours = " << contours.size() << std::endl;
 
 	Scalar color(std::numeric_limits<T>::max());
 	// iterate over all top level contours (all siblings, draw with own label color

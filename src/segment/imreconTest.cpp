@@ -36,6 +36,12 @@ int main (int argc, char **argv){
 	std::cout << "recon took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-recon.ppm", recon);
 
+	t1 = cciutils::ClockGetTime();
+	recon = nscale::imreconstruct<uchar>(marker, mask, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "recon4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-recon4.ppm", recon);
+
 
 	Mat maskb = mask > (0.8 * 255) ;
 	imwrite("test/in-maskb.pbm", maskb);
@@ -49,43 +55,63 @@ int main (int argc, char **argv){
 	std::cout << "reconBinary took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-reconBin.pbm", recon2);
 
+	t1 = cciutils::ClockGetTime();
+	recon2 = nscale::imreconstructBinary<uchar>(markerb, maskb, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "reconBinary4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-reconBin4.pbm", recon2);
 
+
+
+
+
+	//Mat imfilldata = imread("test/text.png", 0) > 0;
+	//maskb = repeat(imfilldata, 16, 16);
+	maskb = imread("test/sizePhantom.ppm", 0) > 0;
 
 	// bwareaopen testing
 	t1 = cciutils::ClockGetTime();
-	Mat bwareaopen = nscale::bwareaopen<uchar>(maskb, 30, 100, 8);
+	Mat bwareaopen = nscale::bwareaopen<uchar>(maskb, 100, 500, 8);
 	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen 30-100 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen-30-100.pbm", bwareaopen);
+	std::cout << "bwareaopen mid took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwareaopen-mid.pbm", bwareaopen);
 	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 1, 30, 8);
+	bwareaopen = nscale::bwareaopen<uchar>(maskb, 1, 100, 8);
 	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen 1-30 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen-1-30.pbm", bwareaopen);
+	std::cout << "bwareaopen small took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwareaopen-small.pbm", bwareaopen);
 	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 100, 255, 8);
+	bwareaopen = nscale::bwareaopen<uchar>(maskb, 500, std::numeric_limits<int>::max(), 8);
 	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen 100-255 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen-100-255.pbm", bwareaopen);
+	std::cout << "bwareaopen large took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwareaopen-large.pbm", bwareaopen);
 
 
+	t1 = cciutils::ClockGetTime();
+	bwareaopen = nscale::bwareaopen<uchar>(maskb, 100, 500, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "bwareaopen4 mid took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwareaopen4-mid.pbm", bwareaopen);
+	t1 = cciutils::ClockGetTime();
+	bwareaopen = nscale::bwareaopen<uchar>(maskb, 1, 100, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "bwareaopen4 small took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwareaopen4-small.pbm", bwareaopen);
+	t1 = cciutils::ClockGetTime();
+	bwareaopen = nscale::bwareaopen<uchar>(maskb, 500, std::numeric_limits<int>::max(), 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "bwareaopen4 large took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwareaopen4-large.pbm", bwareaopen);
+
+/*
 	// bwlabel testing
 	t1 = cciutils::ClockGetTime();
 	Mat bwselected = nscale::bwlabel(maskb, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwlabel took " << t2-t1 << "ms" << std::endl;
 	// write the raw image
-	char * filename = new char[128];
-	sprintf(filename, "test/out-bwlabel_%d_x_%d.raw", bwselected.cols, bwselected.rows);
-	FILE* fid = fopen(filename, "wb");
-	uchar* bwsPtr;
-	for (int j = 0; j < bwselected.rows; ++j) {
-		bwsPtr = bwselected.ptr(j);
-
-		fwrite(bwsPtr, sizeof(int), bwselected.cols, fid);
-	}
-	fclose(fid);
-
+	cciutils::cv::imwriteRaw("test/out-bwlabel", bwselected);
+*/
 
 
 

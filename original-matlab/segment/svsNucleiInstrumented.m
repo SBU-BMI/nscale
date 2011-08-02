@@ -1,4 +1,5 @@
 function []=svsNucleiInstrumented(impath,filename,resultpath, folder,tile)
+
     if nargin==0
 %         image = {'astroII.1.ndpi-0000004096-0000004096.tif',...
 %             '2487_71614_48776_2462x1616.tif',...
@@ -12,11 +13,10 @@ function []=svsNucleiInstrumented(impath,filename,resultpath, folder,tile)
             impath='/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/';
             filename=image{i};
             resultpath='/home/tcpan/PhD/path/Data/';
-            svsNuclei(impath,filename,resultpath,0,0);
+            svsNucleiInstrumented(impath,filename,resultpath,0,0)
         end
         return
     end
-
 
 
     %============START================
@@ -51,9 +51,9 @@ function []=svsNucleiInstrumented(impath,filename,resultpath, folder,tile)
         return;
     end
 
-    [f,L] = segNucleiMorphMeanshift(I);
+    [f,L] = segNucleiMorphMeanshiftInstrumented(I);
 
-
+    
 
     % BW = L>0;
     % LL = zeros(size(BW));
@@ -97,7 +97,7 @@ function []=svsNucleiInstrumented(impath,filename,resultpath, folder,tile)
 end
 
 
-function [f,L] = segNucleiMorphMeanshift(color_img)
+function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     f = [];
 
     r = color_img( :, :, 1);
@@ -118,15 +118,53 @@ function [f,L] = segNucleiMorphMeanshift(color_img)
         rbc = zeros(size(imR2G));
     end
 
+    cv_rbc = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rbc.pbm') > 0;
+    fprintf(1, 'matlab vs cv.  RBC %d\n', max(max(rbc ~= cv_rbc)));
+    if (max(max(rbc ~= cv_rbc)) > 0) 
+        figure; imshow(rbc);
+        figure; imshow(cv_rbc);
+        figure; imshow(rbc ~= cv_rbc);
+    end;
+    
+    disk = strel('disk', 10);
+    cv_disk = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rcopen-strel.pbm');
+
     rc = 255 - r;
     rc_open = imopen(rc, strel('disk',10));
+    cv_rc_open = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rcopen.ppm');
+    fprintf(1, 'matlab vs cv.  rc open %d\n', max(max(rc_open ~= cv_rc_open))); 
+    if (max(max(rc_open ~= cv_rc_open)) > 0) 
+        figure; imshow(rc_open);
+        figure; imshow(cv_rc_open);
+        figure; imshow(rc_open ~= cv_rc_open);
+    end;
+
     rc_recon = imreconstruct(rc_open,rc);
     diffIm = rc-rc_recon;
 
+    cv_diffIm = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-redchannelvalleys.ppm');
+    fprintf(1, 'matlab vs cv.  rc peaks %d\n', max(max(diffIm ~= cv_diffIm))); 
+    if (max(max(diffIm ~= cv_diffIm)) > 0) 
+        figure; imshow(diffIm);
+        figure; imshow(cv_diffIm);
+        figure; imshow(diffIm ~= cv_diffIm);
+    end;
+
+    
     G1=80; G2=45; % default settings
     %G1=80; G2=30;  % 2nd run
 
     bw1 = imfill(diffIm>G1,'holes');
+    
+    cv_bw1 = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rcvalleysfilledholes.ppm') > 0;
+    fprintf(1, 'matlab vs cv.  rc filled holes %d\n', max(max(bw1 ~= cv_bw1)));
+    if (max(max(bw1 ~= cv_bw1)) > 0) 
+        figure; imshow(bw1);
+        figure; imshow(cv_bw1);
+        figure; imshow(bw1 ~= cv_bw1);
+    end;
+
+
 
     %CHANGE
     [L] = bwlabel(bw1, 8);
@@ -143,18 +181,61 @@ function [f,L] = segNucleiMorphMeanshift(color_img)
         return;
     end
 
+    cv_bw1 = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nucleicandidatessized.ppm') > 0;
+    fprintf(1, 'matlab vs cv.  candidate size thresholded %d\n', max(max(bw1 ~= cv_bw1)));
+    if (max(max(bw1 ~= cv_bw1)) > 0) 
+        figure; imshow(bw1);
+        figure; imshow(cv_bw1);
+        figure; imshow(bw1 ~= cv_bw1);
+    end;
+
+    
     [rows,cols] = ind2sub(size(diffIm),ind);
     seg_norbc = bwselect(bw2,cols,rows,8) & ~rbc;
+    
+    cv_seg_norbc = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nucleicandidatesnorbc.ppm') >0;
+    fprintf(1, 'matlab vs cv.  candidate no rbc %d\n', max(max(seg_norbc ~= cv_seg_norbc)));
+    
+    
     seg_nohole = imfill(seg_norbc,'holes');
     seg_open = imopen(seg_nohole,strel('disk',1));
+    
+    cv_seg_open = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nucleicandidatesopened.ppm') >0;
+    fprintf(1, 'matlab vs cv.  candidate opened %d\n', max(max(seg_open ~= cv_seg_open)));
+    
 
     %CHANGE
     seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
 
+    cv_seg_big = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nucleicandidatesbig.ppm');
+    fprintf(1, 'matlab vs cv.  candidate big %d\n', max(max(seg_big ~= cv_seg_big)));
+    
+    
     distance = -bwdist(~seg_big);
-    distance(~seg_big) = -Inf;
-    distance2 = imhmin(distance, 1);
+%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-dist_4096_x_4096.raw', 'r');
+%     cv_distance = fread(fid, [4096,4096], 'single');
+%     cv_distance = cv_distance';
+%     fclose(fid);
+%     fprintf(1, 'matlab vs cv.  distance transform %d\n', max(max(distance ~= cv_distance)));
+    
 
+    distance(~seg_big) = -Inf;
+%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distance_4096_x_4096.raw', 'r');
+%     cv_distance = fread(fid, [4096,4096], 'single');
+%     cv_distance = cv_distance';
+%     fclose(fid);
+%     fprintf(1, 'matlab vs cv.  distance background set %d\n', max(max(distance ~= cv_distance)));
+
+    
+    distance2 = imhmin(distance, 1);
+%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distanceimhmin_4096_x_4096.raw', 'r');
+%     cv_distance2 = fread(fid, [4096,4096], 'single');
+%     cv_distance2 = cv_distance2';
+%     fclose(fid);
+%     fprintf(1, 'matlab vs cv.  distance imhmin %d\n', max(max(distance2 ~= cv_distance2)));
+
+    
+    
     %lines=ones(size(distance));
     %lines(watershed(distance2)==0)=0;
 
@@ -183,8 +264,19 @@ function [f,L] = segNucleiMorphMeanshift(color_img)
     %[L, num] = bwlabel(seg,8);
 
     %CHANGE
-    [L,num] = bwlabel(imfill(seg, 'holes'),4);
+    tolabel = imfill(seg, 'holes');
+    
+    % debug
+    result = zeros(size(tolabel, 1), size(tolabel, 2), 3, 'uint8');
+    result(:, :, 2) = tolabel * 255;
+    result(:, :, 1) = bw1 * 255;
+    figure; imshow(result);
+    figure; imshow(tolabel ~= bw1);
+    
+    [L,num] = bwlabel(tolabel,4);
 
+    return;
+    
     % [Bounds] = bwboundaries(L>0,4);
     % Bounds = Bounds.';
     % figure;imshow(color_img,[]);impixelinfo; hold on;
@@ -360,7 +452,7 @@ function [f,L] = segNucleiMorphMeanshift(color_img)
     new_f = CytoplasmFeatures(L, color_img, smallG, delta);
 
     if size(old_f,1)~=size(new_f,1)
-        fprintf('No. of rows in the old feature set is not equal to that of the new feature set!\n');
+        fprintf(1, 'No. of rows in the old feature set is not equal to that of the new feature set!\n');
         Num_Row = min(size(old_f,1),size(new_f,1));
         f = [old_f(1:Num_Row,:) new_f(1:Num_Row,:)];
         return;

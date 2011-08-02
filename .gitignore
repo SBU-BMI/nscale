@@ -7,3 +7,6 @@ out-*.pbm
 out-*.ppm
 out-*.raw
 *.m~
+*.out
+*.profile
+

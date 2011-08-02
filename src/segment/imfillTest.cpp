@@ -69,6 +69,20 @@ int main (int argc, char **argv){
 	std::cout << "imfill holes took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-holesfilled.pbm", filled);
 
+
+	t1 = cciutils::ClockGetTime();
+	filled = nscale::imfill<uchar>(imfillinput, imfillseeds, true, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "imfill 4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-imfilled4.pbm", filled);
+
+	// imfill holes
+	t1 = cciutils::ClockGetTime();
+	filled = nscale::imfillHoles<uchar>(imfillinput, true, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "imfill holes4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-holesfilled4.pbm", filled);
+
 	// grayscale fill holes
 	imfilldata = imread("test/tire.tif", 0);
 	imfillinput = repeat(imfilldata, 20, 17);
@@ -78,6 +92,12 @@ int main (int argc, char **argv){
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill holes gray took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-holesfilled-gray.ppm", filled);
+
+	t1 = cciutils::ClockGetTime();
+	filled = nscale::imfillHoles<uchar>(imfillinput, false, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "imfill holes gray4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-holesfilled-gray4.ppm", filled);
 
 
 	// bwselect testing
@@ -101,6 +121,12 @@ int main (int argc, char **argv){
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwselect took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-bwselected.pbm", bwselected);
+
+	t1 = cciutils::ClockGetTime();
+	bwselected = nscale::bwselect<uchar>(imfillinput, imfillseeds, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "bwselect4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-bwselected4.pbm", bwselected);
 
 
 
