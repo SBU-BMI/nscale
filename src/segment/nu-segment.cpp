@@ -56,7 +56,7 @@ int main (int argc, char **argv){
 	Mat output = Mat::zeros(img.size(), CV_8U);
 	int status = nscale::HistologicalEntities::segmentNuclei(img, output);
 
-
+	imwrite("test/out-nuclei.ppm", output);
 
 //	waitKey();
 

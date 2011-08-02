@@ -19,7 +19,21 @@ inline uint64_t ClockGetTime()
     return (uint64_t)ts.tv_sec * 1000000LL + (uint64_t)ts.tv_nsec / 1000LL;
 }
 
+template <typename T>
+inline T min()
+{
+	if (std::numeric_limits<T>::is_integer) {
+		return std::numeric_limits<T>::min();
+	} else {
+		return -std::numeric_limits<T>::max();
+	}
+}
+
+
 namespace cv {
+
+using ::cv::Exception;
+using ::cv::error;
 
 inline void imwriteRaw(const char *prefix, const ::cv::Mat& img) {
 	// write the raw image
@@ -33,9 +47,32 @@ inline void imwriteRaw(const char *prefix, const ::cv::Mat& img) {
 	for (int j = 0; j < rows; ++j) {
 		imgPtr = img.ptr(j);
 
-		fwrite(imgPtr, 1, cols, fid);
+		fwrite(imgPtr, elSize, cols, fid);
 	}
 	fclose(fid);
+
+}
+template <typename T>
+inline ::cv::Mat invert(const ::cv::Mat& img) {
+	// write the raw image
+	CV_Assert(img.channels() == 1);
+
+	if (std::numeric_limits<T>::is_integer) {
+
+		if (std::numeric_limits<T>::is_signed) {
+			::cv::Mat output;
+			::cv::bitwise_not(img, output);
+			return output + 1;
+		} else {
+			// unsigned int
+			return std::numeric_limits<T>::max() - img;
+		}
+
+	} else {
+		// floating point type
+		return -img;
+	}
+
 
 }
 

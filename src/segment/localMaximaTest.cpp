@@ -37,18 +37,6 @@ int main (int argc, char **argv){
 	std::cout << "localmin took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-localmin.ppm", recon);
 
-	t1 = cciutils::ClockGetTime();
-	recon = nscale::localMaxima2<uchar>(mask, 8);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "localmax2 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-localmax2.ppm", recon);
-
-	t1 = cciutils::ClockGetTime();
-	recon = nscale::localMinima2<uchar>(mask, 8);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "localmin2 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-localmin2.ppm", recon);
-
 
 	// imhmin test
 	t1 = cciutils::ClockGetTime();
@@ -82,18 +70,6 @@ int main (int argc, char **argv){
 	t2 = cciutils::ClockGetTime();
 	std::cout << "localmin4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-localmin4.ppm", recon);
-
-	t1 = cciutils::ClockGetTime();
-	recon = nscale::localMaxima2<uchar>(mask, 4);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "localmax24 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-localmax24.ppm", recon);
-
-	t1 = cciutils::ClockGetTime();
-	recon = nscale::localMinima2<uchar>(mask, 4);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "localmin24 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-localmin24.ppm", recon);
 
 
 	// imhmin test

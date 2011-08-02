@@ -412,7 +412,7 @@ Mat imfill(const Mat& image, const Mat& seeds, bool binary, int connectivity) {
     I2 = I | marker;
 	 */
 
-	Mat mask = std::numeric_limits<T>::max() - image;  // validated
+	Mat mask = cciutils::cv::invert<T>(image);  // validated
 
 	Mat marker = Mat::zeros(mask.size(), mask.type());
 
@@ -455,7 +455,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
     end
 	 */
 
-	T mn = std::numeric_limits<T>::min();
+	T mn = cciutils::min<T>();
 	T mx = std::numeric_limits<T>::max();
 	Rect roi = Rect(1, 1, image.cols, image.rows);
 
@@ -470,7 +470,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 	copyMakeBorder(marker2, marker, 1, 1, 1, 1, BORDER_CONSTANT, mx);
 
 	// now do the work...
-	mask = mx - mask;
+	mask = cciutils::cv::invert<T>(mask);
 
 	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
@@ -479,7 +479,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 
-	output = mx - output;
+	output = cciutils::cv::invert<T>(output);
 
 	return output(roi);
 }
@@ -606,10 +606,13 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 // inclusive min, exclusive max
 bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea) {
 
-	int area = contourArea(Mat(contours[idx]));
-	int circum = contours[idx].size();
+	int area = contourArea(contours[idx]);
+	int circum = contours[idx].size() / 2 + 1;
+	//int perim1 = arcLength(contours[idx], false);
+	//int perim2 = arcLength(contours[idx], true);
 
-	std::cout << idx << " start  area = " << area << " circumference = " << contours[idx].size() << std::endl;
+	std::cout << idx << " start  area = " << area << " circumference = " << circum <<  " total = " << (circum+area) << std::endl;
+	//std::cout << idx << " perim closed = " << perim2 << " unclosed = " << perim1 << std::endl;
 	area += circum;
 
 //	if (area < 36) {
@@ -620,7 +623,7 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 
 	int i = hierarchy[idx][2];
 	for ( ; i >= 0; i = hierarchy[i][0]) {
-		area -= (contourArea(Mat(contours[i])) + contours[idx].size());
+		area -= (contourArea(contours[i]) + contours[idx].size() / 2 + 1);
 		//std::cout << "  hole " << i << " reduced area to " << area << std::endl;
 		if (area < minArea) return false;
 	}
@@ -678,11 +681,10 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 		I2 = imcomplement(I2);
 	 *
 	 */
-	T mx = std::numeric_limits<T>::max();
-	Mat mask = mx - image;
+	Mat mask = cciutils::cv::invert<T>(image);
 	Mat marker = mask - h;
 	Mat output = imreconstruct<T>(marker, mask, connectivity);
-	return mx - output;
+	return cciutils::cv::invert<T>(output);
 }
 
 Mat watershed2(const Mat& image, int connectivity) {
@@ -696,7 +698,11 @@ Mat watershed2(const Mat& image, int connectivity) {
 
 	 */
 	Mat minima = localMinima<float>(image, connectivity);
+
+
+
 	Mat_<int> labels = bwlabel(minima, connectivity);
+
 	Mat image3(image.size(), CV_8UC3);
 	cvtColor(image, image3, CV_GRAY2BGR);
 	watershed(image3, labels);
@@ -713,13 +719,13 @@ Mat localMaxima(const Mat& image, int connectivity) {
 	Mat marker = image - 1;
 	Mat candidates =
 			marker < imreconstruct<T>(marker, image, connectivity);
-//		marker >= imreconstruct<T>(marker, image, connectivity);
+//	candidates marked as 0 because floodfill with mask will fill only 0's
 //	return (image - imreconstruct(marker, image, 8)) >= (1 - std::numeric_limits<T>::epsilon());
 	//return candidates;
 
 	// now check the candidates
 	// first pad the border
-	T mn = std::numeric_limits<T>::min();
+	T mn = cciutils::min<T>();
 	T mx = std::numeric_limits<T>::max();
 	Mat output(candidates.size() + Size(2,2), candidates.type());
 	copyMakeBorder(candidates, output, 1, 1, 1, 1, BORDER_CONSTANT, mx);
@@ -778,7 +784,7 @@ Mat localMaxima(const Mat& image, int connectivity) {
 		}
 	}
 	std::cout << std::endl;
-	return output(yrange, xrange) == 0;
+	return output(yrange, xrange) == 0;  // similar to bitwise not.
 
 }
 
@@ -787,103 +793,10 @@ Mat localMinima(const Mat& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
-	Mat cimage = std::numeric_limits<T>::max() - image;
+	Mat cimage = cciutils::cv::invert<T>(image);
 	return localMaxima<T>(cimage, connectivity);
 }
 
-
-// only works with integer images
-template <typename T>
-Mat localMaxima2(const Mat& image, int connectivity) {
-	CV_Assert(image.channels() == 1);
-
-	bool flat = true;
-	T firstval;
-	//	using floodfill
-	T mn = std::numeric_limits<T>::min();
-	
-	// next check for flat image
-	MatConstIterator_<T> it = image.begin<T>();
-	MatConstIterator_<T> it_end = image.end<T>();
-	if (it != it_end) {
-		firstval = *it;
-		++it;
-	} else {
-		return Mat::zeros(image.size(), image.type());
-	}
-	for ( ; it != it_end; ++it) {
-		if (*it != firstval) flat = false;
-	}
-	if (flat) {
-		return Mat::ones(image.size(), image.type());  // return 1s when it's flat (instead of type max)
-	}
-	
-	// first pad the border
-	Mat output(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, output, 1, 1, 1, 1, BORDER_CONSTANT, mn);
-	Mat input(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, mn);
-
-	int maxy = input.rows-1;
-	int maxx = input.cols-1;
-	int xminus, xplus;
-	T val;
-	T *iPtr, *iPtrMinus, *iPtrPlus, *oPtr;
-	Rect reg(1, 1, image.cols, image.rows);
-	Scalar zero(0);
-	Scalar smn(mn);
-	Range xrange(1, maxx);
-	Range yrange(1, maxy);
-
-	
-	// next iterate over image, and set non-max to MIN (via floodfill)
-	for (int y = 1; y < maxy; ++y) {
-
-		iPtr = input.ptr<T>(y);
-		iPtrMinus = input.ptr<T>(y-1);
-		iPtrPlus = input.ptr<T>(y+1);
-		oPtr = output.ptr<T>(y);
-		
-		for (int x = 1; x < maxx; ++x) {
-			xminus = x-1;
-			xplus = x+1;
-			
-			// if already visited, skip to next.
-			if (oPtr[x] == mn) continue;
-			
-			val = iPtr[x];
-			// compare values and flood fill.
-			
-			// 4 connected
-			if ((val < iPtrMinus[x]) || (val < iPtrPlus[x]) || (val < iPtr[xminus]) || (val < iPtr[xplus])) {
-				// flood with type minimum value (only time when the whole image may have mn is if it's flat)
-				floodFill(output, Point(x, y), smn, &reg, zero, zero, FLOODFILL_FIXED_RANGE | connectivity);
-				continue;
-			}  // note that if flat region, nothing is changed.  if the flat region is max, it's not going to be changed
-			// if flat region is not max, at the edge floodfill will kick in.
-
-			// 8 connected
-			if (connectivity == 8) {
-				if ((val < iPtrMinus[xminus]) || (val < iPtrMinus[xplus]) || (val < iPtrPlus[xminus]) || (val < iPtrPlus[xplus])) {
-					// flood with type minimum value (only time when the whole image may have mn is if it's flat)
-					floodFill(output, Point(x, y), smn, &reg, zero, zero, FLOODFILL_FIXED_RANGE | connectivity);
-					continue;
-				}
-			}
-		}
-	}
-
-	return output(yrange, xrange) > mn;
-}
-
-template <typename T>
-Mat localMinima2(const Mat& image, int connectivity) {
-	// only works for intensity images.
-	CV_Assert(image.channels() == 1);
-
-	Mat cimage = std::numeric_limits<T>::max() - image;
-	return localMaxima2<T>(cimage, connectivity);
-}
 
 
 
@@ -902,12 +815,8 @@ template Mat imhmin(const Mat& image, uchar h, int connectivity);
 template Mat imhmin(const Mat& image, float h, int connectivity);
 template Mat localMaxima<float>(const Mat& image, int connectivity);
 template Mat localMinima<float>(const Mat& image, int connectivity);
-template Mat localMaxima2<float>(const Mat& image, int connectivity);
-template Mat localMinima2<float>(const Mat& image, int connectivity);
 template Mat localMaxima<uchar>(const Mat& image, int connectivity);
 template Mat localMinima<uchar>(const Mat& image, int connectivity);
-template Mat localMaxima2<uchar>(const Mat& image, int connectivity);
-template Mat localMinima2<uchar>(const Mat& image, int connectivity);
 
 }
 

@@ -114,7 +114,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
     diffIm = rc-rc_recon;
 	 */
 
-	Mat rc = std::numeric_limits<uchar>::max() - bgr[2];
+	Mat rc = cciutils::cv::invert<uchar>(bgr[2]);
 	Mat rc_open(rc.size(), rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
 	// structuring element is not the same between matlab and opencv.  using the one from matlab explicitly....
@@ -160,11 +160,6 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	uchar G1 = 80;
 	Mat diffIm2 = diffIm > G1;
 	Mat bw1 = nscale::imfillHoles<uchar>(diffIm2, true, 4);
-
-	output = bw1;
-	return 0;
-
-
 	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 
 /*
@@ -241,7 +236,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	dist = 0.0f - dist;
 	cciutils::cv::imwriteRaw("test/out-dist", dist);
 	Mat distance(dist.size(), dist.type());
-	distance = std::numeric_limits<float>::min();
+	distance = cciutils::min<float>();
+	std::cout << "float min = " << cciutils::min<float>() << std::endl;
 	dist.copyTo(distance, seg_big);
 	cciutils::cv::imwriteRaw("test/out-distance", distance);
 	// then do imhmin.
