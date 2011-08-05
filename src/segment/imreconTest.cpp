@@ -106,7 +106,7 @@ int main (int argc, char **argv){
 /*
 	// bwlabel testing
 	t1 = cciutils::ClockGetTime();
-	Mat bwselected = nscale::bwlabel(maskb, 8);
+	Mat bwselected = nscale::bwlabel(maskb, false, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwlabel took " << t2-t1 << "ms" << std::endl;
 	// write the raw image

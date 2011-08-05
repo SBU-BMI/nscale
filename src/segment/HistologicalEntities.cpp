@@ -231,23 +231,26 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	// compute the distance (distance of nuclei pixels to background)
 	// negate the distance.  so now background is still 0, but nuclei pixels have negative distances
 	// set background to -inf
+
+	// really just want the distance map.  CV computes distance to 0.
+	// background is 0 in output.
+	// then invert to create basins
 	Mat dist(seg_big.size(), CV_32FC1);
+
 	distanceTransform(seg_big, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
-	dist = 0.0f - dist;
+	double mmin, mmax;
+	minMaxLoc(dist, &mmin, &mmax);
+	dist = (mmax + 1.0) - dist;
 	cciutils::cv::imwriteRaw("test/out-dist", dist);
-	Mat distance(dist.size(), dist.type());
-	distance = cciutils::min<float>();
-	std::cout << "float min = " << cciutils::min<float>() << std::endl;
+
+	// then set the background to -inf and do imhmin
+	Mat distance = Mat::zeros(dist.size(), dist.type());
 	dist.copyTo(distance, seg_big);
 	cciutils::cv::imwriteRaw("test/out-distance", distance);
 	// then do imhmin.
-	Mat distance2 = nscale::imhmin<float>(distance, 1.0f, 8);
-	cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
+	//Mat distance2 = nscale::imhmin<float>(distance, 1.0f, 8);
+	//cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
 
-
-	double mmin, mmax;
-	minMaxLoc(distance2, &mmin, &mmax);
-	std::cout << " min = " << mmin << " max = " << mmax << std::endl;
 
 	/*
 	 *
@@ -255,11 +258,18 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 		seg_nonoverlap = seg_big;
      *
 	 */
-	// watershed in openCV requires labels.
-	//Mat watermask = nscale::watershed2(distance2, 8);
-	Mat watermask = nscale::watershed2(img, 8);
+
+	Mat nuclei = Mat::zeros(img.size(), img.type());
+	img.copyTo(nuclei, seg_big);
+
+	// watershed in openCV requires labels.  input foreground > 0, 0 is background
+	Mat watermask = nscale::watershed2(nuclei, distance, 8);
+	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
+
+
 	Mat seg_nonoverlap = Mat::zeros(seg_big.size(), seg_big.type());
-	seg_big.copyTo(seg_nonoverlap, watermask);
+	seg_big.copyTo(seg_nonoverlap, (watermask > 0));
+	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
 
 	/*
      %CHANGE
@@ -278,6 +288,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	 */
 	Mat seg = nscale::bwareaopen<uchar>(seg_nonoverlap, 21, 1000, 4);
 	if (countNonZero(seg) == 0) return -1;
+	imwrite("test/out-seg.ppm", seg);
 
 
 	/*
@@ -290,6 +301,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	 */
 	// don't worry about bwlabel.
 	output = nscale::imfillHoles<uchar>(seg, true, 8);
+	imwrite("test/out-nuclei.ppm", seg);
 
 
 

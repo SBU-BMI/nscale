@@ -397,7 +397,6 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 
 
 
-// Operates on BINARY IMAGES ONLY
 template <typename T>
 Mat imfill(const Mat& image, const Mat& seeds, bool binary, int connectivity) {
 	CV_Assert(image.channels() == 1);
@@ -424,7 +423,6 @@ Mat imfill(const Mat& image, const Mat& seeds, bool binary, int connectivity) {
 	return image | marker;
 }
 
-// Operates on BINARY IMAGES ONLY
 template <typename T>
 Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 	CV_Assert(image.channels() == 1);
@@ -516,9 +514,12 @@ Mat bwselect(const Mat& binaryImage, const Mat& seeds, int connectivity) {
 //  in an image with minimum size of 2^16 x 2^16 pixels, which is only 65k x 65k.
 // however, since the contour finding algorithm uses Vec4i, the maximum index can only be an int.  similarly, the image size is
 //  bound by Point's internal representation, so only int.  The Mat will therefore be of type CV_32S, or int.
-Mat_<int> bwlabel(const Mat& binaryImage, int connectivity) {
+Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
 	CV_Assert(binaryImage.channels() == 1);
 	// only works for binary images.
+
+	int lineThickness = CV_FILLED;
+	if (contourOnly) lineThickness = 1;
 
 	// based on example from
 	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
@@ -542,7 +543,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, int connectivity) {
 	// iterate over all top level contours (all siblings, draw with own label color
 	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 		// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-		drawContours( output, contours, idx, Scalar(color), CV_FILLED, connectivity, hierarchy );
+		drawContours( output, contours, idx, Scalar(color), lineThickness, connectivity, hierarchy );
 	}
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
@@ -559,13 +560,16 @@ Mat_<int> bwlabel(const Mat& binaryImage, int connectivity) {
 //  bound by Point's internal representation, so only int.  The Mat will therefore be of type CV_32S, or int.
 template <typename T>
 Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
-		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int), int connectivity) {
+		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
+		bool contourOnly, int connectivity) {
 	// only works for binary images.
 	if (contourFilter == NULL) {
-		return bwlabel(binaryImage, connectivity);
+		return bwlabel(binaryImage, contourOnly, connectivity);
 	}
 	CV_Assert(binaryImage.channels() == 1);
 
+	int lineThickness = CV_FILLED;
+	if (contourOnly) lineThickness = 1;
 
 	// based on example from
 	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
@@ -586,7 +590,7 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
 			if (contourFilter(contours, hierarchy, idx)) {
 				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-				drawContours( output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
+				drawContours( output, contours, idx, color, lineThickness, connectivity, hierarchy );
 			}
 		}
 
@@ -596,7 +600,7 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 			if (contourFilter(contours, hierarchy, idx)) {
 				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-				drawContours( output, contours, idx, Scalar(color), CV_FILLED, connectivity, hierarchy );
+				drawContours( output, contours, idx, Scalar(color), lineThickness, connectivity, hierarchy );
 			}
 		}
 	}
@@ -611,7 +615,7 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 	//int perim1 = arcLength(contours[idx], false);
 	//int perim2 = arcLength(contours[idx], true);
 
-	std::cout << idx << " start  area = " << area << " circumference = " << circum <<  " total = " << (circum+area) << std::endl;
+	//std::cout << idx << " start  area = " << area << " circumference = " << circum <<  " total = " << (circum+area) << std::endl;
 	//std::cout << idx << " perim closed = " << perim2 << " unclosed = " << perim1 << std::endl;
 	area += circum;
 
@@ -687,7 +691,8 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 	return cciutils::cv::invert<T>(output);
 }
 
-Mat watershed2(const Mat& image, int connectivity) {
+// input should have foreground > 0, and 0 for background
+Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
@@ -697,27 +702,59 @@ Mat watershed2(const Mat& image, int connectivity) {
 		L = watershed_meyer(A,conn,cc);
 
 	 */
+
 	Mat minima = localMinima<float>(image, connectivity);
+//	namedWindow("Localmin", 1);
+//	Mat out = minima;
+	//resize(minima, out, Size(1024,1024), 0, 0, INTER_LINEAR);
+//	imshow("Localmin", out);
+	Mat_<int> labels = bwlabel(minima, true, connectivity);
+//	namedWindow("bwlabels", 1) ;
+//	resize(labels, out, Size(1024,1024), 0, 0, INTER_LINEAR);
+//	out = labels;
+//	imshow("bwlabels", out);
+
+	// convert to grayscale
+	// now scale, shift, clear background.
+	double mmin, mmax;
+	minMaxLoc(image, &mmin, &mmax);
+	std::cout << " image: min=" << mmin << " max=" << mmax<< std::endl;
+	double range = (mmax - mmin);
+	double scaling = std::numeric_limits<uchar>::max() / range;
+	Mat shifted(image.size(), CV_8U);
+	image.convertTo(shifted, CV_8U, scaling, 0.0);
+//	namedWindow("gray", 1);
+//	resize(shifted, out, Size(1024,1024), 0, 0, INTER_LINEAR);
+//	imshow("gray", shifted);
 
 
+	Mat image3(shifted.size(), CV_8UC3);
+	cvtColor(shifted, image3, CV_GRAY2BGR);
+//	namedWindow("img3", 1);
+//	resize(image3, out, Size(1024,1024), 0, 0, INTER_LINEAR);
+//	imshow("img3", image3);
 
-	Mat_<int> labels = bwlabel(minima, connectivity);
+	watershed(origImage, labels);
+//	namedWindow("watershed", 1);
+//	resize(labels, out, Size(1024,1024), 0, 0, INTER_LINEAR);
+//	imshow("watershed", labels == -1);
 
-	Mat image3(image.size(), CV_8UC3);
-	cvtColor(image, image3, CV_GRAY2BGR);
-	watershed(image3, labels);
+	mmin, mmax;
+	minMaxLoc(labels, &mmin, &mmax);
+	std::cout << " watershed: min=" << mmin << " max=" << mmax<< std::endl;
+
 
 	return labels;
 }
 
 // only works with integer images
 template <typename T>
-Mat localMaxima(const Mat& image, int connectivity) {
+Mat_<uchar> localMaxima(const Mat& image, int connectivity) {
 	CV_Assert(image.channels() == 1);
 
 	// use morphologic reconstruction.
 	Mat marker = image - 1;
-	Mat candidates =
+	Mat_<uchar> candidates =
 			marker < imreconstruct<T>(marker, image, connectivity);
 //	candidates marked as 0 because floodfill with mask will fill only 0's
 //	return (image - imreconstruct(marker, image, 8)) >= (1 - std::numeric_limits<T>::epsilon());
@@ -726,8 +763,8 @@ Mat localMaxima(const Mat& image, int connectivity) {
 	// now check the candidates
 	// first pad the border
 	T mn = cciutils::min<T>();
-	T mx = std::numeric_limits<T>::max();
-	Mat output(candidates.size() + Size(2,2), candidates.type());
+	T mx = std::numeric_limits<uchar>::max();
+	Mat_<uchar> output(candidates.size() + Size(2,2));
 	copyMakeBorder(candidates, output, 1, 1, 1, 1, BORDER_CONSTANT, mx);
 	Mat input(image.size() + Size(2,2), image.type());
 	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, mn);
@@ -736,7 +773,8 @@ Mat localMaxima(const Mat& image, int connectivity) {
 	int maxx = input.cols-1;
 	int xminus, xplus;
 	T val;
-	T *iPtr, *iPtrMinus, *iPtrPlus, *oPtr;
+	T *iPtr, *iPtrMinus, *iPtrPlus;
+	uchar *oPtr;
 	Rect reg(1, 1, image.cols, image.rows);
 	Scalar zero(0);
 	Scalar smx(mx);
@@ -750,7 +788,7 @@ Mat localMaxima(const Mat& image, int connectivity) {
 		iPtr = input.ptr<T>(y);
 		iPtrMinus = input.ptr<T>(y-1);
 		iPtrPlus = input.ptr<T>(y+1);
-		oPtr = output.ptr<T>(y);
+		oPtr = output.ptr<uchar>(y);
 
 		for (int x = 1; x < maxx; ++x) {
 
@@ -765,7 +803,6 @@ Mat localMaxima(const Mat& image, int connectivity) {
 
 			// 4 connected
 			if ((val < iPtrMinus[x]) || (val < iPtrPlus[x]) || (val < iPtr[xminus]) || (val < iPtr[xplus])) {
-				std::cout << ".";
 				// flood with type minimum value (only time when the whole image may have mn is if it's flat)
 				floodFill(inputBlock, output, Point(xminus, y-1), smx, &reg, zero, zero, FLOODFILL_FIXED_RANGE | FLOODFILL_MASK_ONLY | connectivity);
 				continue;
@@ -774,7 +811,6 @@ Mat localMaxima(const Mat& image, int connectivity) {
 			// 8 connected
 			if (connectivity == 8) {
 				if ((val < iPtrMinus[xminus]) || (val < iPtrMinus[xplus]) || (val < iPtrPlus[xminus]) || (val < iPtrPlus[xplus])) {
-					std::cout << "*";
 					// flood with type minimum value (only time when the whole image may have mn is if it's flat)
 					floodFill(inputBlock, output, Point(xminus, y-1), smx, &reg, zero, zero, FLOODFILL_FIXED_RANGE | FLOODFILL_MASK_ONLY | connectivity);
 					continue;
@@ -783,13 +819,12 @@ Mat localMaxima(const Mat& image, int connectivity) {
 
 		}
 	}
-	std::cout << std::endl;
 	return output(yrange, xrange) == 0;  // similar to bitwise not.
 
 }
 
 template <typename T>
-Mat localMinima(const Mat& image, int connectivity) {
+Mat_<uchar> localMinima(const Mat& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
@@ -809,14 +844,14 @@ template Mat imfillHoles<uchar>(const Mat& image, bool binary, int connectivity)
 template Mat bwselect<uchar>(const Mat& binaryImage, const Mat& seeds, int connectivity);
 template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
-		int connectivity);
+		bool contourOnly, int connectivity);
 template Mat bwareaopen<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
 template Mat imhmin(const Mat& image, uchar h, int connectivity);
 template Mat imhmin(const Mat& image, float h, int connectivity);
-template Mat localMaxima<float>(const Mat& image, int connectivity);
-template Mat localMinima<float>(const Mat& image, int connectivity);
-template Mat localMaxima<uchar>(const Mat& image, int connectivity);
-template Mat localMinima<uchar>(const Mat& image, int connectivity);
+template Mat_<uchar> localMaxima<float>(const Mat& image, int connectivity);
+template Mat_<uchar> localMinima<float>(const Mat& image, int connectivity);
+template Mat_<uchar> localMaxima<uchar>(const Mat& image, int connectivity);
+template Mat_<uchar> localMinima<uchar>(const Mat& image, int connectivity);
 
 }
 

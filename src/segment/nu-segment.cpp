@@ -54,11 +54,14 @@ int main (int argc, char **argv){
 	if (!img.data) return -1;
 
 	Mat output = Mat::zeros(img.size(), CV_8U);
+	uint64_t t1 = cciutils::ClockGetTime();
 	int status = nscale::HistologicalEntities::segmentNuclei(img, output);
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "segment took " << t2-t1 << "ms" << std::endl;
 
-	imwrite("test/out-nuclei.ppm", output);
 
-//	waitKey();
+
+	waitKey();
 
 	return status;
 }

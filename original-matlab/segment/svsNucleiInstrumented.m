@@ -51,8 +51,9 @@ function []=svsNucleiInstrumented(impath,filename,resultpath, folder,tile)
         return;
     end
 
+    tic;
     [f,L] = segNucleiMorphMeanshiftInstrumented(I);
-
+    t = toc;
     
 
     % BW = L>0;
@@ -120,11 +121,11 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
 
     cv_rbc = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rbc.pbm') > 0;
     fprintf(1, 'matlab vs cv.  RBC %d\n', max(max(rbc ~= cv_rbc)));
-    if (max(max(rbc ~= cv_rbc)) > 0) 
-        figure; imshow(rbc);
-        figure; imshow(cv_rbc);
-        figure; imshow(rbc ~= cv_rbc);
-    end;
+%     if (max(max(rbc ~= cv_rbc)) > 0) 
+%         figure; imshow(rbc);
+%         figure; imshow(cv_rbc);
+%         figure; imshow(rbc ~= cv_rbc);
+%     end;
     
     disk = strel('disk', 10);
     cv_disk = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rcopen-strel.pbm');
@@ -133,22 +134,22 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     rc_open = imopen(rc, strel('disk',10));
     cv_rc_open = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rcopen.ppm');
     fprintf(1, 'matlab vs cv.  rc open %d\n', max(max(rc_open ~= cv_rc_open))); 
-    if (max(max(rc_open ~= cv_rc_open)) > 0) 
-        figure; imshow(rc_open);
-        figure; imshow(cv_rc_open);
-        figure; imshow(rc_open ~= cv_rc_open);
-    end;
+%     if (max(max(rc_open ~= cv_rc_open)) > 0) 
+%         figure; imshow(rc_open);
+%         figure; imshow(cv_rc_open);
+%         figure; imshow(rc_open ~= cv_rc_open);
+%     end;
 
     rc_recon = imreconstruct(rc_open,rc);
     diffIm = rc-rc_recon;
 
     cv_diffIm = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-redchannelvalleys.ppm');
     fprintf(1, 'matlab vs cv.  rc peaks %d\n', max(max(diffIm ~= cv_diffIm))); 
-    if (max(max(diffIm ~= cv_diffIm)) > 0) 
-        figure; imshow(diffIm);
-        figure; imshow(cv_diffIm);
-        figure; imshow(diffIm ~= cv_diffIm);
-    end;
+%     if (max(max(diffIm ~= cv_diffIm)) > 0) 
+%         figure; imshow(diffIm);
+%         figure; imshow(cv_diffIm);
+%         figure; imshow(diffIm ~= cv_diffIm);
+%     end;
 
     
     G1=80; G2=45; % default settings
@@ -158,11 +159,11 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     
     cv_bw1 = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-rcvalleysfilledholes.ppm') > 0;
     fprintf(1, 'matlab vs cv.  rc filled holes %d\n', max(max(bw1 ~= cv_bw1)));
-    if (max(max(bw1 ~= cv_bw1)) > 0) 
-        figure; imshow(bw1);
-        figure; imshow(cv_bw1);
-        figure; imshow(bw1 ~= cv_bw1);
-    end;
+%     if (max(max(bw1 ~= cv_bw1)) > 0) 
+%         figure; imshow(bw1);
+%         figure; imshow(cv_bw1);
+%         figure; imshow(bw1 ~= cv_bw1);
+%     end;
 
 
 
@@ -183,12 +184,12 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
 
     cv_bw1 = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nucleicandidatessized.ppm') > 0;
     fprintf(1, 'matlab vs cv.  candidate size thresholded %d\n', max(max(bw1 ~= cv_bw1)));
-    if (max(max(bw1 ~= cv_bw1)) > 0) 
-        figure; imshow(bw1);
-        figure; imshow(cv_bw1);
-        figure; imshow(bw1 ~= cv_bw1);
-    end;
-
+%     if (max(max(bw1 ~= cv_bw1)) > 0) 
+%         figure; imshow(bw1);
+%         figure; imshow(cv_bw1);
+%         figure; imshow(bw1 ~= cv_bw1);
+%     end;
+% 
     
     [rows,cols] = ind2sub(size(diffIm),ind);
     seg_norbc = bwselect(bw2,cols,rows,8) & ~rbc;
@@ -207,45 +208,64 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     %CHANGE
     seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
 
-    cv_seg_big = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nucleicandidatesbig.ppm');
+    cv_seg_big = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nucleicandidatesbig.ppm') >0;
     fprintf(1, 'matlab vs cv.  candidate big %d\n', max(max(seg_big ~= cv_seg_big)));
     
     
     distance = -bwdist(~seg_big);
-%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-dist_4096_x_4096.raw', 'r');
-%     cv_distance = fread(fid, [4096,4096], 'single');
-%     cv_distance = cv_distance';
-%     fclose(fid);
-%     fprintf(1, 'matlab vs cv.  distance transform %d\n', max(max(distance ~= cv_distance)));
-    
+    fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-dist_4096_x_4096.raw', 'r');
+    cv_distance = fread(fid, [4096,4096], '*float32');
+    cv_distance = single(cv_distance');
+    fclose(fid);
+    fprintf(1, 'matlab vs cv.  distance transform %d\n', max(max(abs(distance - cv_distance) > eps)));
+    figure; imshow(abs(cv_distance - distance) * 60.0);
 
     distance(~seg_big) = -Inf;
-%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distance_4096_x_4096.raw', 'r');
-%     cv_distance = fread(fid, [4096,4096], 'single');
-%     cv_distance = cv_distance';
-%     fclose(fid);
-%     fprintf(1, 'matlab vs cv.  distance background set %d\n', max(max(distance ~= cv_distance)));
-
+    fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distance_4096_x_4096.raw', 'r');
+    cv_distance = fread(fid, [4096,4096], '*float32');
+    cv_distance = single(cv_distance');
+    fclose(fid);
+    t_distance = distance;
+    t_distance(find(t_distance == -inf)) = 0;
+    t_cv_distance = cv_distance;
+    t_cv_distance(find(t_cv_distance < -1e38)) = 0;
+    fprintf(1, 'matlab vs cv.  distance background set %d\n', max(max(abs(t_distance - t_cv_distance) > eps)));
+    figure; imshow(abs(t_cv_distance- t_distance) * 60);
     
     distance2 = imhmin(distance, 1);
-%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distanceimhmin_4096_x_4096.raw', 'r');
-%     cv_distance2 = fread(fid, [4096,4096], 'single');
-%     cv_distance2 = cv_distance2';
-%     fclose(fid);
-%     fprintf(1, 'matlab vs cv.  distance imhmin %d\n', max(max(distance2 ~= cv_distance2)));
-
+    fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distanceimhmin_4096_x_4096.raw', 'r');
+    cv_distance2 = fread(fid, [4096,4096], '*float32');
+    cv_distance2 = single(cv_distance2');
+    fclose(fid);
+    t_distance2 = distance2;
+    t_distance2(find(t_distance2 == -inf)) = 0;
+    t_cv_distance2 = cv_distance2;
+    t_cv_distance2(find(t_cv_distance2 < -1e38)) = 0;
+    fprintf(1, 'matlab vs cv.  distance imhmin %d\n', max(max(abs(t_distance2 - t_cv_distance2) > eps)));
+    figure; imshow(abs(t_cv_distance2- t_distance2) * 60);
+    
     
     
     %lines=ones(size(distance));
     %lines(watershed(distance2)==0)=0;
 
-    clear distance
-
-    seg_big(watershed(distance2)==0) = 0;
+    %clear distance
+    watermask = watershed(distance2);
+    fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-watershed_4096_x_4096.raw', 'r');
+    cv_watermask = fread(fid, [4096,4096], '*int32');
+    cv_watermask = cv_watermask';
+    fclose(fid);
+    fprintf(1, 'matlab vs cv. watershed %d\n', max(max(watermask ~= cv_watermask)));
+    figure; imshow(watermask);
+    figure; imshow(cv_watermask);
+    
+    
+    seg_big(watermask==0) = 0;
     seg_nonoverlap = seg_big;
     %seg_nonoverlap = lines & seg_big;
+    cv_seg_nonoverlap = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-seg_nonoverlap.ppm') > 0;
 
-    clear lines distance2
+    %clear lines distance2
 
     %CHANGE
     [L] = bwlabel(seg_nonoverlap, 4);
@@ -262,17 +282,21 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     %CHANGE
     seg = ismember(L,ind);
     %[L, num] = bwlabel(seg,8);
+    cv_seg = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-seg.ppm') > 0;
+
 
     %CHANGE
     tolabel = imfill(seg, 'holes');
     
     % debug
-    result = zeros(size(tolabel, 1), size(tolabel, 2), 3, 'uint8');
-    result(:, :, 2) = tolabel * 255;
-    result(:, :, 1) = bw1 * 255;
-    figure; imshow(result);
-    figure; imshow(tolabel ~= bw1);
-    
+%     result = zeros(size(tolabel, 1), size(tolabel, 2), 3, 'uint8');
+%     result(:, :, 2) = tolabel * 255;
+%     result(:, :, 1) = (distance2 > -inf) * 255;
+%     figure; imshow(result);
+%     figure; imshow(tolabel ~= (distance2 > -inf));
+%     
+    cv_tolabel = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nuclei.ppm') > 0;
+
     [L,num] = bwlabel(tolabel,4);
 
     return;
