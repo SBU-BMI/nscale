@@ -24,12 +24,15 @@ public:
 
 	// require that the contour be generated using "CV_CHAIN_APPROX_NONE" - can't skip boundary pixels.
 	// if color >= 0, then all contours are filled with that color.  else the color is changed per contour.
-	static cv::Mat fillContours(const std::vector<std::vector<cv::Point> >& contours, cv::Scalar& color);
+//	static cv::Mat fillContours(const std::vector<std::vector<cv::Point> >& contours, cv::Scalar& color);
 
 protected:
 	static std::vector<cv::Point> cleanContour(const std::vector<cv::Point>& contour);
+	static std::vector<cv::Point> duplicateVertices(const std::vector<cv::Point>& contour);
 
-
+private:
+	static bool compareX(cv::Point i, cv::Point j);
+	static bool compareY(cv::Point i, cv::Point j);
 };
 
 }

@@ -5,15 +5,14 @@
  *      Author: tcpan
  */
 
-#include "MorphologicOperations.h"
 #include <algorithm>
 #include <queue>
 #include <iostream>
 #include <limits>
-#include "utils.h"
 #include "highgui.h"
 
-
+#include "utils.h"
+#include "MorphologicOperations.h"
 
 
 namespace nscale {
@@ -612,28 +611,19 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 
 	int area = contourArea(contours[idx]);
 	int circum = contours[idx].size() / 2 + 1;
-	//int perim1 = arcLength(contours[idx], false);
-	//int perim2 = arcLength(contours[idx], true);
 
-	//std::cout << idx << " start  area = " << area << " circumference = " << circum <<  " total = " << (circum+area) << std::endl;
-	//std::cout << idx << " perim closed = " << perim2 << " unclosed = " << perim1 << std::endl;
 	area += circum;
-
-//	if (area < 36) {
-//		std::cout << "area= " << area << " contour points " << contours[idx] << std::endl;
-//	}
 
 	if (area < minArea) return false;
 
 	int i = hierarchy[idx][2];
 	for ( ; i >= 0; i = hierarchy[i][0]) {
-		area -= (contourArea(contours[i]) + contours[idx].size() / 2 + 1);
-		//std::cout << "  hole " << i << " reduced area to " << area << std::endl;
+		area -= (contourArea(contours[i]) + contours[i].size() / 2 + 1);
 		if (area < minArea) return false;
 	}
 
 	if (area >= maxArea) return false;
-	//std::cout << idx << " total area = " << area << std::endl;
+//	std::cout << idx << " total area = " << area << std::endl;
 
 	return true;
 }
@@ -704,15 +694,7 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 	 */
 
 	Mat minima = localMinima<float>(image, connectivity);
-//	namedWindow("Localmin", 1);
-//	Mat out = minima;
-	//resize(minima, out, Size(1024,1024), 0, 0, INTER_LINEAR);
-//	imshow("Localmin", out);
 	Mat_<int> labels = bwlabel(minima, true, connectivity);
-//	namedWindow("bwlabels", 1) ;
-//	resize(labels, out, Size(1024,1024), 0, 0, INTER_LINEAR);
-//	out = labels;
-//	imshow("bwlabels", out);
 
 	// convert to grayscale
 	// now scale, shift, clear background.
@@ -723,21 +705,12 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 	double scaling = std::numeric_limits<uchar>::max() / range;
 	Mat shifted(image.size(), CV_8U);
 	image.convertTo(shifted, CV_8U, scaling, 0.0);
-//	namedWindow("gray", 1);
-//	resize(shifted, out, Size(1024,1024), 0, 0, INTER_LINEAR);
-//	imshow("gray", shifted);
 
 
 	Mat image3(shifted.size(), CV_8UC3);
 	cvtColor(shifted, image3, CV_GRAY2BGR);
-//	namedWindow("img3", 1);
-//	resize(image3, out, Size(1024,1024), 0, 0, INTER_LINEAR);
-//	imshow("img3", image3);
 
 	watershed(origImage, labels);
-//	namedWindow("watershed", 1);
-//	resize(labels, out, Size(1024,1024), 0, 0, INTER_LINEAR);
-//	imshow("watershed", labels == -1);
 
 	mmin, mmax;
 	minMaxLoc(labels, &mmin, &mmax);

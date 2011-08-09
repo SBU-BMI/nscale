@@ -218,7 +218,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     cv_distance = single(cv_distance');
     fclose(fid);
     fprintf(1, 'matlab vs cv.  distance transform %d\n', max(max(abs(distance - cv_distance) > eps)));
-    figure; imshow(abs(cv_distance - distance) * 60.0);
+    %figure; imshow(abs(cv_distance - distance) * 60.0);
 
     distance(~seg_big) = -Inf;
     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distance_4096_x_4096.raw', 'r');
@@ -230,7 +230,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     t_cv_distance = cv_distance;
     t_cv_distance(find(t_cv_distance < -1e38)) = 0;
     fprintf(1, 'matlab vs cv.  distance background set %d\n', max(max(abs(t_distance - t_cv_distance) > eps)));
-    figure; imshow(abs(t_cv_distance- t_distance) * 60);
+    %figure; imshow(abs(t_cv_distance- t_distance) * 60);
     
     distance2 = imhmin(distance, 1);
     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distanceimhmin_4096_x_4096.raw', 'r');
@@ -242,7 +242,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     t_cv_distance2 = cv_distance2;
     t_cv_distance2(find(t_cv_distance2 < -1e38)) = 0;
     fprintf(1, 'matlab vs cv.  distance imhmin %d\n', max(max(abs(t_distance2 - t_cv_distance2) > eps)));
-    figure; imshow(abs(t_cv_distance2- t_distance2) * 60);
+    %figure; imshow(abs(t_cv_distance2- t_distance2) * 60);
     
     
     
@@ -256,15 +256,16 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     cv_watermask = cv_watermask';
     fclose(fid);
     fprintf(1, 'matlab vs cv. watershed %d\n', max(max(watermask ~= cv_watermask)));
-    figure; imshow(watermask);
-    figure; imshow(cv_watermask);
+%    figure; imshow(watermask);
+%    figure; imshow(cv_watermask);
     
     
     seg_big(watermask==0) = 0;
     seg_nonoverlap = seg_big;
     %seg_nonoverlap = lines & seg_big;
     cv_seg_nonoverlap = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-seg_nonoverlap.ppm') > 0;
-
+    fprintf(1, 'matlab vs cv.  nonoverlap %d\n', max(max(seg_nonoverlap ~= cv_seg_nonoverlap)));
+    
     %clear lines distance2
 
     %CHANGE
@@ -283,7 +284,8 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
     seg = ismember(L,ind);
     %[L, num] = bwlabel(seg,8);
     cv_seg = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-seg.ppm') > 0;
-
+    fprintf(1, 'matlab vs cv.  seg %d\n', max(max(seg ~= cv_seg)));
+    
 
     %CHANGE
     tolabel = imfill(seg, 'holes');
@@ -296,10 +298,13 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img)
 %     figure; imshow(tolabel ~= (distance2 > -inf));
 %     
     cv_tolabel = imread('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-nuclei.ppm') > 0;
-
+    fprintf(1, 'matlab vs cv.  nuclei pixel difference %d\n', size(find(tolabel ~= cv_tolabel)));
+    figure; imshow(tolabel ~= cv_tolabel);
+    return;
+    
     [L,num] = bwlabel(tolabel,4);
 
-    return;
+
     
     % [Bounds] = bwboundaries(L>0,4);
     % Bounds = Bounds.';
