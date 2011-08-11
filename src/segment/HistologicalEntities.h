@@ -8,7 +8,8 @@
 #ifndef HistologicalEntities_H_
 #define HistologicalEntities_H_
 
-#include "cv.h"
+#include "opencv2/opencv.hpp"
+#include "opencv2/gpu/gpu.hpp"
 
 namespace nscale {
 
@@ -21,6 +22,19 @@ public:
 	static int segmentNuclei(const cv::Mat& img, cv::Mat& output);
 
 };
+
+
+namespace gpu {
+class HistologicalEntities {
+
+public:
+	static cv::gpu::GpuMat getRBC(const std::vector<cv::gpu::GpuMat>& rgb);
+
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& output);
+
+};
+
+}
 
 }
 #endif /* HistologicalEntities_H_ */

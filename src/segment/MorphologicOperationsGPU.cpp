@@ -17,6 +17,8 @@
 
 namespace nscale {
 
+namespace gpu {
+
 using namespace cv;
 
 
@@ -224,150 +226,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 
 }
 
-inline void propagateUchar(int *irev, int *ifwd,
-		int& x, int offset, uchar* iPtr, uchar* oPtr, uchar& pval) {
-    uchar val1 = oPtr[x];
-    uchar ival = iPtr[x];
-    int val2 = pval < ival ? pval : ival;
-    if (val1 < val2) {
-      if (val1 != 0) {  // if the neighbor's value is going to be replaced, remove the neighbor from list
-        ifwd[irev[offset]] = ifwd[offset];
-        if (ifwd[offset] >= 0)
-          irev[ifwd[offset]] = irev[offset];
-      }
-      oPtr[x] = val2;  // replace the value
-      irev[offset] = -val2;  // and insert into the list...
-      ifwd[offset] = irev[-val2];
-      irev[-val2] = offset;
-      if (ifwd[offset] >= 0)
-        irev[ifwd[offset]] = offset;
-    }
-}
 
-Mat imreconstructUChar(const Mat& seeds, const Mat& image, int connectivity) {
-
-	CV_Assert(image.channels() == 1);
-	CV_Assert(seeds.channels() == 1);
-	CV_Assert(seeds.type() == CV_8U);
-
-	Mat output(seeds.size() + Size(2,2), seeds.type());
-	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-	Mat input(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-
-	int width = input.cols;
-	int height = input.rows;
-
-	  int ix,iy,ox,oy,offset, currentP;
-	  int currentQ;  // current value in downhill
-	  int pixPerImg=width*height;
-	  uchar val, maxVal = 0;
-	  int val1;
-	  int *istart,*irev,*ifwd;
-
-	  double mmin, mmax;
-	  minMaxLoc(seeds, &mmin, &mmax);
-	  maxVal = (int)mmax;
-
-	  // create the downhill list
-	  istart = (int*)malloc((maxVal+pixPerImg*2)*sizeof(int));
-	  irev = istart+maxVal;
-	  ifwd = irev+pixPerImg;
-	  // initialize the heads of the lists
-	  for (offset = -maxVal; offset < 0; offset++)
-	    irev[offset] = offset;
-
-	  // populate the lists with pixel locations - essentially sorting the image by pixel values
-	  // backward traversal here will result in forward traversal in the next step.
-	  MatIterator_<uchar> mend = output.end<uchar>();
-	  for (offset = pixPerImg-1, --mend; offset >= 0; --mend, --offset) {
-		  val = *mend;
-		  if (val > 0) {
-			  val1 = -val;
-			  irev[offset] = val1;  // set the end of the list
-			  ifwd[offset] = irev[val1];  // move the head of the list into ifwd
-			  irev[val1] = offset;   // insert the new head
-			  if (ifwd[offset] >= 0)  // if the list was not previously empty
-				  irev[ifwd[offset]] = offset;  // then also set the irev for previous head to the current head
-		  }
-	  }
-
-	  // now do the processing
-	  int xminus, xplus, yminus, yplus;
-	  int maxx = width - 1;
-	  int maxy = height - 1;
-	  uchar pval;
-	  int x, y;
-	  uchar *oPtr, *oPtrPlus, *oPtrMinus, *iPtr, *iPtrPlus, *iPtrMinus;
-	  for (currentQ = -maxVal; currentQ < 0; ++currentQ) {
-	    currentP = irev[currentQ];   // get the head of the list for the curr value
-	    while (currentP >= 0) {  // non empty list
-	      irev[currentQ] = ifwd[currentP];  // pop the "stack"
-	      irev[currentP] = currentQ;   // remove the end.
-	      x = currentP%width;  // get the current position
-	      y = currentP/width;
-	      //std::cout << "x, y = " << x << ", " << y << std::endl;
-
-			xminus = x-1;
-			xplus = x+1;
-			yminus = y-1;
-			yplus = y+1;
-
-			oPtr = output.ptr<uchar>(y);
-			oPtrPlus = output.ptr<uchar>(yplus);
-			oPtrMinus = output.ptr<uchar>(yminus);
-			iPtr = input.ptr<uchar>(y);
-			iPtrPlus = input.ptr<uchar>(yplus);
-			iPtrMinus = input.ptr<uchar>(yminus);
-
-			pval = oPtr[x];
-
-			// look at the 4 connected components
-			if (y > 0) {
-				propagateUchar(irev, ifwd, x, x+yminus*width, iPtrMinus, oPtrMinus, pval);
-			}
-			if (y < maxy) {
-				propagateUchar(irev, ifwd, x, x+yplus*width, iPtrPlus, oPtrPlus, pval);
-			}
-			if (x > 0) {
-				propagateUchar(irev, ifwd, xminus, xminus+y*width, iPtr, oPtr, pval);
-			}
-			if (x < maxx) {
-				propagateUchar(irev, ifwd, xplus, xplus+y*width, iPtr, oPtr, pval);
-			}
-
-			// now 8 connected
-			if (connectivity == 8) {
-
-				if (y > 0) {
-					if (x > 0) {
-						propagateUchar(irev, ifwd, xminus, xminus+yminus*width, iPtrMinus, oPtrMinus, pval);
-					}
-					if (x < maxx) {
-						propagateUchar(irev, ifwd, xplus, xplus+yminus*width, iPtrMinus, oPtrMinus, pval);
-					}
-
-				}
-				if (y < maxy) {
-					if (x > 0) {
-						propagateUchar(irev, ifwd, xminus, xminus+yplus*width, iPtrPlus, oPtrPlus, pval);
-					}
-					if (x < maxx) {
-						propagateUchar(irev, ifwd, xplus, xplus+yplus*width, iPtrPlus, oPtrPlus, pval);
-					}
-
-				}
-			}
-
-
-	      currentP = irev[currentQ];
-	    }
-	  }
-	  free(istart);
-
-	return output(Range(1, maxy), Range(1, maxx));
-
-}
 
 
 
@@ -971,3 +830,4 @@ template Mat_<uchar> localMinima<uchar>(const Mat& image, int connectivity);
 
 }
 
+}

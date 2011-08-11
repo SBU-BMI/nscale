@@ -1,0 +1,11 @@
+-r
+/home/tcpan/PhD/path/src/nscale/src/segment/segment/r000hs
+--data-limit-mb=100
+--follow-child
+--type=frame:counters
+--stackwalk=online
+--type=cpu:counters
+--type=cpu:stack
+--
+/home/tcpan/PhD/path/src/nscale/src/segment/nu-segment.exe
+/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif

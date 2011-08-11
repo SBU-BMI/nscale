@@ -42,6 +42,38 @@ int main (int argc, char **argv){
 	std::cout << "recon4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-recon4.ppm", recon);
 
+	t1 = cciutils::ClockGetTime();
+	recon = nscale::imreconstructUChar(marker, mask, 8);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "reconUchar took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-reconu.ppm", recon);
+
+	t1 = cciutils::ClockGetTime();
+	recon = nscale::imreconstructUChar(marker, mask, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "reconUchar 4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-reconu4.ppm", recon);
+
+	Mat mask2 = imread("DownhillFilter/Loop.pgm", 0);
+	namedWindow("orig image", CV_WINDOW_AUTOSIZE);
+	imshow("orig image", mask2);
+
+	Mat marker2(Size(256,256), CV_8U);
+	marker.ptr<uchar>(112)[93] = 255;
+
+	t1 = cciutils::ClockGetTime();
+	recon = nscale::imreconstructUChar(marker2, mask2, 8);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "reconUcharLoop took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-reconuL.ppm", recon);
+
+	t1 = cciutils::ClockGetTime();
+	recon = nscale::imreconstructUChar(marker2, mask2, 4);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "reconUcharLoop 4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-reconuL4.ppm", recon);
+
+
 
 	Mat maskb = mask > (0.8 * 255) ;
 	imwrite("test/in-maskb.pbm", maskb);

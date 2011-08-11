@@ -12,6 +12,10 @@
 
 namespace cciutils {
 
+const int DEVICE_CPU = 0;
+const int DEVICE_MCORE = 1;
+const int DEVICE_GPU = 2;
+
 inline uint64_t ClockGetTime()
 {
     timespec ts;

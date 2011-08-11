@@ -15,16 +15,6 @@ namespace nscale {
 using namespace cv;
 
 
-bool ScanlineOperations::compareX (cv::Point i, cv::Point j)
-{
-  return (i.x < j.x);
-}
-bool ScanlineOperations::compareY (cv::Point i, cv::Point j)
-{
-  return (i.y < j.y);
-}
-
-
 /*
  * contour is a not approximated or compressed.  sort Points by x, then by y (assuming order preserving).
  *   then just walk down the list to count - lots of special cases...
@@ -142,20 +132,29 @@ std::vector<cv::Point> ScanlineOperations::duplicateVertices(const std::vector<c
 	// remove horizontal edges if any.
 	cv::Point v1, v2;
 	newContour.push_back(*it);
-	int y0 = it->y;
+	int dy0 = it->y;
+	int dx0 = it->x;
 	v1 = *(++it);
 	newContour.push_back(v1);
 	int y1 = v1.y;
+	int x1 = v1.x;
+	dy0 = y1 - dy0;
+	dx0 = x1 - dx0;
+	int dy1, dx1;
 	++it;
 
-	int y2;
+	int cross;
 	for (; it < last; ++it) {
 		v2 = *it;
-		y2 = v2.y;
+		dy1 = v2.y - y1;
+		dx2 = v2.x - x1;
 
-		// if vertex, then add another entry
-		if (((y0 > y1) && (y2 > y1)) || ((y0 < y1) && (y2 < y1))) {
-			newContour.push_back(v1);
+		cross = dx0 * dy1 - dx1 * dy0;  // if zero, then
+		// 1. right angle
+		// if vertex, then add another entry.  should not have collinear.
+		if (cross < 0) {   // convex  :  > 0.  concave: < 0
+
+			newContour.pop_back();
 		}
 		newContour.push_back(v2);
 

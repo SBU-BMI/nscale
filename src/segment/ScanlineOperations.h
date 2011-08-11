@@ -31,8 +31,8 @@ protected:
 	static std::vector<cv::Point> duplicateVertices(const std::vector<cv::Point>& contour);
 
 private:
-	static bool compareX(cv::Point i, cv::Point j);
-	static bool compareY(cv::Point i, cv::Point j);
+	static inline bool compareX(cv::Point i, cv::Point j) {return (i.x < j.x);};
+	static inline bool compareY(cv::Point i, cv::Point j) {return (i.y < j.y);};
 };
 
 }

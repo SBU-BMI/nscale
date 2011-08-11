@@ -4,13 +4,13 @@
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
-#include "cv.h"
+#include "opencv2/opencv.hpp"
+#include "opencv2/gpu/gpu.hpp"
 #include "highgui.h"
 #include <iostream>
 #include <dirent.h>
 #include <vector>
 #include <string>
-#include <errno.h>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
 #include <time.h>
@@ -45,7 +45,34 @@ int main (int argc, char **argv){
 	// set the output path
 	const char* resultpath = argc > 2 ? argv[2];
 */
-	const char* imagename = argc > 1 ? argv[1] : "lena.jpg";
+	if (argc < 2) {
+		std::cout << "Usage:  " << argv[0] << " image_filename " << "[cpu | mcore | gpu [id]]" << std::endl;
+		return -1;
+	}
+	const char* imagename = argv[1];
+	const char* mode = argc > 2 ? argv[2] : "cpu";
+
+	int modecode = 0;
+	if (strcasecmp(mode, "cpu") == 0) modecode = cciutils::DEVICE_CPU;
+	else if (strcasecmp(mode, "mcore") == 0) {
+		modecode = cciutils::DEVICE_MCORE;
+		// get core count
+	} else if (strcasecmp(mode, "gpu") == 0) {
+		modecode = cciutils::DEVICE_GPU;
+		// get device count
+		int numGPU = gpu::getCudaEnabledDeviceCount();
+		if (numGPU < 1) {
+			std::cout << "gpu requested, but no gpu available.  please use cpu or mcore option."  << std::endl;
+			return -2;
+		}
+		if (argc > 3) {
+			gpu::setDevice(atoi(argv[3]));
+		}
+		std::cout << " number of cuda enabled devices = " << gpu::getCudaEnabledDeviceCount() << std::endl;
+	} else {
+		std::cout << "Usage:  " << argv[0] << " image_filename " << "[cpu | mcore | gpu [id]]" << std::endl;
+		return -1;
+	}
 
 	// need to go through filesystem
 
@@ -53,9 +80,20 @@ int main (int argc, char **argv){
 
 	if (!img.data) return -1;
 
-	Mat output = Mat::zeros(img.size(), CV_8U);
 	uint64_t t1 = cciutils::ClockGetTime();
-	int status = nscale::HistologicalEntities::segmentNuclei(img, output);
+	Mat output = Mat::zeros(img.size(), CV_8U);
+	int status;
+	switch (modecode) {
+	case cciutils::DEVICE_CPU :
+	case cciutils::DEVICE_MCORE :
+		status = nscale::HistologicalEntities::segmentNuclei(img, output);
+		break;
+	case cciutils::DEVICE_GPU :
+		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, output);
+		break;
+	default :
+		break;
+	}
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "segment took " << t2-t1 << "ms" << std::endl;
 
