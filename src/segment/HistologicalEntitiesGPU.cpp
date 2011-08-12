@@ -11,6 +11,7 @@
 #include "highgui.h"
 #include "float.h"
 #include "utils.h"
+#include "opencv2/gpu/gpu.hpp"
 
 namespace nscale {
 
@@ -19,15 +20,9 @@ namespace gpu {
 using namespace cv;
 
 
-Mat HistologicalEntities::getRBC(const Mat& img) {
-	CV_Assert(img.channels() == 3);
 
-	std::vector<Mat> bgr;
-	split(img, bgr);
-	return getRBC(bgr);
-}
 
-Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr) {
+gpu::GpuMat HistologicalEntities::getRBC(const std::vector<gpu::GpuMat>& bgr) {
 	CV_Assert(bgr.size() == 3);
 	/*
 	%T1=2.5; T2=2;

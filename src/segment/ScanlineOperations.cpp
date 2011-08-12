@@ -117,9 +117,70 @@ std::vector<cv::Point> ScanlineOperations::cleanContour(const std::vector<cv::Po
 
 }
 
+#define sameSign(a, b) (a^b)>=0
+
+void ScanlineOperations::duplicateVerticesCCW(const int& dx0, const int& dy0, const int& dx1, const int& dy1,
+	const cv::Point& v1, std::vector<cv::Point>& newContour) {
+
+	// only check when going from not horizontal to horizontal, or vice versa.
+	// no colinear horizontal.
+	if (dy0 == 0) {   // leaving horizontal edge
+		// only add if concave.
+		// cross product is dx0dy1-dx1dy0;  dy0 is 0, so just need to check dx0dy1 < 0.
+		if (! sameSign(dx0, dy1)) {
+			newContour.pop_back();  // remove inner vertex
+		}
+	} else if (dy1 == 0) {
+		// only add if concave.
+		// cross product is dx0dy1-dx1dy0;  dy1 is 0, so just need to check dx1dy0 > 0.
+		if (sameSign(dx1, dy0)) {
+			newContour.pop_back();  // remove inner vertex
+		}
+	} else if (! sameSign(dy0, dy1)) { // if 2 segment are on the same side of vertex, then dy0 and dy1 are diff in sign
+		// neither segments are horizontal
+		if (sameSign(dy0, dx0)) {
+			// first segment is going to upper right (lower left), and the next segment is going to lower right (upper left) = concave
+			newContour.pop_back(); // remove the inner vertex
+		} else {
+			// the frist segment is going upper left (lower right), second is lower left (upper right) = convex
+			newContour.push_back(v1);  // add extra external vertex
+		}
+	}
+
+}
+void ScanlineOperations::duplicateVerticesCW(const int& dx0, const int& dy0, const int& dx1, const int& dy1,
+	const cv::Point& v1, std::vector<cv::Point>& newContour) {
+
+	// only check when going from not horizontal to horizontal, or vice versa.
+	// no colinear horizontal.
+	if (dy0 == 0) {   // leaving horizontal edge
+		// only add if concave.
+		// cross product is dx0dy1-dx1dy0;  dy0 is 0, so just need to check dx0dy1 < 0.
+		if (sameSign(dx0, dy1)) {
+			newContour.pop_back();  // remove inner vertex
+		}
+	} else if (dy1 == 0) {
+		// only add if concave.
+		// cross product is dx0dy1-dx1dy0;  dy1 is 0, so just need to check dx1dy0 > 0.
+		if (! sameSign(dx1, dy0)) {
+			newContour.pop_back();  // remove inner vertex
+		}
+	} else if (sameSign(dy0, dy1)) { // if 2 segment are on the same side of vertex, then dy0 and dy1 are diff in sign
+		// neither segments are horizontal
+		if (!sameSign(dy0, dx0)) {
+			// first segment is going to upper right (lower left), and the next segment is going to lower right (upper left) = concave
+			newContour.pop_back(); // remove the inner vertex
+		} else {
+			// the frist segment is going upper left (lower right), second is lower left (upper right) = convex
+			newContour.push_back(v1);  // add extra external vertex
+		}
+	}
+
+}
+
 // this cleans up the contour to get it ready for fill or for counting area.
 // assumes the boundary pixels are DENSE, and contour points are ORDERED on the boundary
-std::vector<cv::Point> ScanlineOperations::duplicateVertices(const std::vector<cv::Point>& contour) {
+std::vector<cv::Point> ScanlineOperations::duplicateVertices(const std::vector<cv::Point>& contour, bool ccw) {
 	if (contour.size() < 3) return contour;
 
 	// get the output storage.
@@ -127,71 +188,70 @@ std::vector<cv::Point> ScanlineOperations::duplicateVertices(const std::vector<c
 	newContour.reserve(contour.size() * 2);
 
 	std::vector<cv::Point>::const_iterator it = contour.begin();
-	std::vector<cv::Point>::const_iterator last = contour.end();
+	std::vector<cv::Point>::const_iterator last  = contour.end();
 
 	// remove horizontal edges if any.
-	cv::Point v1, v2;
+	cv::Point v1, first, second;
+	first = *it;
 	newContour.push_back(*it);
 	int dy0 = it->y;
 	int dx0 = it->x;
-	v1 = *(++it);
-	newContour.push_back(v1);
-	int y1 = v1.y;
-	int x1 = v1.x;
-	dy0 = y1 - dy0;
-	dx0 = x1 - dx0;
-	int dy1, dx1;
+	++it;
+	second = *it;
+	newContour.push_back(*it);
+	int y1 = it->y;
+	int x1 = it->x;
 	++it;
 
+	dy0 = y1 - dy0;
+	dx0 = x1 - dx0;
+
+	int dy1, dx1, y2, x2;
 	int cross;
 	for (; it < last; ++it) {
-		v2 = *it;
-		dy1 = v2.y - y1;
-		dx2 = v2.x - x1;
 
-		cross = dx0 * dy1 - dx1 * dy0;  // if zero, then
-		// 1. right angle
-		// if vertex, then add another entry.  should not have collinear.
-		if (cross < 0) {   // convex  :  > 0.  concave: < 0
+		y2 = it->y;
+		x2 = it->x;
+		dy1 = y2 - y1;
+		dx1 = x2 - x1;
 
-			newContour.pop_back();
-		}
-		newContour.push_back(v2);
+		duplicateVertices1(dx0, dy0, dx1, dy1, v1, newContour);
+		newContour.push_back(*it);
 
 		// set up the next iteration
-		v1 = v2;
-		y0 = y1;
+		dy0 = dy1;
+		dx0 = dx1;
+		v1 = *it;
 		y1 = y2;
-
+		x1 = x2;
 	}
 	// note at the end, the last entry in the contour has been added to the new contour.
 
 	// at then end of the list, the loop closes. now need to check to see if the last node
 	// and the first nodes are vertices.
-	it = newContour.begin();
-	std::vector<cv::Point>::reverse_iterator rit = newContour.rbegin();
 
 	// check the end
-	v2 = *it;
-	v1 = *rit;
-	++rit;
-	y0 = rit->y;
-	y1 = v1.y;
-	y2 = v2.y;
+	y2 = first->y;
+	x2 = first->x;
+	dy1 = y2 - y1;
+	dx1 = x2 - x1;
 
-	if (((y0 > y1) && (y2 > y1)) || ((y0 < y1) && (y2 < y1))) {
-		newContour.push_back(v1);
-	}
+	duplicateVertices1(dx0, dy0, dx1, dy1, v1, newContour);
+
+	// set up the next iteration
+	dy0 = dy1;
+	dx0 = dx1;
+	v1 = first;
+	y1 = y2;
+	x1 = x2;
 
 	// check the beginning
-	v1 = v2;
-	y0 = y1;
-	y1 = y2;
-	v2 = *(++it);
-	y2 = v2.y;
-	if (((y0 > y1) && (y2 > y1)) || ((y0 < y1) && (y2 < y1))) {
-		newContour.push_back(v1);
-	}
+	y2 = second->y;
+	x2 = second->x;
+	dy1 = y2 - y1;
+	dx1 = x2 - x1;
+
+	duplicateVertices1(dx0, dy0, dx1, dy1, v1, newContour);
 
 	return newContour;
 

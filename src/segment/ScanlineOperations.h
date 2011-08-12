@@ -29,6 +29,9 @@ public:
 protected:
 	static std::vector<cv::Point> cleanContour(const std::vector<cv::Point>& contour);
 	static std::vector<cv::Point> duplicateVertices(const std::vector<cv::Point>& contour);
+	static inline void duplicateVertices1(
+			const int& dx0, const int& dy0, const int& dx1, const int& dy1,
+			const cv::Point& v1, std::vector<cv::Point>& newContour);
 
 private:
 	static inline bool compareX(cv::Point i, cv::Point j) {return (i.x < j.x);};

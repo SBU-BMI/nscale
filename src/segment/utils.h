@@ -33,6 +33,10 @@ inline T min()
 	}
 }
 
+template <typename T>
+inline bool sameSign(T a, T b) {
+	return ((a^b) >= 0);
+}
 
 namespace cv {
 
