@@ -13,11 +13,11 @@ CUDA_LIBS= -L/usr/lib -lcudart
 
 RM=/bin/rm -rf
 
-SRC= nu-segment.cpp HistologicalEntities.cpp HistologicalEntitiesGPU.cpp MorphologicOperations.cpp MorphologicOperationsGPU.cpp
-IMRECON_SRC = imreconTest.cpp MorphologicOperations.cpp MorphologicOperationsGPU.cpp
-LOCALMAX_SRC = localMaximaTest.cpp MorphologicOperations.cpp MorphologicOperationsGPU.cpp
-MISC_SRC = miscTest.cpp MorphologicOperations.cpp MorphologicOperationsGPU.cpp
-IMFILL_SRC = imfillTest.cpp MorphologicOperations.cpp MorphologicOperationsGPU.cpp
+SRC= nu-segment.cpp HistologicalEntities.cpp MorphologicOperations.cpp ScanlineOperations.cpp #HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp
+IMRECON_SRC = imreconTest.cpp MorphologicOperations.cpp  ScanlineOperations.cpp #MorphologicOperationsGPU.cpp
+LOCALMAX_SRC = localMaximaTest.cpp MorphologicOperations.cpp  ScanlineOperations.cpp #MorphologicOperationsGPU.cpp
+MISC_SRC = miscTest.cpp MorphologicOperations.cpp  ScanlineOperations.cpp #MorphologicOperationsGPU.cpp
+IMFILL_SRC = imfillTest.cpp MorphologicOperations.cpp  ScanlineOperations.cpp #MorphologicOperationsGPU.cpp
 
 
 SRCO= ${SRC:.cpp=.o}

@@ -13,6 +13,7 @@
 
 #include "utils.h"
 #include "MorphologicOperations.h"
+#include "ScanlineOperations.h"
 
 
 namespace nscale {
@@ -766,10 +767,25 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 	}
 
 	if (area >= maxArea) return false;
-//	std::cout << idx << " total area = " << area << std::endl;
+	//std::cout << idx << " total area = " << area << std::endl;
 
 	return true;
 }
+
+
+// inclusive min, exclusive max
+// TODO:  still not right...
+bool contourAreaFilter2(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea) {
+
+	uint64_t area = ScanlineOperations::getContourArea(contours, hierarchy, idx);
+
+	//std::cout << idx << " total area = " << area << std::endl;
+
+	if (area < minArea || area >= maxArea) return false;
+	else return true;
+
+}
+
 
 // inclusive min, exclusive max
 template <typename T>
@@ -796,7 +812,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	Scalar color(std::numeric_limits<T>::max());
 	// iterate over all top level contours (all siblings, draw with own label color
 	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
-		if (contourAreaFilter(contours, hierarchy, idx, minSize, maxSize)) {
+		if (contourAreaFilter2(contours, hierarchy, idx, minSize, maxSize)) {
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 			drawContours(output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
 		}

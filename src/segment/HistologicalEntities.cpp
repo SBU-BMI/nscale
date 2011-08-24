@@ -87,9 +87,6 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
         return;
     end
 	 */
-	Mat gray(img.size(), CV_8UC1);
-	cvtColor(img, gray, CV_BGR2GRAY);
-
 	std::vector<Mat> bgr;
 	split(img, bgr);
 	Mat background = (bgr[0] > 220) & (bgr[1] > 220) & (bgr[2] > 220);

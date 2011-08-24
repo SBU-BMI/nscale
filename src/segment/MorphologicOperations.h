@@ -90,6 +90,8 @@ cv::Mat bwlabelFiltered(const cv::Mat& binaryImage, bool binaryOutput,
 
 // inclusive min, exclusive max
 bool contourAreaFilter(const std::vector<std::vector<cv::Point> >& contours, const std::vector<cv::Vec4i>& hierarchy, int idx, int minArea, int maxArea);
+// inclusive min, exclusive max
+bool contourAreaFilter2(const std::vector<std::vector<cv::Point> >& contours, const std::vector<cv::Vec4i>& hierarchy, int idx, int minArea, int maxArea);
 
 // inclusive min, exclusive max.
 template <typename T>
