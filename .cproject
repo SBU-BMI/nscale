@@ -26,13 +26,14 @@
 </tool>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen.412395088" name="autogen.sh" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen"/>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc.1762811375" name="GCC C Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc">
-<option id="gnu.c.compiler.option.include.paths.287127332" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+<option id="gnu.c.compiler.option.include.paths.287127332" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 <listOptionValue builtIn="false" value="/usr/local/include/opencv"/>
+<listOptionValue builtIn="false" value="/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1320890926" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 </tool>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp.832888105" name="GCC C++ Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp">
-<option id="gnu.cpp.compiler.option.include.paths.1094234211" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<option id="gnu.cpp.compiler.option.include.paths.1094234211" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 <listOptionValue builtIn="false" value="/usr/local/include/opencv"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.988087543" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>

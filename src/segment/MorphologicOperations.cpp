@@ -812,7 +812,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	Scalar color(std::numeric_limits<T>::max());
 	// iterate over all top level contours (all siblings, draw with own label color
 	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
-		if (contourAreaFilter2(contours, hierarchy, idx, minSize, maxSize)) {
+		if (contourAreaFilter(contours, hierarchy, idx, minSize, maxSize)) {
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 			drawContours(output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
 		}

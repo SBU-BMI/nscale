@@ -16,7 +16,8 @@ namespace nscale {
 class HistologicalEntities {
 
 public:
-	static cv::Mat getRBC(const std::vector<cv::Mat>& rgb);
+	static cv::Mat getRBC(const cv::Mat& img);
+	static cv::Mat getRBC(const std::vector<cv::Mat>& bgr);
 
 	static int segmentNuclei(const cv::Mat& img, cv::Mat& output);
 
@@ -24,10 +25,12 @@ public:
 
 
 namespace gpu {
+
 class HistologicalEntities {
 
 public:
-	static cv::gpu::GpuMat getRBC(const std::vector<cv::gpu::GpuMat>& rgb);
+	static cv::gpu::GpuMat getRBC(const std::vector<cv::gpu::GpuMat>& bgr, cv::gpu::Stream& stream);
+	static cv::gpu::GpuMat getBackground(const std::vector<cv::gpu::GpuMat>& bgr, cv::gpu::Stream& stream);
 
 
 	static int segmentNuclei(const cv::Mat& img, cv::Mat& output);

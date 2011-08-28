@@ -77,15 +77,17 @@ uint64_t ScanlineOperations::getContourArea(const std::vector<std::vector<Point>
 	std::vector<cv::Point> newContour;
 
 
-	//if (size < 30) std::cout << "orig boundary " << contours[idx] << std::endl;
-	std::vector<cv::Point> currContour = duplicateVertices(reduceHorizontalEdges(contours[idx]), true);
-	//if (size < 30) std::cout << "cleaned boundary " << currContour << std::endl;
+	if (size < 30) std::cout << "orig boundary " << contours[idx] << std::endl;
+	std::vector<cv::Point> currContour = reduceHorizontalEdges(contours[idx]);
+	if (size < 30) std::cout << "simplified boundary " << currContour << std::endl;
+	currContour  = duplicateVertices(currContour, true);
+	if (size < 30) std::cout << "cleaned boundary " << currContour << std::endl;
 	newContour.insert(newContour.end(), currContour.begin(), currContour.end());
 
 	// now get the holes
 	int i = hierarchy[idx][2];
 	for ( ; i >= 0; i = hierarchy[i][0]) {
-		//if (size < 30) std::cout << "orig hole boundary " << contours[i] << std::endl;
+		std::cout << "orig hole boundary " << contours[i] << std::endl;
 		currContour = duplicateVertices(reduceHorizontalEdges(contours[i]), false);
 		//if (size < 30) std::cout << "cleaned hole boundary " << currContour << std::endl;
 		newContour.insert(newContour.end(), currContour.begin(), currContour.end());
@@ -204,7 +206,7 @@ void ScanlineOperations::duplicateVertices1(const int& dx0, const int& dy0, cons
 	} else if (! sameSign(dy0, dy1)) { // if 2 segment are on the same side of vertex, then dy0 and dy1 are diff in sign. doesn't matter about ccw
 //		std::cout << " at point. " << dy0 << " and " << dy1 << std::endl;
 		// neither segments are horizontal
-		if (sameSign(dy0, dx0) ^ cw) {
+		if (((dx0 == 0) || sameSign(dy0, dx0)) ^ cw) {  // sameSign does not work with -1, 0 pair.  so check for 0 explicitly
 			// first segment is going to upper right (lower left), and the next segment is going to lower right (upper left) = convex
 			newContour.pop_back(); // add the inner vertex
 //			std::cout << " 1.3. removed. because of " << dx0 << " and " << dy0 << " have same sign" << std::endl;
@@ -212,7 +214,7 @@ void ScanlineOperations::duplicateVertices1(const int& dx0, const int& dy0, cons
 		} else {
 			// the frist segment is going upper left (lower right), second is lower left (upper right) = convex
 			newContour.push_back(v1);  // add extra external vertex
-//			std::cout << " 1.4. inserted at " << v1.x << " and " << v1.y << std::endl;
+			std::cout << " 1.4. inserted at " << v1.x << " and " << v1.y << std::endl;
 		}
 	}
 
@@ -243,6 +245,7 @@ std::vector<cv::Point> ScanlineOperations::duplicateVertices(const std::vector<c
 	int y1 = it->y;
 	int x1 = it->x;
 	++it;
+	v1 = second;
 
 	dy0 = y1 - dy0;
 	dx0 = x1 - dx0;
@@ -311,7 +314,7 @@ std::vector<cv::Point> ScanlineOperations::duplicateVertices(const std::vector<c
 		}
 	} else if (! sameSign(dy0, dy1)) { // if 2 segment are on the same side of vertex, then dy0 and dy1 are diff in sign. doesn't matter about ccw
 		// neither segments are horizontal
-		if (sameSign(dy0, dx0) ^ foreground) {
+		if (((dx0 == 0) || sameSign(dy0, dx0)) ^ foreground) {
 			// first segment is going to upper right (lower left), and the next segment is going to lower right (upper left) = concave
 			newContour.erase(newContour.begin());  // remove the inner vertex
 //			std::cout << " 3. removed head. because of " << dx0 << " and " << dy0 << " have same sign" << std::endl;

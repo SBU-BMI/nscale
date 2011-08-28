@@ -15,15 +15,16 @@
 
 namespace nscale {
 
+using namespace cv;
+
 namespace gpu {
 
-using namespace cv;
 using namespace cv::gpu;
 
 
 
-GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr) {
-	CV_Assert(bgr.size() == 3);
+GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream) {
+	CV_Assert(bgr.size() >= 3);
 	/*
 	%T1=2.5; T2=2;
     T1=5; T2=4;
@@ -42,26 +43,61 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr) {
 	double T1 = 5.0;
 	double T2 = 4.0;
 	Size s = bgr[0].size();
-	GpuMat bd(s, CV_64FC1);
-	GpuMat gd(s, bd.type());
-	Mat rd(s, bd.type());
+	int newType = CV_32FC1;
+	GpuMat bd, gd, rd;
 
-	bgr[0].convertTo(bd, bd.type(), 1.0, DBL_EPSILON);
-	bgr[1].convertTo(gd, gd.type(), 1.0, DBL_EPSILON);
-	bgr[2].convertTo(rd, rd.type(), 1.0, 0.0);
+	stream.enqueueConvert(bgr[0], bd, newType, 1.0, FLT_EPSILON);
+	stream.enqueueConvert(bgr[1], gd, newType, 1.0, FLT_EPSILON);
+	stream.enqueueConvert(bgr[2], rd, newType);
+	stream.waitForCompletion();
 
-	Mat imR2G = rd / gd;
-	Mat imR2B = (rd / bd) > 1.0;
-	Mat bw1 = imR2G > T1;
-	Mat bw2 = imR2G > T2;
-	Mat rbc;
+	GpuMat imR2G, imR2B;
+	divide(rd, gd, imR2G);
+	divide(rd, bd, imR2B);
+	rd.release();
+	gd.release();
+	bd.release();
+	GpuMat bw3(s, CV_8UC1);
+	threshold(imR2B, bw3, 1.0, std::numeric_limits<uchar>::max(), THRESH_BINARY);
+	GpuMat bw1(s, CV_8UC1);
+	threshold(imR2G, bw1, T1, std::numeric_limits<uchar>::max(), THRESH_BINARY);
+	GpuMat bw2(s, CV_8UC1);
+	threshold(imR2G, bw2, T2, std::numeric_limits<uchar>::max(), THRESH_BINARY);
+
+	GpuMat temp;
+	GpuMat rbc(s, CV_8UC1, Scalar(0));
 	if (countNonZero(bw1) > 0) {
-		rbc = bwselect<uchar>(bw2, bw1, 8) & imR2B;
-	} else {
-		rbc = Mat::zeros(bw2.size(), bw2.type());
+		Mat bw1c, bw2c, tempc;
+		bw1.download(bw1c);
+		bw2.download(bw2c);
+		tempc = nscale::bwselect<uchar>(bw2c, bw1c, 8);
+		temp.upload(tempc);
+		bitwise_and(temp, bw3, rbc);
 	}
+	bw1.release();
+	bw2.release();
+	bw3.release();
 
 	return rbc;
+}
+
+GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream) {
+
+	GpuMat b1, g1, r1;
+	GpuMat g_bg(g_bgr[0].size(), CV_8U);
+	stream.enqueueMemSet(g_bg, Scalar(0));
+	uchar max = std::numeric_limits<uchar>::max();
+	threshold(g_bgr[0], b1, 220, max, THRESH_BINARY, stream);
+	threshold(g_bgr[1], g1, 220, max, THRESH_BINARY, stream);
+	threshold(g_bgr[2], r1, 220, max, THRESH_BINARY, stream);
+	bitwise_and(b1, r1, g_bg, g1, stream);
+	stream.waitForCompletion();
+
+	b1.release();
+	g1.release();
+	r1.release();
+
+	return g_bg;
 }
 
 
@@ -90,26 +126,18 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	std::vector<GpuMat> g_bgr;
 	split(g_img, g_bgr, stream);
 
-	GpuMat g_bg, b1, g1, r1;
-	threshold(bgr[0], b1, 220, 255, THRESH_BINARY, stream);
-	threshold(bgr[1], g1, 220, 255, THRESH_BINARY, stream);
-	threshold(bgr[2], r1, 220, 255, THRESH_BINARY, stream);
-	bitwise_and(b1, g1, g_bg, r1, stream);
+	GpuMat g_bg = getBackground(g_bgr, stream);
 
-	b1.release();
-	g1.release();
-	r1.release();
-
-	Mat background;
-	stream.enqueueDownload(g_bg, background);
-	stream.waitForCompletion();
-	int bgArea = countNonZero(background);
+	int bgArea = countNonZero(g_bg);
 	float ratio = (float)bgArea / (float)(img.size().area());
+	std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
 	if (ratio >= 0.9) {
 		std::cout << "background.  next." << std::endl;
 		return -1;
 	}
 
+	std::vector<Mat> bgr;
+	split(img, bgr);
 	uint64_t t1 = cciutils::ClockGetTime();
 	Mat rbc = nscale::HistologicalEntities::getRBC(bgr);
 	uint64_t t2 = cciutils::ClockGetTime();
@@ -318,6 +346,4 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	return 0;
 }
 
-}
-
-}
+}}

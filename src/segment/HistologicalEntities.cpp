@@ -46,12 +46,12 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr) {
 	double T1 = 5.0;
 	double T2 = 4.0;
 	Size s = bgr[0].size();
-	Mat bd(s, CV_64FC1);
+	Mat bd(s, CV_32FC1);
 	Mat gd(s, bd.type());
 	Mat rd(s, bd.type());
 
-	bgr[0].convertTo(bd, bd.type(), 1.0, DBL_EPSILON);
-	bgr[1].convertTo(gd, gd.type(), 1.0, DBL_EPSILON);
+	bgr[0].convertTo(bd, bd.type(), 1.0, FLT_EPSILON);
+	bgr[1].convertTo(gd, gd.type(), 1.0, FLT_EPSILON);
 	bgr[2].convertTo(rd, rd.type(), 1.0, 0.0);
 
 	Mat imR2G = rd / gd;
@@ -92,6 +92,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	Mat background = (bgr[0] > 220) & (bgr[1] > 220) & (bgr[2] > 220);
 	int bgArea = countNonZero(background);
 	float ratio = (float)bgArea / (float)(img.size().area());
+	std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
+
 	if (ratio >= 0.9) {
 		std::cout << "background.  next." << std::endl;
 		return -1;
