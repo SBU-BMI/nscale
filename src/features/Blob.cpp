@@ -38,8 +38,25 @@ Blob::Blob(CvSeq* first_contour, CvSize originalImageSize ) {
 	min_fitting_ellipse.size.width = -1.0;
 	majorAxisLength = -1.0;
 	minorAxisLength = -1.0;
+	isImage = true;
 
+	// allocate pointer to the coocurrence matrix for the 4 possible angles
+	coocMatrix = (unsigned int **) malloc(sizeof(unsigned int *) * Constant::NUM_ANGLES);
+	coocMatrixCount = (unsigned int *)malloc(sizeof(unsigned int) * Constant::NUM_ANGLES);
 
+	for(int i = 0; i < Constant::NUM_ANGLES; i++){
+		coocMatrix[i] = NULL;
+		coocMatrixCount[i] = 0;
+	}
+	coocSize = 8;
+
+	setClusterProminence(0.0);
+	setClusterShade(0.0);
+	setEnergy(0.0);
+	setEntropy(0.0);
+	setHomogeneity(0.0);
+	setInertia(0.0);
+	setMaximumProb(0.0);
 }
 
 Blob::~Blob() {
@@ -55,8 +72,11 @@ Blob::~Blob() {
 
 	cvReleaseMemStorage(&self_storage);
 
-	if(mask != NULL){
+	if(mask != NULL && isImage){
 		cvReleaseImage(&mask);
+	}
+	if(mask != NULL && !isImage){
+		cvReleaseImageHeader(&mask);
 	}
 	if(intensity_hist != NULL){
 		cvReleaseHist(&intensity_hist);
@@ -67,6 +87,13 @@ Blob::~Blob() {
 	if(ROISubImage != NULL){
 		cvReleaseImageHeader(&ROISubImage);
 	}
+	for(int i = 0; i < Constant::NUM_ANGLES; i++){
+		if(coocMatrix[i] != NULL){
+			free(coocMatrix[i]);
+		}
+	}
+	free(coocMatrix);
+	free(coocMatrixCount);
 
 }
 
@@ -384,6 +411,7 @@ float Blob::getPorosity()
 }
 
 
+
 IplImage *Blob::getMask()
 {
 	CvRect bounding_box = this->getNonInclinedBoundingBox();
@@ -413,6 +441,8 @@ IplImage *Blob::getMask()
 			cvDrawContours( mask, internal_contours[i]->getCl(), CV_RGB(0,0,0), CV_RGB(0,0,0),0, CV_FILLED, 8, offset );
 
 		}
+
+		cout <<endl<< "bounding_box.width = "<< bounding_box.width <<" mask->stepSize = "<< mask->widthStep <<endl;
 
 #ifdef VISUAL_DEBUG
 		cvNamedWindow("Mask - Press any key to continue!");
@@ -585,7 +615,7 @@ unsigned int Blob::getFirstQuartileIntensity(IplImage *img)
 		// Iterates on bins until reach the minimum intensity (ith bin) that contains 25% of the pixels.
 		for(int i=0;i<256;i++){
 			float histValue = cvQueryHistValue_1D(intensity_hist, i);
-			acc += histValue;
+			acc += (int)histValue;
 
 			if( acc >= firstQuartilePixelsValue ){
 				firstQuartile = i;
@@ -624,7 +654,7 @@ unsigned int Blob::getThirdQuartileIntensity(IplImage *img)
 		// Iterates on bins from highest to lowest intensity until find the third quartile
 		for(int i=0;i<256;i++){
 			float histValue = cvQueryHistValue_1D(intensity_hist, i);
-			acc += histValue;
+			acc += (int)histValue;
 
 			if( acc >= thirdQuartilePixelsValue ){
 				thirdQuartile = i;
@@ -658,15 +688,24 @@ void Blob::calcGradientHistogram(IplImage *img)
 		}
 		// Region of interest is the same as the bounding box of the blob
 		IplImage *ROISubImage = getROISubImage(img);
+		Mat ROIMat(ROISubImage);
 
+		// copy data
+		Mat Res(ROISubImage, true);
 
 		// This is the data used to store the gradient results
 		IplImage* magImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
 
-		// This is a temporary structure required by the MorphologyEx operation we'll perform
-		IplImage* tempImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
+		// copy data
+		Mat magImageMat(magImg);
 
-		cvMorphologyEx(ROISubImage, magImg, tempImg, NULL, CV_MOP_GRADIENT);
+
+		// This is a temporary structure required by the MorphologyEx operation we'll perform
+	//	IplImage* tempImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
+
+//		cvMorphologyEx(ROISubImage, magImg, tempImg, NULL, CV_MOP_GRADIENT);
+		Mat kernelCPU;
+		morphologyEx(ROIMat, magImageMat, MORPH_GRADIENT, kernelCPU, Point(-1,-1), 1);
 
 		// Calculates the histogram in the input image for the pixels in the input mask
 		cvCalcHist(&magImg, grad_hist, 0, this->getMask());
@@ -682,7 +721,7 @@ void Blob::calcGradientHistogram(IplImage *img)
 //		CvScalar avgScalar = cvAvg(magImg, this->getMask());
 //		cout << "OpenCV Mean Magnitude = "<< avgScalar.val[0]<<endl;
 
-		cvReleaseImage(&tempImg);
+//		cvReleaseImage(&tempImg);
 		cvReleaseImage(&magImg);
 
 
@@ -768,7 +807,7 @@ double Blob::getMeanGradMagnitude(IplImage *img)
 		for(int i = 0; i < 256; i++){
 			histBinValue = cvQueryHistValue_1D(grad_hist, i);
 			meanGradMagnitude += i * histBinValue;
-			acc+=histBinValue;
+			acc+=(int)histBinValue;
 		}
 
 		// Average the pixels intensity according to the number of pixels in the image
@@ -899,7 +938,7 @@ unsigned int Blob::getFirstQuartileGradMagnitude(IplImage *img)
 		// Iterates on bins until reach the minimum intensity (ith bin) that contains 25% of the pixels.
 		for(int i=0;i<256;i++){
 			float histValue = cvQueryHistValue_1D(grad_hist, i);
-			acc += histValue;
+			acc +=(int)histValue;
 
 			if( acc >= firstQuartilePixelsValue ){
 				firstQuartile = i;
@@ -940,7 +979,7 @@ unsigned int Blob::getThirdQuartileGradMagnitude(IplImage *img)
 		// Iterates on bins from highest to lowest intensity until find the third quartile
 		for(int i=0;i<256;i++){
 			float histValue = cvQueryHistValue_1D(grad_hist, i);
-			acc += histValue;
+			acc +=(int)histValue;
 
 			if( acc >= thirdQuartilePixelsValue ){
 				thirdQuartile = i;
@@ -1091,23 +1130,390 @@ IplImage *Blob::getROISubImage(IplImage *img)
 	return ROISubImage;
 }
 
+void Blob::setMaskInUserDataRegion(char *data)
+{
+	CvRect bounding_box = this->getNonInclinedBoundingBox();
+
+	isImage = false;
+
+	// Init blobs mask;
+	mask = cvCreateImageHeader(cvSize(bounding_box.width, bounding_box.height), IPL_DEPTH_8U, 1);
+	cvSetData(mask, data, bounding_box.width);
+
+
+	// Fill the image with background
+	cvSetZero(mask);
+
+	// The offset of the location of these contours in the original image to the location in
+	// the mask that has the same dimensions as the bounding box
+	CvPoint offset;
+	offset.x = -bounding_box.x;
+	offset.y = -bounding_box.y;
+
+	// First draw the external contour
+	cvDrawContours( mask, external_contour->getCl(), CV_RGB(255,255,255), CV_RGB(1,1,1),0, CV_FILLED, 8, offset );
+
+	// Fill each hole in the mask
+	for(int j = 0; j < internal_contours.size(); j++){
+		cvDrawContours( mask, internal_contours[j]->getCl(), CV_RGB(0,0,0), CV_RGB(0,0,0),0, CV_FILLED, 8, offset );
+	}
+
+/*	char test=255;
+	cout << "Count non zero "<< cvCountNonZero(mask)<<" test= "<< (int)test<<endl;
+	cout <<endl<< "bounding_box.width = "<< bounding_box.width <<" mask->stepSize = "<< mask->widthStep <<endl;
+	cvNamedWindow("Mask - Press any key to continue!");
+	cvShowImage("Mask - Press any key to continue!", mask);
+	cvWaitKey(0);
+	cvDestroyWindow("Mask - Press any key to continue!");*/
+}
+
+float Blob::getClusterProminence() const
+{
+    return clusterProminence;
+}
+
+float Blob::getClusterShade() const
+{
+    return clusterShade;
+}
+
+float Blob::getEnergy() const
+{
+    return energy;
+}
+
+float Blob::getEntropy() const
+{
+    return entropy;
+}
+
+float Blob::getHomogeneity() const
+{
+    return homogeneity;
+}
+
+float Blob::getInertia() const
+{
+    return inertia;
+}
+
+float Blob::getMaximumProb() const
+{
+    return maximumProb;
+}
+
+void Blob::setClusterProminence(float clusterProminence)
+{
+    this->clusterProminence = clusterProminence;
+}
+
+void Blob::setClusterShade(float clusterShade)
+{
+    this->clusterShade = clusterShade;
+}
+
+void Blob::setEnergy(float energy)
+{
+    this->energy = energy;
+}
+
+void Blob::setEntropy(float entropy)
+{
+    this->entropy = entropy;
+}
+
+void Blob::setHomogeneity(float homogeneity)
+{
+    this->homogeneity = homogeneity;
+}
+
+void Blob::setInertia(float inertia)
+{
+    this->inertia = inertia;
+}
+
+void Blob::printIntensityHistogram(IplImage *img)
+{
+	double meanIntensity = 0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+
+/*		int *tempHist = (int *) malloc(sizeof(int) * 256);
+		for(int i = 0 ; i < 256; i++){
+			tempHist[i] = 0;
+		}
+
+		IplImage *imgRoi = getROISubImage(img);
+
+
+		for (int i=0; i<imgRoi->height; i++){
+			int offSet = i*imgRoi->width;
+			for(int j=0; j<imgRoi->width; j++){
+
+				int jMaskValue = (cvGet2D(mask, i, j)).val[0];
+				if(jMaskValue == 0) continue;
+
+				unsigned int intensityAdd = (cvGet2D(imgRoi, i, j)).val[0];;
+				tempHist[intensityAdd]++;
+			}
+		}
+		for(int i = 0; i < 256; i++){
+			cout << i<<":"<<tempHist[i]<< " ";
+		}
+		cout<<endl;*/
+
+		// Calculates the histogram
+		this->calcIntensityHistogram(img);
+
+		int histBinValue = 0;
+		for(int i = 0; i < 256; i++){
+			histBinValue = (int)cvQueryHistValue_1D(intensity_hist, i);
+			cout << i<<":"<<histBinValue<< " ";
+		}
+		cout<<endl;
+	}
+}
+
+void Blob::setMaximumProb(float maximumProb)
+{
+    this->maximumProb = maximumProb;
+}
+
 float Blob::getNonInclinedBoundingBoxArea()
 {
 	CvRect bounding = external_contour->getNonInclinedBoundingBox(this->originalImageSize);
 	return (bounding.width * bounding.height);
 }
 
+void Blob::doCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask)
+{
+
+	if(coocMatrix[angle] == NULL){
+		coocMatrix[angle] = (unsigned int *)calloc(coocSize * coocSize,  sizeof(unsigned int));
+		// TODO: check memory allocation return
+	}else{
+		// It has been calculated before, so clean it up.
+		memset(coocMatrix[angle], 0, coocSize * coocSize * sizeof(unsigned int));
+		coocMatrixCount[angle] = 0;
+	}
+
+	IplImage *imgRoi = getROISubImage(inImage);
+	// allocate memory for the normalized image
+	float *normImg = (float*)malloc(sizeof(float)*imgRoi->height*imgRoi->width);
+
+	if(normImg == NULL){
+		cout << "ComputeCoocMatrix: Could not allocate temporary normalized image" <<endl;
+		exit(1);
+	}
+
+	//compute normalized image
+	float slope = ((float)coocSize-1.0) / 255.0;
+	float intercept = 1.0 ;
+	for(int i=0; i<imgRoi->height; i++){
+		for(int j =0; j < imgRoi->width; j++){
+			CvScalar elementIJ = cvGet2D(imgRoi, i, j);
+			normImg[i*imgRoi->width + j] = round((slope*(float)elementIJ.val[0] + intercept));
+		}
+	}
+
+	switch(angle){
+
+		case Constant::ANGLE_0:
+//			cout << "CalcCooc ANGLE_0: height="<< imgRoi->height<< " width="<< imgRoi->width <<endl;
+			//build co-occurrence matrix
+			for (int i=0; i<imgRoi->height; i++){
+				int offSet = i*imgRoi->width;
+				for(int j=0; j<imgRoi->width-1; j++){
+					if(((normImg[offSet+j])-1) < coocSize && ((normImg[offSet+j+1])-1) < coocSize){
+						if(useMask){
+							int jMaskValue = (int)(cvGet2D(mask, i, j)).val[0];
+							int j1MaskValue = (int)(cvGet2D(mask, i, j+1)).val[0];
+							if(jMaskValue == 0 || j1MaskValue == 0) continue;
+						}
+						unsigned int coocAddress = (unsigned int )((normImg[offSet+j])-1) * coocSize;
+						coocAddress += (int)(normImg[offSet+j+1]-1);
+						coocMatrix[angle][coocAddress]++;
+					}
+				}
+			}
+			break;
+
+		case Constant::ANGLE_45:
+			//build co-occurrence matrix
+			for (int i=0; i<imgRoi->height-1; i++){
+				int offSetI = i*imgRoi->width;
+				int offSetI2 = (i+1)*imgRoi->width;
+				for(int j=0; j<imgRoi->width-1; j++){
+				   if(useMask){
+						int jMaskValue = (int)(cvGet2D(mask, i, j+1)).val[0];
+						int j1MaskValue = (int)(cvGet2D(mask, i+1, j)).val[0];
+						if(jMaskValue == 0 || j1MaskValue == 0) continue;
+					}
+					unsigned int coocAddress = (unsigned int )((normImg[offSetI2+j])-1) * coocSize;
+					coocAddress += (int)(normImg[offSetI +j +1 ] -1);
+					coocMatrix[angle][coocAddress]++;
+				}
+			}
+			break;
+		case Constant::ANGLE_90:
+			//build co-occurrence matrix
+			for (int i=0; i<imgRoi->height-1; i++){
+				int offSetI = i*imgRoi->width;
+				int offSetI2 = (i+1)*imgRoi->width;
+				for(int j=0; j<imgRoi->width; j++){
+					if(useMask){
+						int jMaskValue = (int)(cvGet2D(mask, i, j)).val[0];
+						int j1MaskValue = (int)(cvGet2D(mask, i+1, j)).val[0];
+						if(jMaskValue == 0 || j1MaskValue == 0) continue;
+					}
+					unsigned int coocAddress = (unsigned int )((normImg[offSetI2+j])-1) * coocSize;
+					coocAddress += (int)(normImg[offSetI + j ] -1);
+					coocMatrix[angle][coocAddress]++;
+				}
+			}
+			break;
+
+		case Constant::ANGLE_135:
+			//build co-occurrence matrix
+			for (int i=0; i<imgRoi->height-1; i++){
+				int offSetI = i*imgRoi->width;
+				int offSetI2 = (i+1)*imgRoi->width;
+				for(int j=0; j<imgRoi->width-1; j++){
+					if(useMask){
+						int jMaskValue =(int) (cvGet2D(mask, i, j)).val[0];
+						int j1MaskValue = (int)(cvGet2D(mask, i+1, j+1)).val[0];
+						if(jMaskValue == 0 || j1MaskValue == 0) continue;
+					}
+					unsigned int coocAddress = (unsigned int )((normImg[offSetI2+j+1])-1) * coocSize;
+					coocAddress += (int)(normImg[offSetI + j ] -1);
+					coocMatrix[angle][coocAddress]++;
+				}
+			}
+			break;
+		default:
+			cout<< "Unknown angle:"<< angle <<endl;
+	}
+
+	free(normImg);
+
+	for(int i = 0; i < coocSize; i++){
+		for(int j = 0; j < coocSize; j++){
+			coocMatrixCount[angle] += coocMatrix[angle][i*coocSize + j];
+		}
+	}
+}
 
 
 
 
+void Blob::printCoocMatrix(unsigned int angle)
+{
+	if(coocMatrix[angle] != NULL){
+		const int printWidth = 12;
+		for(int i = 0; i < coocSize; i++){
+			int offSet = i * coocSize;
+			for(int j = 0; j < coocSize; j++){
+				cout << setw(printWidth) << coocMatrix[angle][offSet + j]<< " ";
+			}
+			cout <<endl;
+		}
+		cout <<endl;
+	}else{
+		cout << "Could not print coocMatrix. It has not been calculated."<<endl;
+	}
+}
+
+float Blob::inertiaFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults)
+{
+	float inertia = 0.0;
+	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
+	// intermediary results, then compute coocmatrix again for the given angle
+	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
+		doCoocMatrix(angle, inImage, useMask);
+	}
+	inertia = Operators::inertiaFromCoocMatrix(coocMatrix[angle], coocSize, coocMatrixCount[angle]);
+	return inertia;
+}
+
+float Blob::energyFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults)
+{
+	float energy = 0.0;
+	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
+	// intermediary results, then compute coocmatrix again for the given angle
+	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
+		doCoocMatrix(angle, inImage, useMask);
+	}
+	energy = Operators::energyFromCoocMatrix(coocMatrix[angle], coocSize, coocMatrixCount[angle]);
+	return energy;
+}
 
 
+float Blob::entropyFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults)
+{
+	float entropy = 0.0;
+	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
+	// intermediary results, then compute coocmatrix again for the given angle
+	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
+		doCoocMatrix(angle, inImage, useMask);
+	}
+	entropy = Operators::entropyFromCoocMatrix(coocMatrix[angle], coocSize, coocMatrixCount[angle]);
+	return entropy;
+}
 
 
+float Blob::homogeneityFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults)
+{
+	float homogeneity = 0.0;
+	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
+	// intermediary results, then compute coocmatrix again for the given angle
+	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
+		doCoocMatrix(angle, inImage, useMask);
+	}
+	homogeneity = Operators::homogeneityFromCoocMatrix(coocMatrix[angle], coocSize, coocMatrixCount[angle]);
+	return homogeneity;
+}
 
+float Blob::maximumProbabilityFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults)
+{
+	float maximumProbability = 0.0;
+	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
+	// intermediary results, then compute coocmatrix again for the given angle
+	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
+		doCoocMatrix(angle, inImage, useMask);
+	}
+	maximumProbability = Operators::maximumProbabilityFromCoocMatrix(coocMatrix[angle], coocSize, coocMatrixCount[angle]);
+	return maximumProbability;
+}
 
+float Blob::clusterShadeFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults)
+{
+	float clusterShade = 0.0;
+	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
+	// intermediary results, then compute coocmatrix again for the given angle
+	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
+		doCoocMatrix(angle, inImage, useMask);
+	}
+	clusterShade = Operators::clusterShadeFromCoocMatrix(coocMatrix[angle], coocSize, coocMatrixCount[angle]);
+	return clusterShade;
+}
 
+float Blob::clusterProminenceFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults)
+{
+	float clusterProminence = 0.0;
+	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
+	// intermediary results, then compute coocmatrix again for the given angle
+	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
+		doCoocMatrix(angle, inImage, useMask);
+	}
+	clusterProminence = Operators::clusterProminenceFromCoocMatrix(coocMatrix[angle], coocSize, coocMatrixCount[angle]);
+	return clusterProminence;
+}
 
 
 

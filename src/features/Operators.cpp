@@ -7,9 +7,9 @@
 
 #include "Operators.h"
 // Matlab calls it contrast
-double Operators::inertiaFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
+float Operators::inertiaFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
-	double inertia = 0.0;
+	float inertia = 0.0;
 	for(int i = 0; i < coocMatrixSize; i++){
 		for(int j = 0; j < coocMatrixSize; j++){
 			float ij = i-j;
@@ -21,9 +21,9 @@ double Operators::inertiaFromCoocMatrix(unsigned int *coocMatrix, unsigned int c
 
 
 
-double Operators::energyFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
+float Operators::energyFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
-	double energy = 0.0;
+	float energy = 0.0;
 	for(int i = 0; i < coocMatrixSize; i++){
 		for(int j = 0; j < coocMatrixSize; j++){
 			energy += pow(((float)coocMatrix[i*coocMatrixSize + j]/(float)coocMatrixCount),2);
@@ -34,12 +34,12 @@ double Operators::energyFromCoocMatrix(unsigned int *coocMatrix, unsigned int co
 
 
 
-double Operators::entropyFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
+float Operators::entropyFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
-	double entropy = 0.0;
+	float entropy = 0.0;
 	for(unsigned int i = 0; i < coocMatrixSize; i++){
 		for(unsigned int j = 0; j < coocMatrixSize; j++){
-			double auxDivision = (double)coocMatrix[i*coocMatrixSize + j]/coocMatrixCount;
+			float auxDivision = (float)coocMatrix[i*coocMatrixSize + j]/coocMatrixCount;
 			if(auxDivision == 0)continue;
 			entropy += (auxDivision) * log2(auxDivision);
 		}
@@ -49,9 +49,9 @@ double Operators::entropyFromCoocMatrix(unsigned int *coocMatrix, unsigned int c
 
 
 
-double Operators::homogeneityFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
+float Operators::homogeneityFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
-	double homogeneity = 0.0;
+	float homogeneity = 0.0;
 	for(int i = 0; i < coocMatrixSize; i++){
 		for(int j = 0; j < coocMatrixSize; j++){
 			homogeneity += (1.0/(1.0 + pow((float)(i-j),2)))*((float)coocMatrix[i*coocMatrixSize + j]/(float)coocMatrixCount);
@@ -62,7 +62,7 @@ double Operators::homogeneityFromCoocMatrix(unsigned int *coocMatrix, unsigned i
 
 
 
-double Operators::maximumProbabilityFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
+float Operators::maximumProbabilityFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
 	double maximumProbability = 0.0;
 	for(unsigned int i = 0; i < coocMatrixSize; i++){
@@ -77,11 +77,11 @@ double Operators::maximumProbabilityFromCoocMatrix(unsigned int *coocMatrix, uns
 
 
 
-double Operators::clusterShadeFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount, unsigned int k)
+float Operators::clusterShadeFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount, unsigned int k)
 {
-	double clusterShade = 0.0;
-	double mx = calcMxFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
-	double my = calcMyFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
+	float clusterShade = 0.0;
+	float mx = calcMxFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
+	float my = calcMyFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
 
 	for(unsigned int i = 0; i < coocMatrixSize; i++){
 		for(unsigned int j =0; j <coocMatrixSize; j++){
@@ -93,11 +93,11 @@ double Operators::clusterShadeFromCoocMatrix(unsigned int *coocMatrix, unsigned 
 
 
 
-double Operators::clusterProminenceFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount, unsigned int k)
+float Operators::clusterProminenceFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount, unsigned int k)
 {
-	double clusterProminence = 0.0;
-	double mx = calcMxFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
-	double my = calcMyFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
+	float clusterProminence = 0.0;
+	float mx = calcMxFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
+	float my = calcMyFromCoocMatrix(coocMatrix, coocMatrixSize, coocMatrixCount);
 
 	for(unsigned int i = 0; i < coocMatrixSize; i++){
 		for(unsigned int j =0; j <coocMatrixSize; j++){
@@ -109,9 +109,9 @@ double Operators::clusterProminenceFromCoocMatrix(unsigned int *coocMatrix, unsi
 
 
 
-double Operators::calcMxFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
+float Operators::calcMxFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
-	double mx = 0.0;
+	float mx = 0.0;
 	for(unsigned int i = 0; i < coocMatrixSize; i++){
 		for(unsigned int j =0; j <coocMatrixSize; j++){
 			mx += i * ((float)coocMatrix[i*coocMatrixSize + j]/(float)coocMatrixCount);
@@ -121,9 +121,9 @@ double Operators::calcMxFromCoocMatrix(unsigned int *coocMatrix, unsigned int co
 
 }
 
-double Operators::calcMyFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
+float Operators::calcMyFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
-	double my = 0.0;
+	float my = 0.0;
 	for(unsigned int i = 0; i < coocMatrixSize; i++){
 		for(unsigned int j =0; j <coocMatrixSize; j++){
 			my += j * ((float)coocMatrix[i*coocMatrixSize + j]/coocMatrixCount);
@@ -160,11 +160,6 @@ unsigned int *Operators::buildHistogram256CPU(IplImage *inputImage, IplImage * i
 				// check if mask is not 0 for the given entry in the input image
 				if((int)(((unsigned char*)(inputImageMask->imageData + i * inputImageMask->widthStep + j))[0]) == 0){
 					continue;
-				}else{
-					if((int)(((unsigned char*)(inputImageMask->imageData + i * inputImageMask->widthStep + j))[0]) != 1){
-						cout <<" Mask not 0 or 1.  = "<< (int)(((unsigned char*)(inputImageMask->imageData + i * inputImageMask->widthStep + j))[0]) <<endl;
-						exit(1);
-					}
 				}
 			}
 			// get value of the input image pixel (i,j)

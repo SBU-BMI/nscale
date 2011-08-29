@@ -7,10 +7,22 @@
 
 #include "RegionalMorphologyAnalysis.h"
 
-void coocMatrixGPU(char *h_inputImage, int width, int height, unsigned int* coocMatrix, int coocSize,  int angle, int device);
+void coocMatrixGPU(char *h_inputImage, int width, int height, unsigned int* coocMatrix, int coocSize,  int angle, bool copyData, int device);
+int *coocMatrixBlobGPU(char *h_inputImage, int width, int height, int nBlobs, char *maksData, int maskSize, int coocSize, int angle, bool copyData, bool downloadRes,  int device);
+float *calcHaralickGPUBlob(int *d_coocMatrix, int coocSize, int nBlobs, int device);
+float *intensityFeaturesBlobGPU(char *h_inputImage, int width, int height, int nBlobs, char *maskData, int maskSize, bool copyData, int device);
+//int *intensityFeaturesBlobGPU(char *h_inputImage, int width, int height, int nBlobs, char *maskData, int maskSize, int device);
 
 RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName, string grayInputFileName)
 {
+	struct timeval startTime;
+	struct timeval endTime;
+	isImage = true;
+
+
+//	gettimeofday(&startTime, NULL);
+
+
 	// read image in mask image that is expected to be binary
 	originalImageMask = cvLoadImage( maskInputFileName.c_str(), -1 );
 	if(originalImageMask == NULL){
@@ -23,10 +35,9 @@ RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName,
 		}
 	}
 
-	cvThreshold(originalImageMask, originalImageMask, 1, 1, CV_THRESH_TRUNC);
-
-
+	// read actual image
 	originalImage = cvLoadImage( grayInputFileName.c_str(), -1 );
+
 	if(originalImage == NULL){
 		cout << "Cound not open input image:"<<grayInputFileName <<endl;
 		exit(1);
@@ -37,13 +48,18 @@ RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName,
 			exit(1);
 		}
 	}
-	initializeContours();
+
+//	gettimeofday(&endTime, NULL);
+//	// calculate time in microseconds
+//	double tS = startTime.tv_sec*1000000 + (startTime.tv_usec);
+//	double tE = endTime.tv_sec*1000000  + (endTime.tv_usec);
+//	printf("ReadImg: %lf\n", tE - tS);
 
 	// allocate pointer to the coocurrence matrix for the 4 possible angles
-	coocMatrix = (unsigned int **)malloc(sizeof(unsigned int *) * NUM_ANGLES);
-	coocMatrixCount = (unsigned int *)malloc(sizeof(unsigned int) * NUM_ANGLES);
+	coocMatrix = (unsigned int **)malloc(sizeof(unsigned int *) * Constant::NUM_ANGLES);
+	coocMatrixCount = (unsigned int *)malloc(sizeof(unsigned int) * Constant::NUM_ANGLES);
 
-	for(int i = 0; i < NUM_ANGLES; i++){
+	for(int i = 0; i < Constant::NUM_ANGLES; i++){
 		coocMatrix[i] = NULL;
 		coocMatrixCount[i] = 0;
 	}
@@ -52,7 +68,78 @@ RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName,
 	gradient_hist = NULL;
 	originalImageGPU = NULL;
 	originalImageMaskGPU = NULL;
+//	blobsMaskAllocatedMemory = NULL;
+	originalImageMaskNucleusBoxesGPU = NULL;
+
+	// Warning. Do not move this function call before the initialization of the
+	// variable blobMaskAllocatedMemory. It will modify its content.
+	// ProcessTime example
+
+//	gettimeofday(&startTime, NULL);
+
+	initializeContours();
+
+//	gettimeofday(&endTime, NULL);
+//	// calculate time in microseconds
+//	 tS = startTime.tv_sec*1000000 + (startTime.tv_usec);
+//	 tE = endTime.tv_sec*1000000  + (endTime.tv_usec);
+//	printf("InitContours: %lf\n", tE - tS);
 }
+
+
+RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(IplImage *originalImageMaskParam, IplImage *originalImageParam)
+{
+	struct timeval startTime;
+	struct timeval endTime;
+	isImage = false;
+
+	originalImageMask = cvCreateImageHeader( cvGetSize(originalImageMaskParam), originalImageMaskParam->depth, originalImageMaskParam->nChannels );
+	originalImageMask->origin = originalImageMaskParam->origin;
+	originalImageMask->widthStep = originalImageMaskParam->widthStep;
+	originalImageMask->imageData = originalImageMaskParam->imageData;
+
+	originalImage = cvCreateImageHeader( cvGetSize(originalImageParam), originalImageParam->depth, originalImageParam->nChannels );
+	originalImage->origin = originalImageParam->origin;
+	originalImage->widthStep = originalImageParam->widthStep;
+	originalImage->imageData = originalImageParam->imageData;
+
+
+	// allocate pointer to the coocurrence matrix for the 4 possible angles
+	coocMatrix = (unsigned int **)malloc(sizeof(unsigned int *) * Constant::NUM_ANGLES);
+	coocMatrixCount = (unsigned int *)malloc(sizeof(unsigned int) * Constant::NUM_ANGLES);
+
+	for(int i = 0; i < Constant::NUM_ANGLES; i++){
+		coocMatrix[i] = NULL;
+		coocMatrixCount[i] = 0;
+	}
+	coocSize = 8;
+	intensity_hist = NULL;
+	gradient_hist = NULL;
+	originalImageGPU = NULL;
+	originalImageMaskGPU = NULL;
+//	blobsMaskAllocatedMemory = NULL;
+	originalImageMaskNucleusBoxesGPU = NULL;
+
+	// Warning. Do not move this function call before the initialization of the
+	// variable blobMaskAllocatedMemory. It will modify its content.
+	// ProcessTime example
+
+//	gettimeofday(&startTime, NULL);
+
+	initializeContours();
+
+//	gettimeofday(&endTime, NULL);
+//	// calculate time in microseconds
+//	 tS = startTime.tv_sec*1000000 + (startTime.tv_usec);
+//	 tE = endTime.tv_sec*1000000  + (endTime.tv_usec);
+//	printf("InitContours: %lf\n", tE - tS);
+}
+
+
+
+
+
+
 
 RegionalMorphologyAnalysis::~RegionalMorphologyAnalysis() {
 
@@ -61,12 +148,27 @@ RegionalMorphologyAnalysis::~RegionalMorphologyAnalysis() {
 	}
 	internal_blobs.clear();
 
-	if(originalImage){
-		cvReleaseImage(&originalImage);
+	if(isImage){
+		if(originalImage){
+			cvReleaseImage(&originalImage);
+		}
+		if(originalImageMask){
+			cvReleaseImage(&originalImageMask);
+		}
+	}else{
+	// Ops. This object contains pointers to image headers
+		if(originalImage){
+			cvReleaseImageHeader(&originalImage);
+		}
+		if(originalImageMask){
+			cvReleaseImageHeader(&originalImageMask);
+		}
+
 	}
-	if(originalImageMask){
-		cvReleaseImage(&originalImageMask);
+	if(originalImageMaskNucleusBoxes){
+		delete originalImageMaskNucleusBoxes;
 	}
+	
 	if(intensity_hist != NULL){
 		free(intensity_hist);
 	}
@@ -74,7 +176,7 @@ RegionalMorphologyAnalysis::~RegionalMorphologyAnalysis() {
 		free(gradient_hist);
 	}
 
-	for(int i = 0; i < NUM_ANGLES; i++){
+	for(int i = 0; i < Constant::NUM_ANGLES; i++){
 		if(coocMatrix[i] != NULL){
 			free(coocMatrix[i]);
 		}
@@ -89,6 +191,15 @@ RegionalMorphologyAnalysis::~RegionalMorphologyAnalysis() {
 		delete originalImageMaskGPU;
 	}
 
+	if(originalImageMaskNucleusBoxesGPU != NULL){
+		delete originalImageMaskNucleusBoxesGPU;
+	}
+// TODO: uncoment this part to cleanup blos structures
+/*	for(int i = 0; i < internal_blobs.size(); i++){
+		delete internal_blobs[i];
+	}
+	internal_blobs.clear();*/
+
 }
 
 
@@ -97,6 +208,8 @@ void RegionalMorphologyAnalysis::initializeContours()
 	// create storage to be used by the findContours
 	CvMemStorage* storage = cvCreateMemStorage();
 	CvSeq* first_contour = NULL;
+
+//	cout << "NonZeroMask = "<< cvCountNonZero(originalImageMask)<<endl;;
 
 	IplImage *tempMask = cvCreateImage(cvGetSize(originalImage), IPL_DEPTH_8U, 1);
 	cvCopy(originalImageMask, tempMask);
@@ -110,11 +223,40 @@ void RegionalMorphologyAnalysis::initializeContours()
 		CV_CHAIN_APPROX_SIMPLE
 		);
 
+	int maskSizeElements = 0;
 	// for all components found in the same first level
 	for(CvSeq* c= first_contour; c!= NULL; c=c->h_next){
 		// create a blob with the current component and store it in the region
 		Blob* curBlob = new Blob(c, cvGetSize(originalImageMask));
+		CvRect bounding_box = curBlob->getNonInclinedBoundingBox();
 		this->internal_blobs.push_back(curBlob);
+
+		maskSizeElements += bounding_box.height * bounding_box.width;
+	}
+
+
+	blobsMaskAllocatedMemorySize = sizeof(char) * maskSizeElements + 4*sizeof(int) *internal_blobs.size() + sizeof(int) * internal_blobs.size();
+
+
+	originalImageMaskNucleusBoxes = new Mat(1, blobsMaskAllocatedMemorySize, CV_8UC1);
+	char *blobsMaskAllocatedMemory = (char*)originalImageMaskNucleusBoxes->data;
+
+//	blobsMaskAllocatedMemory = (char *) malloc( blobsMaskAllocatedMemorySize );
+	int offset = internal_blobs.size() * sizeof(int) * 5;
+	int *offset_ptr = (int *) blobsMaskAllocatedMemory;
+
+
+	for(int i = 0; i < internal_blobs.size(); i++){
+		CvRect bounding_box = internal_blobs[i]->getNonInclinedBoundingBox();
+		offset_ptr[(i*5)] = offset;
+		offset_ptr[(i*5) + 1] = bounding_box.x;
+		offset_ptr[(i*5) + 2] = bounding_box.y;
+		offset_ptr[(i*5) + 3] = bounding_box.width;
+		offset_ptr[(i*5) + 4] = bounding_box.height;
+
+		internal_blobs[i]->setMaskInUserDataRegion(blobsMaskAllocatedMemory +offset);
+		offset += bounding_box.width * bounding_box.height;
+
 	}
 
 	cvReleaseImage(&tempMask);
@@ -153,11 +295,13 @@ void RegionalMorphologyAnalysis::doRegionProps()
 #endif
 		printf("Blob #%d - Area=%lf MajorAxisLength=%lf MinorAxisLength=%lf Eccentricity = %lf ", i, curBlob->getArea(),curBlob->getMajorAxisLength(), curBlob->getMinorAxisLength(), curBlob->getEccentricity());
 		printf("Orientation=%lf ConvexArea=%lf FilledArea=%lf EulerNumber=%d EquivDiameter=%lf ", curBlob->getOrientation(), curBlob->getConvexArea(), curBlob->getFilledArea(), curBlob->getEulerNumber(), curBlob->getEquivalentDiameter());
-		printf("Solidity=%lf Extent=%lf Perimeter=%lf MeanIntensity=%lf MinIntensity=%d MaxIntensity=%d", curBlob->getSolidity(), curBlob->getExtent(), curBlob->getPerimeter(), curBlob->getMeanIntensity(originalImage), curBlob->getMinIntensity(originalImage), curBlob->getMaxIntensity(originalImage));
+		printf("Solidity=%lf Extent=%lf Perimeter=%lf ", curBlob->getSolidity(), curBlob->getExtent(), curBlob->getPerimeter());
 		printf(" ConvexArea = %lf Solidity = %lf Deficiency = %lf", curBlob->getConvexArea(), curBlob->getSolidity(), curBlob->getConvexDeficiency());
 		printf(" Compactness = %lf FilledArea = %lf Euler# = %d Porosity = %lf", curBlob->getCompacteness(), curBlob->getFilledArea(), curBlob->getEulerNumber(), curBlob->getPorosity());
-		printf(" Orientation=%lf", curBlob->getOrientation());
-		printf(" MeanPixelIntensity=%lf MedianPixelIntensity=%d MinPixelIntensity=%d MaxPixelIntensity=%d \n", curBlob->getMeanIntensity(originalImage), curBlob->getMedianIntensity(originalImage), curBlob->getMinIntensity(originalImage), curBlob->getMaxIntensity(originalImage));
+//		curBlob->getCannyArea(originalImage, 10, 100, 7);
+//		curBlob->getSobelArea(originalImage, 5, 5, 7);
+		//		printf(" Orientation=%lf\n GradMean=%lf ", curBlob->getOrientation(), curBlob->getMeanGradMagnitude(originalImage));
+//		printf(" MeanPixelIntensity=%lf MedianPixelIntensity=%d MinPixelIntensity=%d MaxPixelIntensity=%d \n", curBlob->getMeanIntensity(originalImage), curBlob->getMedianIntensity(originalImage), curBlob->getMinIntensity(originalImage), curBlob->getMaxIntensity(originalImage));
 
 #ifdef VISUAL_DEBUG
 		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(0, 0, 255), CV_RGB(0,0,0));
@@ -230,56 +374,120 @@ void RegionalMorphologyAnalysis::doAll()
 
 }
 
-void RegionalMorphologyAnalysis::doIntensity(){
-	if(originalImage == NULL){
-		cout << "DoRegionProps: input image is NULL." <<endl;
-		exit(1);
-	}else{
-		if(originalImage->nChannels != 1){
-			cout << "Error: input image should be grayscale with one channel only"<<endl;
-			exit(1);
+void RegionalMorphologyAnalysis::doGradientBlob(unsigned int procType, unsigned int gpuId){
+
+	if(procType == Constant::CPU){
+		Mat imgMat(originalImage);
+
+		// This is a temporary structure required by the MorphologyEx operation we'll perform
+		IplImage* magImg = cvCreateImage( cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
+		Mat dest(magImg);
+
+		Mat kernelCPU;
+		morphologyEx(imgMat, dest, MORPH_GRADIENT, kernelCPU, Point(-1,-1), 1);
+
+		for(int i = 0; i < internal_blobs.size(); i++){
+			Blob *curBlob = internal_blobs[i];
+#ifdef PRINT_FEATURES
+			printf("Blob #%d MeanGrad=%lf MedianGrad=%d MinGrad=%d MaxGrad=%d FirstQuartile=%d ThirdQuartile=%d\n", i,curBlob->getMeanGradMagnitude(magImg), curBlob->getMedianGradMagnitude(magImg), curBlob->getMinGradMagnitude(magImg), curBlob->getMaxGradMagnitude(magImg), curBlob->getFirstQuartileGradMagnitude(magImg), curBlob->getThirdQuartileGradMagnitude(magImg));
+#endif
 		}
+
+		cvReleaseImage(&magImg);
+
+	}else{
+
+		if(originalImageGPU == NULL){
+			this->uploadImageToGPU();
+		}
+
+		if(originalImageMaskNucleusBoxesGPU == NULL){
+			this->uploadImageMaskNucleusToGPU();
+		}
+
+		// This is the data used to store the gradient results
+		cv::gpu::GpuMat *magImgGPU = new cv::gpu::GpuMat(originalImageGPU->size(), CV_8UC1);
+		cv::gpu::GpuMat kernel;
+		cv::gpu::morphologyEx(*originalImageGPU, *magImgGPU, MORPH_GRADIENT, kernel, Point(-1,-1), 1);
+
+
+		float *intensityFeatures = intensityFeaturesBlobGPU((char*)magImgGPU->data , originalImage->width, originalImage->height, internal_blobs.size(), (char*)originalImageMaskNucleusBoxesGPU->data, blobsMaskAllocatedMemorySize, false, 0);
+//		float *intensityFeatures = intensityFeaturesBlobGPU((char*)magImgGPU->data , originalImage->width, originalImage->height, internal_blobs.size(), (char*)originalImageMaskNucleusBoxes->data, blobsMaskAllocatedMemorySize, false, 0);
+
+		for(int blobId = 0; blobId < internal_blobs.size(); blobId++){
+#ifdef PRINT_FEATURES
+			printf("Blob #%d - MeanIntensity=%lf MedianIntensity=%d MinIntensity=%d MaxIntensity=%d FirstQuartile=%d ThirdQuartile=%d\n", blobId, intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+1], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+2], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+3], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+4], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+5]);
+#endif
+		}
+
+		free(intensityFeatures);
+		delete magImgGPU;
+
+		/*		Mat outGpuMag= (cv::Mat)*magImgGPU;
+
+				// This is a test performed to compare the results of grad. unsing CPU and GPU
+				IplImage* magImg = cvCreateImage( cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
+				Mat dest(magImg);
+				Mat imgMat(originalImageMask);
+
+				Mat kernelCPU;
+				morphologyEx(imgMat, dest, MORPH_GRADIENT, kernelCPU, Point(-1,-1), 1);
+				int nonZeroCPU = countNonZero(dest);
+				cout << "NonZeroGradCPU = "<< nonZeroCPU<<endl;
+
+				  cv::Mat diff;
+				  cv::compare(outGpuMag, dest, diff, cv::CMP_NE);
+				    cout << "Diff. pixels = "<< cv::countNonZero(diff)<<endl;*/
+
+/*
+		if(magImg->isContinuous()){
+			cout << "Mag. matrix is continuous"<<endl;
+		}else{
+			cout << "Mag. matrix is not continuous"<<endl;
+		}
+
+		if(originalImageGPU->isContinuous()){
+			cout << "Orig. matrix is continuous"<<endl;
+		}else{
+			cout << "Orig. matrix is not continuous"<<endl;
+		}*/
+
+
 	}
 
-#ifdef VISUAL_DEBUG
-		IplImage* visualizationImage = cvCreateImage( cvGetSize(originalImage), 8, 3);
-		cvCvtColor(originalImage, visualizationImage, CV_GRAY2BGR);
+}
 
-		cvNamedWindow("Input Image");
-		cvShowImage("Input Image", visualizationImage);
-		cvWaitKey(0);
+
+void RegionalMorphologyAnalysis::doIntensityBlob(unsigned int procType, unsigned int gpuId){
+
+	if(procType == Constant::CPU){
+
+		for(int i = 0; i < internal_blobs.size(); i++){
+			Blob *curBlob = internal_blobs[i];
+#ifdef PRINT_FEATURES
+			printf("Blob #%d - MeanIntensity=%lf MedianIntensity=%d MinIntensity=%d MaxIntensity=%d FirstQuartile=%d ThirdQuartile=%d\n", i, curBlob->getMeanIntensity(originalImage), curBlob->getMedianIntensity(originalImage), curBlob->getMinIntensity(originalImage), curBlob->getMaxIntensity(originalImage), curBlob->getFirstQuartileIntensity(originalImage), curBlob->getThirdQuartileIntensity(originalImage));
 #endif
+		}
+	}else{
+		if(originalImageGPU == NULL){
+			this->uploadImageToGPU();
+		}
+		if(originalImageMaskNucleusBoxesGPU == NULL){
+			this->uploadImageMaskNucleusToGPU();
+		}
 
-	for(int i = 0; i < internal_blobs.size(); i++){
-		Blob *curBlob = internal_blobs[i];
 
-#ifdef VISUAL_DEBUG
-		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(255, 0, 0), CV_RGB(0,0,0));
-		cvNamedWindow("Input Image");
-		cvShowImage("Input Image", visualizationImage);
-		cvWaitKey(0);
+//		float *intensityFeatures = intensityFeaturesBlobGPU((char*)originalImageGPU->data , originalImage->width, originalImage->height, internal_blobs.size(), (char*)originalImageMaskNucleusBoxes->data, blobsMaskAllocatedMemorySize, false, 0);
+		float *intensityFeatures = intensityFeaturesBlobGPU((char*)originalImageGPU->data , originalImage->width, originalImage->height, internal_blobs.size(), (char*)originalImageMaskNucleusBoxesGPU->data, blobsMaskAllocatedMemorySize, false, 0);
+
+		for(int blobId = 0; blobId < internal_blobs.size(); blobId++){
+#ifdef PRINT_FEATURES
+			printf("Blob #%d - MeanIntensity=%lf MedianIntensity=%d MinIntensity=%d MaxIntensity=%d FirstQuartile=%d ThirdQuartile=%d\n", blobId, intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+1], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+2], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+3], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+4], (int)intensityFeatures[blobId*Constant::N_INTENSITY_FEATURES+5]);
 #endif
+		}
 
-		printf("Blob #%d - MeanIntensity=%lf MedianIntensity=%d MinIntensity=%d MaxIntensity=%d FirstQuartile=%d ThirdQuartile=%d ", i, curBlob->getMeanIntensity(originalImage), curBlob->getMedianIntensity(originalImage), curBlob->getMinIntensity(originalImage), curBlob->getMaxIntensity(originalImage), curBlob->getFirstQuartileIntensity(originalImage), curBlob->getThirdQuartileIntensity(originalImage));
-		printf(" MeanGrad=%lf MedianGrad=%d MinGrad=%d MaxGrad=%d FirstQuartile=%d ThirdQuartile=%d ", curBlob->getMeanGradMagnitude(originalImage), curBlob->getMedianGradMagnitude(originalImage), curBlob->getMinGradMagnitude(originalImage), curBlob->getMaxGradMagnitude(originalImage), curBlob->getFirstQuartileGradMagnitude(originalImage), curBlob->getThirdQuartileGradMagnitude(originalImage));
-		printf("ReflectionSymmetry = %lf ", curBlob->getReflectionSymmetry());
-		printf(" CannyArea = %d", curBlob->getCannyArea(originalImage, 70.0, 90.0));
-		printf(" SobelArea = %d\n", curBlob->getSobelArea(originalImage, 1, 1, 5 ));
-
-
-#ifdef VISUAL_DEBUG
-		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(0, 0, 255), CV_RGB(0,0,0));
-#endif
-
-
+		free(intensityFeatures);
 	}
-
-#ifdef VISUAL_DEBUG
-	cvDestroyWindow("Input Image");
-	cvReleaseImage(&visualizationImage);
-
-#endif
-
 }
 
 void RegionalMorphologyAnalysis::doCoocMatrix(unsigned int angle)
@@ -313,53 +521,53 @@ void RegionalMorphologyAnalysis::doCoocMatrix(unsigned int angle)
 
 	switch(angle){
 
-		case ANGLE_0:
+		case Constant::ANGLE_0:
 			//build co-occurrence matrix
 			for (int i=0; i<originalImage->height; i++){
 				int offSet = i*originalImage->width;
 				for(int j=0; j<originalImage->width-1; j++){
 					if(((normImg[offSet+j])-1) < coocSize && ((normImg[offSet+j+1])-1) < coocSize){
 						unsigned int coocAddress = (unsigned int )((normImg[offSet+j])-1) * coocSize;
-						coocAddress += normImg[offSet+j+1]-1;
+						coocAddress += (int)(normImg[offSet+j+1]-1);
 						coocMatrix[angle][coocAddress]++;
 					}
 				}
 			}
 			break;
 
-		case ANGLE_45:
+		case Constant::ANGLE_45:
 			//build co-occurrence matrix
 			for (int i=0; i<originalImage->height-1; i++){
 				int offSetI = i*originalImage->width;
 				int offSetI2 = (i+1)*originalImage->width;
 				for(int j=0; j<originalImage->width-1; j++){
 					unsigned int coocAddress = (unsigned int )((normImg[offSetI2+j])-1) * coocSize;
-					coocAddress += normImg[offSetI +j +1 ] -1;
+					coocAddress += (int)(normImg[offSetI +j +1 ] -1);
 					coocMatrix[angle][coocAddress]++;
 				}
 			}
 			break;
-		case ANGLE_90:
+		case Constant::ANGLE_90:
 			//build co-occurrence matrix
 			for (int i=0; i<originalImage->height-1; i++){
 				int offSetI = i*originalImage->width;
 				int offSetI2 = (i+1)*originalImage->width;
 				for(int j=0; j<originalImage->width; j++){
 					unsigned int coocAddress = (unsigned int )((normImg[offSetI2+j])-1) * coocSize;
-					coocAddress += normImg[offSetI + j ] -1;
+					coocAddress += (int)(normImg[offSetI + j ] -1);
 					coocMatrix[angle][coocAddress]++;
 				}
 			}
 			break;
 
-		case ANGLE_135:
+		case Constant::ANGLE_135:
 			//build co-occurrence matrix
 			for (int i=0; i<originalImage->height-1; i++){
 				int offSetI = i*originalImage->width;
 				int offSetI2 = (i+1)*originalImage->width;
 				for(int j=0; j<originalImage->width-1; j++){
 					unsigned int coocAddress = (unsigned int )((normImg[offSetI2+j+1])-1) * coocSize;
-					coocAddress += normImg[offSetI + j ] -1;
+					coocAddress += (int)(normImg[offSetI + j ] -1);
 					coocMatrix[angle][coocAddress]++;
 				}
 			}
@@ -386,7 +594,7 @@ double RegionalMorphologyAnalysis::inertiaFromCoocMatrix(unsigned int angle, uns
 	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
 	// intermediary results, then compute coocmatrix again for the given angle
 	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			doCoocMatrix(angle);
 		}else{
 			doCoocMatrixGPU(angle);
@@ -402,7 +610,7 @@ double RegionalMorphologyAnalysis::energyFromCoocMatrix(unsigned int angle, unsi
 	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
 	// intermediary results, then compute coocmatrix again for the given angle
 	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			doCoocMatrix(angle);
 		}else{
 			doCoocMatrixGPU(angle);
@@ -418,7 +626,7 @@ double RegionalMorphologyAnalysis::entropyFromCoocMatrix(unsigned int angle, uns
 	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
 	// intermediary results, then compute coocmatrix again for the given angle
 	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			doCoocMatrix(angle);
 		}else{
 			doCoocMatrixGPU(angle);
@@ -435,7 +643,7 @@ double RegionalMorphologyAnalysis::homogeneityFromCoocMatrix(unsigned int angle,
 	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
 	// intermediary results, then compute coocmatrix again for the given angle
 	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			doCoocMatrix(angle);
 		}else{
 			doCoocMatrixGPU(angle);
@@ -451,7 +659,7 @@ double RegionalMorphologyAnalysis::maximumProbabilityFromCoocMatrix(unsigned int
 	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
 	// intermediary results, then compute coocmatrix again for the given angle
 	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			doCoocMatrix(angle);
 		}else{
 			doCoocMatrixGPU(angle);
@@ -467,7 +675,7 @@ double RegionalMorphologyAnalysis::clusterShadeFromCoocMatrix(unsigned int angle
 	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
 	// intermediary results, then compute coocmatrix again for the given angle
 	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			doCoocMatrix(angle);
 		}else{
 			doCoocMatrixGPU(angle);
@@ -483,7 +691,7 @@ double RegionalMorphologyAnalysis::clusterProminenceFromCoocMatrix(unsigned int 
 	// If the coocMatrix has not been computed yet for the given angle, or it is not allowed to reused
 	// intermediary results, then compute coocmatrix again for the given angle
 	if(reuseItermediaryResults != true || coocMatrix[angle] == NULL){
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			doCoocMatrix(angle);
 		}else{
 			doCoocMatrixGPU(angle);
@@ -503,11 +711,16 @@ void RegionalMorphologyAnalysis::doCoocMatrixGPU(unsigned int angle){
 		coocMatrixCount[angle] = 0;
 	}
 
+	if(originalImageGPU == NULL){
+		this->uploadImageToGPU();
+	}
+
 	unsigned int width = originalImage->width;
 	unsigned int height = originalImage->height;
 	unsigned int *test;
 
-	coocMatrixGPU(originalImage->imageData , originalImage->width, originalImage->height, coocMatrix[angle],  coocSize, angle,  0 );
+//	coocMatrixGPU(originalImage->imageData , originalImage->width, originalImage->height, coocMatrix[angle],  coocSize, angle, true, 0 );
+	coocMatrixGPU((char*)originalImageGPU->data , originalImage->width, originalImage->height, coocMatrix[angle],  coocSize, angle, false, 0 );
 
 
 	for(int i = 0; i < coocSize; i++){
@@ -545,7 +758,7 @@ double RegionalMorphologyAnalysis::calcMeanIntensity(bool useMask, int procType,
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -582,7 +795,7 @@ double RegionalMorphologyAnalysis::calcStdIntensity(bool useMask, int procType, 
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -617,7 +830,7 @@ int RegionalMorphologyAnalysis::calcMedianIntensity(bool useMask, int procType, 
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -652,7 +865,7 @@ int RegionalMorphologyAnalysis::calcMinIntensity(bool useMask, int procType, boo
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -687,7 +900,7 @@ int RegionalMorphologyAnalysis::calcMaxIntensity(bool useMask, int procType, boo
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -722,7 +935,7 @@ int RegionalMorphologyAnalysis::calcFirstQuartileIntensity(bool useMask, int pro
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -757,7 +970,7 @@ int RegionalMorphologyAnalysis::calcSecondQuartileIntensity(bool useMask, int pr
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -792,7 +1005,7 @@ int RegionalMorphologyAnalysis::calcThirdQuartileIntensity(bool useMask, int pro
 		if(intensity_hist != NULL){
 			free(intensity_hist);
 		}
-		if(procType == CPU){
+		if(procType == Constant::CPU){
 			if(useMask){
 				intensity_hist = Operators::buildHistogram256CPU(originalImage, originalImageMask);
 			}else{
@@ -825,6 +1038,14 @@ bool RegionalMorphologyAnalysis::uploadImageToGPU()
 	originalImageGPU = new cv::gpu::GpuMat(originalImage);
 }
 
+bool RegionalMorphologyAnalysis::uploadImageMaskToGPU()
+{
+	originalImageMaskGPU = new cv::gpu::GpuMat(originalImageMask);
+}
+
+bool RegionalMorphologyAnalysis::uploadImageMaskNucleusToGPU(){
+	originalImageMaskNucleusBoxesGPU = new cv::gpu::GpuMat(*originalImageMaskNucleusBoxes);
+}
 
 void RegionalMorphologyAnalysis::releaseGPUImage()
 {
@@ -834,11 +1055,26 @@ void RegionalMorphologyAnalysis::releaseGPUImage()
 	}
 }
 
+void RegionalMorphologyAnalysis::releaseGPUMask()
+{
+	if(originalImageMaskGPU != NULL){
+		delete originalImageMaskGPU;
+		originalImageMaskGPU = NULL;
+	}
+}
+
+void RegionalMorphologyAnalysis::releaseImageMaskNucleusToGPU(){
+	if(originalImageMaskNucleusBoxesGPU != NULL){
+		delete originalImageMaskNucleusBoxesGPU;
+		originalImageMaskNucleusBoxesGPU = NULL;
+	}
+}
+
 int RegionalMorphologyAnalysis::calcCannyArea(int procType, double lowThresh, double highThresh, int apertureSize, int gpuId)
 {
 	int cannyPixels = 0;
 
-	if(procType == CPU){
+	if(procType == Constant::CPU){
 		IplImage *cannyRes = cvCreateImage( cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
 
 		cvCopy(originalImage, cannyRes, NULL);
@@ -856,10 +1092,6 @@ int RegionalMorphologyAnalysis::calcCannyArea(int procType, double lowThresh, do
 		if(originalImageGPU == NULL){
 			this->uploadImageMaskToGPU();
 		}
-		if(originalImageGPU == NULL){
-			this->uploadImageToGPU();
-		}
-
 	}
 
 	return cannyPixels;
@@ -872,24 +1104,14 @@ IplImage *RegionalMorphologyAnalysis::getMask()
 	return this->originalImageMask;
 }
 
-bool RegionalMorphologyAnalysis::uploadImageMaskToGPU()
-{
-	originalImageMaskGPU = new cv::gpu::GpuMat(originalImageMask);
-}
 
-void RegionalMorphologyAnalysis::releaseGPUMask()
-{
-	if(originalImageMaskGPU != NULL){
-		delete originalImageMaskGPU;
-		originalImageMaskGPU = NULL;
-	}
 
-}
+
 
 unsigned int *RegionalMorphologyAnalysis::calcGradientHistogram(bool useMask, int procType, bool reuseItermediaryResults, int gpuId)
 {
 	unsigned int *grad_mag_hist_ret = NULL;
-	if(procType == CPU){
+	if(procType == Constant::CPU){
 
 		// Create a Mat header pointing to the C image loaded
 		Mat originalImgHeader(originalImage);
@@ -900,13 +1122,6 @@ unsigned int *RegionalMorphologyAnalysis::calcGradientHistogram(bool useMask, in
 		morphologyEx(originalImgHeader, dest, MORPH_GRADIENT, element,  Point(-1,-1), 1);
 
 		IplImage magImg = dest;
-		// This is the data used to store the gradient results
-		//IplImage* magImg = cvCreateImage( cvGetSize(originalImage), IPL_DEPTH_8U, 1);
-
-		// This is a temporary structure required by the MorphologyEx operation we'll perform
-		//IplImage* tempImg = cvCreateImage( cvGetSize(originalImage), IPL_DEPTH_8U, 1);
-
-	//	cvMorphologyEx(originalImage, magImg, tempImg, NULL, CV_MOP_GRADIENT, 10);
 
 		if(useMask){
 			grad_mag_hist_ret = Operators::buildHistogram256CPU(&magImg, originalImageMask);
@@ -1050,11 +1265,107 @@ int RegionalMorphologyAnalysis::calcThirdQuartileGradientMagnitude(bool useMask,
 	return thirdQuartileGradientMagnitude;
 }
 
+void RegionalMorphologyAnalysis::printBlobsAllocatedInfo()
+{
+	if(originalImageMaskNucleusBoxes->data != NULL){
+		// jump area where offsets for each mask are stored
+//		int offset = internal_blobs.size() * sizeof(int);
+
+		// create pointer to 'walk' on the offsets
+		int *offset_ptr = (int *) originalImageMaskNucleusBoxes->data;
+
+		// print information related to each blob
+		for(int i = 0; i < internal_blobs.size(); i++){
+			int offset = offset_ptr[i];
+			cout << "bounding_box.x=" << ((int*)(originalImageMaskNucleusBoxes->data+offset))[0];
+			cout << " bounding_box.y=" << ((int*)(originalImageMaskNucleusBoxes->data+offset))[1];
+			cout << " bounding_box.width=" << ((int*)(originalImageMaskNucleusBoxes->data+offset))[2];
+			cout << " bounding_box.height=" << ((int*)(originalImageMaskNucleusBoxes->data+offset))[3];
+			cout << " accOffset = "<< offset<<endl;
+
+		}
+		cout << " blobMaskAllocatedMemorySize = "<< blobsMaskAllocatedMemorySize<<endl;
+	}
+}
+
+void RegionalMorphologyAnalysis::doCoocPropsBlob(unsigned int angle, unsigned int procType, bool reuseItermediaryResults, unsigned int gpuId)
+{
+	bool reuseRes = true;
+	bool useMask = true;
+	if(procType == Constant::CPU){
+		for(int i = 0; i < internal_blobs.size(); i++){
+			Blob *curBlob = internal_blobs[i];
+
+			curBlob->doCoocMatrix(angle, originalImage, useMask);
+			curBlob->setInertia(curBlob->inertiaFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+			curBlob->setEnergy(curBlob->energyFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+			curBlob->setEntropy(curBlob->entropyFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+			curBlob->setHomogeneity(curBlob->homogeneityFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+			curBlob->setMaximumProb(curBlob->maximumProbabilityFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+			curBlob->setClusterShade(curBlob->clusterShadeFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+			curBlob->setClusterProminence(curBlob->clusterProminenceFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+
+#ifdef PRINT_FEATURES
+			cout << fixed << setprecision( 4 ) << "BlobId = "<< i << " inertia="<<curBlob->getInertia()<<" energy="<<curBlob->getEnergy()<<" entropy="<<curBlob->getEntropy()<<" homogeneity="<<curBlob->getHomogeneity()<< " max="<<curBlob->getMaximumProb()<<" shade="<<curBlob->getClusterShade()<<" prominence="<<curBlob->getClusterProminence()<<endl;
+#endif
+
+		}
+	}else{
+		if(originalImageGPU == NULL){
+			this->uploadImageToGPU();
+		}
+		if(originalImageMaskNucleusBoxesGPU == NULL){
+			this->uploadImageMaskNucleusToGPU();
+		}
+
+		bool downloadRes = false;
+//		int *coocMatrixOut = coocMatrixBlobGPU(originalImage->imageData , originalImage->width, originalImage->height, internal_blobs.size(), (char*)originalImageMaskNucleusBoxes->data, blobsMaskAllocatedMemorySize, 8, angle, false, downloadRes, 0);
+
+		int *coocMatrixOut = coocMatrixBlobGPU((char *)originalImageGPU->data , originalImage->width, originalImage->height, internal_blobs.size(), (char*)originalImageMaskNucleusBoxesGPU->data, blobsMaskAllocatedMemorySize, 8, angle, false, downloadRes, 0);
+
+		if(downloadRes){
+			for(int blobId = 0; blobId < internal_blobs.size(); blobId++){
+				//		unsigned int *auxPtrCooc = &coocMatrixOut[(coocSize * coocSize * blobId)];
+				const int printWidth = 12;
+				for(int i = 0; i < coocSize; i++){
+					int offSet = i * coocSize;
+					for(int j = 0; j < coocSize; j++){
+						cout << setw(printWidth) << coocMatrixOut[(coocSize * coocSize * blobId)+ offSet + j]<< " ";
+					}
+					cout <<endl;
+				}
+				cout <<endl;
+			}
+			free(coocMatrixOut);
+		}else{
+
+			float *haraLickFeatures = calcHaralickGPUBlob(coocMatrixOut, 8, (int)internal_blobs.size(), 0);
+
+			for(int i = 0; i < internal_blobs.size(); i++){
+#ifdef PRINT_FEATURES
+				cout << fixed << setprecision( 4 ) << "BlobId = "<< i << " inertia="<<haraLickFeatures[i * 7]<<" energy="<<haraLickFeatures[i * 7 + 1]<<" entropy="<<haraLickFeatures[i * 7 + 2]<<" homogeneity="<<haraLickFeatures[i * 7 + 3]<< " max="<<haraLickFeatures[i * 7 + 4]<<" shade="<<haraLickFeatures[i * 7 + 5]<<" prominence="<<haraLickFeatures[i * 7 + 6]<<endl;
+#endif
+			}
+			free(haraLickFeatures);
+		}
+	}
+}
+
+void RegionalMorphologyAnalysis::printStats()
+{
+	cout << "NumBlobs, "<<internal_blobs.size()<<endl;
+	for(int i = 0; i < internal_blobs.size(); i++){
+		Blob *curBlob = internal_blobs[i];
+		float area = cvCountNonZero((curBlob->getMask()));
+		cout << i <<" "<<area<<endl;
+	}
+}
+
 int RegionalMorphologyAnalysis::calcSobelArea(int procType, int xorder, int yorder, int apertureSize, bool useMask, int gpuId)
 {
 	int sobelPixels = 0;
 
-	if(procType == CPU){
+	if(procType == Constant::CPU){
 		// Create a Mat header pointing to the C image loaded
 		Mat originalImgHeader(originalImage);
 		Mat originalImgMaskHeader(originalImageMask);

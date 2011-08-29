@@ -9,27 +9,283 @@
 #include "Blob.h"
 #include "Contour.h"
 
+// ProcessTime example
+struct timeval startTime;
+struct timeval endTime;
+
+void beginTimer(){
+	gettimeofday(&startTime, NULL);
+}
+
+void printElapsedTime(){
+	gettimeofday(&endTime, NULL);
+	// calculate time in microseconds
+	double tS = startTime.tv_sec*1000000 + (startTime.tv_usec);
+	double tE = endTime.tv_sec*1000000  + (endTime.tv_usec);
+	printf(" %lf\n", tE - tS);
+}
+
 int main (int argc, char **argv){
 
-	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(argv[1], argv[2]);
-	// ProcessTime example
-	struct timeval startTime;
-	struct timeval endTime;
+	// read image in mask image that is expected to be binary
+	IplImage *originalImageMask = cvLoadImage(argv[1], -1 );
+	if(originalImageMask == NULL){
+		cout << "Could not load image: "<< argv[1] <<endl;
+		exit(1);
+	}else{
+		if(originalImageMask->nChannels != 1){
+			cout << "Error: Mask image should have only one channel"<<endl;
+			exit(1);
+		}
+	}
+
+	// read actual image
+	IplImage *originalImage = cvLoadImage(argv[2], -1 );
+
+	if(originalImage == NULL){
+		cout << "Cound not open input image:"<< argv[2] <<endl;
+		exit(1);
+	}else{
+		if(originalImage->nChannels != 1){
+			cout << "Error: input image should be grayscale with one channel"<<endl;
+			cvReleaseImage(&originalImage);
+			exit(1);
+		}
+	}
+
+	beginTimer();
+
+	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(originalImageMask, originalImage);
+//	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(argv[1], argv[2]);
+	printf("IntRegional: ");
+	printElapsedTime();
 
 	// Warm up GPU
 	regional->uploadImageToGPU();
 	regional->releaseGPUImage();
+//	regional->printStats();
 
 	// get the current time
 	// - NULL because we don't care about time zone
-	gettimeofday(&startTime, NULL);
+	int procType=Constant::GPU;
+	bool includeCopyDataCost=true;
+	//	regional->doRegionProps();
 
-	//	IplImage* inputImage = cvLoadImage( argv[2], CV_LOAD_IMAGE_GRAYSCALE );
-//	regional->doRegionProps();
-//	regional->doAll();
+	beginTimer();
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}else{
+		regional->uploadImageToGPU();
+		regional->uploadImageMaskToGPU();
+		regional->uploadImageMaskNucleusToGPU();
+	}
 
 
-	bool reuseResults = true;
+	regional->doCoocPropsBlob(Constant::ANGLE_0, procType);
+	printf("CoocPropsBlob_0: ");
+
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+
+
+	regional->doCoocPropsBlob(Constant::ANGLE_45, procType);
+	printf("CoocPropsBlob_45: ");
+
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+
+	regional->doCoocPropsBlob(Constant::ANGLE_90, procType);
+	printf("CoocPropsBlob_90: ");
+
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+
+	regional->doCoocPropsBlob(Constant::ANGLE_135, procType);
+	printf("CoocPropsBlob_135: ");
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+	regional->doCoocPropsBlob(Constant::ANGLE_0, procType);
+	printf("CoocPropsBlob_0: ");
+
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+
+
+	regional->doCoocPropsBlob(Constant::ANGLE_45, procType);
+	printf("CoocPropsBlob_45: ");
+
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+
+	regional->doCoocPropsBlob(Constant::ANGLE_90, procType);
+	printf("CoocPropsBlob_90: ");
+
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+
+	regional->doCoocPropsBlob(Constant::ANGLE_135, procType);
+	printf("CoocPropsBlob_135: ");
+	if(includeCopyDataCost){
+		regional->releaseGPUImage();
+		regional->releaseGPUMask();
+		regional->releaseImageMaskNucleusToGPU();
+	}
+
+	delete regional;
+	printElapsedTime();
+//
+//	beginTimer();
+//	regional->inertiaFromCoocMatrix(Constant::ANGLE_0, procType, false);
+//	printf("PropsImg_0: ");
+//	printElapsedTime();
+//
+//	beginTimer();
+//	regional->inertiaFromCoocMatrix(Constant::ANGLE_45, procType, false);
+//	printf("PropsImg_45: ");
+//	printElapsedTime();
+//
+//	beginTimer();
+//	regional->inertiaFromCoocMatrix(Constant::ANGLE_90, procType, false);
+//	printf("PropsImg_90: ");
+//	printElapsedTime();
+//
+//	beginTimer();
+//	regional->inertiaFromCoocMatrix(Constant::ANGLE_135, procType, false);
+//	printf("PropsImg_135: ");
+//	printElapsedTime();
+//
+//
+//	beginTimer();
+//	regional->calcMaxIntensity(false, procType);
+//	printf("MaxIntensity_image_not_masked:");
+//	printElapsedTime();
+//
+//	if(includeCopyDataCost){
+//		regional->releaseGPUImage();
+//		regional->releaseGPUMask();
+//		regional->releaseImageMaskNucleusToGPU();
+//	}
+//
+//	beginTimer();
+//	regional->calcMaxIntensity(true, procType, false);
+//	printf("MaxIntensity_image_masked:");
+//	printElapsedTime();
+//
+//	if(includeCopyDataCost){
+//		regional->releaseGPUImage();
+//		regional->releaseGPUMask();
+//		regional->releaseImageMaskNucleusToGPU();
+//	}
+//
+//
+//	beginTimer();
+//	regional->calcMaxGradientMagnitude(true, procType, false);
+//	printf("MaxGrad_image_masked:");
+//	printElapsedTime();
+//
+//	if(includeCopyDataCost){
+//		regional->releaseGPUImage();
+//		regional->releaseGPUMask();
+//		regional->releaseImageMaskNucleusToGPU();
+//	}
+//
+//	beginTimer();
+//	regional->calcMaxGradientMagnitude(false, procType, false);
+//	printf("MaxGrad_image_no_masked:");
+//	printElapsedTime();
+//
+//	if(includeCopyDataCost){
+//		regional->releaseGPUImage();
+//		regional->releaseGPUMask();
+//		regional->releaseImageMaskNucleusToGPU();
+//	}
+//
+//	beginTimer();
+//	regional->doIntensityBlob(procType);
+//	printf("doIntensity_blob:");
+//	printElapsedTime();
+//
+//	if(includeCopyDataCost){
+//		regional->releaseGPUImage();
+//		regional->releaseGPUMask();
+//		regional->releaseImageMaskNucleusToGPU();
+//	}
+//
+//	beginTimer();
+//	regional->doGradientBlob(procType);
+//	printf("doGradient_blob:");
+//	printElapsedTime();
+//
+//	beginTimer();
+//	regional->calcSobelArea(procType, 2, 2, 7, false, procType);
+//	printf("Sobel_not_masked:");
+//	printElapsedTime();
+//
+//	if(includeCopyDataCost){
+//		regional->releaseGPUImage();
+//		regional->releaseGPUMask();
+//		regional->releaseImageMaskNucleusToGPU();
+//	}
+//
+//	beginTimer();
+//	regional->calcSobelArea(procType, 2, 2, 7, true);
+//	printf("Sobel_masked:");
+//	printElapsedTime();
+//
+//	if(includeCopyDataCost){
+//		regional->releaseGPUImage();
+//		regional->releaseGPUMask();
+//		regional->releaseImageMaskNucleusToGPU();
+//	}
+
+
+
+
+/*	regional->doIntensityBlob(procType);
+	regional->doGradientBlob(procType);*/
+//	cout << "Inertia = "<< regional->inertiaFromCoocMatrix(Constant::ANGLE_0, procType)<<endl;
+/*	regional->inertiaFromCoocMatrix(Constant::ANGLE_45, procType);
+	regional->inertiaFromCoocMatrix(Constant::ANGLE_90, procType);
+	regional->inertiaFromCoocMatrix(Constant::ANGLE_135, procType);*/
+
+//	regional->calcMaxIntensity(false, procType);
+/*	regional->calcMaxGradientMagnitude(false, procType);
+	regional->calcCannyArea(procType, 0, 130, 7, 0);
+	regional->calcSobelArea(procType, 1, 1, 7, false);*/
+
+
+/*	regional->calcMaxIntensity(true, procType, false);
+	regional->calcMaxGradientMagnitude(true, procType, false);
+	regional->calcCannyArea(procType, 0, 130, 7, 0);
+	regional->calcSobelArea(procType, 1, 1, 7, true);*/
+
+
+
+
+/*	bool reuseResults = true;
 
 	cout << "Inertia = "<< regional->inertiaFromCoocMatrix(ANGLE_0, CPU, reuseResults) <<endl;
 	cout << "Energy = "<< regional->energyFromCoocMatrix(ANGLE_0, CPU, reuseResults) <<endl;
@@ -89,7 +345,7 @@ int main (int argc, char **argv){
 	cout << " Image second grad mag. = "<< regional->calcSecondQuartileGradientMagnitude(false, CPU, reuseResults)<<endl;
 	cout << " Image second grad mag. = "<< regional->calcSecondQuartileGradientMagnitude(true, CPU, reuseResults)<<endl;
 	cout << " Image third grad mag. = "<< regional->calcThirdQuartileGradientMagnitude(false, CPU, reuseResults)<<endl;
-	cout << " Image third grad mag. = "<< regional->calcThirdQuartileGradientMagnitude(true, CPU, reuseResults)<<endl;
+	cout << " Image third grad mag. = "<< regional->calcThirdQuartileGradientMagnitude(true, CPU, reuseResults)<<endl;*/
 
 
 
@@ -158,5 +414,7 @@ int main (int argc, char **argv){
 	double tS = startTime.tv_sec*1000000 + (startTime.tv_usec);
 	double tE = endTime.tv_sec*1000000  + (endTime.tv_usec);
 	printf("Total Time Taken: %lf\n", tE - tS);
-	delete regional;
+
+	cvReleaseImage(&originalImage);
+	cvReleaseImage(&originalImageMask);
 }

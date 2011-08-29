@@ -10,7 +10,10 @@
 
 #include "Contour.h"
 #include "DrawAuxiliar.h"
+#include "Constants.h"
+#include "Operators.h"
 #include <list>
+#include <iomanip>
 
 using namespace std;
 using namespace cv;
@@ -29,6 +32,9 @@ protected:
 	//! Mask image provided for this Blob
 	IplImage *mask;
 
+	// if true it is pointing to an image, except it is an image header
+	bool isImage;
+
 	//! Image header set to the ROI in the original image
 	IplImage *ROISubImage;
 
@@ -39,6 +45,27 @@ protected:
 	unsigned int grad_hist_points;
 
 	CvMemStorage* self_storage;
+
+	//! Matrices holding coocurrence matrix computed from the input image (8x8) by default.
+	// The matrix associated to each angle is stored in [ANGLE_] index.
+	unsigned int **coocMatrix;
+
+	//! Vector containing the number of element in each coocurrence matrix above
+	unsigned int *coocMatrixCount;
+
+	//! Size of the coocurrence matrix in each dimension. It is 8 by default.
+	unsigned int coocSize;
+
+	float inertia;
+	float energy;
+	float entropy;
+	float homogeneity;
+	float maximumProb;
+	float clusterShade;
+	float clusterProminence;
+
+	void doCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask=false);
+	void printCoocMatrix(unsigned int angle);
 
 	// Computes the pixels histogram of the gray input image
 	// and stores it in instensity_hist
@@ -55,18 +82,23 @@ protected:
 		return grad_hist_points;
 	}
 
-	// Retrieves the pointes to the ROI of this
+	// Retrieves the pointers to the ROI of this
 	// blob in the original input image
 	IplImage *getROISubImage(IplImage *img);
 
 	double getMoment(int p, int q);
 	CvBox2D getEllipse();
 
+	void setMaskInUserDataRegion(char *data);
+
+
 	float majorAxisLength;
 	float minorAxisLength;
 
+
 	Blob(){};
 	friend class DrawAuxiliar;
+	friend class RegionalMorphologyAnalysis;
 public:
 	Blob(CvSeq* c, CvSize originalImageSize );
 
@@ -225,6 +257,7 @@ public:
     unsigned int getMaxIntensity(IplImage* img);
     unsigned int getFirstQuartileIntensity(IplImage* img);
     unsigned int getThirdQuartileIntensity(IplImage* img);
+    void printIntensityHistogram(IplImage* img);
 
     //! Calculate pixels Gradient Magnitude
     double getMeanGradMagnitude(IplImage* img);
@@ -235,6 +268,30 @@ public:
     unsigned int getThirdQuartileGradMagnitude(IplImage* img);
     unsigned int getCannyArea(IplImage* img, double lowThresh, double highThresh, int apertureSize = 3);
     unsigned int getSobelArea( IplImage *img, int xorder, int yorder, int apertureSize=3 );
+
+	/* Haralick Features based on co-occurrence matrix. See Blob.h for detailed description on each of them */
+    float inertiaFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults);
+    float energyFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults);
+    float entropyFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults);
+    float homogeneityFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults);
+    float maximumProbabilityFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults);
+    float clusterShadeFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults);
+    float clusterProminenceFromCoocMatrix(unsigned int angle, IplImage *inImage, bool useMask, bool reuseItermediaryResults);
+
+    float getClusterProminence() const;
+    float getClusterShade() const;
+    float getEnergy() const;
+    float getEntropy() const;
+    float getHomogeneity() const;
+    float getInertia() const;
+    float getMaximumProb() const;
+    void setClusterProminence(float clusterProminence);
+    void setClusterShade(float clusterShade);
+    void setEnergy(float energy);
+    void setEntropy(float entropy);
+    void setHomogeneity(float homogeneity);
+    void setInertia(float inertia);
+    void setMaximumProb(float maximumProb);
 
 };
 
