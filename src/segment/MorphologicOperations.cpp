@@ -13,7 +13,7 @@
 
 #include "utils.h"
 #include "MorphologicOperations.h"
-#include "ScanlineOperations.h"
+//#include "ScanlineOperations.h"
 
 
 namespace nscale {
@@ -773,6 +773,7 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 }
 
 
+/*
 // inclusive min, exclusive max
 // TODO:  still not right...
 bool contourAreaFilter2(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea) {
@@ -785,6 +786,7 @@ bool contourAreaFilter2(const std::vector<std::vector<Point> >& contours, const 
 	else return true;
 
 }
+*/
 
 
 // inclusive min, exclusive max

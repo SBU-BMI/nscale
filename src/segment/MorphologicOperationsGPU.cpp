@@ -4,6 +4,8 @@
  *  Created on: Jul 7, 2011
  *      Author: tcpan
  */
+#define HAVE_CUDA 1
+
 
 #include <algorithm>
 #include <queue>
@@ -15,23 +17,19 @@
 #include "MorphologicOperations.h"
 
 #include "precomp.hpp"
-#include "cuda/reconstruction_kernel.cuh"
 
-#if !defined (HAVE_CUDA)
+#include "cuda/imreconstruct_int_kernel.cuh"
+#include "cuda/imreconstruct_float_kernel.cuh"
+#include "cuda/imreconstruct_binary_kernel.cuh"
 
-template <typename T>
-Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) { throw_nogpu(); }
-template <typename T>
-Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) { throw_nogpu(); }
 
-#else
 
 
 namespace nscale {
-using namespace cv;
 
 namespace gpu {
 
+using namespace cv;
 using namespace cv::gpu;
 
 
@@ -45,21 +43,61 @@ using namespace cv::gpu;
  this is slightly optimized by avoiding conditional where possible.
  */
 template <typename T>
-void imreconstruct(const GpuMat& seeds, const GpuMat& image, GpuMat& dest, int connectivity) {
+GpuMat imreconstructInt(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
-	CV_Assert(seeds.type() == CV_8UC1 || seeds.type() == CV_32FC1);
-	CV_Assert(image.type() == CV_8UC1 || image.type() == CV_32FC1);
+	CV_Assert(seeds.type() == CV_8UC1);
+	CV_Assert(image.type() == CV_8UC1);
+
+    // allocate results
+    GpuMat marker;
+    copyMakeBorder(seeds, marker, 1, 1, 1, 1, 0, stream);
+    GpuMat mask;
+    copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
+
+    imreconstructIntCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+    mask.release();
+    // get the result out
+    GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
+    marker.release();
+    return output;
+}
+template GpuMat imreconstructInt<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+
+
+/** slightly optimized serial implementation,
+ from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
+
+ this is the fast hybrid grayscale reconstruction
+
+ connectivity is either 4 or 8, default 4.
+
+ this is slightly optimized by avoiding conditional where possible.
+ */
+template <typename T>
+GpuMat imreconstructFloat(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+	CV_Assert(seeds.type() == CV_32FC1);
+	CV_Assert(image.type() == CV_32FC1);
 
 	const Size size = seeds.size();
     const int type = image.type();
 
     // allocate results
-    dest.create(size, type);
+    GpuMat marker;
+    copyMakeBorder(seeds, marker, 1, 1, 1, 1, 0, stream);
+    GpuMat mask;
+    copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
 
-    reconstruction_by_dilation_kernel(seeds, image, dest, connectivity)
-
+    imreconstructFloatCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+    mask.release();
+    // get the result out
+    GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
+    marker.release();
+    return output;
 }
+template GpuMat imreconstructFloat<float>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
 
@@ -71,147 +109,27 @@ void imreconstruct(const GpuMat& seeds, const GpuMat& image, GpuMat& dest, int c
 
  */
 template <typename T>
-Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
+GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
+	CV_Assert(seeds.type() == CV_8UC1);
+	CV_Assert(image.type() == CV_8UC1);
 
-	Mat output(seeds.size() + Size(2,2), seeds.type());
-	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-	Mat input(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+    // allocate results
+    GpuMat marker;
+    copyMakeBorder(seeds, marker, 1, 1, 1, 1, 0, stream);
+    GpuMat mask;
+    copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
 
-	T pval, ival;
-	int xminus, xplus, yminus, yplus;
-	int maxx = output.cols - 1;
-	int maxy = output.rows - 1;
-	std::queue<int> xQ;
-	std::queue<int> yQ;
-	T* oPtr;
-	T* oPtrPlus;
-	T* oPtrMinus;
-	T* iPtr;
-	T* iPtrPlus;
-	T* iPtrMinus;
-
-	uint64_t t1 = cciutils::ClockGetTime();
-
-	int count = 0;
-	// contour pixel determination.  if any neighbor of a 1 pixel is 0, and the image is 1, then boundary
-	for (int y = 1; y < maxy; ++y) {
-		oPtr = output.ptr<T>(y);
-		oPtrPlus = output.ptr<T>(y+1);
-		oPtrMinus = output.ptr<T>(y-1);
-		iPtr = input.ptr<T>(y);
-
-		for (int x = 1; x < maxx; ++x) {
-
-			pval = oPtr[x];
-			ival = iPtr[x];
-
-			if (pval != 0 && ival != 0) {
-				xminus = x - 1;
-				xplus = x + 1;
-
-				// 4 connected
-				if ((oPtrMinus[x] == 0) ||
-						(oPtrPlus[x] == 0) ||
-						(oPtr[xplus] == 0) ||
-						(oPtr[xminus] == 0)) {
-					xQ.push(x);
-					yQ.push(y);
-//					++count;
-					continue;
-				}
-
-				// 8 connected
-
-				if (connectivity == 8) {
-					if ((oPtrMinus[xminus] == 0) ||
-						(oPtrMinus[xplus] == 0) ||
-						(oPtrPlus[xminus] == 0) ||
-						(oPtrPlus[xplus] == 0)) {
-								xQ.push(x);
-								yQ.push(y);
-//								++count;
-								continue;
-					}
-				}
-			}
-		}
-	}
-
-	uint64_t t2 = cciutils::ClockGetTime();
-	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queued "<< std::endl;
-
-
-	// now process the queue.
-	T qval;
-	T outval = std::numeric_limits<T>::max();
-	int x, y;
-	count = 0;
-	while (!(xQ.empty())) {
-		++count;
-		x = xQ.front();
-		y = yQ.front();
-		xQ.pop();
-		yQ.pop();
-		xminus = x-1;
-		yminus = y-1;
-		yplus = y+1;
-		xplus = x+1;
-
-		oPtr = output.ptr<T>(y);
-		oPtrMinus = output.ptr<T>(y-1);
-		oPtrPlus = output.ptr<T>(y+1);
-		iPtr = input.ptr<T>(y);
-		iPtrMinus = input.ptr<T>(y-1);
-		iPtrPlus = input.ptr<T>(y+1);
-
-		// look at the 4 connected components
-		if (y > 0) {
-			propagateBinary<T>(input, output, xQ, yQ, x, yminus, iPtrMinus, oPtrMinus, outval);
-		}
-		if (y < maxy) {
-			propagateBinary<T>(input, output, xQ, yQ, x, yplus, iPtrPlus, oPtrPlus, outval);
-		}
-		if (x > 0) {
-			propagateBinary<T>(input, output, xQ, yQ, xminus, y, iPtr, oPtr, outval);
-		}
-		if (x < maxx) {
-			propagateBinary<T>(input, output, xQ, yQ, xplus, y, iPtr, oPtr, outval);
-		}
-
-		// now 8 connected
-		if (connectivity == 8) {
-
-			if (y > 0) {
-				if (x > 0) {
-					propagateBinary<T>(input, output, xQ, yQ, xminus, yminus, iPtrMinus, oPtrMinus, outval);
-				}
-				if (x < maxx) {
-					propagateBinary<T>(input, output, xQ, yQ, xplus, yminus, iPtrMinus, oPtrMinus, outval);
-				}
-
-			}
-			if (y < maxy) {
-				if (x > 0) {
-					propagateBinary<T>(input, output, xQ, yQ, xminus, yplus, iPtrPlus, oPtrPlus,outval);
-				}
-				if (x < maxx) {
-					propagateBinary<T>(input, output, xQ, yQ, xplus, yplus, iPtrPlus, oPtrPlus,outval);
-				}
-
-			}
-		}
-
-	}
-
-	uint64_t t3 = cciutils::ClockGetTime();
-	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queued" << std::endl;
-
-	return output(Range(1, maxy), Range(1, maxx));
+    imreconstructBinaryCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+    mask.release();
+    // get the result out
+    GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
+    marker.release();
+    return output;
 
 }
+template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
 //
@@ -627,10 +545,6 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 
 
 
-template Mat imreconstruct<uchar>(const Mat& seeds, const Mat& image, int connectivity);
-template Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
-
-template Mat imreconstructBinary<uchar>(const Mat& seeds, const Mat& binaryImage, int connectivity);
 //template Mat imfill<uchar>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
 //template Mat imfillHoles<uchar>(const Mat& image, bool binary, int connectivity);
 //template Mat bwselect<uchar>(const Mat& binaryImage, const Mat& seeds, int connectivity);
@@ -649,5 +563,3 @@ template Mat imreconstructBinary<uchar>(const Mat& seeds, const Mat& binaryImage
 
 }
 
-
-#endif

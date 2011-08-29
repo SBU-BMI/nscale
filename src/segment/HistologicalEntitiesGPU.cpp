@@ -4,6 +4,7 @@
  *  Created on: Jul 1, 2011
  *      Author: tcpan
  */
+#define HAVE_CUDA 1
 
 #include "HistologicalEntities.h"
 #include <iostream>
@@ -139,7 +140,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	std::vector<Mat> bgr;
 	split(img, bgr);
 	uint64_t t1 = cciutils::ClockGetTime();
-	Mat rbc = nscale::HistologicalEntities::getRBC(bgr);
+	Mat rbc = ::nscale::HistologicalEntities::getRBC(bgr);
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
 

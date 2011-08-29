@@ -8,7 +8,10 @@
 #ifndef MORPHOLOGICOPERATION_H_
 #define MORPHOLOGICOPERATION_H_
 
-#include "cv.h"
+#include "cv.hpp"
+#include "opencv2/gpu/gpu.hpp"
+
+
 
 
 namespace nscale {
@@ -17,6 +20,7 @@ namespace nscale {
 template <typename T>
 cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
+// downhill version...
 cv::Mat imreconstructUChar(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
 template <typename T>
@@ -64,10 +68,13 @@ namespace gpu {
 
 // DOES NOT WORK WITH MULTICHANNEL.
 template <typename T>
-cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
+cv::gpu::GpuMat imreconstructFloat(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
 
 template <typename T>
-cv::Mat imreconstructBinary(const cv::Mat& seeds, const cv::Mat& binaryImage, int connectivity);
+cv::gpu::GpuMat imreconstructInt(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
+
+template <typename T>
+cv::gpu::GpuMat imreconstructBinary(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& binaryImage, int connectivity, cv::gpu::Stream& stream);
 
 
 //template <typename T>
