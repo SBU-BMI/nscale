@@ -59,3 +59,6 @@ clean:
 %.o: %.c
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
 	
+%.o: %.cu
+	$(NVCC) $(NVCC_FLAGS) $(NVCC_INCLUDE) -o $@ -c $<
+	
