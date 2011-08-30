@@ -219,29 +219,30 @@ template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&,
 //}
 //
 //// Operates on BINARY IMAGES ONLY
-//template <typename T>
-//Mat bwselect(const Mat& binaryImage, const Mat& seeds, int connectivity) {
-//	CV_Assert(binaryImage.channels() == 1);
-//	CV_Assert(seeds.channels() == 1);
-//	// only works for binary images.  ~I and max-I are the same....
-//
-//	/** adopted from bwselect and imfill
-//	 * bwselet:
-//	 * seed_indices = sub2ind(size(BW), r(:), c(:));
-//		BW2 = imfill(~BW, seed_indices, n);
-//		BW2 = BW2 & BW;
-//	 *
-//	 * imfill:
-//	 * see imfill function.
-//	 */
-//
-//	Mat marker = Mat::zeros(seeds.size(), seeds.type());
-//	binaryImage.copyTo(marker, seeds);
-//
-//	marker = imreconstructBinary<T>(marker, binaryImage, connectivity);
-//
-//	return marker & binaryImage;
-//}
+template <typename T>
+GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) {
+	CV_Assert(binaryImage.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+	// only works for binary images.  ~I and max-I are the same....
+
+	/** adopted from bwselect and imfill
+	 * bwselet:
+	 * seed_indices = sub2ind(size(BW), r(:), c(:));
+		BW2 = imfill(~BW, seed_indices, n);
+		BW2 = BW2 & BW;
+	 *
+	 * imfill:
+	 * see imfill function.
+	 */
+
+	GpuMat marker;
+	Mat::zeros(seeds.size(), seeds.type());
+	binaryImage.copyTo(marker, seeds);
+
+	GpuMat marker = imreconstructBinary<T>(marker, binaryImage, connectivity, StreamAccessor::getStream(stream));
+
+	return marker & binaryImage;
+}
 //
 //// Operates on BINARY IMAGES ONLY
 //// ideally, output should be 64 bit unsigned.

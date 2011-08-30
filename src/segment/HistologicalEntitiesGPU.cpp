@@ -137,13 +137,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 		return -1;
 	}
 
-	std::vector<Mat> bgr;
-	split(img, bgr);
 	uint64_t t1 = cciutils::ClockGetTime();
-	Mat rbc = ::nscale::HistologicalEntities::getRBC(bgr);
+	GpuMat g_rbc = nscale::gpu::HistologicalEntities::getRBC(g_bgr, stream);
+	stream.waitForCompletion();
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
 
+	Mat rbc;
+	g_rbc.download(rbc);
 	imwrite("test/out-rbc.pbm", rbc);
 
 	/*
@@ -201,6 +202,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	Mat bw1 = nscale::imfillHoles<uchar>(diffIm2, true, 4);
 	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 
+// STOP HERE...
+	
 /*
  *     %CHANGE
     [L] = bwlabel(bw1, 8);
