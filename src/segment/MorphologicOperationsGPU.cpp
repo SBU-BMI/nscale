@@ -235,14 +235,17 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 	 * see imfill function.
 	 */
 
-	GpuMat marker;
-	Mat::zeros(seeds.size(), seeds.type());
-	binaryImage.copyTo(marker, seeds);
+	// general simplified bwselect
 
-	GpuMat marker = imreconstructBinary<T>(marker, binaryImage, connectivity, StreamAccessor::getStream(stream));
+	// since binary, seeds already have the same values as binary images
+	// at the selected places.  If not, the marker will be forced to 0 by imrecon.
 
-	return marker & binaryImage;
+	GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
+
+	// no need to and between marker and binaryImage - since marker is always <= binary image
+	return marker;
 }
+template GpuMat bwselect<uchar>(const GpuMat&, const GpuMat&, int, Stream&);
 //
 //// Operates on BINARY IMAGES ONLY
 //// ideally, output should be 64 bit unsigned.
