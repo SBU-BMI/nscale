@@ -235,10 +235,10 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 
 	uint64_t t1 = cciutils::ClockGetTime();
 	GpuMat output2;
-//	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
-//	else output2 = imreconstruct<T>(marker, mask, connectivity, stream);
-	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
-	//stream.waitForCompletion();
+	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
+	else output2 = imreconstruct<T>(marker, mask, connectivity, stream);
+//	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
+	stream.waitForCompletion();
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 	stream.waitForCompletion();
@@ -277,8 +277,8 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 	// since binary, seeds already have the same values as binary images
 	// at the selected places.  If not, the marker will be forced to 0 by imrecon.
 
-	GpuMat marker = imreconstruct2<T>(seeds, binaryImage, connectivity, stream);
-	//GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
+	//GpuMat marker = imreconstruct2<T>(seeds, binaryImage, connectivity, stream);
+	GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
 
 	// no need to and between marker and binaryImage - since marker is always <= binary image
 	return marker;
