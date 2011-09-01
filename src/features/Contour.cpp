@@ -19,8 +19,6 @@ Contour::Contour(CvSeq *c_l_param)
 	 // Copy the given list sequence of objects defining the Contour
 	 this->c_l = cvCloneSeq(c_l_param, self_storage);
 
-
-
 	 // Initialize contour features, which is used to
 	 // check whether it was calculated before or not
 	 this->area = -1.0;
@@ -36,7 +34,7 @@ Contour::Contour(CvSeq *c_l_param)
 	 this->solidity = -1.0;
 	 this->min_bounding_box.size.width = -1.0;
 	 this->min_bounding_box.size.height = -1.0;
-	 this->m_bounding_box.width = -1.0;
+	 this->m_bounding_box.width = -1;
 	 this->convexHull = NULL;
 	 this->m_moments.m00 = -1.0;
 }

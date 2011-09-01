@@ -20,15 +20,43 @@ int main (int argc, char* argv[])
 		Mat imgMat(inputImage);
 		Mat dest(inputImage);
 		// ProcessTime example
-				struct timeval startTime;
-				struct timeval endTime;
-				// get the current time
-				// - NULL because we don't care about time zone
-				gettimeofday(&startTime, NULL);
-		Sobel(imgMat, dest, CV_8U, 1, 1, 7);
+		struct timeval startTime;
+		struct timeval endTime;
+		// get the current time
+		// - NULL because we don't care about time zone
+		cv::gpu::GpuMat dst, src = cv::gpu::GpuMat(inputImage);
+		cv::gpu::GpuMat kernel;
+
+		gettimeofday(&startTime, NULL);
+
+
+
+
+		cv::gpu::morphologyEx(src, dst, MORPH_GRADIENT, kernel, Point(-1,-1), 1);
+
+		int nonZeroGPU = cv::gpu::countNonZero(dst);
+		cout << "NonZeroGradGPU = "<< nonZeroGPU <<endl;
+
+
+		Mat kernelCPU;
+		morphologyEx(imgMat, dest, MORPH_GRADIENT, kernelCPU, Point(-1,-1), 1);
+		int nonZeroCPU = countNonZero(dest);
+		cout << "NonZeroGradCPU = "<< nonZeroCPU<<endl;
+
+		// This is a temporary structure required by the MorphologyEx operation we'll perform
+		IplImage* tempImg = cvCreateImage( cvSize(inputImage->width, inputImage->height), IPL_DEPTH_8U, 1);
+
+		// This is a temporary structure required by the MorphologyEx operation we'll perform
+		IplImage* magImg = cvCreateImage( cvSize(inputImage->width, inputImage->height), IPL_DEPTH_8U, 1);
+
+		cvMorphologyEx(inputImage, magImg, tempImg, NULL, CV_MOP_GRADIENT);
+		int nonZeroCPU2 = cvCountNonZero(magImg);
+		cout << "NonZeroGradCPU2 = "<< nonZeroCPU2<<endl;
+
+/*		Sobel(imgMat, dest, CV_8U, 1, 1, 7);
 
 		int pixelsSobel = countNonZero(dest);
-		cout << " Sobel area = "<< pixelsSobel <<endl;
+		cout << " Sobel area = "<< pixelsSobel <<endl;*/
 
 		gettimeofday(&endTime, NULL);
 
