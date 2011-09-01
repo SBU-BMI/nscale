@@ -675,14 +675,14 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 
 				// dopredny pruchod pres osu X
 				iRec1DForward_X_dilation2 <<< blocksx, threadsx >>> ( marker, mask, d_change );
-				//iRec1DForward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
+				//iRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// dopredny pruchod pres osu Y
 				iRec1DForward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
 				iRec1DBackward_X_dilation2<<< blocksx, threadsx >>> ( marker, mask, d_change );
-				//iRec1DBackward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
+				//iRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu Y
 				iRec1DBackward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, d_change );
@@ -704,14 +704,14 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 
 				// dopredny pruchod pres osu X
 				iRec1DForward_X_dilation2 <<< blocksx, threadsx >>> ( marker, mask, d_change );
-				//iRec1DForward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
+				//iRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// dopredny pruchod pres osu Y
 				iRec1DForward_Y_dilation <<< blocksy, threadsy >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
 				iRec1DBackward_X_dilation2<<< blocksx, threadsx >>> ( marker, mask, d_change );
-				//iRec1DBackward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
+				//iRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu Y
 				iRec1DBackward_Y_dilation<<< blocksy, threadsy >>> ( marker, mask, d_change );
