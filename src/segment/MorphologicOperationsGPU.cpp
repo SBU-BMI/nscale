@@ -15,14 +15,14 @@
 
 #include "utils.h"
 #include "MorphologicOperations.h"
+#include "PixelOperations.h"
 
 #include "precomp.hpp"
 
 #include "cuda/imreconstruct_int_kernel.cuh"
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
-
-
+#include "cuda/reconstruction_kernel.cuh"
 
 
 namespace nscale {
@@ -33,72 +33,82 @@ using namespace cv;
 using namespace cv::gpu;
 
 
-/** slightly optimized serial implementation,
- from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
-
- this is the fast hybrid grayscale reconstruction
-
- connectivity is either 4 or 8, default 4.
-
- this is slightly optimized by avoiding conditional where possible.
+/**
+ * based on implementation from Pavlo
  */
 template <typename T>
-GpuMat imreconstructInt(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
-	CV_Assert(seeds.type() == CV_8UC1);
-	CV_Assert(image.type() == CV_8UC1);
+	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
+	CV_Assert(image.type() == CV_32FC1 || image.type() == CV_8UC1);
+
+//	Mat c_seeds;
+//	seeds.download(c_seeds);
+//	Mat c_image;
+//	image.download(c_image);
+//	Mat c_output = ::nscale::imreconstruct<T>(c_seeds, c_image, connectivity);
+//
+//	GpuMat output(c_output);
+//	return output;
 
     // allocate results
     GpuMat marker;
-    copyMakeBorder(seeds, marker, 1, 1, 1, 1, 0, stream);
+    copyMakeBorder(seeds, marker, 1, 1, 1, 1, Scalar(0), stream);
     GpuMat mask;
-    copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
+    copyMakeBorder(image, mask, 1, 1, 1, 1, Scalar(0), stream);
 
-    imreconstructIntCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+	if (std::numeric_limits<T>::is_integer) {
+	    imreconstructIntCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+	} else {
+		imreconstructFloatCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+	}
+    stream.waitForCompletion();
     mask.release();
     // get the result out
     GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
     marker.release();
     return output;
 }
-template GpuMat imreconstructInt<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
-/** slightly optimized serial implementation,
- from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
 
- this is the fast hybrid grayscale reconstruction
-
- connectivity is either 4 or 8, default 4.
-
- this is slightly optimized by avoiding conditional where possible.
+/**
+ * based on implementation from Pavlo
  */
 template <typename T>
-GpuMat imreconstructFloat(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
-	CV_Assert(seeds.type() == CV_32FC1);
-	CV_Assert(image.type() == CV_32FC1);
+	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
+	CV_Assert(image.type() == CV_32FC1 || image.type() == CV_8UC1);
 
-	const Size size = seeds.size();
-    const int type = image.type();
+//	Mat c_seeds;
+//	seeds.download(c_seeds);
+//	Mat c_image;
+//	image.download(c_image);
+//	Mat c_output = ::nscale::imreconstruct<T>(c_seeds, c_image, connectivity);
+//
+//	GpuMat output(c_output);
+//	return output;
 
     // allocate results
-    GpuMat marker;
-    copyMakeBorder(seeds, marker, 1, 1, 1, 1, 0, stream);
-    GpuMat mask;
-    copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
+	GpuMat marker = createContinuous(seeds.size(), seeds.type());
+	stream.enqueueCopy(seeds, marker);
+	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
 
-    imreconstructFloatCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+	GpuMat mask = createContinuous(image.size(), image.type());
+	stream.enqueueCopy(image, mask);
+	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
+
+	stream.waitForCompletion();
+	reconstruction_by_dilation_kernel(marker.data, mask.data, seeds.cols, seeds.rows, 1);
     mask.release();
-    // get the result out
-    GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
-    marker.release();
-    return output;
+    return marker;
 }
-template GpuMat imreconstructFloat<float>(const GpuMat&, const GpuMat&, int, Stream&);
-
+template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
 
@@ -110,6 +120,7 @@ template GpuMat imreconstructFloat<float>(const GpuMat&, const GpuMat&, int, Str
  */
 template <typename T>
 GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
 	CV_Assert(seeds.type() == CV_8UC1);
@@ -122,11 +133,23 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
     copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
 
     imreconstructBinaryCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+    stream.waitForCompletion();
     mask.release();
     // get the result out
     GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
     marker.release();
-    return output;
+	return output;
+
+
+//	Mat c_seeds;
+//	seeds.download(c_seeds);
+//	Mat c_image;
+//	image.download(c_image);
+//	Mat c_output = ::nscale::imreconstructBinary<T>(c_seeds, c_image, connectivity);
+//
+//	GpuMat output(c_output);
+//
+//	return output;
 
 }
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
@@ -147,7 +170,7 @@ template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&,
 //    I2 = I | marker;
 //	 */
 //
-//	Mat mask = cciutils::cv::invert<T>(image);  // validated
+//	Mat mask = nscale::gpu::PixelOperations::invert<T>(image, stream);  // validated
 //
 //	Mat marker = Mat::zeros(mask.size(), mask.type());
 //
@@ -159,66 +182,80 @@ template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&,
 //	return image | marker;
 //}
 //
-//template <typename T>
-//Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
-//	CV_Assert(image.channels() == 1);
-//
-//	/* MatLAB imfill hole code:
-//    if islogical(I)
-//        mask = uint8(I);
-//    else
-//        mask = I;
-//    end
-//    mask = padarray(mask, ones(1,ndims(mask)), -Inf, 'both');
-//
-//    marker = mask;
-//    idx = cell(1,ndims(I));
-//    for k = 1:ndims(I)
-//        idx{k} = 2:(size(marker,k) - 1);
-//    end
-//    marker(idx{:}) = Inf;
-//
-//    mask = imcomplement(mask);
-//    marker = imcomplement(marker);
-//    I2 = imreconstruct(marker, mask, conn);
-//    I2 = imcomplement(I2);
-//    I2 = I2(idx{:});
-//
-//    if islogical(I)
-//        I2 = I2 ~= 0;
-//    end
-//	 */
-//
-//	T mn = cciutils::min<T>();
-//	T mx = std::numeric_limits<T>::max();
-//	Rect roi = Rect(1, 1, image.cols, image.rows);
-//
-//	// copy the input and pad with -inf.
-//	Mat mask(image.size() + Size(2,2), image.type());
-//	copyMakeBorder(image, mask, 1, 1, 1, 1, BORDER_CONSTANT, mn);
-//	// create marker with inf inside and -inf at border, and take its complement
-//	Mat marker(mask.size(), mask.type());
-//	Mat marker2(marker, roi);
-//	marker2 = Scalar(mn);
-//	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
-//	copyMakeBorder(marker2, marker, 1, 1, 1, 1, BORDER_CONSTANT, mx);
-//
-//	// now do the work...
-//	mask = cciutils::cv::invert<T>(mask);
-//
-//	uint64_t t1 = cciutils::ClockGetTime();
-//	Mat output;
-//	if (binary) output = imreconstructBinary<T>(marker, mask, connectivity);
-//	else output = imreconstruct<T>(marker, mask, connectivity);
-//	uint64_t t2 = cciutils::ClockGetTime();
-//	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
-//
-//	output = cciutils::cv::invert<T>(output);
-//
-//	return output(roi);
-//}
-//
-//// Operates on BINARY IMAGES ONLY
+template <typename T>
+GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) {
+	CV_Assert(image.channels() == 1);
+
+	/* MatLAB imfill hole code:
+    if islogical(I)
+        mask = uint8(I);
+    else
+        mask = I;
+    end
+    mask = padarray(mask, ones(1,ndims(mask)), -Inf, 'both');
+
+    marker = mask;
+    idx = cell(1,ndims(I));
+    for k = 1:ndims(I)
+        idx{k} = 2:(size(marker,k) - 1);
+    end
+    marker(idx{:}) = Inf;
+
+    mask = imcomplement(mask);
+    marker = imcomplement(marker);
+    I2 = imreconstruct(marker, mask, conn);
+    I2 = imcomplement(I2);
+    I2 = I2(idx{:});
+
+    if islogical(I)
+        I2 = I2 ~= 0;
+    end
+	 */
+
+	T mn = cciutils::min<T>();
+	T mx = std::numeric_limits<T>::max();
+	Rect roi = Rect(1, 1, image.cols, image.rows);
+
+	// copy the input and pad with -inf.
+	GpuMat mask2;
+	copyMakeBorder(image, mask2, 1, 1, 1, 1, Scalar(mn), stream);
+	// create marker with inf inside and -inf at border, and take its complement
+	GpuMat marker;
+	GpuMat marker2(image.size(), image.type());
+	stream.enqueueMemSet(marker2, Scalar(mn));
+
+	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
+	copyMakeBorder(marker2, marker, 1, 1, 1, 1, Scalar(mx), stream);
+
+	// now do the work...
+	GpuMat mask = nscale::gpu::PixelOperations::invert<T>(mask2, stream);
+	stream.waitForCompletion();
+	marker2.release();
+	mask2.release();
+
+	uint64_t t1 = cciutils::ClockGetTime();
+	GpuMat output2;
+//	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
+//	else output2 = imreconstruct<T>(marker, mask, connectivity, stream);
+	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
+	//stream.waitForCompletion();
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
+	stream.waitForCompletion();
+	marker.release();
+	mask.release();
+
+	GpuMat output3 = nscale::gpu::PixelOperations::invert<T>(output2, stream);
+	stream.waitForCompletion();
+	output2.release();
+	GpuMat output(output3, roi);
+	output3.release();
+
+	return output;
+}
+template GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
+
+// Operates on BINARY IMAGES ONLY
 template <typename T>
 GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) {
 	CV_Assert(binaryImage.channels() == 1);
@@ -240,12 +277,13 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 	// since binary, seeds already have the same values as binary images
 	// at the selected places.  If not, the marker will be forced to 0 by imrecon.
 
-	GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
+	GpuMat marker = imreconstruct2<T>(seeds, binaryImage, connectivity, stream);
+	//GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
 
 	// no need to and between marker and binaryImage - since marker is always <= binary image
 	return marker;
 }
-template GpuMat bwselect<uchar>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 //
 //// Operates on BINARY IMAGES ONLY
 //// ideally, output should be 64 bit unsigned.
@@ -416,10 +454,10 @@ template GpuMat bwselect<uchar>(const GpuMat&, const GpuMat&, int, Stream&);
 //		I2 = imcomplement(I2);
 //	 *
 //	 */
-//	Mat mask = cciutils::cv::invert<T>(image);
+//	Mat mask = nscale::gpu::PixelOperations::invert<T>(image, stream);
 //	Mat marker = mask - h;
 //	Mat output = imreconstruct<T>(marker, mask, connectivity);
-//	return cciutils::cv::invert<T>(output);
+//	return nscale::gpu::PixelOperations::invert<T>(output,stream);
 //}
 //
 //// input should have foreground > 0, and 0 for background
@@ -542,7 +580,7 @@ template GpuMat bwselect<uchar>(const GpuMat&, const GpuMat&, int, Stream&);
 //	// only works for intensity images.
 //	CV_Assert(image.channels() == 1);
 //
-//	Mat cimage = cciutils::cv::invert<T>(image);
+//	Mat cimage = nscale::gpu::PixelOperations::invert<T>(image, stream);
 //	return localMaxima<T>(cimage, connectivity);
 //}
 
@@ -550,7 +588,6 @@ template GpuMat bwselect<uchar>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
 //template Mat imfill<uchar>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
-//template Mat imfillHoles<uchar>(const Mat& image, bool binary, int connectivity);
 //template Mat bwselect<uchar>(const Mat& binaryImage, const Mat& seeds, int connectivity);
 //template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
 //		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),

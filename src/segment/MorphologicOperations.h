@@ -67,27 +67,28 @@ namespace gpu {
 // GPU versions of the same functions.
 
 // DOES NOT WORK WITH MULTICHANNEL.
-template <typename T>
-cv::gpu::GpuMat imreconstructFloat(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
 
 template <typename T>
-cv::gpu::GpuMat imreconstructInt(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
+cv::gpu::GpuMat imreconstruct(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
 
 template <typename T>
 cv::gpu::GpuMat imreconstructBinary(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& binaryImage, int connectivity, cv::gpu::Stream& stream);
+
+template <typename T>
+cv::gpu::GpuMat imreconstruct2(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
 
 
 //template <typename T>
 //cv::Mat imfill(const cv::Mat& image, const cv::Mat& seeds, bool binary, int connectivity);
 //
-//template <typename T>
-//cv::Mat imfillHoles(const cv::Mat& image, bool binary, int connectivity);
-//
-//
-//
-//template <typename T>
-//cv::Mat bwselect(const cv::Mat& binaryImage, const cv::Mat& seeds, int connectivity);
-//
+template <typename T>
+cv::gpu::GpuMat imfillHoles(const cv::gpu::GpuMat& image, bool binary, int connectivity, cv::gpu::Stream& stream);
+
+
+
+template <typename T>
+cv::gpu::GpuMat bwselect(const cv::gpu::GpuMat& binaryImage, const cv::gpu::GpuMat& seeds, int connectivity, cv::gpu::Stream& stream);
+
 //cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, bool contourOnly, int connectivity);
 //// incorporates a filter for the contours.
 //template <typename T>

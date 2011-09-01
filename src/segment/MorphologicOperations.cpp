@@ -13,7 +13,7 @@
 
 #include "utils.h"
 #include "MorphologicOperations.h"
-//#include "ScanlineOperations.h"
+#include "PixelOperations.h"
 
 
 namespace nscale {
@@ -554,7 +554,7 @@ Mat imfill(const Mat& image, const Mat& seeds, bool binary, int connectivity) {
     I2 = I | marker;
 	 */
 
-	Mat mask = cciutils::cv::invert<T>(image);  // validated
+	Mat mask = nscale::PixelOperations::invert<T>(image);  // validated
 
 	Mat marker = Mat::zeros(mask.size(), mask.type());
 
@@ -611,7 +611,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 	copyMakeBorder(marker2, marker, 1, 1, 1, 1, BORDER_CONSTANT, mx);
 
 	// now do the work...
-	mask = cciutils::cv::invert<T>(mask);
+	mask = nscale::PixelOperations::invert<T>(mask);
 
 	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
@@ -620,7 +620,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 
-	output = cciutils::cv::invert<T>(output);
+	output = nscale::PixelOperations::invert<T>(output);
 
 	return output(roi);
 }
@@ -836,10 +836,10 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 		I2 = imcomplement(I2);
 	 *
 	 */
-	Mat mask = cciutils::cv::invert<T>(image);
+	Mat mask = nscale::PixelOperations::invert<T>(image);
 	Mat marker = mask - h;
 	Mat output = imreconstruct<T>(marker, mask, connectivity);
-	return cciutils::cv::invert<T>(output);
+	return nscale::PixelOperations::invert<T>(output);
 }
 
 // input should have foreground > 0, and 0 for background
@@ -962,7 +962,7 @@ Mat_<uchar> localMinima(const Mat& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
-	Mat cimage = cciutils::cv::invert<T>(image);
+	Mat cimage = nscale::PixelOperations::invert<T>(image);
 	return localMaxima<T>(cimage, connectivity);
 }
 

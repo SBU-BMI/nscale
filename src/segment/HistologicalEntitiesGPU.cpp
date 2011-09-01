@@ -9,6 +9,7 @@
 #include "HistologicalEntities.h"
 #include <iostream>
 #include "MorphologicOperations.h"
+#include "PixelOperations.h"
 #include "highgui.h"
 #include "float.h"
 #include "utils.h"
@@ -41,8 +42,8 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
         rbc = zeros(size(imR2G));
     end
 	 */
-	double T1 = 5.0;
-	double T2 = 4.0;
+	float T1 = 5.0;
+	float T2 = 4.0;
 	Size s = bgr[0].size();
 	int newType = CV_32FC1;
 	GpuMat bd, gd, rd;
@@ -53,27 +54,27 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 	stream.waitForCompletion();
 
 	GpuMat imR2G, imR2B;
-	divide(rd, gd, imR2G);
-	divide(rd, bd, imR2B);
+	divide(rd, gd, imR2G, stream);
+	divide(rd, bd, imR2B, stream);
+	stream.waitForCompletion();
 	rd.release();
 	gd.release();
 	bd.release();
-	GpuMat bw3(s, CV_8UC1);
-	threshold(imR2B, bw3, 1.0, std::numeric_limits<uchar>::max(), THRESH_BINARY);
-	GpuMat bw1(s, CV_8UC1);
-	threshold(imR2G, bw1, T1, std::numeric_limits<uchar>::max(), THRESH_BINARY);
-	GpuMat bw2(s, CV_8UC1);
-	threshold(imR2G, bw2, T2, std::numeric_limits<uchar>::max(), THRESH_BINARY);
+	GpuMat bw3 = PixelOperations::threshold<float>(imR2B, 1.0, std::numeric_limits<float>::max(), stream);
+	GpuMat bw1 = PixelOperations::threshold<float>(imR2G, T1, std::numeric_limits<float>::max(), stream);
+	GpuMat bw2 = PixelOperations::threshold<float>(imR2G, T2, std::numeric_limits<float>::max(), stream);
+	stream.waitForCompletion();
+	imR2G.release();
+	imR2B.release();
 
-	GpuMat temp;
-	GpuMat rbc(s, CV_8UC1, Scalar(0));
+	GpuMat rbc(s, CV_8UC1);
+	stream.enqueueMemSet(rbc, Scalar(0));
 	if (countNonZero(bw1) > 0) {
-		Mat bw1c, bw2c, tempc;
-		bw1.download(bw1c);
-		bw2.download(bw2c);
-		tempc = nscale::bwselect<uchar>(bw2c, bw1c, 8);
-		temp.upload(tempc);
-		bitwise_and(temp, bw3, rbc);
+
+		GpuMat temp = nscale::gpu::bwselect<unsigned char>(bw2, bw1, 8, stream);
+		bitwise_and(temp, bw3, rbc, GpuMat(), stream);
+		stream.waitForCompletion();
+		temp.release();
 	}
 	bw1.release();
 	bw2.release();
@@ -128,8 +129,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	split(g_img, g_bgr, stream);
 
 	GpuMat g_bg = getBackground(g_bgr, stream);
-
 	int bgArea = countNonZero(g_bg);
+	stream.waitForCompletion();
+	g_bg.release();
+
 	float ratio = (float)bgArea / (float)(img.size().area());
 	std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
 	if (ratio >= 0.9) {
@@ -139,13 +142,20 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 
 	uint64_t t1 = cciutils::ClockGetTime();
 	GpuMat g_rbc = nscale::gpu::HistologicalEntities::getRBC(g_bgr, stream);
-	stream.waitForCompletion();
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
+	GpuMat g_r(g_bgr[2]);
+	stream.waitForCompletion();
+	g_bgr[0].release();
+	g_bgr[1].release();
+	g_bgr[2].release();
 
-	Mat rbc;
-	g_rbc.download(rbc);
+
+	Mat rbc(g_rbc.size(), g_rbc.type());
+	stream.enqueueDownload(g_rbc, rbc);
+	stream.waitForCompletion();
 	imwrite("test/out-rbc.pbm", rbc);
+	g_rbc.release();
 
 	/*
 	rc = 255 - r;
@@ -154,8 +164,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
     diffIm = rc-rc_recon;
 	 */
 
-	Mat rc = cciutils::cv::invert<uchar>(bgr[2]);
-	Mat rc_open(rc.size(), rc.type());
+	GpuMat g_rc = nscale::gpu::PixelOperations::invert<unsigned char>(g_r, stream);
+	stream.waitForCompletion();
+	g_r.release();
+	GpuMat g_rc_open(g_rc.size(), g_rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
 	// structuring element is not the same between matlab and opencv.  using the one from matlab explicitly....
 	// (for 4, 6, and 8 connected, they are approximations).
@@ -179,15 +191,36 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 			0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
 			0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
 			0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0};
-	std::vector<uchar> disk19vec(disk19raw, disk19raw+361);
+	std::vector<unsigned char> disk19vec(disk19raw, disk19raw+361);
 	Mat disk19(disk19vec);
 	disk19 = disk19.reshape(1, 19);
 	imwrite("test/out-rcopen-strel.pbm", disk19);
-	morphologyEx(rc, rc_open, CV_MOP_OPEN, disk19, Point(-1, -1), 1);
+	// filter doesnot check borders.  so need to create border.
+	GpuMat rc_border;
+	copyMakeBorder(g_rc, rc_border, 9,9,9,9, Scalar(0), stream);
+	stream.waitForCompletion();
+	GpuMat rc_roi(rc_border, Range(9, 9+ g_rc.size().height), Range(9, 9+g_rc.size().width));
+	morphologyEx(rc_roi, g_rc_open, MORPH_OPEN, disk19, Point(-1, -1), 1, stream);
+	Mat rc_open(g_rc_open.size(), g_rc_open.type());
+	stream.enqueueDownload(g_rc_open, rc_open);
+	stream.waitForCompletion();
+	rc_roi.release();
+	rc_border.release();
 	imwrite("test/out-rcopen.ppm", rc_open);
 
-	Mat rc_recon = nscale::imreconstruct<uchar>(rc_open, rc, 8);
-	Mat diffIm = rc - rc_recon;
+
+//	GpuMat g_rc_recon = nscale::gpu::imreconstruct<unsigned char>(g_rc_open, g_rc, 8, stream);
+	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream);
+	GpuMat g_diffIm;
+	subtract(g_rc, g_rc_recon, g_diffIm, stream);
+	stream.waitForCompletion();
+	g_rc_open.release();
+	g_rc.release();
+	g_rc_recon.release();
+
+	Mat diffIm(g_diffIm.size(), g_diffIm.type());
+	stream.enqueueDownload(g_diffIm, diffIm);
+	stream.waitForCompletion();
 	imwrite("test/out-redchannelvalleys.ppm", diffIm);
 
 /*
@@ -198,12 +231,21 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
  *
  */
 	uchar G1 = 80;
-	Mat diffIm2 = diffIm > G1;
-	Mat bw1 = nscale::imfillHoles<uchar>(diffIm2, true, 4);
+	GpuMat g_diffIm2;
+	threshold(g_diffIm, g_diffIm2, G1, std::numeric_limits<unsigned char>::max(), THRESH_BINARY, stream);
+	stream.waitForCompletion();
+	g_diffIm.release();
+
+	GpuMat g_bw1 = nscale::gpu::imfillHoles<unsigned char>(g_diffIm2, true, 4, stream);
+	Mat bw1(g_bw1.size(), g_bw1.type());
+	stream.enqueueDownload(g_bw1, bw1);
+	stream.waitForCompletion();
+	g_diffIm2.release();
+	g_bw1.release();
 	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 
-// STOP HERE...
-	
+	g_img.release();
+	std::cout << "Completed GPU phase" << std::endl;
 /*
  *     %CHANGE
     [L] = bwlabel(bw1, 8);

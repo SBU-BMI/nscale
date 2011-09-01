@@ -28,19 +28,19 @@ int main (int argc, char **argv){
 	Mat img = imread(imagename);
 
 	if (!img.data) return -1;
-	namedWindow("orig image", CV_WINDOW_AUTOSIZE);
-	imshow("orig image", img);
+//	namedWindow("orig image", CV_WINDOW_AUTOSIZE);
+//	imshow("orig image", img);
 
 
 
 	Mat gray(img.size(), CV_8UC1);
 	cvtColor(img, gray, CV_BGR2GRAY);
-	namedWindow("gray image", CV_WINDOW_AUTOSIZE);
-	imshow("gray image", gray);
+//	namedWindow("gray image", CV_WINDOW_AUTOSIZE);
+//	imshow("gray image", gray);
 	imwrite("test/out-gray.tif", gray);
 	imwrite("test/out-gray.ppm", gray);
 
-	waitKey();
+//	waitKey();
 
 	return 0;
 }

@@ -2,26 +2,26 @@ all: nu-segment.exe tests
 
 tests: imrecontest.exe localmaxtest.exe misctest.exe imfilltest.exe
 
-CXX=g++ 
+CXX=/usr/bin/g++-4.4 
 CXXFLAGS=-g -fPIC -pg -msse4.2 -fopenmp -O3
 #CXX=icpc
 #CXXFLAGS=-g -fast -openmp -msse4.2
 
 NVCC=nvcc
-NVCC_FLAGS=-m64 -g -O3 #-G
+NVCC_FLAGS=-m64 -g -G #-O3
 NVCC_INCLUDE=-I/home/tcpan/PhD/path/ext/NVIDIA_GPU_Computing_SDK/C/common/inc/ -I/usr/lib/nvidia-cuda-toolkit/include/ -I/usr/include/
-CUDA_LIBS= -L/usr/lib -lcudart
+CUDA_LIBS= -L/usr/local/cuda/lib64 -lcudart
 
-CUDA_CV_INCLUDE =-I/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src/cuda -I/usr/local/include/opencv2/gpu/
+CUDA_CV_INCLUDE =-I/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src/cuda -I/usr/local/include/opencv2/gpu/ -I/usr/local/cuda/include
 CV_GPU_INCLUDE =-I/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src
 
 
 RM=/bin/rm -rf
 
-CUDA_SRC = cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
-GPU_SRC = HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp 
+CUDA_SRC = cuda/reconstruction_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
+GPU_SRC = HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperationsGPU.cpp
 
-LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp 
+LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp
 GPU_LIB_SRC = ${CUDA_SRC} ${GPU_SRC}
 
 SRC= nu-segment.cpp 

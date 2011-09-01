@@ -9,4 +9,4 @@ out-*.raw
 *.m~
 *.out
 *.profile
-
+*.trc

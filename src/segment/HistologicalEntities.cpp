@@ -8,6 +8,7 @@
 #include "HistologicalEntities.h"
 #include <iostream>
 #include "MorphologicOperations.h"
+#include "PixelOperations.h"
 #include "highgui.h"
 #include "float.h"
 #include "utils.h"
@@ -113,7 +114,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
     diffIm = rc-rc_recon;
 	 */
 
-	Mat rc = cciutils::cv::invert<uchar>(bgr[2]);
+	Mat rc = nscale::PixelOperations::invert<uchar>(bgr[2]);
 	Mat rc_open(rc.size(), rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
 	// structuring element is not the same between matlab and opencv.  using the one from matlab explicitly....

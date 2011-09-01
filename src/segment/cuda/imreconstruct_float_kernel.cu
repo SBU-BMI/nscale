@@ -629,6 +629,12 @@ fRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 	void imreconstructFloatCaller(DevMem2D_<T> marker, const DevMem2D_<T> mask,
 		int connectivity, cudaStream_t stream) {
 
+
+		// here because we are not using streams inside.
+		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+		else cudaSafeCall( cudaStreamSynchronize(stream));
+
+		printf("entering imrecon float caller with conn=%d\n", connectivity);
 		// setup execution parameters
 		int sx = marker.cols;
 		int sy = marker.rows;
@@ -655,30 +661,31 @@ fRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 		cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
 		
 		*h_change = true;
+		printf("completed setup for imrecon binary caller \n");
 
 		if (conn8) {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
 			{
 				iter++;
 				*h_change = false;
-				init_change<<< 1, 1, 0, stream>>>( d_change );
+				init_change<<< 1, 1>>>( d_change );
 
 				// dopredny pruchod pres osu X
-				fRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, d_change );
+				fRec1DForward_X_dilation <<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//fRec1DForward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
 
 				// dopredny pruchod pres osu Y
-				fRec1DForward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, d_change );
+				fRec1DForward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
-				fRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, d_change );
+				fRec1DBackward_X_dilation<<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//fRec1DBackward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu Y
-				fRec1DBackward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, d_change );
+				fRec1DBackward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, d_change );
 
-				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-				else cudaSafeCall( cudaStreamSynchronize(stream));
+//				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+//				else cudaSafeCall( cudaStreamSynchronize(stream));
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 
@@ -688,24 +695,24 @@ fRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 			{
 				iter++;
 				*h_change = false;
-				init_change<<< 1, 1, 0, stream>>>( d_change );
+				init_change<<< 1, 1>>>( d_change );
 
 				// dopredny pruchod pres osu X
-				fRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, d_change );
+				fRec1DForward_X_dilation <<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//fRec1DForward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
-				
+
 				// dopredny pruchod pres osu Y
-				fRec1DForward_Y_dilation <<< blocksy, threadsy, 0, stream >>> ( marker, mask, d_change );
+				fRec1DForward_Y_dilation <<< blocksy, threadsy >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
-				fRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, d_change );
+				fRec1DBackward_X_dilation<<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//fRec1DBackward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu Y
-				fRec1DBackward_Y_dilation<<< blocksy, threadsy, 0, stream >>> ( marker, mask, d_change );
+				fRec1DBackward_Y_dilation<<< blocksy, threadsy >>> ( marker, mask, d_change );
 
-				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-				else cudaSafeCall( cudaStreamSynchronize(stream));
+//				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+//				else cudaSafeCall( cudaStreamSynchronize(stream));
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 
