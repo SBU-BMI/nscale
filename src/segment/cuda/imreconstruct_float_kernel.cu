@@ -3,8 +3,8 @@
 #include "internal_shared.hpp"
 #include "change_kernel.cuh"
 
-#define MAX_THREADS			512
-#define X_THREADS			64
+#define MAX_THREADS			64
+#define X_THREADS			8
 #define Y_THREADS			8
 #define NEQ(a,b)    ( (a) != (b) )
 
