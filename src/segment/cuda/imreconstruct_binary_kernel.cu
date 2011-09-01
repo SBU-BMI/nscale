@@ -510,19 +510,20 @@ bRec1DForward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 {
 	// parallelize along x.
 	const int tx = threadIdx.x;
-	const int bx = blockIdx.x * (MAX_THREADS - 2) - 1;
+	const int bx = blockIdx.x * MAX_THREADS;
 	const int sx = g_marker.cols;
 	const int sy = g_marker.rows;
 	const int marker_step = g_marker.step;
 	const int mask_step = g_mask.step;
 	int x = bx+tx;
 	
-	if ( x >= 0 && x < sx ) {
+	if ( x > 0 && x < (sx-1) ) {
 
 		__shared__ T s_marker_A[MAX_THREADS];
 		__shared__ T s_marker_B[MAX_THREADS];
 		__shared__ T s_mask    [MAX_THREADS];
 		__shared__ bool  s_change  [MAX_THREADS];
+		
 		T* marker = g_marker.ptr(0) + x;
 		T* mask = g_mask.ptr(0) + x;
 		s_change[tx] = false;
@@ -531,32 +532,32 @@ bRec1DForward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 
 		T s_old;
 		for (int ty = 1; ty < sy; ty++) {
-			marker += marker_step;
-			mask += mask_step;
 		
 			// copy part of marker and mask to shared memory
 			s_marker_A[tx] = s_marker_B[tx];
+			if (x > 0 && x < sx-1) {
+				s_marker_A[tx] |= (tx == 0) ? marker[-1] : s_marker_B[tx-1];
+				s_marker_A[tx] |= (tx == blockDim.x-1) ? marker[blockDim.x] : s_marker_B[tx+1];
+			}
+			__syncthreads();
+
+			marker += marker_step;
+			mask += mask_step;
 			s_marker_B[tx] = *marker;
 			s_mask    [tx] = *mask;
 			__syncthreads();
 
 			// perform iteration
-			if (tx > 0 && tx < MAX_THREADS - 1) {
-				s_old = s_marker_B[tx];
-				s_marker_B[tx] |= s_marker_A[tx];
-				s_marker_B[tx] |= s_marker_A[tx-1];
-				s_marker_B[tx] |= s_marker_A[tx+1];
-				s_marker_B[tx] &= s_mask    [tx];
-				s_change[tx] |=  s_old ^ s_marker_B[tx];
-				// output result back to global memory
-				*marker = s_marker_B[tx];
-			}
+			s_old = s_marker_B[tx];
+			s_marker_B[tx] |= s_marker_A[tx];
+			s_marker_B[tx] &= s_mask    [tx];
+			s_change[tx] |=  s_old ^ s_marker_B[tx];
+			// output result back to global memory
+			*marker = s_marker_B[tx];
 			__syncthreads();
 		}
 
-		if (tx > 0 && tx < MAX_THREADS - 1) {
-			if (s_change[tx]) *change = true;
-		}
+		if (s_change[tx]) *change = true;
 		__syncthreads();
 	}
 }
@@ -567,7 +568,7 @@ bRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 {
 
 	const int tx = threadIdx.x;
-	const int bx = blockIdx.x * (MAX_THREADS - 2) - 1;
+	const int bx = blockIdx.x * MAX_THREADS;
 	const int sx = g_marker.cols;
 	const int sy = g_marker.rows;
 	const int marker_step = g_marker.step;
@@ -580,6 +581,7 @@ bRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 		__shared__ T s_marker_B[MAX_THREADS];
 		__shared__ T s_mask    [MAX_THREADS];
 		__shared__ bool  s_change  [MAX_THREADS];
+		
 		T* marker = g_marker.ptr(sy-1) + x;
 		T* mask = g_mask.ptr(sy-1) + x;
 		s_change[tx] = false;
@@ -588,33 +590,33 @@ bRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 
 		T s_old;
 		for (int ty = sy - 2; ty >= 0; ty--) {
-			marker -= marker_step;
-			mask -= mask_step;
 
 			// copy part of marker and mask to shared memory
 			s_marker_A[tx] = s_marker_B[tx];
+			if (x > 0 && x < sx-1) {
+				s_marker_A[tx] |= (tx == 0) ? marker[-1] : s_marker_B[tx-1];
+				s_marker_A[tx] |= (tx == blockDim.x-1) ? marker[blockDim.x] : s_marker_B[tx+1];
+			}
+			__syncthreads();
+
+			marker -= marker_step;
+			mask -= mask_step;
 			s_marker_B[tx] = *marker;
 			s_mask    [tx] = *mask;
 			__syncthreads();
 
 			// perform iteration
-			if (tx > 0 && tx < MAX_THREADS - 1) {
-				s_old = s_marker_B[tx];
-				s_marker_B[tx] |= s_marker_A[tx];
-				s_marker_B[tx] |= s_marker_A[tx-1];
-				s_marker_B[tx] |= s_marker_A[tx+1];
-				s_marker_B[tx] &= s_mask    [tx];
-				s_change[tx] |=  s_old ^ s_marker_B[tx];				// output result back to global memory
-				*marker = s_marker_B[tx];
-			}
+			s_old = s_marker_B[tx];
+			s_marker_B[tx] |= s_marker_A[tx];
+			s_marker_B[tx] &= s_mask    [tx];
+			s_change[tx] |=  s_old ^ s_marker_B[tx];				// output result back to global memory
+			*marker = s_marker_B[tx];
 			__syncthreads();
 
 
 		}
 
-		if (tx > 0 && tx < MAX_THREADS - 1) {
-			if (s_change[tx]) *change = true;
-		}
+		if (s_change[tx]) *change = true;
 		__syncthreads();
 
 	}
