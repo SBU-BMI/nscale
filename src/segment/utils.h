@@ -9,12 +9,14 @@
 #define UTILS_H_
 
 #include "cv.h"
+#include <fstream>;
 
 namespace cciutils {
 
 const int DEVICE_CPU = 0;
 const int DEVICE_MCORE = 1;
 const int DEVICE_GPU = 2;
+
 
 inline uint64_t ClockGetTime()
 {
@@ -37,6 +39,19 @@ template <typename T>
 inline bool sameSign(T a, T b) {
 	return ((a^b) >= 0);
 }
+
+class SimpleCSVLogger {
+public :
+
+	void startLogger(const char* name) {};
+	void stopLogger() {};
+	
+	template <typename T>
+	void log(const char* eventName, T eventVal) {};
+protected :
+	ofstream header;
+	ofstream value;
+};
 
 namespace cv {
 
