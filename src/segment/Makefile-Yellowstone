@@ -9,10 +9,10 @@ CXXFLAGS=-g -fPIC -pg -msse4.2 -fopenmp -O3
 
 NVCC=nvcc
 NVCC_FLAGS=-m64 -g -G #-O3
-NVCC_INCLUDE=-I/home/tcpan/PhD/path/ext/NVIDIA_GPU_Computing_SDK/C/common/inc/ -I/usr/lib/nvidia-cuda-toolkit/include/ -I/usr/include/
+NVCC_INCLUDE=-I/usr/local/cuda/include
 CUDA_LIBS= -L/usr/local/cuda/lib64 -lcudart
 
-CUDA_CV_INCLUDE =-I/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src/cuda -I/usr/local/include/opencv2/gpu/ -I/usr/local/cuda/include
+CUDA_CV_INCLUDE =-I/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src/cuda -I/usr/local/include/opencv2/gpu
 CV_GPU_INCLUDE =-I/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src
 
 

@@ -1,0 +1,75 @@
+all: nu-segment.exe tests
+
+tests: imrecontest.exe localmaxtest.exe misctest.exe imfilltest.exe
+
+CXX=g++ 
+CXXFLAGS=-g -fPIC -pg -msse4.2 -fopenmp -O3
+#CXX=icpc
+#CXXFLAGS=-g -fast -openmp -msse4.2
+
+NVCC=nvcc
+NVCC_FLAGS=-m64 -g -G #-O3
+NVCC_INCLUDE=-I/sw/keeneland/cuda/4.0/linux_binary/include
+CUDA_LIBS= -L/sw/keeneland/cuda/4.0/linux_binary/lib64 -lcudart
+
+CUDA_CV_INCLUDE =-I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/OpenCV-2.3.0/modules/gpu/src -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/OpenCV-2.3.0/modules/gpu/src/cuda -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include/opencv2/gpu
+
+
+RM=/bin/rm -rf
+
+CUDA_SRC = cuda/reconstruction_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
+GPU_SRC = HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperationsGPU.cpp
+
+LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp
+GPU_LIB_SRC = ${CUDA_SRC} ${GPU_SRC}
+
+SRC= nu-segment.cpp 
+IMRECON_SRC = imreconTest.cpp
+LOCALMAX_SRC = localMaximaTest.cpp
+MISC_SRC = miscTest.cpp
+IMFILL_SRC = imfillTest.cpp
+
+SRCO= ${SRC:.cpp=.o}
+IMRECON_SRCO= ${IMRECON_SRC:.cpp=.o}
+LOCALMAX_SRCO= ${LOCALMAX_SRC:.cpp=.o}
+MISC_SRCO= ${MISC_SRC:.cpp=.o}
+IMFILL_SRCO= ${IMFILL_SRC:.cpp=.o}
+
+LIB_SRCO = ${LIB_SRC:.cpp=.o}
+GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}
+
+CXXFLAGS	+= -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include/opencv
+CXXFLAGS	+= ${NVCC_INCLUDE}
+CXXFLAGS	+= ${CV_GPU_INCLUDE}
+CXXFLAGS	+= ${CUDA_CV_INCLUDE}
+CXXFLAGS	+= -DHAVE_CUDA
+LDFLAGS		+= -L/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_flann
+LDFLAGS		+= -lopencv_gpu
+LDFLAGS		+= ${CUDA_LIBS}
+
+libsegment.so: ${LIB_SRCO} ${GPU_LIB_SRCO}
+	$(CXX) ${CXX_FLAGS} $(LDFLAGS) -shared -o libsegment.so ${LIB_SRCO} ${GPU_LIB_SRCO}
+
+nu-segment.exe: ${SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o nu-segment.exe ${SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+imrecontest.exe: ${IMRECON_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o imrecontest.exe ${IMRECON_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+localmaxtest.exe: ${LOCALMAX_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o localmaxtest.exe ${LOCALMAX_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+misctest.exe: ${MISC_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o misctest.exe ${MISC_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+imfilltest.exe: ${IMFILL_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o imfilltest.exe ${IMFILL_SRCO} ${LIB_SRCO} ${GPU_LIB_SRCO}
+
+clean:
+	$(RM) *.o *.exe *.so cuda/*.o
+	
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
+
+%.o: %.c
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
+	
+%.o: %.cu
+	$(NVCC) $(NVCC_FLAGS) $(NVCC_INCLUDE) ${CUDA_CV_INCLUDE} -o $@ -c $<
+	
