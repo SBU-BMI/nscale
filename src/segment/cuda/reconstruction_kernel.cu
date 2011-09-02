@@ -9,7 +9,7 @@
 #include "internal_shared.hpp"
 #include "change_kernel.cuh"
 
-#define BLOCK_SIZE			  8
+#define BLOCK_SIZE			  16
 #define NEQ(a,b)    ( (a) != (b) )
 
 using namespace cv::gpu;

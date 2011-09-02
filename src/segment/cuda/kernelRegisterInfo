@@ -1,15 +1,15 @@
 ptxas info    : Compiling entry function '_ZN6nscale3gpu24Rec1DBackward_Z_dilationEPhPKhiiiPb' for 'sm_10'
-ptxas info    : Used 8 registers, 296+16 bytes smem, 16 bytes cmem[1]
+ptxas info    : Used 8 registers, 1064+16 bytes smem, 16 bytes cmem[1]
 ptxas info    : Compiling entry function '_ZN6nscale3gpu24Rec1DBackward_Y_dilationEPhPKhiiiPb' for 'sm_10'
-ptxas info    : Used 7 registers, 296+16 bytes smem, 12 bytes cmem[1]
+ptxas info    : Used 7 registers, 1064+16 bytes smem, 12 bytes cmem[1]
 ptxas info    : Compiling entry function '_ZN6nscale3gpu24Rec1DBackward_X_dilationEPhPKhiiiPb' for 'sm_10'
-ptxas info    : Used 16 registers, 232+16 bytes smem, 12 bytes cmem[1]
+ptxas info    : Used 16 registers, 808+16 bytes smem, 12 bytes cmem[1]
 ptxas info    : Compiling entry function '_ZN6nscale3gpu23Rec1DForward_Z_dilationEPhPKhiiiPb' for 'sm_10'
-ptxas info    : Used 7 registers, 296+16 bytes smem, 8 bytes cmem[1]
+ptxas info    : Used 7 registers, 1064+16 bytes smem, 8 bytes cmem[1]
 ptxas info    : Compiling entry function '_ZN6nscale3gpu23Rec1DForward_Y_dilationEPhPKhiiiPb' for 'sm_10'
-ptxas info    : Used 7 registers, 296+16 bytes smem, 8 bytes cmem[1]
+ptxas info    : Used 7 registers, 1064+16 bytes smem, 8 bytes cmem[1]
 ptxas info    : Compiling entry function '_ZN6nscale3gpu23Rec1DForward_X_dilationEPhPKhiiiPb' for 'sm_10'
-ptxas info    : Used 18 registers, 232+16 bytes smem, 12 bytes cmem[1]
+ptxas info    : Used 18 registers, 808+16 bytes smem, 12 bytes cmem[1]
 ptxas info    : Compiling entry function '_ZN6nscale3gpu15thresholdKernelIfEEviiN2cv3gpu8PtrStep_IT_EENS4_IhEES5_S5_' for 'sm_10'
 ptxas info    : Used 5 registers, 48+16 bytes smem, 8 bytes cmem[1]
 ptxas info    : Compiling entry function '_ZN6nscale3gpu15thresholdKernelIhEEviiN2cv3gpu8PtrStep_IT_EENS4_IhEES5_S5_' for 'sm_10'
