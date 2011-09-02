@@ -9,7 +9,8 @@
 #define UTILS_H_
 
 #include "cv.h"
-#include <fstream>;
+#include <fstream>
+#include <iostream>
 
 namespace cciutils {
 
@@ -43,14 +44,61 @@ inline bool sameSign(T a, T b) {
 class SimpleCSVLogger {
 public :
 
-	void startLogger(const char* name) {};
-	void stopLogger() {};
+	SimpleCSVLogger(const char* name) {
+		char headername[1024];
+		char valuename[1024];
+		strcpy(headername, name);
+		strcat(headername, "-header.csv");
+		strcpy(valuename, name);
+		strcat(valuename, "-value.csv");
+		header.open(headername, std::ios_base::out );
+		value.open(valuename, std::ios_base::out | std::ios_base::app);
+		start = 0;
+		curr = 0;
+		last = 0;
+	};
+	~SimpleCSVLogger() {
+		header.flush();
+		header.close();
+		value.flush();
+		value.close();
+	};
 	
+	void endSession() {
+		header << std::endl;
+		value << std::endl;
+		header.flush();
+		value.flush();
+	}
+
 	template <typename T>
-	void log(const char* eventName, T eventVal) {};
+	void log(const char* eventName, T eventVal) {
+		header << eventName << ", ";
+		value << eventVal << ", ";
+		std::cout << "[LOGGER] " << eventName << ": " << eventVal << std::endl;
+	};
+	void logTimeElapsedSinceLastLog(const char* eventName) {
+		curr = cciutils::ClockGetTime();
+		if (last == 0) last = curr;
+		log(eventName, curr - last);
+		last = curr;
+	}
+	void logTimeElapsedSinceStart(const char* eventName) {
+		curr = cciutils::ClockGetTime();
+		if (start == 0) start = curr;
+		log(eventName, curr - start);
+	}
+	void logStart(const char* eventName) {
+		start = cciutils::ClockGetTime();
+		last = start;
+		log(eventName, (uint64_t)0);
+	}
 protected :
-	ofstream header;
-	ofstream value;
+	std::ofstream header;
+	std::ofstream value;
+	uint64_t start;
+	uint64_t last;
+	uint64_t curr;
 };
 
 namespace cv {

@@ -75,7 +75,6 @@ int main (int argc, char **argv){
 	}
 
 	// need to go through filesystem
-
 	Mat img = imread(imagename);
 
 	if (!img.data) return -1;
@@ -83,13 +82,24 @@ int main (int argc, char **argv){
 	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output = Mat::zeros(img.size(), CV_8U);
 	int status;
+	char prefix[80];
+	strcpy(prefix, "results/");
+	strcat(prefix, mode);
+	strcat(prefix, "-nuclei-seg");
+	cciutils::SimpleCSVLogger logger(prefix);
+	logger.log("time", cciutils::ClockGetTime());
+	logger.log("filename", imagename);
 	switch (modecode) {
 	case cciutils::DEVICE_CPU :
 	case cciutils::DEVICE_MCORE :
-		status = nscale::HistologicalEntities::segmentNuclei(img, output);
+		logger.log("type", "cpu");
+		status = nscale::HistologicalEntities::segmentNuclei(img, output, logger);
+		logger.endSession();
 		break;
 	case cciutils::DEVICE_GPU :
-		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, output);
+		logger.log("type", "gpu");
+		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, output, logger);
+		logger.endSession();
 		break;
 	default :
 		break;

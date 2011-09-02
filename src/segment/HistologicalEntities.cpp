@@ -70,7 +70,7 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr) {
 }
 
 
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger& logger) {
 	// image in BGR format
 
 //	Mat img2(Size(1024,1024), img.type());
@@ -88,24 +88,36 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
         return;
     end
 	 */
+	logger.logStart("start");
+
 	std::vector<Mat> bgr;
 	split(img, bgr);
+	logger.logTimeElapsedSinceLastLog("toRGB");
+
+
 	Mat background = (bgr[0] > 220) & (bgr[1] > 220) & (bgr[2] > 220);
+
 	int bgArea = countNonZero(background);
 	float ratio = (float)bgArea / (float)(img.size().area());
 	std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
+	logger.log("backgroundRatio", ratio);
 
 	if (ratio >= 0.9) {
 		std::cout << "background.  next." << std::endl;
-		return -1;
+		logger.logTimeElapsedSinceLastLog("background");
+		logger.endSession();
+		return 0;
 	}
+	logger.logTimeElapsedSinceLastLog("background");
+
 
 	uint64_t t1 = cciutils::ClockGetTime();
 	Mat rbc = nscale::HistologicalEntities::getRBC(bgr);
 	uint64_t t2 = cciutils::ClockGetTime();
+	logger.logTimeElapsedSinceLastLog("RBC");
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
 
-	imwrite("test/out-rbc.pbm", rbc);
+//	imwrite("test/out-rbc.pbm", rbc);
 
 	/*
 	rc = 255 - r;
@@ -115,6 +127,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	 */
 
 	Mat rc = nscale::PixelOperations::invert<uchar>(bgr[2]);
+	logger.logTimeElapsedSinceLastLog("invert");
+
 	Mat rc_open(rc.size(), rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
 	// structuring element is not the same between matlab and opencv.  using the one from matlab explicitly....
@@ -142,13 +156,15 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	std::vector<uchar> disk19vec(disk19raw, disk19raw+361);
 	Mat disk19(disk19vec);
 	disk19 = disk19.reshape(1, 19);
-	imwrite("test/out-rcopen-strel.pbm", disk19);
+//	imwrite("test/out-rcopen-strel.pbm", disk19);
 	morphologyEx(rc, rc_open, CV_MOP_OPEN, disk19, Point(-1, -1), 1);
-	imwrite("test/out-rcopen.ppm", rc_open);
+//	imwrite("test/out-rcopen.ppm", rc_open);
+	logger.logTimeElapsedSinceLastLog("open19");
 
 	Mat rc_recon = nscale::imreconstruct<uchar>(rc_open, rc, 8);
 	Mat diffIm = rc - rc_recon;
-	imwrite("test/out-redchannelvalleys.ppm", diffIm);
+//	imwrite("test/out-redchannelvalleys.ppm", diffIm);
+	logger.logTimeElapsedSinceLastLog("reconToNuclei");
 
 /*
     G1=80; G2=45; % default settings
@@ -159,8 +175,12 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
  */
 	uchar G1 = 80;
 	Mat diffIm2 = diffIm > G1;
+	logger.logTimeElapsedSinceLastLog("threshold1");
+
 	Mat bw1 = nscale::imfillHoles<uchar>(diffIm2, true, 4);
-	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
+//	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
+	logger.logTimeElapsedSinceLastLog("fillHoles1");
+
 
 /*
  *     %CHANGE
@@ -180,8 +200,13 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
  *
  */
 	bw1 = nscale::bwareaopen<uchar>(bw1, 11, 1000, 8);
-	if (countNonZero(bw1) == 0) return -1;
-	imwrite("test/out-nucleicandidatessized.ppm", bw1);
+	if (countNonZero(bw1) == 0) {
+		logger.logTimeElapsedSinceLastLog("areaThreshold1");
+		logger.endSession();
+		return 0;
+	}
+//	imwrite("test/out-nucleicandidatessized.ppm", bw1);
+	logger.logTimeElapsedSinceLastLog("areaThreshold1");
 
 
 
@@ -201,12 +226,17 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 
 	Mat seg_norbc = nscale::bwselect<uchar>(bw2, bw1, 8);
 	seg_norbc = seg_norbc & (rbc == 0);
-	imwrite("test/out-nucleicandidatesnorbc.ppm", seg_norbc);
+//	imwrite("test/out-nucleicandidatesnorbc.ppm", seg_norbc);
+	logger.logTimeElapsedSinceLastLog("blobsGt45");
+
 	Mat seg_nohole = nscale::imfillHoles<uchar>(seg_norbc, true, 4);
+	logger.logTimeElapsedSinceLastLog("fillHoles2");
+
 	Mat seg_open = Mat::zeros(seg_nohole.size(), seg_nohole.type());
 	Mat disk3 = getStructuringElement(MORPH_ELLIPSE, Size(3,3));
 	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(-1, -1), 1);
-	imwrite("test/out-nucleicandidatesopened.ppm", seg_open);
+//	imwrite("test/out-nucleicandidatesopened.ppm", seg_open);
+	logger.logTimeElapsedSinceLastLog("openBlobs");
 
 	/*
 	 *
@@ -214,9 +244,11 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	 */
 	// bwareaopen is done as a area threshold.
 	Mat seg_big_t = nscale::bwareaopen<uchar>(seg_open, 30, std::numeric_limits<int>::max(), 8);
+	logger.logTimeElapsedSinceLastLog("30To1000");
 	Mat seg_big = Mat::zeros(seg_big_t.size(), seg_big_t.type());
 	dilate(seg_big_t, seg_big, disk3);
-	imwrite("test/out-nucleicandidatesbig.ppm", seg_big);
+//	imwrite("test/out-nucleicandidatesbig.ppm", seg_big);
+	logger.logTimeElapsedSinceLastLog("dilate");
 
 	/*
 	 *
@@ -241,15 +273,16 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	double mmin, mmax;
 	minMaxLoc(dist, &mmin, &mmax);
 	dist = (mmax + 1.0) - dist;
-	cciutils::cv::imwriteRaw("test/out-dist", dist);
+//	cciutils::cv::imwriteRaw("test/out-dist", dist);
 
 	// then set the background to -inf and do imhmin
 	Mat distance = Mat::zeros(dist.size(), dist.type());
 	dist.copyTo(distance, seg_big);
-	cciutils::cv::imwriteRaw("test/out-distance", distance);
+//	cciutils::cv::imwriteRaw("test/out-distance", distance);
 	// then do imhmin.
 	//Mat distance2 = nscale::imhmin<float>(distance, 1.0f, 8);
 	//cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
+	logger.logTimeElapsedSinceLastLog("distTransform");
 
 
 	/*
@@ -261,15 +294,17 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 
 	Mat nuclei = Mat::zeros(img.size(), img.type());
 	img.copyTo(nuclei, seg_big);
+	logger.logTimeElapsedSinceLastLog("nucleiCopy");
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	Mat watermask = nscale::watershed2(nuclei, distance, 8);
-	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
+//	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 
 
 	Mat seg_nonoverlap = Mat::zeros(seg_big.size(), seg_big.type());
 	seg_big.copyTo(seg_nonoverlap, (watermask > 0));
-	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
+//	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
+	logger.logTimeElapsedSinceLastLog("watershed");
 
 	/*
      %CHANGE
@@ -287,8 +322,13 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	 *
 	 */
 	Mat seg = nscale::bwareaopen<uchar>(seg_nonoverlap, 21, 1000, 4);
-	if (countNonZero(seg) == 0) return -1;
-	imwrite("test/out-seg.ppm", seg);
+	if (countNonZero(seg) == 0) {
+		logger.logTimeElapsedSinceLastLog("20To1000");
+		logger.endSession();
+		return 0;
+	}
+//	imwrite("test/out-seg.ppm", seg);
+	logger.logTimeElapsedSinceLastLog("20To1000");
 
 
 	/*
@@ -304,6 +344,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output) {
 	imwrite("test/out-nuclei.ppm", seg);
 
 
+	logger.endSession();
 
 	return 0;
 }

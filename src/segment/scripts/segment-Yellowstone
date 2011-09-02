@@ -1,0 +1,6 @@
+#!/bin/sh
+DATA_DIR="/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1"
+EXE_DIR="/home/tcpan/PhD/path/src/nscale/src/segment"
+find ${DATA_DIR} -name "*.tif" -print0 | xargs -0 -I fn ${EXE_DIR}/nu-segment.exe fn gpu 0
+find ${DATA_DIR} -name "*.tif" -print0 | xargs -0 -I fn ${EXE_DIR}/nu-segment.exe fn cpu
+

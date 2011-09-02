@@ -10,6 +10,7 @@
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
+#include "utils.h"
 
 namespace nscale {
 
@@ -19,7 +20,7 @@ public:
 	static cv::Mat getRBC(const cv::Mat& img);
 	static cv::Mat getRBC(const std::vector<cv::Mat>& bgr);
 
-	static int segmentNuclei(const cv::Mat& img, cv::Mat& output);
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger& logger);
 
 };
 
@@ -33,7 +34,7 @@ public:
 	static cv::gpu::GpuMat getBackground(const std::vector<cv::gpu::GpuMat>& bgr, cv::gpu::Stream& stream);
 
 
-	static int segmentNuclei(const cv::Mat& img, cv::Mat& output);
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger& logger);
 
 };
 

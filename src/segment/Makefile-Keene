@@ -8,7 +8,7 @@ CXXFLAGS=-g -fPIC -pg -msse4.2 -fopenmp -O3
 #CXXFLAGS=-g -fast -openmp -msse4.2
 
 NVCC=nvcc
-NVCC_FLAGS=-m64 -g -G #-O3
+NVCC_FLAGS=-m64 -g -O3 #-G
 NVCC_INCLUDE=-I/sw/keeneland/cuda/4.0/linux_binary/include
 CUDA_LIBS= -L/sw/keeneland/cuda/4.0/linux_binary/lib64 -lcudart
 

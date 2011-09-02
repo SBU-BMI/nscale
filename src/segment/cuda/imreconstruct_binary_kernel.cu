@@ -640,20 +640,12 @@ bRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 		int sx = marker.cols;
 		int sy = marker.rows;
 		bool conn8 = (connectivity == 8);
-		int bx;
-		if (conn8) {
-			int block_size_x = MAX_THREADS - 2;
-			bx = (sx-2)/block_size_x + ( ((sx-2) % block_size_x == 0) ? 0 : 1 );
-		} else {
-			bx = sx/MAX_THREADS + ( (sx % MAX_THREADS == 0) ? 0 : 1 );
-		}
-		int by = sy/Y_THREADS + ( (sy % Y_THREADS == 0) ? 0 : 1 );
 
-		dim3 blocksx( 1, by );
 		dim3 threadsx( X_THREADS, Y_THREADS );
 		dim3 threadsx2( 1, Y_THREADS );
-		dim3 blocksy( bx );
+		dim3 blocksx( 1, divUp(sy, threadsx.y) );
 		dim3 threadsy( MAX_THREADS );
+		dim3 blocksy( divUp(sx, threadsy.x) );
 
 		// stability detection
 		unsigned int iter = 0;
