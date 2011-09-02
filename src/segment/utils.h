@@ -51,7 +51,7 @@ public :
 		strcat(headername, "-header.csv");
 		strcpy(valuename, name);
 		strcat(valuename, "-value.csv");
-		header.open(headername, std::ios_base::out );
+		header.open(headername, std::ios_base::out | std::ios_base::app);
 		value.open(valuename, std::ios_base::out | std::ios_base::app);
 		start = 0;
 		curr = 0;
