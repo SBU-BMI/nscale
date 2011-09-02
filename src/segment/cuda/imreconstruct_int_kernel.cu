@@ -3,9 +3,9 @@
 #include "internal_shared.hpp"
 #include "change_kernel.cuh"
 
-#define MAX_THREADS		64	
-#define X_THREADS			8
-#define Y_THREADS			8
+#define MAX_THREADS		256
+#define X_THREADS			16
+#define Y_THREADS			16
 #define NEQ(a,b)    ( (a) != (b) )
 
 
@@ -26,8 +26,8 @@ __global__ void
 iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* change )
 {
 
-	const int ty = threadIdx.y;
-	const int by = blockIdx.y * Y_THREADS;
+	const int ty = threadIdx.x;
+	const int by = blockIdx.x * Y_THREADS;
 	const int sx = g_marker.cols;
 	const int sy = g_marker.rows;
 
@@ -107,8 +107,8 @@ __global__ void
 iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* change )
 {
 
-	const int ty = threadIdx.y;
-	const int by = blockIdx.y * Y_THREADS;
+	const int ty = threadIdx.x;
+	const int by = blockIdx.x * Y_THREADS;
 	// always 0.  const int bz = blockIdx.y;
 	const int sx = g_marker.cols;
 	const int sy = g_marker.rows;
@@ -197,7 +197,7 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 
 	const int tx = threadIdx.x;
 	const int ty = threadIdx.y;
-	const int by = blockIdx.y * Y_THREADS;
+	const int by = blockIdx.x * Y_THREADS;
 	const int sx = g_marker.cols;
 	const int sy = g_marker.rows;
 
@@ -271,7 +271,7 @@ iRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 
 	const int tx = threadIdx.x;
 	const int ty = threadIdx.y;
-	const int by = blockIdx.y * Y_THREADS;
+	const int by = blockIdx.x * Y_THREADS;
 	// always 0.  const int bz = blockIdx.y;
 	const int sx = g_marker.cols;
 	const int sy = g_marker.rows;
@@ -516,17 +516,18 @@ iRec1DForward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 	const int marker_step = g_marker.step;
 	const int mask_step = g_mask.step;
 	int x = bx+tx;
-	
-	if ( x >= 0 && x < sx ) {
 
-		__shared__ T s_marker_A[MAX_THREADS];
-		__shared__ T s_marker_B[MAX_THREADS];
-		__shared__ T s_mask    [MAX_THREADS];
-		__shared__ bool  s_change  [MAX_THREADS];
+	__shared__ T s_marker_A[MAX_THREADS];
+	__shared__ T s_marker_B[MAX_THREADS];
+	__shared__ T s_mask    [MAX_THREADS];
+	__shared__ bool  s_change  [MAX_THREADS];
+	s_change[tx] = false;
+	__syncthreads();
+
+	if ( x < sx ) {
 		
 		T* marker = g_marker.ptr(0) + x;
 		T* mask = g_mask.ptr(0) + x;
-		s_change[tx] = false;
 		s_marker_B[tx] = *marker;
 		__syncthreads();
 
@@ -575,7 +576,7 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 	const int mask_step = g_mask.step;
 	int x = bx+ tx;
 
-	if ( x >= 0 && x < sx ) {
+	if ( x < sx ) {
 
 		__shared__ T s_marker_A[MAX_THREADS];
 		__shared__ T s_marker_B[MAX_THREADS];
@@ -644,8 +645,8 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 		bool conn8 = (connectivity == 8);
 
 		dim3 threadsx( X_THREADS, Y_THREADS );
-		dim3 threadsx2( 1, Y_THREADS );
-		dim3 blocksx( 1, divUp(sy, threadsx.y) );
+		dim3 threadsx2( Y_THREADS );
+		dim3 blocksx( divUp(sy, threadsx.y) );
 		dim3 threadsy( MAX_THREADS );
 		dim3 blocksy( divUp(sx, threadsy.x) );
 

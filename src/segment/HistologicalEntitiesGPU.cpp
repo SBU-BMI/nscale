@@ -139,8 +139,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	logger.logTimeElapsedSinceLastLog("toRGB");
 
 	GpuMat g_bg = getBackground(g_bgr, stream);
-	int bgArea = countNonZero(g_bg);
 	stream.waitForCompletion();
+	int bgArea = countNonZero(g_bg);
 	g_bg.release();
 
 	float ratio = (float)bgArea / (float)(img.size().area());
@@ -159,6 +159,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	stream.waitForCompletion();
 	uint64_t t2 = cciutils::ClockGetTime();
 	logger.logTimeElapsedSinceLastLog("RBC");
+	int rbcPixelCount = countNonZero(g_rbc);
+	logger.log("RBCPixCount", rbcPixelCount);
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
 
 	GpuMat g_r(g_bgr[2]);
@@ -234,6 +236,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	subtract(g_rc, g_rc_recon, g_diffIm, stream);
 	stream.waitForCompletion();
 	logger.logTimeElapsedSinceLastLog("reconToNuclei");
+	int rc_openPixelCount = countNonZero(g_rc_open);
+	logger.log("rc_openPixCount", rc_openPixelCount);
 	g_rc_open.release();
 	g_rc.release();
 	g_rc_recon.release();

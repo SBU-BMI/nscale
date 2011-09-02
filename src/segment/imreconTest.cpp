@@ -247,57 +247,9 @@ int main (int argc, char **argv){
 
 
 
-	//Mat imfilldata = imread("test/text.png", 0) > 0;
-	//maskb = repeat(imfilldata, 16, 16);
-	maskb = imread("test/sizePhantom.ppm", 0) > 0;
-
-	// bwareaopen testing
-	t1 = cciutils::ClockGetTime();
-	Mat bwareaopen = nscale::bwareaopen<uchar>(maskb, 100, 500, 8);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen mid took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen-mid.pbm", bwareaopen);
-	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 1, 100, 8);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen small took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen-small.pbm", bwareaopen);
-	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 500, std::numeric_limits<int>::max(), 8);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen large took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen-large.pbm", bwareaopen);
-
-
-	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 100, 500, 4);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen4 mid took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen4-mid.pbm", bwareaopen);
-	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 1, 100, 4);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen4 small took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen4-small.pbm", bwareaopen);
-	t1 = cciutils::ClockGetTime();
-	bwareaopen = nscale::bwareaopen<uchar>(maskb, 500, std::numeric_limits<int>::max(), 4);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwareaopen4 large took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwareaopen4-large.pbm", bwareaopen);
-
-/*
-	// bwlabel testing
-	t1 = cciutils::ClockGetTime();
-	Mat bwselected = nscale::bwlabel(maskb, false, 8);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "bwlabel took " << t2-t1 << "ms" << std::endl;
-	// write the raw image
-	cciutils::cv::imwriteRaw("test/out-bwlabel", bwselected);
-*/
-
-
-
 	//waitKey();
+
+
 
 	return 0;
 }

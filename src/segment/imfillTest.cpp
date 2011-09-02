@@ -130,7 +130,6 @@ int main (int argc, char **argv){
 
 
 
-
 //	waitKey();
 
 	return 0;

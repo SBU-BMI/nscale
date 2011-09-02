@@ -115,6 +115,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	Mat rbc = nscale::HistologicalEntities::getRBC(bgr);
 	uint64_t t2 = cciutils::ClockGetTime();
 	logger.logTimeElapsedSinceLastLog("RBC");
+	int rbcPixelCount = countNonZero(rbc);
+	logger.log("RBCPixCount", rbcPixelCount);
 	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
 
 //	imwrite("test/out-rbc.pbm", rbc);
@@ -165,7 +167,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	Mat diffIm = rc - rc_recon;
 //	imwrite("test/out-redchannelvalleys.ppm", diffIm);
 	logger.logTimeElapsedSinceLastLog("reconToNuclei");
-
+	int rc_openPixelCount = countNonZero(rc_open);
+	logger.log("rc_openPixCount", rc_openPixelCount);
 /*
     G1=80; G2=45; % default settings
     %G1=80; G2=30;  % 2nd run
