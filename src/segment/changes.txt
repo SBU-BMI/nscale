@@ -10,6 +10,13 @@
 	working now.  now start the optimization. (the 4conn shows same number of iterations as Pavel code, should be working.)
 	4.4 - binary has been using x2.  int has been using x.  now try int with x2. - slower.  for imrecon-gray-* input, 4conn is 600ms slower, and 8conn is 200ms slower.
 
+now run the visual profiler to see where the bottlenecks are.
+	1. occupancy of x2 is only at 0.167, probably due to register use.
+	2. x2 : branching is high - reorganize
+	3. x2 : cache miss.  use texture memory or use shared mem. 
+	4. x2 : low memory bandwidth.  L1 hit ratio is only 48%
+	5. x2 : mem access not coalesced. - disable cache, use texture mem, change data organization
+	
 should switch to comparison using the truncated segment function - to capture timing.
 	
 5. bank conflict - not much difference right now.

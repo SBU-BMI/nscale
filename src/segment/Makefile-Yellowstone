@@ -1,6 +1,6 @@
 all: nu-segment.exe tests
 
-tests: imreconTest.exe imreconOptimizeTest.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
+tests: imreconTest.exe imreconOptimizeTest.exe imreconOptimizeProfiler.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
 
 CXX=/usr/bin/g++-4.4 
 CXXFLAGS=-fPIC -pg -O3 #-g -msse4.2 -fopenmp
