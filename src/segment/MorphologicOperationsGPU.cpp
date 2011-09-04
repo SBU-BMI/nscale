@@ -53,12 +53,15 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 //	return output;
 
     // allocate results
-    GpuMat marker;
-    copyMakeBorder(seeds, marker, 1, 1, 1, 1, Scalar(0), stream);
-    GpuMat mask;
-    copyMakeBorder(image, mask, 1, 1, 1, 1, Scalar(0), stream);
+	GpuMat marker = createContinuous(seeds.size(), seeds.type());
+	stream.enqueueCopy(seeds, marker);
+//	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
 
-    stream.waitForCompletion();
+	GpuMat mask = createContinuous(image.size(), image.type());
+	stream.enqueueCopy(image, mask);
+//	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
+
+	stream.waitForCompletion();
 	if (std::numeric_limits<T>::is_integer) {
 	    iter = imreconstructIntCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
 	} else {
@@ -67,9 +70,7 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
     stream.waitForCompletion();
     mask.release();
     // get the result out
-    GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
-    marker.release();
-    return output;
+    return marker;
 }
 template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
@@ -133,20 +134,21 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 	CV_Assert(image.type() == CV_8UC1);
 
     // allocate results
-    GpuMat marker;
-    copyMakeBorder(seeds, marker, 1, 1, 1, 1, 0, stream);
-    GpuMat mask;
-    copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
-    stream.waitForCompletion();
+	GpuMat marker = createContinuous(seeds.size(), seeds.type());
+	stream.enqueueCopy(seeds, marker);
+//	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
+
+	GpuMat mask = createContinuous(image.size(), image.type());
+	stream.enqueueCopy(image, mask);
+//	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
+
+	stream.waitForCompletion();
 
     iter = imreconstructBinaryCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
     stream.waitForCompletion();
     mask.release();
-    // get the result out
-    GpuMat output(marker, Range(1, marker.rows - 1), Range(1, marker.cols - 1) );
-    marker.release();
-    return output;
 
+	return marker;
 
 //	Mat c_seeds;
 //	seeds.download(c_seeds);

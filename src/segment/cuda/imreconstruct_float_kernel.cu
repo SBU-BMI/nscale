@@ -535,10 +535,8 @@ fRec1DForward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 		
 			// copy part of marker and mask to shared memory
 			s_marker_A[tx] = s_marker_B[tx];
-			if (x > 0 && x < sx-1) {
-				s_marker_A[tx] = fmaxf((tx == 0) ? marker[-1] : s_marker_B[tx-1], s_marker_A[tx]);
-				s_marker_A[tx] = fmaxf((tx == blockDim.x-1) ? marker[blockDim.x] : s_marker_B[tx+1], s_marker_A[tx]);
-			}
+			if (x > 0) s_marker_A[tx] = fmaxf((tx == 0) ? marker[-1] : s_marker_B[tx-1], s_marker_A[tx]);
+			if (x < sx-1) s_marker_A[tx] = fmaxf((tx == blockDim.x-1) ? marker[blockDim.x] : s_marker_B[tx+1], s_marker_A[tx]);
 			__syncthreads();
 
 			marker += marker_step;
@@ -593,10 +591,8 @@ fRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 
 			// copy part of marker and mask to shared memory
 			s_marker_A[tx] = s_marker_B[tx];
-			if (x > 0 && x < sx-1) {
-				s_marker_A[tx] = fmaxf((tx == 0) ? marker[-1] : s_marker_B[tx-1], s_marker_A[tx]);
-				s_marker_A[tx] = fmaxf((tx == blockDim.x-1) ? marker[blockDim.x] : s_marker_B[tx+1], s_marker_A[tx]);
-			}
+			if (x > 0) s_marker_A[tx] = fmaxf((tx == 0) ? marker[-1] : s_marker_B[tx-1], s_marker_A[tx]);
+			if (x < sx-1) s_marker_A[tx] = fmaxf((tx == blockDim.x-1) ? marker[blockDim.x] : s_marker_B[tx+1], s_marker_A[tx]);
 			__syncthreads();
 
 			marker -= marker_step;
