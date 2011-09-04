@@ -82,7 +82,7 @@ cv::gpu::GpuMat imreconstructBinary(const cv::gpu::GpuMat& seeds, const cv::gpu:
 template <typename T>
 cv::gpu::GpuMat imreconstructBinary(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& binaryImage, int connectivity, cv::gpu::Stream& stream){
 	unsigned int iter;
-	return imreconstructBinary<T>(seeds, image, connectivity, stream, iter);
+	return imreconstructBinary<T>(seeds,image,connectivity, stream, iter);
 };
 
 template <typename T>
