@@ -62,8 +62,8 @@ iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 				s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 				s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 				s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
-				__syncthreads();
 			}
+			__syncthreads();
 
 			// output result back to global memory
 			for (ix = 0; ix < Y_THREADS; ix++) {
@@ -88,8 +88,8 @@ iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 			s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
-			__syncthreads();
 		}
+		__syncthreads();
 
 		// output result back to global memory
 		for (ix = 0; ix < Y_THREADS; ix++) {
@@ -143,8 +143,8 @@ iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 				s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix+1][ty] );
 				s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 				s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
-				__syncthreads();
 			}
+			__syncthreads();
 
 			// output result back to global memory
 			for (ix = 0; ix < Y_THREADS; ix++) {
@@ -169,8 +169,8 @@ iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix+1][ty] );
 			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 			s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
-			__syncthreads();
 		}
+		__syncthreads();
 
 		// output result back to global memory
 		for (ix = 0; ix < Y_THREADS; ix++) {
@@ -228,8 +228,8 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 				s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 				s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 				s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
-				__syncthreads();
 			}
+			__syncthreads();
 
 			// output result back to global memory
 			marker[startx] = s_marker[tx][ty];
@@ -250,8 +250,8 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 			s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
-			__syncthreads();
 		}
+		__syncthreads();
 
 		// output result back to global memory
 		marker[ startx ] = s_marker[tx][ty];
@@ -324,8 +324,8 @@ iRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix+1][ty] );
 			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 			s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
-			__syncthreads();
 		}
+		__syncthreads();
 
 		// output result back to global memory
 		marker[ startx ] = s_marker[tx][ty];
@@ -663,14 +663,14 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 				init_change<<< 1, 1>>>( d_change );
 
 				// dopredny pruchod pres osu X
-				iRec1DForward_X_dilation2 <<< blocksx, threadsx >>> ( marker, mask, d_change );
+				iRec1DForward_X_dilation <<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//iRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// dopredny pruchod pres osu Y
 				iRec1DForward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
-				iRec1DBackward_X_dilation2<<< blocksx, threadsx >>> ( marker, mask, d_change );
+				iRec1DBackward_X_dilation<<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//iRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu Y
@@ -692,14 +692,14 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 				init_change<<< 1, 1>>>( d_change );
 
 				// dopredny pruchod pres osu X
-				iRec1DForward_X_dilation2 <<< blocksx, threadsx >>> ( marker, mask, d_change );
+				iRec1DForward_X_dilation <<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//iRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// dopredny pruchod pres osu Y
 				iRec1DForward_Y_dilation <<< blocksy, threadsy >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
-				iRec1DBackward_X_dilation2<<< blocksx, threadsx >>> ( marker, mask, d_change );
+				iRec1DBackward_X_dilation<<< blocksx, threadsx >>> ( marker, mask, d_change );
 				//iRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu Y
