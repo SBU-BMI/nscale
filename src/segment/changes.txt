@@ -17,8 +17,13 @@ now run the visual profiler to see where the bottlenecks are.
 	4. x2 : low memory bandwidth.  L1 hit ratio is only 48%
 	5. x2 : mem access not coalesced. - disable cache, use texture mem, change data organization
 	
+
 should switch to comparison using the truncated segment function - to capture timing.
 	
 5. bank conflict - not much difference right now.
 6. use of T* (local memory?) - switch to shared... - slowed down a lot: imrecon-gray test went from 1.9 sec for 8conn to 2.6, and 4.9 sec for 4conn to 6.8s
 7. reduce register usage (maybe by removing the use of DevMem2D?)
+	7.1 remove use of DevMem2D - only shaved off 4 to 5 registers. still at about 24...
+		number of iterations went down.  from 53 to 45.  execution time went up from 1.9s to 2.1s.
+		probably from the additional index computation.
+	7.2 try volatile.
