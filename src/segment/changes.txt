@@ -8,7 +8,7 @@
 	4.2 - test the x and y separately.  problem is with x.
 	4.3 - was calling forward and backward x2 with thread block set up for x.
 	working now.  now start the optimization. (the 4conn shows same number of iterations as Pavel code, should be working.)
-	4.4 - binary has been using x2.  int has been using x.  now try int with x2.
+	4.4 - binary has been using x2.  int has been using x.  now try int with x2. - slower.  for imrecon-gray-* input, 4conn is 600ms slower, and 8conn is 200ms slower.
 5. bank conflict
 6. use of T* (local memory?) - switch to shared...
 7. reduce register usage (maybe by removing the use of DevMem2D?)

@@ -33,9 +33,9 @@ fRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 
 	if (ty + by < sy) {
 
-		__shared__ T s_marker[Y_THREADS][Y_THREADS];
-		__shared__ T s_mask  [Y_THREADS][Y_THREADS];
-		__shared__ bool  s_change[Y_THREADS][Y_THREADS];
+		__shared__ T s_marker[Y_THREADS][Y_THREADS+1];
+		__shared__ T s_mask  [Y_THREADS][Y_THREADS+1];
+		__shared__ bool  s_change[Y_THREADS][Y_THREADS+1];
 		T* marker = g_marker.ptr(by + ty);
 		T* mask = g_mask.ptr(by + ty);
 		int ix, startx;
@@ -116,9 +116,9 @@ fRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 
 	if (by + ty < sy) {
 
-		__shared__ T s_marker[Y_THREADS][Y_THREADS];
-		__shared__ T s_mask  [Y_THREADS][Y_THREADS];
-		__shared__ bool  s_change[Y_THREADS][Y_THREADS];
+		__shared__ T s_marker[Y_THREADS][Y_THREADS+1];
+		__shared__ T s_mask  [Y_THREADS][Y_THREADS+1];
+		__shared__ bool  s_change[Y_THREADS][Y_THREADS+1];
 		T* marker = g_marker.ptr(by + ty);
 		T* mask = g_mask.ptr(by + ty);
 		int ix, startx;
@@ -203,9 +203,9 @@ fRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 
 	if (ty + by < sy) {
 
-		__shared__ T s_marker[X_THREADS][Y_THREADS];
-		__shared__ T s_mask  [X_THREADS][Y_THREADS];
-		__shared__ bool  s_change[X_THREADS][Y_THREADS];
+		__shared__ T s_marker[X_THREADS][Y_THREADS+1];
+		__shared__ T s_mask  [X_THREADS][Y_THREADS+1];
+		__shared__ bool  s_change[X_THREADS][Y_THREADS+1];
 		T* marker = g_marker.ptr(by + ty)+ tx;
 		T* mask = g_mask.ptr(by + ty)+ tx;
 		s_change[tx][ty] = false;
@@ -279,9 +279,9 @@ fRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 	
 	if (by + ty < sy) {
 
-		__shared__ T s_marker[X_THREADS][Y_THREADS];
-		__shared__ T s_mask  [X_THREADS][Y_THREADS];
-		__shared__ bool  s_change[X_THREADS][Y_THREADS];
+		__shared__ T s_marker[X_THREADS][Y_THREADS+1];
+		__shared__ T s_mask  [X_THREADS][Y_THREADS+1];
+		__shared__ bool  s_change[X_THREADS][Y_THREADS+1];
 		T* marker = g_marker.ptr(by + ty) + tx;
 		T* mask = g_mask.ptr(by + ty) + tx;
 		s_change[tx][ty] = false;
