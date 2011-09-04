@@ -33,14 +33,11 @@ iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 
 	if (ty + by < sy) {
 
-		__shared__ T s_marker[Y_THREADS][Y_THREADS+1];
-		__shared__ T s_mask  [Y_THREADS][Y_THREADS+1];
-		__shared__ bool  s_change[Y_THREADS][Y_THREADS+1];
-		__shared__ T* marker[Y_THREADS]; 
-		__shared__ T* mask[Y_THREADS]; 
-		
-		marker[ty] = g_marker.ptr(by + ty);
-		mask[ty] = g_mask.ptr(by + ty);
+		__shared__ T s_marker[Y_THREADS][Y_THREADS];
+		__shared__ T s_mask  [Y_THREADS][Y_THREADS];
+		__shared__ bool  s_change[Y_THREADS][Y_THREADS];
+		T* marker = g_marker.ptr(by + ty);
+		T* mask = g_mask.ptr(by + ty);
 		int ix, startx;
 		for (ix = 0; ix < Y_THREADS; ix++) {
 			s_change[ix][ty] = false;
@@ -53,8 +50,8 @@ iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 
 			// copy part of marker and mask to shared memory
 			for (ix = 0; ix < Y_THREADS; ix++) {
-				s_marker[ix][ty] = marker[ty][startx+ix];
-				s_mask  [ix][ty] = mask  [ty][startx+ix];
+				s_marker[ix][ty] = marker[startx + ix];
+				s_mask  [ix][ty] = mask  [startx + ix];
 			}
 			__syncthreads();
 
@@ -70,7 +67,7 @@ iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 
 			// output result back to global memory
 			for (ix = 0; ix < Y_THREADS; ix++) {
-				marker[ty][startx+ix] = s_marker[ix][ty];
+				marker[startx + ix] = s_marker[ix][ty];
 			}
 			__syncthreads();
 
@@ -80,8 +77,8 @@ iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 
 		// copy part of marker and mask to shared memory
 		for (ix = 0; ix < Y_THREADS; ix++) {
-			s_marker[ix][ty] = marker[ty][startx+ix];
-			s_mask  [ix][ty] = mask  [ty][startx+ix];
+			s_marker[ix][ty] = marker[ startx + ix ];
+			s_mask  [ix][ty] = mask  [ startx + ix ];
 		}
 		__syncthreads();
 
@@ -96,7 +93,7 @@ iRec1DForward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 
 		// output result back to global memory
 		for (ix = 0; ix < Y_THREADS; ix++) {
-			marker[ty][startx+ix] = s_marker[ix][ty];
+			marker[ startx + ix ] = s_marker[ix][ty];
 			if (s_change[ix][ty]) *change = true;
 		}
 		__syncthreads();
@@ -119,13 +116,11 @@ iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 
 	if (by + ty < sy) {
 
-		__shared__ T s_marker[Y_THREADS][Y_THREADS+1];
-		__shared__ T s_mask  [Y_THREADS][Y_THREADS+1];
-		__shared__ bool  s_change[Y_THREADS][Y_THREADS+1];
-		__shared__ T* marker[Y_THREADS]; 
-		__shared__ T* mask[Y_THREADS]; 
-		marker[ty] = g_marker.ptr(by + ty);
-		mask[ty] = g_mask.ptr(by + ty);
+		__shared__ T s_marker[Y_THREADS][Y_THREADS];
+		__shared__ T s_mask  [Y_THREADS][Y_THREADS];
+		__shared__ bool  s_change[Y_THREADS][Y_THREADS];
+		T* marker = g_marker.ptr(by + ty);
+		T* mask = g_mask.ptr(by + ty);
 		int ix, startx;
 		for (ix = 0; ix < Y_THREADS; ix++) {
 			s_change[ix][ty] = false;
@@ -137,8 +132,8 @@ iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 
 			// copy part of marker and mask to shared memory
 			for (ix = 0; ix < Y_THREADS; ix++) {
-				s_marker[ix][ty] = marker[ty][startx+ix];
-				s_mask  [ix][ty] = mask  [ty][startx+ix];
+				s_marker[ix][ty] = marker[ startx + ix ];
+				s_mask  [ix][ty] = mask  [ startx + ix ];
 			}
 			__syncthreads();
 
@@ -153,7 +148,7 @@ iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 
 			// output result back to global memory
 			for (ix = 0; ix < Y_THREADS; ix++) {
-				marker[ty][startx+ix] = s_marker[ix][ty];
+				marker[ startx + ix ] = s_marker[ix][ty];
 			}
 			__syncthreads();
 
@@ -163,8 +158,8 @@ iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 
 		// copy part of marker and mask to shared memory
 		for (ix = 0; ix < Y_THREADS; ix++) {
-			s_marker[ix][ty] = marker[ty][startx+ix];
-			s_mask  [ix][ty] = mask  [ty][startx+ix];
+			s_marker[ix][ty] = marker[ startx + ix ];
+			s_mask  [ix][ty] = mask  [ startx + ix ];
 		}
 		__syncthreads();
 
@@ -179,7 +174,7 @@ iRec1DBackward_X_dilation2 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* c
 
 		// output result back to global memory
 		for (ix = 0; ix < Y_THREADS; ix++) {
-			marker[ty][startx+ix] = s_marker[ix][ty];
+			marker[ startx + ix ] = s_marker[ix][ty];
 			if (s_change[ix][ty]) *change = true;
 		}
 		__syncthreads();
@@ -208,14 +203,11 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 
 	if (ty + by < sy) {
 
-		__shared__ T s_marker[X_THREADS][Y_THREADS+1];
-		__shared__ T s_mask  [X_THREADS][Y_THREADS+1];
-		__shared__ bool  s_change[X_THREADS][Y_THREADS+1];
-		__shared__ T* marker[X_THREADS][Y_THREADS+1]; 
-		__shared__ T* mask[X_THREADS][Y_THREADS+1]; 
-		
-		marker[tx][ty] = g_marker.ptr(by + ty)+ tx;
-		mask[tx][ty] = g_mask.ptr(by + ty)+ tx;
+		__shared__ T s_marker[X_THREADS][Y_THREADS];
+		__shared__ T s_mask  [X_THREADS][Y_THREADS];
+		__shared__ bool  s_change[X_THREADS][Y_THREADS];
+		T* marker = g_marker.ptr(by + ty)+ tx;
+		T* mask = g_mask.ptr(by + ty)+ tx;
 		s_change[tx][ty] = false;
 		__syncthreads();
 
@@ -225,8 +217,8 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 		for (startx = 0; startx < sx - X_THREADS; startx += X_THREADS - 1) {
 
 			// copy part of marker and mask to shared memory
-			s_marker[tx][ty] = marker[tx][ty][startx];
-			s_mask  [tx][ty] = mask  [tx][ty][startx];
+			s_marker[tx][ty] = marker[startx];
+			s_mask  [tx][ty] = mask  [startx];
 			__syncthreads();
 
 			// perform iteration   all X threads do the same operations, so there may be read/write hazards.  but the output is the same.
@@ -240,7 +232,7 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 			__syncthreads();
 
 			// output result back to global memory
-			marker[tx][ty][startx] = s_marker[tx][ty];
+			marker[startx] = s_marker[tx][ty];
 			__syncthreads();
 
 		}
@@ -248,8 +240,8 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 		startx = sx - X_THREADS;
 
 		// copy part of marker and mask to shared memory
-		s_marker[tx][ty] = marker[tx][ty][startx];
-		s_mask  [tx][ty] = mask  [tx][ty][startx];
+		s_marker[tx][ty] = marker[ startx ];
+		s_mask  [tx][ty] = mask  [ startx ];
 		__syncthreads();
 
 		// perform iteration
@@ -262,7 +254,7 @@ iRec1DForward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* cha
 		__syncthreads();
 
 		// output result back to global memory
-		marker[tx][ty][startx] = s_marker[tx][ty];
+		marker[ startx ] = s_marker[tx][ty];
 		__syncthreads();
 
 		if (s_change[tx][ty]) *change = true;
@@ -287,14 +279,11 @@ iRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 	
 	if (by + ty < sy) {
 
-		__shared__ T s_marker[X_THREADS][Y_THREADS+1];
-		__shared__ T s_mask  [X_THREADS][Y_THREADS+1];
-		__shared__ bool  s_change[X_THREADS][Y_THREADS+1];
-		__shared__ T* marker[X_THREADS][Y_THREADS+1]; 
-		__shared__ T* mask[X_THREADS][Y_THREADS+1]; 
-		
-		marker[tx][ty] = g_marker.ptr(by + ty)+ tx;
-		mask[tx][ty] = g_mask.ptr(by + ty)+ tx;
+		__shared__ T s_marker[X_THREADS][Y_THREADS];
+		__shared__ T s_mask  [X_THREADS][Y_THREADS];
+		__shared__ bool  s_change[X_THREADS][Y_THREADS];
+		T* marker = g_marker.ptr(by + ty) + tx;
+		T* mask = g_mask.ptr(by + ty) + tx;
 		s_change[tx][ty] = false;
 		__syncthreads();
 
@@ -303,8 +292,8 @@ iRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 		for (startx = sx - X_THREADS; startx > 0; startx -= X_THREADS - 1) {
 
 			// copy part of marker and mask to shared memory
-			s_marker[tx][ty] = marker[tx][ty][startx];
-			s_mask  [tx][ty] = mask  [tx][ty][startx];
+			s_marker[tx][ty] = marker[ startx ];
+			s_mask  [tx][ty] = mask  [ startx ];
 			__syncthreads();
 
 			// perform iteration
@@ -317,7 +306,7 @@ iRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 			}
 
 			// output result back to global memory
-			marker[tx][ty][startx] = s_marker[tx][ty];
+			marker[ startx ] = s_marker[tx][ty];
 			__syncthreads();
 
 		}
@@ -325,8 +314,8 @@ iRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 		startx = 0;
 
 		// copy part of marker and mask to shared memory
-		s_marker[tx][ty] = marker[tx][ty][startx];
-		s_mask  [tx][ty] = mask  [tx][ty][startx];
+		s_marker[tx][ty] = marker[ startx ];
+		s_mask  [tx][ty] = mask  [ startx ];
 		__syncthreads();
 
 		// perform iteration
@@ -339,7 +328,7 @@ iRec1DBackward_X_dilation ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* ch
 		__syncthreads();
 
 		// output result back to global memory
-		marker[tx][ty][startx] = s_marker[tx][ty];
+		marker[ startx ] = s_marker[tx][ty];
 		__syncthreads();
 		
 		if (s_change[tx][ty]) *change = true;

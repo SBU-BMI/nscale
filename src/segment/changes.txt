@@ -10,6 +10,8 @@
 	working now.  now start the optimization. (the 4conn shows same number of iterations as Pavel code, should be working.)
 	4.4 - binary has been using x2.  int has been using x.  now try int with x2. - slower.  for imrecon-gray-* input, 4conn is 600ms slower, and 8conn is 200ms slower.
 
+should switch to comparison using the truncated segment function - to capture timing.
+	
 5. bank conflict - not much difference right now.
-6. use of T* (local memory?) - switch to shared...
+6. use of T* (local memory?) - switch to shared... - slowed down a lot: imrecon-gray test went from 1.9 sec for 8conn to 2.6, and 4.9 sec for 4conn to 6.8s
 7. reduce register usage (maybe by removing the use of DevMem2D?)
