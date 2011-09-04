@@ -37,7 +37,7 @@ using namespace cv::gpu;
  * based on implementation from Pavlo
  */
 template <typename T>
-GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
 	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
@@ -60,9 +60,9 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 
     stream.waitForCompletion();
 	if (std::numeric_limits<T>::is_integer) {
-	    imreconstructIntCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+	    iter = imreconstructIntCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
 	} else {
-		imreconstructFloatCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+		iter = imreconstructFloatCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
 	}
     stream.waitForCompletion();
     mask.release();
@@ -71,6 +71,8 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
     marker.release();
     return output;
 }
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
@@ -80,7 +82,7 @@ template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, 
  * based on implementation from Pavlo
  */
 template <typename T>
-GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
 	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
@@ -105,12 +107,13 @@ GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity
 //	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
 
 	stream.waitForCompletion();
-	reconstruction_by_dilation_kernel(marker.data, mask.data, seeds.cols, seeds.rows, 1);
+	iter = reconstruction_by_dilation_kernel(marker.data, mask.data, seeds.cols, seeds.rows, 1);
     stream.waitForCompletion();
 
 	mask.release();
     return marker;
 }
+template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
@@ -122,7 +125,7 @@ template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int,
 
  */
 template <typename T>
-GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
 
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
@@ -136,7 +139,7 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
     copyMakeBorder(image, mask, 1, 1, 1, 1, 0, stream);
     stream.waitForCompletion();
 
-    imreconstructBinaryCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+    iter = imreconstructBinaryCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
     stream.waitForCompletion();
     mask.release();
     // get the result out
@@ -156,6 +159,7 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 //	return output;
 
 }
+template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 

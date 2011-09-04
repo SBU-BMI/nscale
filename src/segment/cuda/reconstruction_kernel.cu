@@ -349,7 +349,7 @@ Rec1DBackward_Z_dilation ( unsigned char* g_marker, const unsigned char* g_mask,
 
 }
 
-void
+unsigned int
 reconstruction_by_dilation_kernel( unsigned char* g_marker, const unsigned char* g_mask, const int sx, const int sy, const int sz )
 {
 
@@ -402,7 +402,7 @@ reconstruction_by_dilation_kernel( unsigned char* g_marker, const unsigned char*
 	free(h_change);
 
 	printf("Number of iterations: %d\n", iter);
-	
+	return iter;
 }
 
 }}

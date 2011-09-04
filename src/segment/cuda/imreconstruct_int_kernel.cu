@@ -629,7 +629,7 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 	// connectivity:  if 8 conn, need to have border.
 
 	template <typename T>
-	void imreconstructIntCaller(DevMem2D_<T> marker, const DevMem2D_<T> mask,
+	unsigned int imreconstructIntCaller(DevMem2D_<T> marker, const DevMem2D_<T> mask,
 		int connectivity, cudaStream_t stream) {
 
 		// here because we are not using streams inside.
@@ -725,8 +725,9 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 		printf("Number of iterations: %d\n", iter);
 		cudaSafeCall( cudaGetLastError());
 
+		return iter;
 	}
 
-	template void imreconstructIntCaller<uchar>(DevMem2D_<uchar> marker, const DevMem2D_<uchar> mask,
+	template unsigned int imreconstructIntCaller<uchar>(DevMem2D_<uchar> marker, const DevMem2D_<uchar> mask,
 			int connectivity, cudaStream_t stream );
 }}

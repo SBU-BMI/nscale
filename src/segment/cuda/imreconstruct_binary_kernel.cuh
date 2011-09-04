@@ -6,7 +6,7 @@
 namespace nscale { namespace gpu {
 
 template <typename T>
-void imreconstructBinaryCaller(cv::gpu::DevMem2D_<T> marker, const cv::gpu::DevMem2D_<T> mask,
+unsigned int imreconstructBinaryCaller(cv::gpu::DevMem2D_<T> marker, const cv::gpu::DevMem2D_<T> mask,
 		int connectivity, cudaStream_t stream );
 
 

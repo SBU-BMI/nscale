@@ -61,6 +61,8 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr) {
 	Mat bw2 = imR2G > T2;
 	Mat rbc;
 	if (countNonZero(bw1) > 0) {
+		imwrite("test/in-bwselect-marker.tif", bw2);
+		imwrite("test/in-bwselect-mask.tif", bw1);
 		rbc = bwselect<uchar>(bw2, bw1, 8) & imR2B;
 	} else {
 		rbc = Mat::zeros(bw2.size(), bw2.type());
@@ -163,6 +165,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 //	imwrite("test/out-rcopen.ppm", rc_open);
 	logger.logTimeElapsedSinceLastLog("open19");
 
+	imwrite("test/in-imrecon-gray-marker.tif", rc_open);
+	imwrite("test/in-imrecon-gray-mask.tif", rc);
 	Mat rc_recon = nscale::imreconstruct<uchar>(rc_open, rc, 8);
 	Mat diffIm = rc - rc_recon;
 //	imwrite("test/out-redchannelvalleys.ppm", diffIm);

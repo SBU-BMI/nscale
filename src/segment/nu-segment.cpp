@@ -45,12 +45,13 @@ int main (int argc, char **argv){
 	// set the output path
 	const char* resultpath = argc > 2 ? argv[2];
 */
-	if (argc < 2) {
-		std::cout << "Usage:  " << argv[0] << " image_filename " << "[cpu | mcore | gpu [id]]" << std::endl;
+	if (argc < 3) {
+		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id [cpu | mcore | gpu [id]]" << std::endl;
 		return -1;
 	}
 	const char* imagename = argv[1];
-	const char* mode = argc > 2 ? argv[2] : "cpu";
+	const char* runid = argv[2];
+	const char* mode = argc > 3 ? argv[3] : "cpu";
 
 	int modecode = 0;
 	if (strcasecmp(mode, "cpu") == 0) modecode = cciutils::DEVICE_CPU;
@@ -65,12 +66,12 @@ int main (int argc, char **argv){
 			std::cout << "gpu requested, but no gpu available.  please use cpu or mcore option."  << std::endl;
 			return -2;
 		}
-		if (argc > 3) {
-			gpu::setDevice(atoi(argv[3]));
+		if (argc > 4) {
+			gpu::setDevice(atoi(argv[4]));
 		}
 		std::cout << " number of cuda enabled devices = " << gpu::getCudaEnabledDeviceCount() << std::endl;
 	} else {
-		std::cout << "Usage:  " << argv[0] << " image_filename " << "[cpu | mcore | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id [cpu | mcore | gpu [id]]" << std::endl;
 		return -1;
 	}
 
@@ -87,6 +88,7 @@ int main (int argc, char **argv){
 	strcat(prefix, mode);
 	strcat(prefix, "-nuclei-seg");
 	cciutils::SimpleCSVLogger logger(prefix);
+	logger.log("run-id", runid);
 	logger.log("time", cciutils::ClockGetTime());
 	logger.log("filename", imagename);
 	switch (modecode) {

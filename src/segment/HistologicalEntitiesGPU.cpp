@@ -70,7 +70,6 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 	GpuMat rbc(s, CV_8UC1);
 	stream.enqueueMemSet(rbc, Scalar(0));
 	if (countNonZero(bw1) > 0) {
-
 		GpuMat temp = nscale::gpu::bwselect<unsigned char>(bw2, bw1, 8, stream);
 		bitwise_and(temp, bw3, rbc, GpuMat(), stream);
 	    stream.waitForCompletion();
@@ -231,11 +230,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 
 
 //	GpuMat g_rc_recon = nscale::gpu::imreconstruct<unsigned char>(g_rc_open, g_rc, 8, stream);
-	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream);
+	// TODO: change back:
+	unsigned int iter;
+	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
 	GpuMat g_diffIm;
 	subtract(g_rc, g_rc_recon, g_diffIm, stream);
 	stream.waitForCompletion();
 	logger.logTimeElapsedSinceLastLog("reconToNuclei");
+	logger.log("rc_reconIter", iter);
 	int rc_openPixelCount = countNonZero(g_rc_open);
 	logger.log("rc_openPixCount", rc_openPixelCount);
 	g_rc_open.release();
@@ -278,6 +280,9 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	g_img.release();
 	stream.waitForCompletion();
 	logger.logTimeElapsedSinceLastLog("GPU done");
+	
+	// TODO: change back
+	return 0;
 
 /*
  *     %CHANGE

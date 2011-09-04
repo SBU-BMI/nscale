@@ -615,8 +615,15 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 
 	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
-	if (binary) output = imreconstructBinary<T>(marker, mask, connectivity);
-	else output = imreconstruct<T>(marker, mask, connectivity);
+	if (binary) {
+		imwrite("test/in-fillholes-bin-marker.tif", marker);
+		imwrite("test/in-fillholes-bin-mask.tif", mask);
+		output = imreconstructBinary<T>(marker, mask, connectivity);
+	} else {
+		imwrite("test/in-fillholes-gray-marker.tif", marker);
+		imwrite("test/in-fillholes-gray-mask.tif", mask);
+		output = imreconstruct<T>(marker, mask, connectivity);
+	}
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 
