@@ -63,7 +63,7 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 
 	stream.waitForCompletion();
 	if (std::numeric_limits<T>::is_integer) {
-	    iter = imreconstructIntCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+	    iter = imreconstructIntCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
 	} else {
 		iter = imreconstructFloatCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
 	}
