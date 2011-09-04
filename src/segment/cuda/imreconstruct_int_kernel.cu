@@ -670,6 +670,6 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 		return iter;
 	}
 
-	template unsigned int imreconstructIntCaller<uchar>(uchar*, const uchar*, const int, const int,
+	template unsigned int imreconstructIntCaller<unsigned char>(unsigned char*, const unsigned char*, const int, const int,
 		const int, cudaStream_t );
 }}
