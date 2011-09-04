@@ -111,7 +111,10 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 int main (int argc, char **argv){
 
 	runTest("test/in-bwselect-marker.pgm", "test/in-bwselect-mask.pgm", true);
+	runTest("test/in-bwselect-marker.pgm", "test/in-bwselect-mask.pgm", false);
 	runTest("test/in-fillholes-bin-marker.pgm", "test/in-fillholes-bin-mask.pgm", true);
+	runTest("test/in-fillholes-bin-marker.pgm", "test/in-fillholes-bin-mask.pgm", false);
+	runTest("test/in-imrecon-gray-marker.pgm", "test/in-imrecon-gray-mask.pgm", true);
 	runTest("test/in-imrecon-gray-marker.pgm", "test/in-imrecon-gray-mask.pgm", false);
 		
 	return 0;

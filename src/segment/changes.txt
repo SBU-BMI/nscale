@@ -1,0 +1,9 @@
+1. setup testing environment
+2. removed need for borders.  also removed a potential bug that may cause problems:  if x ==0 or x == sx-1, neighbors are not inspected correctly.
+3. [ix][ty] is probably not useful - ty is accessed in parallel.  so for each iteration of ix, actually want ty to be as the inner loop.
+
+
+
+4. bank conflict
+5. use of T* (local memory?) - switch to shared...
+6. reduce register usage (maybe by removing the use of DevMem2D?)

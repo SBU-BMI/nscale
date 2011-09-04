@@ -665,14 +665,14 @@ bRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 
 				// dopredny pruchod pres osu X
 				//bRec1DForward_X_dilation <<< blocksx, threadsx >>> ( marker, mask, d_change );
-				bRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
+				bRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );  // adds about 20 ms compared to other form.
 
 				// dopredny pruchod pres osu Y
 				bRec1DForward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
 				//bRec1DBackward_X_dilation<<< blocksx, threadsx >>> ( marker, mask, d_change );
-				bRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask,  d_change );
+				bRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask,  d_change ); // adds about 20 ms compared to other form.
 
 				// zpetny pruchod pres osu Y
 				bRec1DBackward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, d_change );
@@ -692,14 +692,14 @@ bRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 
 				// dopredny pruchod pres osu X
 				//bRec1DForward_X_dilation <<< blocksx, threadsx>>> ( marker, mask, d_change );
-				bRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
+				bRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change ); // adds about 20 ms compared to other form.
 
 				// dopredny pruchod pres osu Y
 				bRec1DForward_Y_dilation <<< blocksy, threadsy>>> ( marker, mask, d_change );
 
 				// zpetny pruchod pres osu X
 				//bRec1DBackward_X_dilation<<< blocksx, threadsx>>> ( marker, mask, d_change );
-				bRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change );
+				bRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, d_change ); // adds about 20 ms compared to other form.
 
 				// zpetny pruchod pres osu Y
 				bRec1DBackward_Y_dilation<<< blocksy, threadsy>>> ( marker, mask, d_change );
