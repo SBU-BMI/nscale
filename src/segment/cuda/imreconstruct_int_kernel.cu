@@ -685,7 +685,7 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 //				printf("%d sync \n", iter);
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
-//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
+				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
 			}
 		} else {
@@ -714,7 +714,7 @@ iRec1DBackward_Y_dilation_8 ( DevMem2D_<T> g_marker, DevMem2D_<T> g_mask, bool* 
 //				printf("%d sync \n", iter);
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
-//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
+				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
 			}
 		}
