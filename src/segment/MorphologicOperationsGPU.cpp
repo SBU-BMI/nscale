@@ -72,9 +72,9 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
     // get the result out
     return marker;
 }
-template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
+//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
