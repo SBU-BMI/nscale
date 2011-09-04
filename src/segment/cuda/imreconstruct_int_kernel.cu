@@ -28,8 +28,9 @@ iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy,
 
 	const int ty = threadIdx.x;
 	const int by = blockIdx.x * Y_THREADS;
-
-	if (ty + by < sy) {
+	const int y = by+ty;
+	
+	if (y < sy) {
 
 		volatile __shared__ T s_marker[Y_THREADS][Y_THREADS];
 		volatile __shared__ T s_mask  [Y_THREADS][Y_THREADS];
@@ -46,9 +47,10 @@ iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy,
 		for (startx = 0; startx < sx - Y_THREADS; startx += Y_THREADS - 1) {
 
 			// copy part of marker and mask to shared memory
-			for (int ix = 0; ix < Y_THREADS; ix++) {
-				s_marker[ix][ty] = marker[(by + ty)*sx + startx + ix];
-				s_mask  [ix][ty] = mask  [(by + ty)*sx + startx + ix];
+			for (int iy = 0; iy < Y_THREADS; iy++) {
+				// now treat ty as x, and iy as y, so global mem acccess is closer.
+				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
+				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
 			}
 			__syncthreads();
 
@@ -63,8 +65,9 @@ iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy,
 			__syncthreads();
 
 			// output result back to global memory
-			for (int ix = 0; ix < Y_THREADS; ix++) {
-				marker[(by + ty)*sx + startx + ix] = s_marker[ix][ty];
+			for (int iy = 0; iy < Y_THREADS; iy++) {
+				// now treat ty as x, and iy as y, so global mem acccess is closer.
+				marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			}
 			__syncthreads();
 
@@ -73,9 +76,10 @@ iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy,
 		startx = sx - Y_THREADS;
 
 		// copy part of marker and mask to shared memory
-		for (int ix = 0; ix < Y_THREADS; ix++) {
-			s_marker[ix][ty] = marker[(by + ty)*sx + startx + ix];
-			s_mask  [ix][ty] = mask  [(by + ty)*sx + startx + ix];
+		for (int iy = 0; iy < Y_THREADS; iy++) {
+			// now treat ty as x, and iy as y, so global mem acccess is closer.
+			s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
+			s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
 		}
 		__syncthreads();
 
@@ -89,9 +93,10 @@ iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy,
 		__syncthreads();
 
 		// output result back to global memory
-		for (int ix = 0; ix < Y_THREADS; ix++) {
-			marker[(by + ty)*sx + startx + ix] = s_marker[ix][ty];
-			if (s_change[ix][ty]) *change = true;
+		for (int iy = 0; iy < Y_THREADS; iy++) {
+			// now treat ty as x, and iy as y, so global mem acccess is closer.
+			marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
+			if (s_change[iy][ty]) *change = true;
 		}
 		__syncthreads();
 
@@ -125,9 +130,10 @@ iRec1DBackward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy
 		for (startx = sx - Y_THREADS; startx > 0; startx -= Y_THREADS - 1) {
 
 			// copy part of marker and mask to shared memory
-			for (int ix = 0; ix < Y_THREADS; ix++) {
-				s_marker[ix][ty] = marker[(by + ty)*sx + startx + ix];
-				s_mask  [ix][ty] = mask  [(by + ty)*sx + startx + ix];
+			for (int iy = 0; iy < Y_THREADS; iy++) {
+				// now treat ty as x, and iy as y, so global mem acccess is closer.
+				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
+				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
 			}
 			__syncthreads();
 
@@ -141,8 +147,9 @@ iRec1DBackward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy
 			__syncthreads();
 
 			// output result back to global memory
-			for (int ix = 0; ix < Y_THREADS; ix++) {
-				marker[(by + ty)*sx + startx + ix] = s_marker[ix][ty];
+			for (int iy = 0; iy < Y_THREADS; iy++) {
+				// now treat ty as x, and iy as y, so global mem acccess is closer.
+				marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			}
 			__syncthreads();
 
@@ -151,9 +158,10 @@ iRec1DBackward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy
 		startx = 0;
 
 		// copy part of marker and mask to shared memory
-		for (int ix = 0; ix < Y_THREADS; ix++) {
-			s_marker[ix][ty] = marker[(by + ty)*sx + startx + ix];
-			s_mask  [ix][ty] = mask  [(by + ty)*sx + startx + ix];
+		for (int iy = 0; iy < Y_THREADS; iy++) {
+			// now treat ty as x, and iy as y, so global mem acccess is closer.
+			s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
+			s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
 		}
 		__syncthreads();
 
@@ -167,9 +175,10 @@ iRec1DBackward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy
 		__syncthreads();
 
 		// output result back to global memory
-		for (int ix = 0; ix < Y_THREADS; ix++) {
-			marker[(by + ty)*sx + startx + ix] = s_marker[ix][ty];
-			if (s_change[ix][ty]) *change = true;
+		for (int iy = 0; iy < Y_THREADS; iy++) {
+			// now treat ty as x, and iy as y, so global mem acccess is closer.
+			marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
+			if (s_change[iy][ty]) *change = true;
 		}
 		__syncthreads();
 
@@ -479,7 +488,6 @@ iRec1DForward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int s
 	// parallelize along x.
 	const int tx = threadIdx.x;
 	const int bx = blockIdx.x * MAX_THREADS;
-
 
 	if ( bx+tx < sx ) {
 		
