@@ -4,8 +4,8 @@
 #include "change_kernel.cuh"
 
 #define MAX_THREADS		256
-#define X_THREADS			16
-#define Y_THREADS			16
+#define X_THREADS			32
+#define Y_THREADS			32
 #define NEQ(a,b)    ( (a) != (b) )
 
 
@@ -32,9 +32,9 @@ iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy,
 	
 	if (y < sy) {
 
-		volatile __shared__ T s_marker[Y_THREADS][Y_THREADS];
-		volatile __shared__ T s_mask  [Y_THREADS][Y_THREADS];
-		volatile __shared__ bool  s_change[Y_THREADS][Y_THREADS];
+		volatile __shared__ T s_marker[Y_THREADS+1][Y_THREADS+1];
+		volatile __shared__ T s_mask  [Y_THREADS+1][Y_THREADS+1];
+		volatile __shared__ bool  s_change[Y_THREADS+1][Y_THREADS+1];
 		
 		int startx;
 		for (int ix = 0; ix < Y_THREADS; ix++) {
@@ -116,9 +116,9 @@ iRec1DBackward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy
 
 	if (by + ty < sy) {
 
-		volatile __shared__ T s_marker[Y_THREADS][Y_THREADS];
-		volatile __shared__ T s_mask  [Y_THREADS][Y_THREADS];
-		volatile __shared__ bool  s_change[Y_THREADS][Y_THREADS];
+		volatile __shared__ T s_marker[Y_THREADS+1][Y_THREADS+1];
+		volatile __shared__ T s_mask  [Y_THREADS+1][Y_THREADS+1];
+		volatile __shared__ bool  s_change[Y_THREADS+1][Y_THREADS+1];
 		
 		int startx;
 		for (int ix = 0; ix < Y_THREADS; ix++) {
@@ -204,9 +204,9 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const int sx, const int sy,
 
 	if (ty + by < sy) {
 
-		volatile __shared__ T s_marker[X_THREADS][Y_THREADS];
-		volatile __shared__ T s_mask  [X_THREADS][Y_THREADS];
-		volatile __shared__ bool  s_change[X_THREADS][Y_THREADS];
+		volatile __shared__ T s_marker[X_THREADS+1][Y_THREADS+1];
+		volatile __shared__ T s_mask  [X_THREADS+1][Y_THREADS+1];
+		volatile __shared__ bool  s_change[X_THREADS+1][Y_THREADS+1];
 		s_change[tx][ty] = false;
 		__syncthreads();
 
@@ -275,9 +275,9 @@ iRec1DBackward_X_dilation ( T* marker, const T* mask, const int sx, const int sy
 	
 	if (by + ty < sy) {
 
-		volatile __shared__ T s_marker[X_THREADS][Y_THREADS];
-		volatile __shared__ T s_mask  [X_THREADS][Y_THREADS];
-		volatile __shared__ bool  s_change[X_THREADS][Y_THREADS];
+		volatile __shared__ T s_marker[X_THREADS+1][Y_THREADS+1];
+		volatile __shared__ T s_mask  [X_THREADS+1][Y_THREADS+1];
+		volatile __shared__ bool  s_change[X_THREADS+1][Y_THREADS+1];
 		s_change[tx][ty] = false;
 		__syncthreads();
 
@@ -346,8 +346,8 @@ iRec1D8ConnectedWindowedMax ( DevMem2D_<T> g_marker_max, DevMem2D_<T> g_marker)
 	int y = by + ty;
 	
 	if ( (by + ty) < sy) {
-		__shared__ T s_marker[MAX_THREADS][3];
-		__shared__ T s_out[MAX_THREADS];
+		__shared__ T s_marker[MAX_THREADS+1][3];
+		__shared__ T s_out[MAX_THREADS+1];
 		T temp;
 		T* marker = g_marker.ptr(y);
 		T* output = g_marker_max.ptr(y);
@@ -392,10 +392,10 @@ iRec1DForward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy,
 	
 	if ( (bx + tx) < sx ) {
 
-		volatile __shared__ T s_marker_A[MAX_THREADS];
-		volatile __shared__ T s_marker_B[MAX_THREADS];
-		volatile __shared__ T s_mask    [MAX_THREADS];
-		volatile __shared__ bool  s_change  [MAX_THREADS];
+		volatile __shared__ T s_marker_A[MAX_THREADS+1];
+		volatile __shared__ T s_marker_B[MAX_THREADS+1];
+		volatile __shared__ T s_mask    [MAX_THREADS+1];
+		volatile __shared__ bool  s_change  [MAX_THREADS+1];
 		s_change[tx] = false;
 		s_marker_B[tx] = marker[bx + tx];
 		__syncthreads();
@@ -439,10 +439,10 @@ iRec1DBackward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy
 
 	if ( (bx + tx) < sx ) {
 
-		volatile __shared__ T s_marker_A[MAX_THREADS];
-		volatile __shared__ T s_marker_B[MAX_THREADS];
-		volatile __shared__ T s_mask    [MAX_THREADS];
-		volatile __shared__ bool  s_change  [MAX_THREADS];
+		volatile __shared__ T s_marker_A[MAX_THREADS+1];
+		volatile __shared__ T s_marker_B[MAX_THREADS+1];
+		volatile __shared__ T s_mask    [MAX_THREADS+1];
+		volatile __shared__ bool  s_change  [MAX_THREADS+1];
 		s_change[tx] = false;
 		s_marker_B[tx] = marker[(sy-1) * sx + bx + tx];
 		__syncthreads();
@@ -493,10 +493,10 @@ iRec1DForward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int s
 
 	if ( bx+tx < sx ) {
 		
-		volatile __shared__ T s_marker_A[MAX_THREADS];
-		volatile __shared__ T s_marker_B[MAX_THREADS];
-		volatile __shared__ T s_mask    [MAX_THREADS];
-		volatile __shared__ bool  s_change  [MAX_THREADS];
+		volatile __shared__ T s_marker_A[MAX_THREADS+1];
+		volatile __shared__ T s_marker_B[MAX_THREADS+1];
+		volatile __shared__ T s_mask    [MAX_THREADS+1];
+		volatile __shared__ bool  s_change  [MAX_THREADS+1];
 		s_change[tx] = false;
 		s_marker_B[tx] = marker[bx+tx];
 		__syncthreads();
@@ -540,10 +540,10 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 
 	if ( bx + tx < sx ) {
 
-		volatile __shared__ T s_marker_A[MAX_THREADS];
-		volatile __shared__ T s_marker_B[MAX_THREADS];
-		volatile __shared__ T s_mask    [MAX_THREADS];
-		volatile __shared__ bool  s_change  [MAX_THREADS];
+		volatile __shared__ T s_marker_A[MAX_THREADS+1];
+		volatile __shared__ T s_marker_B[MAX_THREADS+1];
+		volatile __shared__ T s_mask    [MAX_THREADS+1];
+		volatile __shared__ bool  s_change  [MAX_THREADS+1];
 		
 		s_change[tx] = false;
 		s_marker_B[tx] = marker[(sy -1) * sx + bx + tx];
