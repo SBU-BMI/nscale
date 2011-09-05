@@ -23,7 +23,7 @@ namespace nscale { namespace gpu {
  */
 template <typename T>
 __global__ void
-iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 
 	const int ty = threadIdx.x;
@@ -106,7 +106,7 @@ iRec1DForward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy,
 
 template <typename T>
 __global__ void
-iRec1DBackward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 
 	const int ty = threadIdx.x;
@@ -195,7 +195,7 @@ iRec1DBackward_X_dilation2 (T* marker, const T* mask, const int sx, const int sy
  */
 template <typename T>
 __global__ void
-iRec1DForward_X_dilation ( T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DForward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 
 	const int tx = threadIdx.x;
@@ -265,7 +265,7 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const int sx, const int sy,
 
 template <typename T>
 __global__ void
-iRec1DBackward_X_dilation ( T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DBackward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 
 	const int tx = threadIdx.x;
@@ -384,7 +384,7 @@ iRec1D8ConnectedWindowedMax ( DevMem2D_<T> g_marker_max, DevMem2D_<T> g_marker)
 
 template <typename T>
 __global__ void
-iRec1DForward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DForward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 	// parallelize along x.
 	const int tx = threadIdx.x;
@@ -431,7 +431,7 @@ iRec1DForward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy,
 
 template <typename T>
 __global__ void
-iRec1DBackward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DBackward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 
 	const int tx = threadIdx.x;
@@ -485,7 +485,7 @@ iRec1DBackward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy
 
 template <typename T>
 __global__ void
-iRec1DForward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 	// parallelize along x.
 	const int tx = threadIdx.x;
@@ -532,7 +532,7 @@ iRec1DForward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int s
 
 template <typename T>
 __global__ void
-iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int sy, bool* change )
+iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 
 	const int tx = threadIdx.x;
@@ -586,7 +586,7 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 	// connectivity:  if 8 conn, need to have border.
 
 	template <typename T>
-	unsigned int imreconstructIntCaller(T* marker, const T* mask, const int sx, const int sy,
+	unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy,
 		const int connectivity, cudaStream_t stream) {
 
 		// here because we are not using streams inside.
