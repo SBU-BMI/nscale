@@ -41,7 +41,7 @@ should switch to comparison using the truncated segment function - to capture ti
 		increase thread for x2 to 32 - small incremental effect.
 	as comparison: original x scan with 16x32 threads:  1.4 s.
 	
-9. turn stream back on.	
-10.	reduce number of __syncthreads()
+9. turn stream back on.	- no difference.
+10.	reduce number of __syncthreads() - mostly in y.
 9. remove as much conditionals as possible.
 10. use page-locked memory for host to device?

@@ -406,21 +406,22 @@ iRec1DForward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy,
 			s_marker_A[tx] = s_marker_B[tx];
 			s_marker_B[tx] = marker[ty * sx + bx + tx];
 			s_mask    [tx] = mask[ty * sx + bx + tx];
-			__syncthreads();
+//			__syncthreads();
 
 			// perform iteration
 			s_old = s_marker_B[tx];
 			s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
 			s_marker_B[tx] = min( s_marker_B[tx], s_mask    [tx] );
 			s_change[tx] |= NEQ( s_old, s_marker_B[tx] );
-			__syncthreads();
+//			__syncthreads();
 
 			// output result back to global memory
 			marker[ty * sx + bx + tx] = s_marker_B[tx];
-			__syncthreads();
+//			__syncthreads();
 
 		}
-
+		__syncthreads();
+		
 		if (s_change[tx]) *change = true;
 		__syncthreads();
 
@@ -453,21 +454,22 @@ iRec1DBackward_Y_dilation ( T* marker, const T* mask, const int sx, const int sy
 			s_marker_A[tx] = s_marker_B[tx];
 			s_marker_B[tx] = marker[ty * sx + bx + tx];
 			s_mask    [tx] = mask[ty * sx + bx + tx];
-			__syncthreads();
+//			__syncthreads();
 
 			// perform iteration
 			s_old = s_marker_B[tx];
 			s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
 			s_marker_B[tx] = min( s_marker_B[tx], s_mask    [tx] );
 			s_change[tx] |= NEQ( s_old, s_marker_B[tx] );
-			__syncthreads();
+//			__syncthreads();
 
 			// output result back to global memory
 			marker[ty * sx + bx + tx] = s_marker_B[tx];
-			__syncthreads();
+//			__syncthreads();
 
 		}
-
+		__syncthreads();
+		
 		if (s_change[tx]) *change = true;
 		__syncthreads();
 
@@ -506,15 +508,16 @@ iRec1DForward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int s
 			s_marker_A[tx] = s_marker_B[tx];
 			if (bx+tx > 0) s_marker_A[tx] = max((tx == 0) ? marker[(ty-1) * sx + bx + tx - 1] : s_marker_B[tx-1], s_marker_A[tx]);
 			if (bx+tx < sx-1) s_marker_A[tx] = max((tx == blockDim.x-1) ? marker[(ty-1) * sx + bx + tx + 1] : s_marker_B[tx+1], s_marker_A[tx]);
-			__syncthreads();
-
-			s_marker_B[tx] = marker[ty * sx + bx + tx];
 			s_mask    [tx] = mask[ty * sx + bx + tx];
+			//__syncthreads();
+			s_old = marker[ty * sx + bx + tx];
+			//s_marker_B[tx] = marker[ty * sx + bx + tx];
 			__syncthreads();
 
 			// perform iteration
-			s_old = s_marker_B[tx];
-			s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
+			//s_old = s_marker_B[tx];
+			//s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
+			s_marker_B[tx] = max( s_marker_A[tx], s_old );
 			s_marker_B[tx] = min( s_marker_B[tx], s_mask    [tx] );
 			s_change[tx] |= NEQ( s_old, s_marker_B[tx] );
 			// output result back to global memory
@@ -553,15 +556,16 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 			s_marker_A[tx] = s_marker_B[tx];
 			if (bx + tx > 0) s_marker_A[tx] = max((tx == 0) ? marker[(ty+1) * sx + bx + tx -1] : s_marker_B[tx-1], s_marker_A[tx]);
 			if (bx + tx < sx-1) s_marker_A[tx] = max((tx == blockDim.x-1) ? marker[(ty+1) * sx + bx + tx +1] : s_marker_B[tx+1], s_marker_A[tx]);
-			__syncthreads();
-
-			s_marker_B[tx] = marker[ty * sx + bx + tx];
 			s_mask    [tx] = mask[ty * sx + bx + tx];
+//			__syncthreads();
+			s_old = marker[ty * sx + bx + tx];
+//			s_marker_B[tx] = marker[ty * sx + bx + tx];
 			__syncthreads();
 
 			// perform iteration
-			s_old = s_marker_B[tx];
-			s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
+			//s_old = s_marker_B[tx];
+			s_marker_B[tx] = max( s_marker_A[tx], s_old );
+//			s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
 			s_marker_B[tx] = min( s_marker_B[tx], s_mask    [tx] );
 			s_change[tx] |= NEQ( s_old, s_marker_B[tx] );
 			// output result back to global memory
@@ -662,7 +666,7 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 
 				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
 				else cudaSafeCall( cudaStreamSynchronize(stream));
-				printf("%d sync \n", iter);
+//				printf("%d sync \n", iter);
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 //				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
