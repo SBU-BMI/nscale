@@ -28,10 +28,20 @@ should switch to comparison using the truncated segment function - to capture ti
 		probably from the additional index computation.
 	7.2 try volatile.
 		not much change.
-8. remove as much conditionals as possible.
-9. x2's data loading is reading data looping over ix, for each ty.  this means at a given point in time, the block is reading from multiple y's and the access is not coalesced between threads.
+8. x2's data loading is reading data looping over ix, for each ty.  this means at a given point in time, the block is reading from multiple y's and the access is not coalesced between threads.
 	the shared 2D array is organized right - ty is inner loop.
 	reading from global memory is not organized right for easy coalescing.
 	
 	fixed by taking advantage of the square shared mem blocks.
+		now using 43 or 44 registers.
+***		but now int imrecon gray takes 	875ms.  still 45 iterations.
 	
+	look at visual profiler - somehow it's not able to do more than one run...
+		but the info suggest that the occupancy is low for x2
+		increase thread for x2 to 32 - small incremental effect.
+	as comparison: original x scan with 16x32 threads:  1.4 s.
+	
+9. turn stream back on.	
+10.	reduce number of __syncthreads()
+9. remove as much conditionals as possible.
+10. use page-locked memory for host to device?

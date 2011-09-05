@@ -586,8 +586,8 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 		const int connectivity, cudaStream_t stream) {
 
 		// here because we are not using streams inside.
-		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-		else cudaSafeCall( cudaStreamSynchronize(stream));
+//		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+//		else cudaSafeCall( cudaStreamSynchronize(stream));
 
 
 		printf("entering imrecon int caller with conn=%d\n", connectivity);
@@ -615,24 +615,24 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 			{
 				iter++;
 				*h_change = false;
-				init_change<<< 1, 1>>>( d_change );
+				init_change<<< 1, 1, 0, stream>>>( d_change );
 
 				// dopredny pruchod pres osu X
-				//iRec1DForward_X_dilation <<< blocksx, threadsx >>> ( marker, mask, sx, sy, d_change );
-				iRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, sx, sy, d_change );
+				//iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+				iRec1DForward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// dopredny pruchod pres osu Y
-				iRec1DForward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, sx, sy, d_change );
+				iRec1DForward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// zpetny pruchod pres osu X
-				//iRec1DBackward_X_dilation<<< blocksx, threadsx >>> ( marker, mask, sx, sy, d_change );
-				iRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, sx, sy, d_change );
+				//iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+				iRec1DBackward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// zpetny pruchod pres osu Y
-				iRec1DBackward_Y_dilation_8<<< blocksy, threadsy >>> ( marker, mask, sx, sy, d_change );
+				iRec1DBackward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
-//				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-//				else cudaSafeCall( cudaStreamSynchronize(stream));
+				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+				else cudaSafeCall( cudaStreamSynchronize(stream));
 //				printf("%d sync \n", iter);
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
@@ -644,25 +644,25 @@ iRec1DBackward_Y_dilation_8 ( T* marker, const T* mask, const int sx, const int 
 			{
 				iter++;
 				*h_change = false;
-				init_change<<< 1, 1>>>( d_change );
+				init_change<<< 1, 1, 0, stream>>>( d_change );
 
 				// dopredny pruchod pres osu X
-				//iRec1DForward_X_dilation <<< blocksx, threadsx >>> ( marker, mask, sx, sy, d_change );
-				iRec1DForward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, sx, sy, d_change );
+				//iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+				iRec1DForward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// dopredny pruchod pres osu Y
-				iRec1DForward_Y_dilation <<< blocksy, threadsy >>> ( marker, mask, sx, sy, d_change );
+				iRec1DForward_Y_dilation <<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// zpetny pruchod pres osu X
-				//iRec1DBackward_X_dilation<<< blocksx, threadsx >>> ( marker, mask, sx, sy, d_change );
-				iRec1DBackward_X_dilation2<<< blocksx, threadsx2 >>> ( marker, mask, sx, sy, d_change );
+				//iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+				iRec1DBackward_X_dilation2<<< blocksx, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// zpetny pruchod pres osu Y
-				iRec1DBackward_Y_dilation<<< blocksy, threadsy >>> ( marker, mask, sx, sy, d_change );
+				iRec1DBackward_Y_dilation<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
-//				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-//				else cudaSafeCall( cudaStreamSynchronize(stream));
-//				printf("%d sync \n", iter);
+				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+				else cudaSafeCall( cudaStreamSynchronize(stream));
+				printf("%d sync \n", iter);
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 //				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
