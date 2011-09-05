@@ -43,13 +43,18 @@ should switch to comparison using the truncated segment function - to capture ti
 	
 9. turn stream back on.	- no difference.
 10.	reduce number of __syncthreads() - mostly in y. - reduced to 750ms for 8con gray.  4con gray still at 2.1
-11. using 32 threads (warp size). also change to avoid bank conflicts.  (5)
-		register use down from 45 to 31 to 32. - down to 588ms for 8conn grayscale
+	***
+11. using 32 threads (warp size). 
+	*** also change to avoid bank conflicts.  (5) register use down from 45 to 31 to 32. - down to 588ms for 8conn grayscale
 
 12. use page-locked memory for host to device? - matters for host to device.
-
 16. restricted pointers (B.2.4).  also changed compiler flags to add -O3, -fPIC (still using sm_20 and --use_fast_math)
+	no difference...
+14. use intrinsics (C.2)?  does not make any difference for this code.
 
+TODO:
+	
+17. reduce register usage: compile with --keep --ptx
 13. remove as much conditionals as possible.
-14. use intrinsics (C.2)?
 15. optimize out sync points (5.4.3)?  
+18. allocate device memory once for entire run - possible?  __device__ with __shared__ has scope of?
