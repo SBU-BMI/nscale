@@ -51,10 +51,16 @@ should switch to comparison using the truncated segment function - to capture ti
 16. restricted pointers (B.2.4).  also changed compiler flags to add -O3, -fPIC (still using sm_20 and --use_fast_math)
 	no difference...
 14. use intrinsics (C.2)?  does not make any difference for this code.
+18. allocate device memory once for entire run - possible?  NO. __device__ with __shared__ has scope of?
 
 TODO:
-	
-17. reduce register usage: compile with --keep --ptx
+
+17. reduce register usage: compile with -ptx
+	using unsigned int for threadIdx and blockIdx - no conversion needed.
 13. remove as much conditionals as possible.
 15. optimize out sync points (5.4.3)?  
-18. allocate device memory once for entire run - possible?  __device__ with __shared__ has scope of?
+19. use warpSize to help with execution - minimize syncthreads...
+	if within the same warp - all threads execute together, so is lock stepped and no syncthreads is needed.
+	so x2 can get rid of a bunch of syncthreads. - warp = 32 threads.  this may limit the occupancy...
+20. use texture memory?	
+21. allocate shared memory as a single big block.
