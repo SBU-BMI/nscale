@@ -481,7 +481,6 @@ iRec1DBackward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 
 
 template <typename T>
-extern __shared__ T array[];
 __global__ void
 iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
