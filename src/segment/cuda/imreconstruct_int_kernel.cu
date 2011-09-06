@@ -581,7 +581,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 }
 
 
-	// connectivity:  if 8 conn, need to have border.
+	// connectivity:  assume no border
 
 	template <typename T>
 	unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy,

@@ -58,8 +58,11 @@ TODO:
 17. reduce register usage: compile with -keep to inspect code
 	tried to use temp variables - resulted in 63 instead of 32 registers.
 13. remove as much conditionals as possible.
-	completely removed the by+ty<sy conditional in x2.
+	completely removed the by+ty<sy conditional in x2. - reduced register usage down to 19.  slow down to 696ms from 575ms.
+	would using threadIdx.x and blockIdx.x and blockDim.x directly help with coalesced access?
 15. optimize out sync points (5.4.3)?  
+21. pre-fetch borders in y con8 code.
+
 19. use warpSize to help with execution - minimize syncthreads...
 	if within the same warp - all threads execute together, so is lock stepped and no syncthreads is needed.
 	so x2 can get rid of a bunch of syncthreads. - warp = 32 threads.  this may limit the occupancy...
