@@ -495,8 +495,8 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 	volatile __shared__ T s_old    [MAX_THREADS];
 	volatile __shared__ bool  s_change  [MAX_THREADS];
 
-	volatile __shared__ T* pre_border;
-	volatile __shared__ T* post_border;
+	__shared__ T* pre_border;
+	__shared__ T* post_border;
 
 	if (tx == 0) {
 		pre_border = (T*)malloc(sy * sizeof(T));
@@ -567,8 +567,8 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 	volatile __shared__ bool  s_change  [MAX_THREADS];
 	volatile __shared__ T s_old    [MAX_THREADS];
 
-	volatile __shared__ T* pre_border;
-	volatile __shared__ T* post_border;
+	__shared__ T* pre_border;
+	__shared__ T* post_border;
 
 	if (tx == 0) {
 		pre_border = (T*)malloc(sy * sizeof(T));

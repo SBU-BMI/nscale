@@ -62,12 +62,12 @@ TODO:
 		FIX: reorganize s_marker and s_mask?
 	completely pushed bx+tx<sx conditional down to line leve - reduced register usage from 18 to 12.  but slowed down to 873ms from 696ms/575ms.
 		- uncoalesced data access. FIX? 
-			forward y 8conn - using separate arrays for pre and post columns...
+			forward y 8conn - using separate arrays for pre and post columns....  slowed things down.
 		- no bank conflict
 	would using threadIdx.x and blockIdx.x and blockDim.x directly help with coalesced access?
+21. occupancy:  need 32 x threads (memory bound.  there is a total of 48K for all blocks), 128 y threads (max threads bound total 1536).  went back to 750ms.
+		need to reduce x memory usage.
 15. optimize out sync points (5.4.3)?  
-21. pre-fetch borders in y con8 code.
-
 19. use warpSize to help with execution - minimize syncthreads...
 	if within the same warp - all threads execute together, so is lock stepped and no syncthreads is needed.
 	so x2 can get rid of a bunch of syncthreads. - warp = 32 threads.  this may limit the occupancy...
