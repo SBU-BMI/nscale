@@ -61,7 +61,9 @@ TODO:
 	completely removed the by+ty<sy conditional in x2. - reduced register usage down to 19.  slow down to 696ms from 575ms.
 		FIX: reorganize s_marker and s_mask?
 	completely pushed bx+tx<sx conditional down to line leve - reduced register usage from 18 to 12.  but slowed down to 873ms from 696ms/575ms.
-		- uncoalesced data access. FIX? no bank conflict
+		- uncoalesced data access. FIX? 
+			forward y 8conn - using separate arrays for pre and post columns...
+		- no bank conflict
 	would using threadIdx.x and blockIdx.x and blockDim.x directly help with coalesced access?
 15. optimize out sync points (5.4.3)?  
 21. pre-fetch borders in y con8 code.
