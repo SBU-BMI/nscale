@@ -202,3 +202,105 @@ x_coalesced, 1315342630870770, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x
 
 x_coalesced, 1315342631586198, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000020480-0000000000.tif, gpu, 0, 293597, 2133, 0.995345, 5260, 
 
+x-coal, 1315343745974511, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000016384-0000004096.tif, gpu, 0, 315427, 2108, 0.99861, 5276, 
+
+x-coal, 1315343746757199, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000040960-0000004096.tif, gpu, 0, 299693, 2011, 0.972002, 5223, 
+
+x-coal, 1315343747792134, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000004096-0000004096.tif, gpu, 0, 305062, 2013, 0.30475, 4764, 56198, 0, 10433, 1187, 468679, 586858, 45, 16606527, 10306, 476, 83764, 8364, 1264, 
+x-coal, 1315343749741767, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000036864-0000004096.tif, gpu, 0, 307819, 2157, 0.999322, 5304, 
+
+x-coal, 1315343750383520, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000053248-0000012288.tif, gpu, 0, 310985, 2015, 0.999637, 5535, 
+
+x-coal, 1315343751122956, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000024576-0000008192.tif, gpu, 0, 294174, 2053, 0.99951, 5205, 
+
+x-coal, 1315343752247148, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000049152-0000004096.tif, gpu, 0, 305441, 2080, 0.165084, 4726, 68860, 0, 10249, 1186, 468156, 742468, 57, 16609876, 9807, 473, 96301, 8309, 1263, 
+x-coal, 1315343754402791, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000040960-0000000000.tif, gpu, 0, 306625, 2126, 0.989707, 5300, 
+
+x-coal, 1315343755139101, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000028672-0000004096.tif, gpu, 0, 310268, 2035, 0.998906, 5332, 
+
+x-coal, 1315343755967110, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000053248-0000004096.tif, gpu, 0, 311475, 2012, 0.867814, 5147, 30366, 0, 10372, 1183, 468151, 495660, 38, 16621527, 9943, 477, 71085, 8627, 1289, 
+x-coal, 1315343757881422, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000000000-0000004096.tif, gpu, 0, 307832, 2017, 0.906713, 5160, 
+
+x-coal, 1315343758721170, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000045056-0000000000.tif, gpu, 0, 293006, 2002, 0.803365, 5250, 56252, 19, 10131, 1182, 468098, 392051, 30, 16616018, 9872, 471, 84100, 8802, 1335, 
+x-coal, 1315343760795036, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000004096-0000008192.tif, gpu, 0, 305805, 2009, 0.431987, 4943, 69097, 8108, 11315, 1182, 468356, 2418305, 186, 16526930, 9995, 482, 96497, 8544, 1262, 
+x-coal, 1315343764620063, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000016384-0000008192.tif, gpu, 0, 313718, 2068, 0.999546, 5390, 
+
+x-coal, 1315343765354013, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000020480-0000008192.tif, gpu, 0, 310697, 2022, 0.999207, 5292, 
+
+x-coal, 1315343766087399, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000028672-0000008192.tif, gpu, 0, 305082, 2002, 0.999066, 5199, 
+
+x-coal, 1315343766820453, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000032768-0000000000.tif, gpu, 0, 314981, 2012, 0.996199, 5221, 
+
+x-coal, 1315343767552061, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000000000.tif, gpu, 0, 299693, 2003, 0.995589, 5192, 
+
+x-coal, 1315343768284974, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000024576-0000004096.tif, gpu, 0, 310159, 2013, 0.99826, 5220, 
+
+x-coal, 1315343769007183, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000012288-0000000000.tif, gpu, 0, 294805, 2005, 0.997071, 5217, 
+
+x-coal, 1315343769648914, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000032768-0000012288.tif, gpu, 0, 292308, 1995, 0.999882, 5245, 
+
+x-coal, 1315343770277735, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000028672-0000012288.tif, gpu, 0, 299292, 2012, 0.999845, 5309, 
+
+x-coal, 1315343770907462, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000016384-0000012288.tif, gpu, 0, 308309, 2054, 0.999924, 5396, 
+
+x-coal, 1315343771619625, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000036864-0000000000.tif, gpu, 0, 307834, 2032, 0.998955, 5279, 
+
+x-coal, 1315343772457453, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000045056-0000008192.tif, gpu, 0, 298221, 2004, 0.844795, 5102, 55891, 0, 10327, 1384, 468078, 781253, 60, 16609022, 9874, 494, 83776, 8779, 1286, 
+x-coal, 1315343774524360, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000024576-0000012288.tif, gpu, 0, 313257, 2010, 0.999853, 5484, 
+
+x-coal, 1315343775259245, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000020480-0000004096.tif, gpu, 0, 315727, 2041, 0.997832, 5377, 
+
+x-coal, 1315343775911723, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000020480-0000012288.tif, gpu, 0, 308084, 2167, 0.999827, 5248, 
+
+x-coal, 1315343776628529, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000032768-0000004096.tif, gpu, 0, 317573, 2023, 0.999344, 5263, 
+
+x-coal, 1315343777377420, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000053248-0000000000.tif, gpu, 0, 301801, 2016, 0.992235, 5288, 
+
+x-coal, 1315343778009850, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000049152-0000012288.tif, gpu, 0, 310575, 1991, 0.999907, 5626, 
+
+x-coal, 1315343778771798, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000024576-0000000000.tif, gpu, 0, 318885, 2000, 0.997864, 5308, 
+
+x-coal, 1315343779515757, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000036864-0000008192.tif, gpu, 0, 296805, 2000, 0.999278, 5244, 
+
+x-coal, 1315343780154430, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000012288.tif, gpu, 0, 297598, 2007, 0.999873, 5295, 
+
+x-coal, 1315343780878494, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000000000-0000000000.tif, gpu, 0, 310174, 2009, 0.994707, 5206, 
+
+x-coal, 1315343781523007, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000045056-0000012288.tif, gpu, 0, 307713, 2008, 0.999883, 5199, 
+
+x-coal, 1315343782283476, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000012288-0000004096.tif, gpu, 0, 312320, 2016, 0.977702, 5358, 
+
+x-coal, 1315343783034758, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000012288-0000008192.tif, gpu, 0, 320039, 2009, 0.985533, 5246, 
+
+x-coal, 1315343784155109, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000004096.tif, gpu, 0, 314027, 2066, 0.246548, 4605, 55914, 50, 10122, 1184, 467972, 729887, 56, 16617877, 10178, 476, 121686, 8391, 1312, 
+x-coal, 1315343786313317, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000004096-0000000000.tif, gpu, 0, 305366, 2020, 0.994492, 5270, 
+
+x-coal, 1315343787079127, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000049152-0000008192.tif, gpu, 0, 301767, 2005, 0.938357, 5190, 
+
+x-coal, 1315343787819658, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000028672-0000000000.tif, gpu, 0, 376868, 2128, 0.996981, 5270, 
+
+x-coal, 1315343788524407, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000000000-0000012288.tif, gpu, 0, 308829, 1993, 0.999867, 5306, 
+
+x-coal, 1315343789169664, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000012288-0000012288.tif, gpu, 0, 308221, 2049, 0.999784, 5440, 
+
+x-coal, 1315343789920906, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000053248-0000008192.tif, gpu, 0, 368758, 2154, 0.987064, 5266, 
+
+x-coal, 1315343790641210, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000036864-0000012288.tif, gpu, 0, 302585, 2016, 0.999904, 5444, 
+
+x-coal, 1315343791281569, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000004096-0000012288.tif, gpu, 0, 293112, 2052, 0.999608, 5387, 
+
+x-coal, 1315343792199671, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif, gpu, 0, 322031, 2005, 0.602258, 5091, 56278, 0, 10113, 1184, 468547, 586552, 45, 16607835, 9903, 474, 83758, 8810, 1310, 
+x-coal, 1315343794175657, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000032768-0000008192.tif, gpu, 0, 301609, 2010, 0.99903, 5256, 
+
+x-coal, 1315343794911121, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000016384-0000000000.tif, gpu, 0, 306788, 2177, 0.994597, 5344, 
+
+x-coal, 1315343796005171, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000045056-0000004096.tif, gpu, 0, 307806, 2009, 0.307533, 4869, 119986, 10811, 10418, 1188, 468177, 1392458, 107, 16572284, 9896, 473, 83717, 9194, 1390, 
+x-coal, 1315343798882430, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000000000-0000008192.tif, gpu, 0, 298398, 2013, 0.975699, 5182, 
+
+x-coal, 1315343799763326, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000049152-0000000000.tif, gpu, 0, 293971, 2026, 0.687578, 4998, 55945, 0, 9904, 1213, 468738, 729796, 56, 16619178, 9956, 597, 109089, 8376, 1265, 
+x-coal, 1315343801881704, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000040960-0000008192.tif, gpu, 0, 308698, 2051, 0.999415, 5225, 
+
+x-coal, 1315343802530964, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000040960-0000012288.tif, gpu, 0, 299779, 1998, 0.999714, 5207, 
+
+x-coal, 1315343803266547, /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000020480-0000000000.tif, gpu, 0, 307842, 2003, 0.995345, 5379, 
+
