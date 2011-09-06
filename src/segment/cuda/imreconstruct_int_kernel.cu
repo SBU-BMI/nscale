@@ -481,6 +481,7 @@ iRec1DBackward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 
 
 template <typename T>
+extern __shared__ T array[];
 __global__ void
 iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
@@ -495,8 +496,14 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 	volatile __shared__ T s_old    [MAX_THREADS];
 	volatile __shared__ bool  s_change  [MAX_THREADS];
 
-	volatile __shared__ T pre_border[sy];
-	volatile __shared__ T post_border[sy];
+	volatile __shared__ T* pre_border;
+	volatile __shared__ T* post_border;
+
+	if (tx == 0) {
+		pre_border = (T*)malloc(sy * sizeof(T));
+		post_border = (T*)malloc(sy * sizeof(T));
+	}
+	__syncthreads();
 	
 	// preload the borders - at x = 0, so that means blockIdx.x = 0, and at x = sx-1, so that means blockIdx.x = (gridDim.x - 1)
 	int i;
@@ -539,6 +546,11 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 
 		if (s_change[tx] && inside) *change = true;
 		__syncthreads();
+		
+	if (tx == 0) {
+		free(pre_border);
+		free(post_border);
+	}
 }
 
 template <typename T>
@@ -556,6 +568,14 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 	volatile __shared__ bool  s_change  [MAX_THREADS];
 	volatile __shared__ T s_old    [MAX_THREADS];
 
+	volatile __shared__ T* pre_border;
+	volatile __shared__ T* post_border;
+
+	if (tx == 0) {
+		pre_border = (T*)malloc(sy * sizeof(T));
+		post_border = (T*)malloc(sy * sizeof(T));
+	}
+	__syncthreads();
 
 	// preload the borders - at x = 0, so that means blockIdx.x = 0, and at x = sx-1, so that means blockIdx.x = (gridDim.x - 1)
 	int i;
@@ -573,7 +593,6 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		s_marker_B[tx] = inside ? marker[(sy -1) * sx + bx + tx] : 0;
 		__syncthreads();
 
-		T s_old;
 		for (int ty = sy - 2; ty >= 0; ty--) {
 
 			// copy part of marker and mask to shared memory
@@ -602,6 +621,10 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		if (s_change[tx] && inside) *change = true;
 		__syncthreads();
 
+	if (tx == 0) {
+		free(pre_border);
+		free(post_border);
+	}
 
 }
 
