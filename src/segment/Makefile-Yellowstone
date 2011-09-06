@@ -8,7 +8,7 @@ CXXFLAGS=-fPIC -pg -O3 #-g -msse4.2 -fopenmp
 #CXXFLAGS=-g -fast -openmp -msse4.2
 
 NVCC=nvcc
-NVCC_FLAGS=--ptxas-options=-v -m64 -g -arch=sm_20 -O3 -ptx #-G -Xcompiler -fPIC "-arch=sm_12"  -O3
+NVCC_FLAGS=--ptxas-options=-v -m64 -g -arch=sm_20 -O3 -keep #-G -Xcompiler -fPIC "-arch=sm_12"  -O3
 NVCC_INCLUDE=-I/usr/local/cuda/include
 CUDA_LIBS= -L/usr/local/cuda/lib64 -lcudart
 
