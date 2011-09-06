@@ -55,9 +55,10 @@ should switch to comparison using the truncated segment function - to capture ti
 
 TODO:
 
-17. reduce register usage: compile with -ptx
-	using unsigned int for threadIdx and blockIdx - no conversion needed.
+17. reduce register usage: compile with -keep to inspect code
+	tried to use temp variables - resulted in 63 instead of 32 registers.
 13. remove as much conditionals as possible.
+	completely removed the by+ty<sy conditional in x2.
 15. optimize out sync points (5.4.3)?  
 19. use warpSize to help with execution - minimize syncthreads...
 	if within the same warp - all threads execute together, so is lock stepped and no syncthreads is needed.
