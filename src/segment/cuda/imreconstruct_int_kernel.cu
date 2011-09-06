@@ -576,7 +576,6 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		if (s_change[tx] && inside) *change = true;
 		__syncthreads();
 
-	}
 
 }
 
