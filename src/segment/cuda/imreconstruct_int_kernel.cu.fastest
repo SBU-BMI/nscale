@@ -509,8 +509,8 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 		
 			// copy part of marker and mask to shared memory
 			s_marker_A[tx] = s_marker_B[tx];
-			if (bx+tx > 0) s_marker_A[tx] = max((tx == 0) ? marker[(ty-1) * sx + bx + tx - 1] : s_marker_B[tx-1], s_marker_A[tx]);
-			if (bx+tx < sx-1) s_marker_A[tx] = max((tx == blockDim.x-1) ? marker[(ty-1) * sx + bx + tx + 1] : s_marker_B[tx+1], s_marker_A[tx]);
+			if (bx+tx > 0) s_marker_A[tx] = max((tx == 0) ? marker[(ty-1) * sx + bx - 1] : s_marker_B[tx-1], s_marker_A[tx]);
+			if (bx+tx < sx-1) s_marker_A[tx] = max((tx == blockDim.x-1) ? marker[(ty-1) * sx + bx + blockDim.x] : s_marker_B[tx+1], s_marker_A[tx]);
 			s_mask    [tx] = mask[ty * sx + bx + tx];
 			//__syncthreads();
 			s_old = marker[ty * sx + bx + tx];
