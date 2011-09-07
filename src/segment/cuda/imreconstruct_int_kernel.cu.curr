@@ -301,18 +301,20 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 
 	volatile T* s_marker = s_marker_B + 1;
 
+
+
 	s_change[tx] = false;
 
 	if (inside) {
-		s_marker_B[tx] = marker[bx+tx-1];
-		s_marker_B[MAX_THREADS + tx%2] = marker[bx + blockDim.x - 1 + tx%2];
-		if (blockIdx.x == 0) s_marker_B[0] = 0;
-		if (blockIdx.x == gridDim.x - 1) s_marker_B[MAX_THREADS + 1] = 0;
+//		s_marker_B[tx] = marker[bx+tx-1];
+//		s_marker_B[MAX_THREADS + tx%2] = marker[bx + blockDim.x - 1 + tx%2];
+//		if (blockIdx.x == 0) s_marker_B[0] = 0;
+//		if (blockIdx.x == gridDim.x - 1) s_marker_B[MAX_THREADS + 1] = 0;
 
 
-//		s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[ty * sx + bx-1];
-//		s_marker[tx] = marker[bx+tx];
-//		s_marker[MAX_THREADS] = (blockIdx.x == gridDim.x - 1) ? 0 : marker[bx + blockDim.x];
+		s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[ty * sx + bx-1];
+		s_marker[tx] = marker[bx+tx];
+		s_marker[MAX_THREADS] = (blockIdx.x == gridDim.x - 1) ? 0 : marker[bx + blockDim.x];
 
 		__syncthreads();
 
@@ -324,13 +326,13 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 			__syncthreads();
 
 			s_mask[tx] = mask[ty * sx + bx + tx];
-			s_marker_B[tx] = marker[ty * sx +bx+tx-1];
-			s_marker_B[MAX_THREADS + tx%2] = marker[ty * sx +bx + blockDim.x - 1 + tx%2];
-			if (blockIdx.x == 0) s_marker_B[0] = 0;
-			if (blockIdx.x == gridDim.x - 1) s_marker_B[MAX_THREADS + 1] = 0;
-//			s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[ty * sx + bx-1];
-//			s_marker[tx] = marker[ty * sx + bx + tx];
-//			s_marker[MAX_THREADS] = (blockIdx.x == gridDim.x - 1) ? 0 : marker[ty * sx + bx + blockDim.x];
+//			s_marker_B[tx] = marker[ty * sx +bx+tx-1];
+//			s_marker_B[MAX_THREADS + tx%2] = marker[ty * sx +bx + blockDim.x - 1 + tx%2];
+//			if (blockIdx.x == 0) s_marker_B[0] = 0;
+//			if (blockIdx.x == gridDim.x - 1) s_marker_B[MAX_THREADS + 1] = 0;
+			s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[ty * sx + bx-1];
+			s_marker[tx] = marker[ty * sx + bx + tx];
+			s_marker[MAX_THREADS] = (blockIdx.x == gridDim.x - 1) ? 0 : marker[ty * sx + bx + blockDim.x];
 			//__syncthreads();
 	
 			// perform iteration
