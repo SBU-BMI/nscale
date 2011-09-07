@@ -111,6 +111,7 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 	const int ty = threadIdx.x;
 	const int by = blockIdx.x * Y_THREADS;
 	const int max_ty = min(sy - by, blockDim.x);  // for ty < sy-by
+	const int overlap = 4 / sizeof(T);
 
 	volatile __shared__ T s_marker[Y_THREADS][Y_THREADS+1];
 	volatile __shared__ T s_mask  [Y_THREADS][Y_THREADS+1];
@@ -123,29 +124,29 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 	__syncthreads();
 
 		T s_old;
-		for (startx = sx - Y_THREADS; startx > 0; startx -= Y_THREADS - 1) {
+		for (startx = sx - Y_THREADS; startx > 0; startx -= Y_THREADS - overlap) {
 
 			// copy part of marker and mask to shared memory
 			for (i = 0; i < max_ty; ++i) {
 				// now treat ty as x, and i as y, so global mem acccess is closer.
-				s_marker[ty][i] = marker[(by + i)*sx + startx + ty];
-				s_mask  [ty][i] = mask  [(by + i)*sx + startx + ty];
+				s_marker[i][ty] = marker[(by + i)*sx + startx + ty];
+				s_mask  [i][ty] = mask  [(by + i)*sx + startx + ty];
 			}
 			__syncthreads();
 
 			// perform iteration
-			for (i = Y_THREADS - 2; i >= 0; i--) {
-				s_old = s_marker[i][ty];
-				s_marker[i][ty] = max( s_marker[i][ty], s_marker[i+1][ty] );
-				s_marker[i][ty] = min( s_marker[i][ty], s_mask  [i]  [ty] );
-				s_change[i][ty] |= NEQ( s_old, s_marker[i][ty] );
+			for (i = Y_THREADS - 1 - overlap; i >= 0; i--) {
+				s_old = s_marker[ty][i];
+				s_marker[ty][i] = max( s_marker[ty][i], s_marker[ty][i+1] );
+				s_marker[ty][i] = min( s_marker[ty][i], s_mask  [ty][i]   );
+				s_change[ty][i] |= NEQ( s_old, s_marker[ty][i] );
 			}
 			__syncthreads();
 
 			// output result back to global memory
 			for (i = 0; i < max_ty; ++i) {
 				// now treat ty as x, and i as y, so global mem acccess is closer.
-				marker[(by + i)*sx + startx + ty] = s_marker[ty][i];
+				marker[(by + i)*sx + startx + ty] = s_marker[i][ty];
 			}
 			__syncthreads();
 
@@ -156,26 +157,26 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 		// copy part of marker and mask to shared memory
 		for (i = 0; i < max_ty; ++i) {
 			// now treat ty as x, and i as y, so global mem acccess is closer.
-			s_marker[ty][i] = marker[(by + i)*sx + startx + ty];
-			s_mask  [ty][i] = mask  [(by + i)*sx + startx + ty];
+			s_marker[i][ty] = marker[(by + i)*sx + startx + ty];
+			s_mask  [i][ty] = mask  [(by + i)*sx + startx + ty];
 		}
 		// rest of them (max_ty to Y_threads), do not matter - row wise in next step.
 		__syncthreads();
 
 		// perform iteration
 		for (i = Y_THREADS - 2; i >= 0; i--) {
-			s_old = s_marker[i][ty];
-			s_marker[i][ty] = max( s_marker[i][ty], s_marker[i+1][ty] );
-			s_marker[i][ty] = min( s_marker[i][ty], s_mask  [i]  [ty] );
-			s_change[i][ty] |= NEQ( s_old, s_marker[i][ty] );
+			s_old = s_marker[ty][i];
+			s_marker[ty][i] = max( s_marker[ty][i], s_marker[ty][i+1] );
+			s_marker[ty][i] = min( s_marker[ty][i], s_mask  [ty][i]   );
+			s_change[ty][i] |= NEQ( s_old, s_marker[ty][i] );
 		}
 		__syncthreads();
 
 		// output result back to global memory
 		for (i = 0; i < max_ty; ++i) {
 			// now treat ty as x, and i as y, so global mem acccess is closer.
-			marker[(by + i)*sx + startx + ty] = s_marker[ty][i];
-			if (s_change[ty][i]) *change = true;
+			marker[(by + i)*sx + startx + ty] = s_marker[i][ty];
+			if (s_change[i][ty]) *change = true;
 		}
 		__syncthreads();
 
