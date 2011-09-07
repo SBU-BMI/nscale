@@ -312,7 +312,7 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 //		if (blockIdx.x == gridDim.x - 1) s_marker_B[MAX_THREADS + 1] = 0;
 
 
-		s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[ty * sx + bx-1];
+		s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[bx-1];
 		s_marker[tx] = marker[bx+tx];
 		s_marker[MAX_THREADS] = (blockIdx.x == gridDim.x - 1) ? 0 : marker[bx + blockDim.x];
 
@@ -365,63 +365,45 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 	volatile __shared__ bool  s_change  [MAX_THREADS];
 	volatile __shared__ T s_old    [MAX_THREADS];
 
-	__shared__ T* pre_border;
-	__shared__ T* post_border;
-
-	if (tx == 0) {
-		pre_border = (T*)malloc(sy * sizeof(T));
-		post_border = (T*)malloc(sy * sizeof(T));
-	}
-	__syncthreads();
-
-	// preload the borders - at x = 0, so that means blockIdx.x = 0, and at x = sx-1, so that means blockIdx.x = (gridDim.x - 1)
-	int i;
-	for (i = 0; i < sy; i+= blockDim.x) {
-		pre_border[i+tx]  = blockIdx.x == 0 ? 0 : marker[ i * sx + bx - 1 + sx * tx ];
-		post_border[i+tx] = blockIdx.x == (gridDim.x - 1) ? 0 : marker[ i * sx + bx + blockDim.x + sx * tx];
-	}
-	i = sy - blockDim.x;
-	pre_border[i+tx]  = blockIdx.x == 0 ? 0 : marker[ i * sx + bx - 1 + sx * tx];
-	post_border[i+tx] = blockIdx.x == (gridDim.x - 1) ? 0 : marker[ i * sx + bx + blockDim.x + sx * tx ];
-	// done preloading
+	volatile T* s_marker = s_marker_B + 1;
 
 		
-		s_change[tx] = false;
-		s_marker_B[tx] = inside ? marker[(sy -1) * sx + bx + tx] : 0;
+	s_change[tx] = false;
+
+
+		s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[(sy -1) * sx + bx-1];
+		s_marker[tx] = inside ? marker[(sy -1) * sx + bx+tx] : 0;
+		s_marker[MAX_THREADS] = (blockIdx.x == gridDim.x - 1) ? 0 : marker[(sy -1) * sx + bx + blockDim.x];
+
 		__syncthreads();
 
 		for (int ty = sy - 2; ty >= 0; ty--) {
 
 			// copy part of marker and mask to shared memory
-			s_marker_A[tx] = s_marker_B[tx];
-			s_marker_A[tx] = max((tx > 0) ? s_marker_B[tx-1] : pre_border[ty - 1], s_marker_A[tx]);
-			s_marker_A[tx] = max((tx < blockDim.x-1) ? s_marker_B[tx+1] : pre_border[ty - 1], s_marker_A[tx]);
+			s_marker_A[tx] = max( s_marker[tx-1], s_marker[tx]);
+			s_marker_A[tx] = max( s_marker[tx+1], s_marker_A[tx]);
+			__syncthreads();
+
 			s_mask    [tx] = inside ? mask[ty * sx + bx + tx] : 0;
-//			__syncthreads();
-			s_old[tx] = inside ? marker[ty * sx + bx + tx] : 0;
-//			s_marker_B[tx] = marker[ty * sx + bx + tx];
-			__syncthreads();
-
+			s_marker[-1] = (blockIdx.x == 0) ? 0 : marker[ty * sx + bx-1];
+			s_marker[tx] = inside ? marker[ty * sx + bx + tx] : 0;
+			s_marker[MAX_THREADS] = (blockIdx.x == gridDim.x - 1) ? 0 : marker[ty * sx + bx + blockDim.x];
+			//__syncthreads();
+	
 			// perform iteration
-			//s_old = s_marker_B[tx];
-			s_marker_B[tx] = max( s_marker_A[tx], s_old[tx] );
-//			s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
-			s_marker_B[tx] = min( s_marker_B[tx], s_mask    [tx] );
-			s_change[tx] |= NEQ( s_old[tx], s_marker_B[tx] );
+			s_old[tx] = s_marker[tx];
+			s_marker[tx] = max( s_marker_A[tx], s_marker[tx] );
+			s_marker[tx] = min( s_marker[tx], s_mask    [tx] );
+			s_change[tx] |= NEQ( s_old[tx], s_marker[tx] );
 			// output result back to global memory
-			if (inside) marker[ty * sx + bx + tx] = s_marker_B[tx];
+			if (inside) marker[ty * sx + bx + tx] = s_marker[tx];
+
 			__syncthreads();
-
-
 		}
 
 		if (s_change[tx] && inside) *change = true;
 		__syncthreads();
 
-	if (tx == 0) {
-		free(pre_border);
-		free(post_border);
-	}
 
 }
 
