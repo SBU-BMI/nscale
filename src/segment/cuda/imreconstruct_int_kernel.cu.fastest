@@ -28,18 +28,15 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 
 	const int ty = threadIdx.x;
 	const int by = blockIdx.x * blockDim.x;
-	const int y = by+ty;
-	const int maxx = sx - Y_THREADS;
-	const int stepx = Y_THREADS - 1;
 	
 	volatile __shared__ T s_marker[Y_THREADS][Y_THREADS+1];
 	volatile __shared__ T s_mask  [Y_THREADS][Y_THREADS+1];
 	volatile __shared__ bool  s_change[Y_THREADS][Y_THREADS+1];
 
 	
-	if (y < sy) {
+	if (by + ty < sy) {
 
-		int startx, iy, ix, offset, offset2;
+		int startx, iy, ix;
 		for (int ix = 0; ix < Y_THREADS; ++ix) {
 			s_change[ix][ty] = false;
 		}
@@ -47,15 +44,12 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 
 		T s_old;
 		// the increment allows overlap by 1 between iterations to move the data to next block.
-		for (startx = 0; startx < maxx; startx += stepx) {
-			offset = by * sx + startx + ty;
+		for (startx = 0; startx < sx - Y_THREADS; startx += Y_THREADS - 1) {
 			// copy part of marker and mask to shared memory
-			for (iy = 0, offset2 = offset; iy < Y_THREADS; ++iy, offset2 += sx) {
+			for (iy = 0; iy < Y_THREADS; ++iy) {
 				// now treat ty as x, and iy as y, so global mem acccess is closer.
-//				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
-//				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
-				s_marker[ty][iy] = marker[offset2];
-				s_mask  [ty][iy] = mask  [offset2];
+				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
+				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
 			}
 			__syncthreads();
 
@@ -70,21 +64,21 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 			__syncthreads();
 
 			// output result back to global memory
-			for (iy = 0, offset2 = offset; iy < Y_THREADS; ++iy, offset2 += sx) {
+			for (iy = 0; iy < Y_THREADS; ++iy) {
 				// now treat ty as x, and iy as y, so global mem acccess is closer.
-				marker[offset2] = s_marker[ty][iy];
+				marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			}
 			__syncthreads();
 
 		}
 
-		startx = maxx;
+		startx = sx - Y_THREADS;
 
 		// copy part of marker and mask to shared memory
-		for (iy = 0, offset2 = offset; iy < Y_THREADS; ++iy, offset2 += sx) {
+		for (iy = 0; iy < Y_THREADS; ++iy) {
 			// now treat ty as x, and iy as y, so global mem acccess is closer.
-			s_marker[ty][iy] = marker[offset2];
-			s_mask  [ty][iy] = mask  [offset2];
+			s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
+			s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
 		}
 		__syncthreads();
 
@@ -98,9 +92,9 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 		__syncthreads();
 
 		// output result back to global memory
-		for (iy = 0,offset2 = offset; iy < Y_THREADS; ++iy, offset2 += sx) {
+		for (iy = 0; iy < Y_THREADS; ++iy) {
 			// now treat ty as x, and iy as y, so global mem acccess is closer.
-			marker[offset2] = s_marker[ty][iy];
+			marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			if (s_change[iy][ty]) *change = true;
 		}
 		__syncthreads();
@@ -515,8 +509,8 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 		
 			// copy part of marker and mask to shared memory
 			s_marker_A[tx] = s_marker_B[tx];
-			if (bx+tx > 0) s_marker_A[tx] = max((tx == 0) ? marker[(ty-1) * sx + bx + tx - 1] : s_marker_B[tx-1], s_marker_A[tx]);
-			if (bx+tx < sx-1) s_marker_A[tx] = max((tx == blockDim.x-1) ? marker[(ty-1) * sx + bx + tx + 1] : s_marker_B[tx+1], s_marker_A[tx]);
+			if (bx+tx > 0) s_marker_A[tx] = max((tx == 0) ? marker[(ty-1) * sx + bx - 1] : s_marker_B[tx-1], s_marker_A[tx]);
+			if (bx+tx < sx-1) s_marker_A[tx] = max((tx == blockDim.x-1) ? marker[(ty-1) * sx + bx + blockDim.x] : s_marker_B[tx+1], s_marker_A[tx]);
 			s_mask    [tx] = mask[ty * sx + bx + tx];
 			//__syncthreads();
 			s_old = marker[ty * sx + bx + tx];

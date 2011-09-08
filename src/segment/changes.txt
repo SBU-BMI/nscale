@@ -53,16 +53,36 @@ should switch to comparison using the truncated segment function - to capture ti
 14. use intrinsics (C.2)?  does not make any difference for this code.
 18. allocate device memory once for entire run - possible?  NO. __device__ with __shared__ has scope of?
 
-TODO:
-
 17. reduce register usage: compile with -keep to inspect code
 	tried to use temp variables - resulted in 63 instead of 32 registers.
+	reverted.
+	
+22. for now, revert back to the "fastest" version - coalesced x2 operations.
+	migrate all kernels to using this.
+	get timing results.
+
+23. look at read element size.  need to coalesce better:
+	1. read elements of 4, 8, or 16 bytes per thread
+	2. contiguous in global mem
+	3. Nth element goes to Nth thread
+	4. element of first thread is algined at 16* element size.
+		so global memory allocation needs to happen with aligned at 16.  __align(x)
+		and number of threads needs to be multiple of 16.
+	read chunks of 16 bytes, 32 y threads, 8 x threads,
+	
+TODO:
+
+
+
 13. remove as much conditionals as possible.
 	completely removed the by+ty<sy conditional in x2. - reduced register usage down to 19.  slow down to 696ms from 575ms.
 		FIX: reorganize s_marker and s_mask?
 	completely pushed bx+tx<sx conditional down to line leve - reduced register usage from 18 to 12.  but slowed down to 873ms from 696ms/575ms.
 		- uncoalesced data access. FIX? 
 			forward y 8conn - using separate arrays for pre and post columns....  slowed things down.
+			problem:  strided access to marker/mask (1 column) results in 1 global access per element read.
+			changed to extend marker size by 2. - does not really help all that much
+			changed to use a conditional to wrap the whole block - 30 to 40% improvement.... why? 
 		- no bank conflict
 	would using threadIdx.x and blockIdx.x and blockDim.x directly help with coalesced access?
 21. occupancy:  need 32 x threads (memory bound.  there is a total of 48K for all blocks), 128 y threads (max threads bound total 1536).  went back to 750ms.

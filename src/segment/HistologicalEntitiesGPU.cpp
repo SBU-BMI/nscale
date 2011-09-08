@@ -76,11 +76,8 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 		temp.release();
 	}
 	bw1.release();
-    std::cout<<"got here!" << std::endl;
 	bw2.release();
-    std::cout<<"got here!" << std::endl;
 	bw3.release();
-    std::cout<<"got here!" << std::endl;
 
 	return rbc;
 }
@@ -229,10 +226,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 //	imwrite("test/out-rcopen.ppm", rc_open);
 
 
-//	GpuMat g_rc_recon = nscale::gpu::imreconstruct<unsigned char>(g_rc_open, g_rc, 8, stream);
-	// TODO: change back:
 	unsigned int iter;
-	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
+	GpuMat g_rc_recon = nscale::gpu::imreconstruct<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
+	// TODO: change back:
+//	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
 	GpuMat g_diffIm;
 	subtract(g_rc, g_rc_recon, g_diffIm, stream);
 	stream.waitForCompletion();

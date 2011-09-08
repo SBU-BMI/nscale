@@ -40,7 +40,7 @@ libsegment.so: ${LIB_SRCO} ${GPU_LIB_SRCO} ${LIB_SRCH}
 	$(CXX) ${CXX_FLAGS} $(LDFLAGS) -shared -o libsegment.so ${LIB_SRCO} ${GPU_LIB_SRCO}
 
 clean:
-	$(RM) *.o *.exe *.so cuda/*.o
+	$(RM) *.o *.exe *.so cuda/*.o *.cudafe?.* *.fatbin* *.cubin *.ptx *.i *.ii *.cu.cpp *.hash
 	
 %.o: %.cpp ${LIB_SRCH}
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<

@@ -65,7 +65,7 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 	if (std::numeric_limits<T>::is_integer) {
 	    iter = imreconstructIntCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
 	} else {
-		iter = imreconstructFloatCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+		iter = imreconstructFloatCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
 	}
     stream.waitForCompletion();
     mask.release();
@@ -144,7 +144,7 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 
 	stream.waitForCompletion();
 
-    iter = imreconstructBinaryCaller<T>(marker, mask, connectivity, StreamAccessor::getStream(stream));
+    iter = imreconstructBinaryCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
     stream.waitForCompletion();
     mask.release();
 
@@ -245,9 +245,9 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 
 	uint64_t t1 = cciutils::ClockGetTime();
 	GpuMat output2;
-//	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
-//	else output2 = imreconstruct<T>(marker, mask, connectivity, stream);
-	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
+	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
+	else output2 = imreconstruct<T>(marker, mask, connectivity, stream);
+//	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
 	stream.waitForCompletion();
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
@@ -287,8 +287,8 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 	// since binary, seeds already have the same values as binary images
 	// at the selected places.  If not, the marker will be forced to 0 by imrecon.
 
-	GpuMat marker = imreconstruct2<T>(seeds, binaryImage, connectivity, stream);
-//	GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
+//	GpuMat marker = imreconstruct2<T>(seeds, binaryImage, connectivity, stream);
+	GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
 
 	// no need to and between marker and binaryImage - since marker is always <= binary image
 	return marker;
