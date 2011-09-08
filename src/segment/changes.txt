@@ -61,8 +61,17 @@ should switch to comparison using the truncated segment function - to capture ti
 	migrate all kernels to using this.
 	get timing results.
 
-
+23. look at read element size.  need to coalesce better:
+	1. read elements of 4, 8, or 16 bytes per thread
+	2. contiguous in global mem
+	3. Nth element goes to Nth thread
+	4. element of first thread is algined at 16* element size.
+		so global memory allocation needs to happen with aligned at 16.  __align(x)
+		and number of threads needs to be multiple of 16.
+	read chunks of 16 bytes, 32 y threads, 8 x threads,
+	
 TODO:
+
 
 
 13. remove as much conditionals as possible.
