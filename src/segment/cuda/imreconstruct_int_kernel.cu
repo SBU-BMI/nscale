@@ -523,40 +523,56 @@ __global__ void
 iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
 {
 	// parallelize along x.
-	const int tx = threadIdx.x;
-	const int bx = blockIdx.x * MAX_THREADS;
-	volatile __shared__ T s_marker_A[MAX_THREADS];
-	volatile __shared__ T s_marker_B[MAX_THREADS];
-	volatile __shared__ T s_mask    [MAX_THREADS];
-	volatile __shared__ bool  s_change  [MAX_THREADS];
+	extern __shared__ char array[];
 
+	const int tx = threadIdx.x;
+	const int bx = blockIdx.x * blockDim.x;
+	const int numEl = sizeof(uint2) / sizeof(T);
+	const int s_step = blockDim.x * numEl;
+	const int tsx = sx / numEl;
+
+
+	// can do 128 x threads,4 bytes per element, total 4272 bytes, allows 8 threads.
+	T* s_marker_A = (T*)array;
+	T* s_marker_B = (T*)(array + s_step * sizeof(T));
+	T* s_mask = (T*)(array + s_step * sizeof(T) * 2);
+	bool* s_change = (bool*)(array + s_step * sizeof(T) * 3);
+
+	uint2* ts_marker_B = (uint2*)s_marker_B;
+	uint2* t_marker = (uint2*)marker;
+	uint2* t_mask = (uint2*)mask;
+	
 	if ( bx+tx < sx ) {
 		
 		s_change[tx] = false;
-		s_marker_B[tx] = marker[bx+tx];
+		ts_marker_B[tx] = t_marker[bx+tx];
 		__syncthreads();
 
 		T s_old;
 		for (int ty = 1; ty < sy; ty++) {
 		
 			// copy part of marker and mask to shared memory
-			s_marker_A[tx] = s_marker_B[tx];
-			if (bx+tx > 0) s_marker_A[tx] = max((tx == 0) ? marker[(ty-1) * sx + bx + tx - 1] : s_marker_B[tx-1], s_marker_A[tx]);
-			if (bx+tx < sx-1) s_marker_A[tx] = max((tx == blockDim.x-1) ? marker[(ty-1) * sx + bx + tx + 1] : s_marker_B[tx+1], s_marker_A[tx]);
-			s_mask    [tx] = mask[ty * sx + bx + tx];
+			for ( int i = 0; i < numEl; i ++) {
+				s_marker_A[tx + i] = s_marker_B[tx + i];
+				if (bx*numEl+tx+i > 0) s_marker_A[tx+i] = max((tx+i == 0) ? marker[(ty-1) * sx + bx*numEl + tx + i - 1] : s_marker_B[tx+i-1], s_marker_A[tx+i]);
+				if (bx*numEl+tx+i < sx-1) s_marker_A[tx+i] = max((tx+i == blockDim.x*numEl-1) ? marker[(ty-1) * sx + bx*numEl + tx + i + 1] : s_marker_B[tx+i+1], s_marker_A[tx+i]);
+			}
+			ts_mask    [tx] = t_mask[ty * tsx + bx + tx];
 			//__syncthreads();
-			s_old = marker[ty * sx + bx + tx];
-			//s_marker_B[tx] = marker[ty * sx + bx + tx];
+			//s_old = marker[ty * tsx + bx + tx];
+			ts_marker_B[tx] = t_marker[ty * tsx + bx + tx];
 			__syncthreads();
 
 			// perform iteration
-			//s_old = s_marker_B[tx];
-			//s_marker_B[tx] = max( s_marker_A[tx], s_marker_B[tx] );
-			s_marker_B[tx] = max( s_marker_A[tx], s_old );
-			s_marker_B[tx] = min( s_marker_B[tx], s_mask    [tx] );
-			s_change[tx] |= NEQ( s_old, s_marker_B[tx] );
-			// output result back to global memory
-			marker[ty * sx + bx + tx] = s_marker_B[tx];
+			for (int i = 0; i < numEl; i++) {
+				s_old = s_marker_B[tx + i];
+				s_marker_B[tx+i] = max( s_marker_A[tx+i], s_marker_B[tx+i] );
+			//s_marker_B[tx] = max( s_marker_A[tx], s_old );
+				s_marker_B[tx+i] = min( s_marker_B[tx+i], s_mask    [tx+i] );
+				s_change[tx+i] |= NEQ( s_old, s_marker_B[tx+i] );
+				// output result back to global memory
+			}
+			t_marker[ty * tsx + bx + tx] = ts_marker_B[tx];
 			__syncthreads();
 		}
 
@@ -641,7 +657,10 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		dim3 blocksx2( divUp(sy, threadsx.y) );
 		dim3 threadsy( MAX_THREADS );
 		dim3 blocksy( divUp(sx, threadsy.x) );
-		size_t Nsx = threadsx.x * threadsx.y * (sizeof(uint4) * 2 + sizeof(uint4) / sizeof(T));
+		dim3 threadsy2( 192 );
+		dim3 blocksy2( divUp(sx, threadsy2.x * sizeof(uint2)) );
+		size_t Nsy = threadsy2.x * (sizeof(uint2) * 3 + sizeof(uint2) / sizeof(bool));
+		size_t Nsx = threadsx.x * threadsx.y * (sizeof(uint4) * 2 + sizeof(uint4) / sizeof(bool));
 
 		// stability detection
 		unsigned int iter = 0;
@@ -662,10 +681,10 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 				// dopredny pruchod pres osu X
 				iRec1DForward_X_dilation <<< blocksx, threadsx, Nsx, stream >>> ( marker, mask, sx, sy, d_change );
 //				iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
-/*
-				// dopredny pruchod pres osu Y
-				iRec1DForward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
+				// dopredny pruchod pres osu Y
+				iRec1DForward_Y_dilation_8<<< blocksy2, threadsy2, Nsy, stream >>> ( marker, mask, sx, sy, d_change );
+/*
 				// zpetny pruchod pres osu X
 				//iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
 				iRec1DBackward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
