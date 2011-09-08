@@ -194,103 +194,107 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 // RECONSTRUCTION BY DILATION
 ////////////////////////////////////////////////////////////////////////////////
 /*
- * original code
+	optimized.  note that sx and sy MUST be multiples of thread block size.
  */
-// sx should be step size...
- template <typename T>
+ template <typename T, typename CT>
 __global__ void
-iRec1DForward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, bool* __restrict__ change )
+iRec1DForward_X_dilation ( T* marker, const T* mask, const int sx, const int sy, bool* __restrict__ change )
 {
 	extern __shared__ char array[];
 
-	const int tx = threadIdx.x;
-	const int ty = threadIdx.y;
-	const int by = blockIdx.y * blockDim.y;
-	const int numEl = sizeof(uint4) / sizeof(T);
-	const int s_step = blockDim.x * numEl;
-	const int tsx = sx / numEl;
-
+	const int tx = threadIdx.x;  // unit is CT
+	const int ty = threadIdx.y;  // not affect by data type here
+	const int by = blockIdx.y * blockDim.y;  // not affected by data type here
+	const int numEl = sizeof(CT) / sizeof(T);
+	const int tsx = sx / numEl;  // sx unit is T.  tsx unit is CT
+	const int blockDim_x = blockDim.x + 1;
+	const int s_idx = ty * blockDim_x + tx;
+	const int maxx = tsx - blockDim.x;
 
 	// can do 32 y threads, 4 x threads,16 bytes per element, total 4272 bytes, allows 8 threads.
-	T* s_marker = (T*)array;
-	T* s_mask = (T*)(&array[blockDim.y * s_step * sizeof(T)]);
-	bool* s_change = (bool*)(&array[blockDim.y * s_step * sizeof(T) * 2]);
+	// do 1 wider because of the overlap
+	CT* ts_marker = (CT*)array;  // in units of CT
+	CT* ts_mask = ts_marker + blockDim_x * blockDim.y;  // in units of CT
+	bool* s_change = (bool*)(ts_mask + blockDim_x * blockDim.y);  // in units of T
 
-//	if (tx == 0) {
-//		s_marker = (T*)malloc(blockDim.y * s_step * sizeof(T));
-//		s_mask = (T*)malloc(blockDim.y * s_step * sizeof(T));
-//		s_change = (bool*)malloc(blockDim.y * s_step * sizeof(bool));
-//	}
+	CT* t_marker = (CT*) marker;
+	CT* t_mask = (CT*) mask;
+	T* s_marker = (T*)ts_marker;
+	T* s_mask = (T*)ts_mask;
 
-	uint4* t_marker = (uint4*) marker;
-	uint4* t_mask = (uint4*) mask;
-	uint4* ts_marker = (uint4*) s_marker;
-	uint4* ts_mask = (uint4*) s_mask;
 
 	if (ty + by < sy) {
 
-		for (int i = 0; i < numEl; ++i) {
-			s_change[ty * s_step + tx * numEl + i] = false;
-		}
-		__syncthreads();
+//		for (int i = 0; i < numEl; ++i) {
+//			s_change[s_idx * numEl + i] = false;
+//		}
+//		__syncthreads();
 
 		T s_old;
-		int startx;
 		// the increment allows overlap by 1 between iterations to move the data to next block.
-		for (startx = 0; startx < sx - s_step; startx += s_step - numEl) {
-			t_marker = (uint4*)(marker + (by * sx + startx));
-			t_mask = (uint4*)(mask + (by * sx + startx));
-			// copy part of marker and mask to shared memory
-			// index for shared is (ty * s_step + tx * numEl) / numEl.
-			ts_marker[ty * blockDim.x + tx] = t_marker[ty * tsx + tx];
-			ts_mask  [ty * blockDim.x + tx] = t_mask  [ty * tsx + tx];
+		// because of this overlap, the alignment will be off.  can do some copying - the shared mem needs to be 1 wider.
+		// initialize the first column necessary?
+		if (tx == 0) {
+			for (int i = 0; i < numEl; ++i){
+				s_marker[s_idx * numEl + i] = (T)0;
+				s_mask[s_idx * numEl + i] = (T)0;
+			}
+		}
+
+		for (int startx = 0; startx < maxx; startx += blockDim.x) {
+			t_marker = ((CT*)marker) + (by * tsx + startx);
+			t_mask = ((CT*)mask) + (by * tsx + startx);
+			// copy part of marker and mask to shared memory, offset = 1
+			ts_marker[s_idx + 1] = t_marker[ty * tsx + tx];
+			ts_mask  [s_idx + 1] = t_mask  [ty * tsx + tx];
 			__syncthreads();
 
-			// perform iteration   all X threads do the same operations, so there may be read/write hazards.  but the output is the same.
-			// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
-			for (int ix = numEl; ix < s_step; ix++) {
-				s_old = s_marker[ty * s_step + ix];
-				s_marker[ty * s_step + ix] = max( s_marker[ty * s_step + ix], s_marker[ty * s_step + ix-1] );
-				s_marker[ty * s_step + ix] = min( s_marker[ty * s_step + ix], s_mask  [ty * s_step + ix] );
-				s_change[ty * s_step + ix] |= NEQ( s_old, s_marker[ty * s_step + ix] );
-			}
-			__syncthreads();
+//			// perform iteration   all X threads do the same operations, so there may be read/write hazards.  but the output is the same.
+//			// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
+//			for (int ix = 1; ix < s_step; ix++) {
+//				s_old = s_marker[ty * s_step + ix];
+//				s_marker[ty * s_step + ix] = max( s_marker[ty * s_step + ix], s_marker[ty * s_step + ix-1] );
+//				s_marker[ty * s_step + ix] = min( s_marker[ty * s_step + ix], s_mask  [ty * s_step + ix] );
+//				s_change[ty * s_step + ix] |= NEQ( s_old, s_marker[ty * s_step + ix] );
+//			}
+//			__syncthreads();
 
 			// output result back to global memory
-			t_marker[ty * tsx + tx] = ts_marker[ty * blockDim.x + tx];
+			t_marker[ty * tsx + tx] = ts_marker[s_idx + 1];
 			__syncthreads();
 
+			if (tx == 0) {
+				// bank conflict here - no.  read into register, write to target address.
+				ts_marker[ty * blockDim_x] = ts_marker[(ty + 1) * blockDim_x - 1 ];
+				ts_mask[ty * blockDim_x] = ts_mask[(ty + 1) * blockDim_x - 1 ];
+
+			}
 		}
 
-		startx = sx - s_step;
-		t_marker = (uint4*)(marker + (by * sx + startx));
-		t_mask = (uint4*)(mask + (by * sx + startx));
-
+		t_marker = ((CT*)marker) + (by * tsx + maxx);
+		t_mask = ((CT*)mask) + (by * tsx + maxx);
 		// copy part of marker and mask to shared memory
-		ts_marker[ty * blockDim.x + tx] = t_marker[ty * tsx + tx];
-		ts_mask  [ty * blockDim.x + tx] = t_mask  [ty * tsx + tx];
+		ts_marker[s_idx + 1] = t_marker[ty * tsx + tx];
+		ts_mask  [s_idx + 1] = t_mask  [ty * tsx + tx];
 		__syncthreads();
 
-		// perform iteration
-		for (int ix = numEl; ix < s_step; ix++) {
-			s_old = s_marker[ty * s_step + ix];
-			s_marker[ty * s_step + ix] = max( s_marker[ty * s_step + ix], s_marker[ty * s_step + ix-1] );
-			s_marker[ty * s_step + ix] = min( s_marker[ty * s_step + ix], s_mask  [ty * s_step + ix] );
-			s_change[ty * s_step + ix] |= NEQ( s_old, s_marker[ty * s_step + ix] );
-		}
-		__syncthreads();
+//		// perform iteration
+//		for (int ix = numEl; ix < s_step; ix++) {
+//			s_old = s_marker[ty * s_step + ix];
+//			s_marker[ty * s_step + ix] = max( s_marker[ty * s_step + ix], s_marker[ty * s_step + ix-1] );
+//			s_marker[ty * s_step + ix] = min( s_marker[ty * s_step + ix], s_mask  [ty * s_step + ix] );
+//			s_change[ty * s_step + ix] |= NEQ( s_old, s_marker[ty * s_step + ix] );
+//		}
+//		__syncthreads();
 
 		// output result back to global memory
-		t_marker[ty * tsx + tx] = ts_marker[ty * blockDim.x + tx];
-		if (s_change[ty * s_step + tx]) *change = true;
+		t_marker[ty * tsx + tx] = ts_marker[s_idx + 1];
+//		for (int i = 0; i < numEl; ++i) {
+//			if (s_change[s_idx * numEl + i]) *change = true;
+//		}
 		__syncthreads();
 
 	}
-//	if (tx == 0) {
-//		free(s_marker);
-//		free(s_mask);
-//		free(s_change);
-//	}
 
 
 }
@@ -654,16 +658,17 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		// setup execution parameters
 		bool conn8 = (connectivity == 8);
 
-		dim3 threadsx( 2, 64 );
 		dim3 threadsx2( Y_THREADS );
-		dim3 blocksx( 1, divUp(sy, threadsx.y) );
-		dim3 blocksx2( divUp(sy, threadsx.y) );
+		dim3 blocksx2( divUp(sy, threadsx2.y) );
 		dim3 threadsy( MAX_THREADS );
 		dim3 blocksy( divUp(sx, threadsy.x) );
 		dim3 threadsy2( 192 );
 		dim3 blocksy2( divUp(sx, threadsy2.x * sizeof(uint2)) );
-		size_t Nsy = threadsy2.x * (sizeof(uint2) * 3 + sizeof(uint2) / sizeof(bool));
-		size_t Nsx = threadsx.x * threadsx.y * (sizeof(uint4) * 2 + sizeof(uint4) / sizeof(bool));
+		size_t Nsy = threadsy2.x * (sizeof(uint2) * 3 + sizeof(uint2) * sizeof(bool) / sizeof(T));
+
+		dim3 threadsx( 32, 12 );
+		dim3 blocksx( 1, divUp(sy, threadsx.y) );
+		size_t Nsx = (threadsx.x+1) * threadsx.y * (sizeof(uchar4) * 2 + sizeof(bool) * sizeof(uchar4) /sizeof(T));
 
 		// stability detection
 		unsigned int iter = 0;
@@ -682,11 +687,11 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 				init_change<<< 1, 1, 0, stream>>>( d_change );
 
 				// dopredny pruchod pres osu X
-//				iRec1DForward_X_dilation <<< blocksx, threadsx, Nsx, stream >>> ( marker, mask, sx, sy, d_change );
+				iRec1DForward_X_dilation<T, uchar4> <<< blocksx, threadsx, Nsx, stream >>> ( marker, mask, sx, sy, d_change );
 //				iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// dopredny pruchod pres osu Y
-				iRec1DForward_Y_dilation_8<<< blocksy2, threadsy2, Nsy, stream >>> ( marker, mask, sx, sy, d_change );
+//				iRec1DForward_Y_dilation_8<<< blocksy2, threadsy2, Nsy, stream >>> ( marker, mask, sx, sy, d_change );
 /*
 				// zpetny pruchod pres osu X
 				//iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
@@ -711,7 +716,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 				init_change<<< 1, 1, 0, stream>>>( d_change );
 
 				// dopredny pruchod pres osu X
-				iRec1DForward_X_dilation <<< blocksx, threadsx, Nsx, stream >>> ( marker, mask, sx, sy, d_change );
+				iRec1DForward_X_dilation<T, uchar4> <<< blocksx, threadsx, Nsx, stream >>> ( marker, mask, sx, sy, d_change );
 				//iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 /*				// dopredny pruchod pres osu Y

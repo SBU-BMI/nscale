@@ -83,12 +83,12 @@ int main (int argc, char **argv){
 	// break it apart
 	std::vector<Mat> chunks;
 	Size s = img.size();
-	int colw = s.cols/w + (s.cols%w == 0 ? 0 : 1);
-	int rowh = s.rows/h + (s.rows%w == 0 ? 0 : 1);
+	int colw = s.width/w + (s.width%w == 0 ? 0 : 1);
+	int rowh = s.height/h + (s.height%w == 0 ? 0 : 1);
 	Mat chunk;
 	Rect roi;
-	for (int i = 0; i < s.cols; i+= w) {
-		for (int j = 0; j < s.rows; j+= h) {
+	for (int i = 0; i < s.width; i+= w) {
+		for (int j = 0; j < s.height; j+= h) {
 			roi = Rect(i, j, w, h);
 			chunks.push_back(Mat(img, roi));
 		}
@@ -97,7 +97,6 @@ int main (int argc, char **argv){
 	if (!img.data) return -1;
 
 	uint64_t t1 = cciutils::ClockGetTime();
-	Mat output = Mat::zeros(img.size(), CV_8U);
 	int status;
 	char prefix[80];
 	strcpy(prefix, "results/");
@@ -147,18 +146,18 @@ int main (int argc, char **argv){
 	bgr.push_back(green);
 	bgr.push_back(red);
 	
-	channel = 1;
+	int channel = 1;
 
-	std::vector<Mat>::const_iterator it = chunks.begin();
-	std::vector<Mat>::const_iterator last = chunks.end();
+	it = chunks.begin();
+	last = chunks.end();
 	
 	Mat target;
-	for (int i = 0; i < s.cols; i+=w) {
-		for (int j = 0; j < s.rows; j+=h) {
+	for (int i = 0; i < s.width; i+=w) {
+		for (int j = 0; j < s.height; j+=h) {
 			target = bgr[channel];
 			
 			roi = Rect(i, j, w, h);
-			(*it).copyTo(target, roi);
+			target(roi) = (*it);
 
 			channel = channel %2 + 1;
 		}
@@ -171,7 +170,6 @@ int main (int argc, char **argv){
 	char hs[10];
 	sprintf(hs, "%d", h);
 	
-	char prefix[80];
 	strcpy(prefix, "test/out-segment-");
 	strcat(prefix, mode);
 	strcat(prefix, "-chunk-");
