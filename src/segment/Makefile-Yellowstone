@@ -1,4 +1,4 @@
-all: nu-segment.exe tests
+all: nu-segment.exe nu-segment2.exe tests
 
 tests: imreconTest.exe imreconOptimizeTest.exe imreconOptimizeProfiler.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
 
