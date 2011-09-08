@@ -539,10 +539,11 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 	bool* s_change = (bool*)(array + s_step * sizeof(T) * 3);
 
 	uint2* ts_marker_B = (uint2*)s_marker_B;
+	uint2* ts_mask = (uint2*)s_mask;
 	uint2* t_marker = (uint2*)marker;
 	uint2* t_mask = (uint2*)mask;
 	
-	if ( bx+tx < sx ) {
+	if ( bx+tx < tsx + 1 ) {
 		
 		s_change[tx] = false;
 		ts_marker_B[tx] = t_marker[bx+tx];
@@ -553,9 +554,9 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 		
 			// copy part of marker and mask to shared memory
 			for ( int i = 0; i < numEl; i ++) {
-				s_marker_A[tx + i] = s_marker_B[tx + i];
-				if (bx*numEl+tx+i > 0) s_marker_A[tx+i] = max((tx+i == 0) ? marker[(ty-1) * sx + bx*numEl + tx + i - 1] : s_marker_B[tx+i-1], s_marker_A[tx+i]);
-				if (bx*numEl+tx+i < sx-1) s_marker_A[tx+i] = max((tx+i == blockDim.x*numEl-1) ? marker[(ty-1) * sx + bx*numEl + tx + i + 1] : s_marker_B[tx+i+1], s_marker_A[tx+i]);
+				s_marker_A[tx*numEl + i] = s_marker_B[tx*numEl + i];
+				if (bx*numEl+tx+i > 0) s_marker_A[tx*numEl+i] = max((tx*numEl+i == 0) ? marker[(ty-1) * sx + (bx + tx)*numEl + i - 1] : s_marker_B[tx*numEl+i-1], s_marker_A[tx*numEl+i]);
+				if (bx*numEl+tx+i < sx-1) s_marker_A[tx*numEl+i] = max((tx*numEl+i == s_step-1) ? marker[(ty-1) * sx + (bx + tx)*numEl + i + 1] : s_marker_B[tx*numEl+i+1], s_marker_A[tx*numEl+i]);
 			}
 			ts_mask    [tx] = t_mask[ty * tsx + bx + tx];
 			//__syncthreads();
@@ -565,18 +566,20 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 
 			// perform iteration
 			for (int i = 0; i < numEl; i++) {
-				s_old = s_marker_B[tx + i];
-				s_marker_B[tx+i] = max( s_marker_A[tx+i], s_marker_B[tx+i] );
+				s_old = s_marker_B[tx*numEl + i];
+				s_marker_B[tx*numEl+i] = max( s_marker_A[tx*numEl+i], s_marker_B[tx*numEl+i] );
 			//s_marker_B[tx] = max( s_marker_A[tx], s_old );
-				s_marker_B[tx+i] = min( s_marker_B[tx+i], s_mask    [tx+i] );
-				s_change[tx+i] |= NEQ( s_old, s_marker_B[tx+i] );
+				s_marker_B[tx*numEl+i] = min( s_marker_B[tx*numEl+i], s_mask    [tx*numEl+i] );
+				s_change[tx*numEl+i] |= NEQ( s_old, s_marker_B[tx*numEl+i] );
 				// output result back to global memory
 			}
 			t_marker[ty * tsx + bx + tx] = ts_marker_B[tx];
 			__syncthreads();
 		}
 
-		if (s_change[tx]) *change = true;
+		for (int i = 0; i < numEl; i++) {
+			if (s_change[tx * numEl + i]) *change = true;
+		}
 		__syncthreads();
 	}
 }
@@ -683,7 +686,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 //				iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
 				// dopredny pruchod pres osu Y
-				iRec1DForward_Y_dilation_8<<< blocksy2, threadsy2, Nsy, stream >>> ( marker, mask, sx, sy, d_change );
+//				iRec1DForward_Y_dilation_8<<< blocksy2, threadsy2, Nsy, stream >>> ( marker, mask, sx, sy, d_change );
 /*
 				// zpetny pruchod pres osu X
 				//iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
