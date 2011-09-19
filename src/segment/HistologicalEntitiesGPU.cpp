@@ -102,7 +102,7 @@ GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Str
 }
 
 
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger& logger) {
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger& logger, int stage) {
 	// image in BGR format
 
 
@@ -123,6 +123,11 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
     end
 	 */
 	logger.logStart("start");
+	if (stage == 0) {
+			output = img;
+			return 0;
+		}
+
 	GpuMat g_img;
 	Stream stream;
 	stream.enqueueUpload(img, g_img);
@@ -136,6 +141,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 
 	GpuMat g_bg = getBackground(g_bgr, stream);
 	stream.waitForCompletion();
+	if (stage == 1) {
+		Mat temp;
+		stream.enqueueDownload(g_bg,temp);
+		stream.waitForCompletion();
+		output = temp;
+		return 0;
+	}
+
 	int bgArea = countNonZero(g_bg);
 	g_bg.release();
 
@@ -153,6 +166,13 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	uint64_t t1 = cciutils::ClockGetTime();
 	GpuMat g_rbc = nscale::gpu::HistologicalEntities::getRBC(g_bgr, stream);
 	stream.waitForCompletion();
+	if (stage == 2) {
+		Mat temp;
+		stream.enqueueDownload(g_rbc, temp);
+		stream.waitForCompletion();
+		output = temp;
+		return 0;
+	}
 	uint64_t t2 = cciutils::ClockGetTime();
 	logger.logTimeElapsedSinceLastLog("RBC");
 	int rbcPixelCount = countNonZero(g_rbc);
@@ -220,6 +240,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	//Mat rc_open(g_rc_open.size(), g_rc_open.type());
 	//stream.enqueueDownload(g_rc_open, rc_open);
 	stream.waitForCompletion();
+	if (stage == 3) {
+		Mat temp;
+		stream.enqueueDownload(g_rc_open, temp);
+		stream.waitForCompletion();
+		output = temp;
+		return 0;
+	}
+
 	logger.logTimeElapsedSinceLastLog("open19");
 	rc_roi.release();
 	rc_border.release();
@@ -230,9 +258,25 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	GpuMat g_rc_recon = nscale::gpu::imreconstruct<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
 	// TODO: change back:
 //	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
+	stream.waitForCompletion();
+	if (stage == 4) {
+		Mat temp;
+		stream.enqueueDownload(g_rc_recon, temp);
+		output = temp;
+		return 0;
+	}
+
 	GpuMat g_diffIm;
 	subtract(g_rc, g_rc_recon, g_diffIm, stream);
 	stream.waitForCompletion();
+	if (stage == 5) {
+		Mat temp;
+		stream.enqueueDownload(g_diffIm, temp);
+		stream.waitForCompletion();
+		output = temp;
+		return 0;
+	}
+
 	logger.logTimeElapsedSinceLastLog("reconToNuclei");
 	logger.log("rc_reconIter", iter);
 	int rc_openPixelCount = countNonZero(g_rc_open);
@@ -259,12 +303,28 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	GpuMat g_diffIm2;
 	threshold(g_diffIm, g_diffIm2, G1, std::numeric_limits<unsigned char>::max(), THRESH_BINARY, stream);
 	stream.waitForCompletion();
+	if (stage == 6) {
+		Mat temp;
+		stream.enqueueDownload(g_diffIm2, temp);
+		stream.waitForCompletion();
+		output = temp;
+		return 0;
+	}
+
 	logger.logTimeElapsedSinceLastLog("threshold1");
 
 	g_diffIm.release();
 
 	GpuMat g_bw1 = nscale::gpu::imfillHoles<unsigned char>(g_diffIm2, true, 4, stream);
 	stream.waitForCompletion();
+	if (stage == 7) {
+		Mat temp;
+		stream.enqueueDownload(g_bw1, temp);
+		stream.waitForCompletion();
+		output = temp;
+		return 0;
+	}
+
 	logger.logTimeElapsedSinceLastLog("fillHoles1");
 	Mat bw1(g_bw1.size(), g_bw1.type());
 	stream.enqueueDownload(g_bw1, bw1);
@@ -279,7 +339,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	logger.logTimeElapsedSinceLastLog("GPU done");
 	
 	// TODO: change back
-	return 0;
+//	return 0;
 
 /*
  *     %CHANGE
@@ -299,9 +359,17 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
  *
  */
 	bw1 = nscale::bwareaopen<uchar>(bw1, 11, 1000, 8);
+	if (stage == 8) {
+		output = bw1;
+		return 0;
+	}
 	if (countNonZero(bw1) == 0) {
 		logger.logTimeElapsedSinceLastLog("areaThreshold1");
 		logger.endSession();
+		return 0;
+	}
+	if (stage == 9) {
+		output = bw1;
 		return 0;
 	}
 //	imwrite("test/out-nucleicandidatessized.ppm", bw1);
@@ -311,6 +379,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 
 	uchar G2 = 45;
 	Mat bw2 = diffIm > G2;
+	if (stage == 10) {
+		output = bw2;
+		return 0;
+	}
 
 
 
@@ -324,18 +396,34 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 */
 
 	Mat seg_norbc = nscale::bwselect<uchar>(bw2, bw1, 8);
+	if (stage == 11) {
+		output = seg_norbc;
+		return 0;
+	}
 	seg_norbc = seg_norbc & (rbc == 0);
+	if (stage == 12) {
+		output = seg_norbc;
+		return 0;
+	}
 //	imwrite("test/out-nucleicandidatesnorbc.ppm", seg_norbc);
 	logger.logTimeElapsedSinceLastLog("blobsGt45");
 
 	Mat seg_nohole = nscale::imfillHoles<uchar>(seg_norbc, true, 4);
 	logger.logTimeElapsedSinceLastLog("fillHoles2");
+	if (stage == 13) {
+		output = seg_nohole;
+		return 0;
+	}
 
 	Mat seg_open = Mat::zeros(seg_nohole.size(), seg_nohole.type());
 	Mat disk3 = getStructuringElement(MORPH_ELLIPSE, Size(3,3));
 	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(-1, -1), 1);
 //	imwrite("test/out-nucleicandidatesopened.ppm", seg_open);
 	logger.logTimeElapsedSinceLastLog("openBlobs");
+	if (stage == 14) {
+		output = seg_open;
+		return 0;
+	}
 
 	/*
 	 *
@@ -344,9 +432,17 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	// bwareaopen is done as a area threshold.
 	Mat seg_big_t = nscale::bwareaopen<uchar>(seg_open, 30, std::numeric_limits<int>::max(), 8);
 	logger.logTimeElapsedSinceLastLog("30To1000");
+	if (stage == 15) {
+		output = seg_big_t;
+		return 0;
+	}
 
 	Mat seg_big = Mat::zeros(seg_big_t.size(), seg_big_t.type());
 	dilate(seg_big_t, seg_big, disk3);
+	if (stage == 16) {
+		output = seg_big;
+		return 0;
+	}
 //	imwrite("test/out-nucleicandidatesbig.ppm", seg_big);
 	logger.logTimeElapsedSinceLastLog("dilate");
 
@@ -370,9 +466,17 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	Mat dist(seg_big.size(), CV_32FC1);
 
 	distanceTransform(seg_big, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+	if (stage == 17) {
+		output = dist;
+		return 0;
+	}
 	double mmin, mmax;
 	minMaxLoc(dist, &mmin, &mmax);
 	dist = (mmax + 1.0) - dist;
+	if (stage == 18) {
+			output = dist;
+			return 0;
+		}
 //	cciutils::cv::imwriteRaw("test/out-dist", dist);
 
 	// then set the background to -inf and do imhmin
@@ -384,6 +488,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	//cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
 
 	logger.logTimeElapsedSinceLastLog("distTransform");
+	if (stage == 19) {
+			output = distance;
+			return 0;
+		}
 
 	/*
 	 *
@@ -395,10 +503,18 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	Mat nuclei = Mat::zeros(img.size(), img.type());
 	img.copyTo(nuclei, seg_big);
 	logger.logTimeElapsedSinceLastLog("nucleiCopy");
+	if (stage == 20) {
+			output = nuclei;
+			return 0;
+		}
 
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	Mat watermask = nscale::watershed2(nuclei, distance, 8);
+	if (stage == 21) {
+			output = watermask;
+			return 0;
+		}
 
 
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
@@ -407,6 +523,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	Mat seg_nonoverlap = Mat::zeros(seg_big.size(), seg_big.type());
 	seg_big.copyTo(seg_nonoverlap, (watermask > 0));
 	logger.logTimeElapsedSinceLastLog("watershed");
+	if (stage == 22) {
+		output = seg_nonoverlap;
+		return 0;
+	}
 
 //	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
 
@@ -426,6 +546,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 *
 	 */
 	Mat seg = nscale::bwareaopen<uchar>(seg_nonoverlap, 21, 1000, 4);
+	if (stage == 23) {
+		output = seg;
+		return 0;
+	}
 	if (countNonZero(seg) == 0) {
 		logger.logTimeElapsedSinceLastLog("20To1000");
 		logger.endSession();
@@ -433,6 +557,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	}
 //	imwrite("test/out-seg.ppm", seg);
 	logger.logTimeElapsedSinceLastLog("20To1000");
+	if (stage == 24) {
+		output = seg;
+		return 0;
+	}
 
 
 	/*

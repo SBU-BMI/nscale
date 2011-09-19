@@ -20,7 +20,7 @@ public:
 	static cv::Mat getRBC(const cv::Mat& img);
 	static cv::Mat getRBC(const std::vector<cv::Mat>& bgr);
 
-	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger& logger);
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger& logger, int stage=-1);
 
 };
 
@@ -34,7 +34,7 @@ public:
 	static cv::gpu::GpuMat getBackground(const std::vector<cv::gpu::GpuMat>& bgr, cv::gpu::Stream& stream);
 
 
-	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger& logger);
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger& logger, int stage=-1);
 
 };
 

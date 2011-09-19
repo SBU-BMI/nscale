@@ -11,3 +11,14 @@ out-*.raw
 *.profile
 *.trc
 Profiler
+src/segment/test/out-*-stage-*.pgm
+src/segment/test/Stages
+*.ptx
+*.cubin
+*.ii
+*.i
+*.cu.cpp
+*.fatbin
+*.fatbin.c
+*.cudafe?.*
+*.hash

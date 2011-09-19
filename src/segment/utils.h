@@ -56,6 +56,8 @@ public :
 		start = 0;
 		curr = 0;
 		last = 0;
+		_consoleOn = true;
+		_on = true;
 	};
 	~SimpleCSVLogger() {
 		header.flush();
@@ -73,9 +75,13 @@ public :
 
 	template <typename T>
 	void log(const char* eventName, T eventVal) {
-		header << eventName << ", ";
-		value << eventVal << ", ";
-		std::cout << "[LOGGER] " << eventName << ": " << eventVal << std::endl;
+		if (_on) {
+			header << eventName << ", ";
+			value << eventVal << ", ";
+		}
+		if (_consoleOn) {
+			std::cout << "[LOGGER] " << eventName << ": " << eventVal << std::endl;
+		}
 	};
 	void logTimeElapsedSinceLastLog(const char* eventName) {
 		curr = cciutils::ClockGetTime();
@@ -93,12 +99,26 @@ public :
 		last = start;
 		log(eventName, (uint64_t)0);
 	}
+	void off() {
+		_on = false;
+	}
+	void on() {
+		_on = true;
+	}
+	void consoleOff() {
+		_consoleOn = false;
+	}
+	void consoleOn() {
+		_consoleOn = true;
+	}
 protected :
 	std::ofstream header;
 	std::ofstream value;
 	uint64_t start;
 	uint64_t last;
 	uint64_t curr;
+	bool _on;
+	bool _consoleOn;
 };
 
 namespace cv {
