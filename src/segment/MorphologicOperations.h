@@ -85,14 +85,14 @@ cv::gpu::GpuMat imreconstructBinary(const cv::gpu::GpuMat& seeds, const cv::gpu:
 	return imreconstructBinary<T>(seeds, binaryImage,connectivity, stream, iter);
 };
 
-template <typename T>
-cv::gpu::GpuMat imreconstruct2(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream, unsigned int& iter);
-
-template <typename T>
-cv::gpu::GpuMat imreconstruct2(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream) {
-	unsigned int iter;
-	return imreconstruct2<T>(seeds, image, connectivity, stream, iter);
-};
+//template <typename T>
+//cv::gpu::GpuMat imreconstruct2(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream, unsigned int& iter);
+//
+//template <typename T>
+//cv::gpu::GpuMat imreconstruct2(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream) {
+//	unsigned int iter;
+//	return imreconstruct2<T>(seeds, image, connectivity, stream, iter);
+//};
 
 
 //template <typename T>

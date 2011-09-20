@@ -4,8 +4,6 @@
  *  Created on: Jul 7, 2011
  *      Author: tcpan
  */
-#define HAVE_CUDA 1
-
 
 #include <algorithm>
 #include <queue>
@@ -16,14 +14,16 @@
 #include "utils.h"
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
-
 #include "precomp.hpp"
 
+
+#if defined (HAVE_CUDA)
 #include "cuda/imreconstruct_int_kernel.cuh"
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
 #include "cuda/reconstruction_kernel.cuh"
 
+#endif
 
 namespace nscale {
 
@@ -32,6 +32,19 @@ namespace gpu {
 using namespace cv;
 using namespace cv::gpu;
 
+#if !defined (HAVE_CUDA)
+
+template <typename T>
+GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
+// Operates on BINARY IMAGES ONLY
+template <typename T>
+GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) { throw_nogpu();}
+template <typename T>
+GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {throw_nogpu();}
+template <typename T>
+GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu();}
+
+#else
 
 /**
  * based on implementation from Pavlo
@@ -72,16 +85,14 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
     // get the result out
     return marker;
 }
-//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
-template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
 
 /**
  * based on implementation from Pavlo
  */
+/*
+ *
 template <typename T>
 GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
 	CV_Assert(image.channels() == 1);
@@ -116,7 +127,7 @@ GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity
 }
 template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
-
+*/
 
 
 /** optimized serial implementation for binary,
@@ -161,8 +172,6 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 //	return output;
 
 }
-template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
 //
@@ -263,7 +272,6 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 
 	return output;
 }
-template GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
 
 // Operates on BINARY IMAGES ONLY
 template <typename T>
@@ -293,7 +301,6 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 	// no need to and between marker and binaryImage - since marker is always <= binary image
 	return marker;
 }
-template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 //
 //// Operates on BINARY IMAGES ONLY
 //// ideally, output should be 64 bit unsigned.
@@ -609,6 +616,18 @@ template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Strea
 //template Mat_<uchar> localMinima<float>(const Mat& image, int connectivity);
 //template Mat_<uchar> localMaxima<uchar>(const Mat& image, int connectivity);
 //template Mat_<uchar> localMinima<uchar>(const Mat& image, int connectivity);
+
+#endif
+
+//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
+
 
 }
 

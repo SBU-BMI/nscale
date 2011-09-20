@@ -11,7 +11,6 @@
 #include "cv.h"
 #include "opencv2/gpu/gpu.hpp"
 
-
 namespace nscale {
 
 class PixelOperations {

@@ -69,19 +69,19 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 	stream.waitForCompletion();
 	std::cout << "\tfinished uploading to GPU" << std::endl;
 
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 4, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "\tgpu recon2 4-con took " << t2-t1 << "ms" << std::endl;
-	g_recon.release();
-
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 8, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "\tgpu recon2 8-con took " << t2-t1 << "ms" << std::endl;
-	g_recon.release();
+//	t1 = cciutils::ClockGetTime();
+//	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 4, stream);
+//	stream.waitForCompletion();
+//	t2 = cciutils::ClockGetTime();
+//	std::cout << "\tgpu recon2 4-con took " << t2-t1 << "ms" << std::endl;
+//	g_recon.release();
+//
+//	t1 = cciutils::ClockGetTime();
+//	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 8, stream);
+//	stream.waitForCompletion();
+//	t2 = cciutils::ClockGetTime();
+//	std::cout << "\tgpu recon2 8-con took " << t2-t1 << "ms" << std::endl;
+//	g_recon.release();
 
 	
 	t1 = cciutils::ClockGetTime();

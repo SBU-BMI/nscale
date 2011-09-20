@@ -1,5 +1,6 @@
 .svn
 *.exe
+*.so
 *.o
 autom4te.cache
 original-matlab/segment/codegen

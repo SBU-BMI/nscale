@@ -9,8 +9,10 @@
 #include <limits>
 
 #include "precomp.hpp"
-#include "cuda/pixel-ops.cuh"
 
+#if defined (HAVE_CUDA)
+#include "cuda/pixel-ops.cuh"
+#endif
 
 namespace nscale {
 
@@ -19,6 +21,15 @@ using namespace cv;
 namespace gpu {
 
 using namespace cv::gpu;
+
+
+#if !defined (HAVE_CUDA)
+template <typename T>
+GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) { throw_nogpu(); }
+template <typename T>
+GpuMat PixelOperations::threshold(const GpuMat& img, T lower, T upper, Stream& stream) { throw_nogpu(); }
+
+#else
 
 template <typename T>
 GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) {
@@ -47,7 +58,6 @@ GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) {
     return result;
 }
 
-template GpuMat PixelOperations::invert<unsigned char>(const GpuMat&, Stream&);
 
 
 template <typename T>
@@ -65,6 +75,9 @@ GpuMat PixelOperations::threshold(const GpuMat& img, T lower, T upper, Stream& s
     return result;
 }
 
+#endif
+
+template GpuMat PixelOperations::invert<unsigned char>(const GpuMat&, Stream&);
 template GpuMat PixelOperations::threshold<unsigned char>(const GpuMat&, unsigned char, unsigned char, Stream&);
 template GpuMat PixelOperations::threshold<float>(const GpuMat&, float, float, Stream&);
 

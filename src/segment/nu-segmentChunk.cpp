@@ -81,6 +81,10 @@ int main (int argc, char **argv){
 	}
 
 
+	std::vector<Mat>::const_iterator it;
+	std::vector<Mat>::const_iterator last;
+	Size s2;
+	Point ofs;
 
 	// need to go through filesystem
 	char prefix[80];
@@ -96,6 +100,7 @@ int main (int argc, char **argv){
 	if (!img.data) return -1;
 	Mat out3(img.size(), CV_8U);
 	int status = nscale::HistologicalEntities::segmentNuclei(img, out3, logger, 25);
+	std::cout << "groundtruth segmentation completed" << std::endl;
 	Mat out4;
 	cvtColor(out3, out4, CV_GRAY2BGR);
 			Scalar grayc = Scalar(127, 127, 127);
@@ -116,82 +121,74 @@ int main (int argc, char **argv){
 				std::vector<std::vector<Point> > contours;
 				std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
 
+	Mat output = Mat::zeros(s, CV_8UC3);
+	Mat groundtruth = Mat::zeros(s, CV_8UC3);
+
 	int b;
 	int stage = 25;
 	for (int w = minw; w < s.width && w < s.height; w = w* 2) {
 		for (int b2 = 1; b2 <= maxb && b2 <= (w / 2); b2 = b2 * 2) {
+			b = b2 / 2;
 
 			// break it apart
 			std::vector<Mat> chunks;
-			Mat output = Mat::zeros(s, CV_8UC3);
-			Mat output2 = Mat::zeros(s, CV_8UC3);
-
+;
 			Mat chunk;
 			Range rx;
 			Range ry;
+			std::vector<Point> box;
 			for (int i = 0; i < s.width; i += w) {
 				for (int j = 0; j < s.height; j+= w) {
 					rx = Range((i-b > 0 ? i-b : 0), (i+w+b < s.width ? i+w+b : s.width));
 					ry = Range((j-b > 0 ? j-b : 0), (j+w+b < s.height ? j+w+b : s.height));
 //					std::cout << "ranges: " << rx.start << "-" << rx.end << ", " << ry.start << "-" << ry.end << std::endl;
 					chunks.push_back(img(rx, ry));
+
+
+					box.push_back(Point(rx.start, ry.start));
+					box.push_back(Point(rx.start, ry.end - 1));
+					box.push_back(Point(rx.end - 1, ry.end-1));
+					box.push_back(Point(rx.end - 1, ry.start));
+					contours.push_back(box);
+					drawContours( groundtruth, contours, 0, grayc, 1, 8);
+					contours.clear();
+					box.clear();
+
+					if (rx.start == 0) {
+						startx = 0;
+					} else {
+						startx = rx.start + b;
+					}
+					if (ry.start == 0) {
+						starty = 0;
+					} else {
+						starty = ry.start + b;
+					}
+					if (rx.end >= s.width) {
+						endx = s.width - 1;
+					} else {
+						endx = rx.end - b - 1;
+					}
+					if (ry.end >= s.height) {
+						endy = s.height - 1;
+					} else {
+						endy = ry.end - b - 1;
+					}
+					box.push_back(Point(startx, starty));
+					box.push_back(Point(startx, endy));
+					box.push_back(Point(endx, endy));
+					box.push_back(Point(endx, starty));
+					contours.push_back(box);
+					drawContours( groundtruth, contours, 0, lightredc, 1, 8);
+					contours.clear();
+					box.clear();
 				}
 			}
-			Size s2;
-			Point ofs;
+			addWeighted(out4, 0.5, groundtruth, 1.0, 0., groundtruth);
 
-				std::vector<Mat>::const_iterator it = chunks.begin();
-				std::vector<Mat>::const_iterator last = chunks.end();
-
-			for (; it < last; ++it) {
-				chunk = *it;
-
-				// draw the chunk boundary
-				chunk.locateROI(s2, ofs);
-				s2 = chunk.size();
-
-				std::vector<Point> box;
-				box.push_back(ofs);
-				box.push_back(Point(ofs.x, ofs.y+s2.height-1));
-				box.push_back(Point(ofs.x + s2.width-1, ofs.y+s2.height-1));
-				box.push_back(Point(ofs.x + s2.width-1, ofs.y));
-				contours.push_back(box);
-				drawContours( output2, contours, 0, grayc, 1, 8);
-				contours.clear();
-				box.clear();
-				if (ofs.x == 0) {
-					startx = 0;
-				} else {
-					startx = ofs.x + b;
-				}
-				if (ofs.y == 0) {
-					starty = 0;
-				} else {
-					starty = ofs.y + b;
-				}
-				if (ofs.x + s2.width >= s.width) {
-					endx = s.width;
-				} else {
-					endx = ofs.x + s2.width - b;
-				}
-				if (ofs.y + s2.height >= s.height) {
-					endy = s.height;
-				} else {
-					endy = ofs.y + s2.height - b;
-				}
-				box.push_back(Point(startx, starty));
-				box.push_back(Point(startx, endy));
-				box.push_back(Point(endx, endy));
-				box.push_back(Point(endx, starty));
-				contours.push_back(box);
-				drawContours( output2, contours, 0, lightredc, 1, 8);
-				contours.clear();
-			}
-			addWeighted(out4, 0.5, output2, 1.0, 0., output2);
-
+			std::cout << "groundtruth rendered" << std::endl;
 
 			for (int stage = minstage; stage <= maxstage; ++stage) {
-				b = b2 / 2;
 	
 				std::cout << "***** w = " << w << ", b = " << b << ", stage= " << stage << std::endl;
 
@@ -220,6 +217,7 @@ int main (int argc, char **argv){
 					for (; it < last; ++it) {
 						chunk = *it;
 						Mat out(chunk.size(), CV_8U, Scalar(0));
+//						std::cout << " segmenting cpu chunk size: " << chunk.size().width << "x" << chunk.size().height << std::endl;
 						status = nscale::HistologicalEntities::segmentNuclei(chunk, out, logger, stage);
 						outputs.push_back(out);
 					}
@@ -230,6 +228,7 @@ int main (int argc, char **argv){
 					for (; it < last; ++it) {
 						chunk = *it;
 						Mat out(chunk.size(), CV_8U, Scalar(0));
+//						std::cout << " segmenting cpu chunk size: " << chunk.size().width << "x" << chunk.size().height << std::endl;
 						status = nscale::gpu::HistologicalEntities::segmentNuclei(chunk, out, logger, stage);
 						outputs.push_back(out);
 					}
@@ -360,7 +359,7 @@ int main (int argc, char **argv){
 					}
 				}
 				//logger.consoleOff();
-				addWeighted(output2, 0.3, output, 1.0, 0.0, output);
+				addWeighted(groundtruth, 0.3, output, 1.0, 0.0, output);
 
 				char ws[10];
 				sprintf(ws, "%d", w);

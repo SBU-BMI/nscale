@@ -8,9 +8,9 @@
 #ifndef HistologicalEntities_H_
 #define HistologicalEntities_H_
 
+#include "utils.h"
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
-#include "utils.h"
 
 namespace nscale {
 

@@ -4,7 +4,6 @@
  *  Created on: Jul 1, 2011
  *      Author: tcpan
  */
-#define HAVE_CUDA 1
 
 #include "HistologicalEntities.h"
 #include <iostream>
@@ -14,6 +13,8 @@
 #include "float.h"
 #include "utils.h"
 #include "opencv2/gpu/gpu.hpp"
+#include "precomp.hpp"
+
 
 namespace nscale {
 
@@ -24,6 +25,13 @@ namespace gpu {
 using namespace cv::gpu;
 
 
+#if !defined (HAVE_CUDA)
+GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream) { throw_nogpu(); }
+GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream) { throw_nogpu(); }
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger& logger, int stage) { throw_nogpu(); }
+
+
+#else
 
 GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream) {
 	CV_Assert(bgr.size() >= 3);
@@ -142,7 +150,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	GpuMat g_bg = getBackground(g_bgr, stream);
 	stream.waitForCompletion();
 	if (stage == 1) {
-		Mat temp;
+		Mat temp(g_bg.size(), g_bg.type());
 		stream.enqueueDownload(g_bg,temp);
 		stream.waitForCompletion();
 		output = temp;
@@ -167,7 +175,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	GpuMat g_rbc = nscale::gpu::HistologicalEntities::getRBC(g_bgr, stream);
 	stream.waitForCompletion();
 	if (stage == 2) {
-		Mat temp;
+		Mat temp(g_rbc.size(), g_rbc.type());
 		stream.enqueueDownload(g_rbc, temp);
 		stream.waitForCompletion();
 		output = temp;
@@ -241,7 +249,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	//stream.enqueueDownload(g_rc_open, rc_open);
 	stream.waitForCompletion();
 	if (stage == 3) {
-		Mat temp;
+		Mat temp(g_rc_open.size(), g_rc_open.type());
 		stream.enqueueDownload(g_rc_open, temp);
 		stream.waitForCompletion();
 		output = temp;
@@ -260,7 +268,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 //	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
 	stream.waitForCompletion();
 	if (stage == 4) {
-		Mat temp;
+		Mat temp(g_rc_recon.size(), g_rc_recon.type());
 		stream.enqueueDownload(g_rc_recon, temp);
 		output = temp;
 		return 0;
@@ -270,7 +278,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	subtract(g_rc, g_rc_recon, g_diffIm, stream);
 	stream.waitForCompletion();
 	if (stage == 5) {
-		Mat temp;
+		Mat temp(g_diffIm.size(), g_diffIm.type());
 		stream.enqueueDownload(g_diffIm, temp);
 		stream.waitForCompletion();
 		output = temp;
@@ -304,7 +312,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	threshold(g_diffIm, g_diffIm2, G1, std::numeric_limits<unsigned char>::max(), THRESH_BINARY, stream);
 	stream.waitForCompletion();
 	if (stage == 6) {
-		Mat temp;
+		Mat temp(g_diffIm2.size(), g_diffIm2.type());
 		stream.enqueueDownload(g_diffIm2, temp);
 		stream.waitForCompletion();
 		output = temp;
@@ -318,7 +326,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	GpuMat g_bw1 = nscale::gpu::imfillHoles<unsigned char>(g_diffIm2, true, 4, stream);
 	stream.waitForCompletion();
 	if (stage == 7) {
-		Mat temp;
+		Mat temp(g_bw1.size(), g_bw1.type());
 		stream.enqueueDownload(g_bw1, temp);
 		stream.waitForCompletion();
 		output = temp;
@@ -582,5 +590,5 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 
 	return 0;
 }
-
+#endif
 }}
