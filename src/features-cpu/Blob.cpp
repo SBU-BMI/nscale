@@ -79,10 +79,10 @@ Blob::~Blob() {
 		cvReleaseImageHeader(&mask);
 	}
 	if(intensity_hist != NULL){
-//		cvReleaseHist(&intensity_hist);
+		cvReleaseHist(&intensity_hist);
 	}
 	if(grad_hist != NULL){
-//		cvReleaseHist(&grad_hist);
+		cvReleaseHist(&grad_hist);
 	}
 	if(ROISubImage != NULL){
 		cvReleaseImageHeader(&ROISubImage);
