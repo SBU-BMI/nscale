@@ -21,7 +21,7 @@
 #include "cuda/imreconstruct_int_kernel.cuh"
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
-#include "cuda/reconstruction_kernel.cuh"
+//#include "cuda/reconstruction_kernel.cuh"
 
 #endif
 

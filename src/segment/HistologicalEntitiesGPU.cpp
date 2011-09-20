@@ -68,12 +68,14 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 	rd.release();
 	gd.release();
 	bd.release();
+std::cout << "HERE" << std::endl;
 	GpuMat bw3 = PixelOperations::threshold<float>(imR2B, 1.0, std::numeric_limits<float>::max(), stream);
 	GpuMat bw1 = PixelOperations::threshold<float>(imR2G, T1, std::numeric_limits<float>::max(), stream);
 	GpuMat bw2 = PixelOperations::threshold<float>(imR2G, T2, std::numeric_limits<float>::max(), stream);
 	stream.waitForCompletion();
 	imR2G.release();
 	imR2B.release();
+std::cout << "HERE2" << std::endl;
 
 	GpuMat rbc(s, CV_8UC1);
 	stream.enqueueMemSet(rbc, Scalar(0));
@@ -86,6 +88,7 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 	bw1.release();
 	bw2.release();
 	bw3.release();
+std::cout << "HERE3" << std::endl;
 
 	return rbc;
 }

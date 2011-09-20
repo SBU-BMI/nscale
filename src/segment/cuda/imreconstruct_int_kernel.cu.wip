@@ -26,7 +26,7 @@ namespace nscale { namespace gpu {
 // RECONSTRUCTION BY DILATION
 ////////////////////////////////////////////////////////////////////////////////
 /*
- * original code
+ * fast code
  */
 //template <typename T>
 //__global__ void
@@ -41,7 +41,6 @@ namespace nscale { namespace gpu {
 //	bool s_change = false;
 //
 //
-//	if (by + ty < sy) {
 //
 //		int startx, iy, ix;
 //
@@ -49,7 +48,7 @@ namespace nscale { namespace gpu {
 //		// the increment allows overlap by 1 between iterations to move the data to next block.
 //		for (startx = 0; startx < sx - Y_THREADS; startx += Y_THREADS - 1) {
 //			// copy part of marker and mask to shared memory
-//			for (iy = 0; iy < Y_THREADS; ++iy) {
+//			for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 //				// now treat ty as x, and iy as y, so global mem acccess is closer.
 //				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 //				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -58,16 +57,17 @@ namespace nscale { namespace gpu {
 //
 //			// perform iteration   all X threads do the same operations, so there may be read/write hazards.  but the output is the same.
 //			// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
+//	if (by + ty < sy) {
 //			for (ix = 1; ix < Y_THREADS; ++ix) {
 //				s_old = s_marker[ix][ty];
 //				s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 //				s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 //				s_change |= NEQ( s_old, s_marker[ix][ty] );
 //			}
-//			__syncthreads();
+//}			__syncthreads();
 //
 //			// output result back to global memory
-//			for (iy = 0; iy < Y_THREADS; ++iy) {
+//			for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 //				// now treat ty as x, and iy as y, so global mem acccess is closer.
 //				marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 //			}
@@ -78,7 +78,7 @@ namespace nscale { namespace gpu {
 //		startx = sx - Y_THREADS;
 //
 //		// copy part of marker and mask to shared memory
-//		for (iy = 0; iy < Y_THREADS; ++iy) {
+//		for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 //			// now treat ty as x, and iy as y, so global mem acccess is closer.
 //			s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 //			s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -86,23 +86,23 @@ namespace nscale { namespace gpu {
 //		__syncthreads();
 //
 //		// perform iteration
+//	if (by + ty < sy) {
 //		for (ix = 1; ix < Y_THREADS; ++ix) {
 //			s_old = s_marker[ix][ty];
 //			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 //			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 //			s_change |= NEQ( s_old, s_marker[ix][ty] );
 //		}
-//		__syncthreads();
+//}		__syncthreads();
 //
 //		// output result back to global memory
-//		for (iy = 0; iy < Y_THREADS; ++iy) {
+//		for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 //			// now treat ty as x, and iy as y, so global mem acccess is closer.
 //			marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 //			if (s_change) *change = true;
 //		}
 //		__syncthreads();
 //
-//	}
 //
 //}
 //
@@ -120,7 +120,6 @@ namespace nscale { namespace gpu {
 //	bool s_change = false;
 //
 //
-//	if (by + ty < sy) {
 //
 //		int startx;
 //
@@ -128,7 +127,7 @@ namespace nscale { namespace gpu {
 //		for (startx = sx - Y_THREADS; startx > 0; startx -= Y_THREADS - 1) {
 //
 //			// copy part of marker and mask to shared memory
-//			for (int iy = 0; iy < Y_THREADS; iy++) {
+//			for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 //				// now treat ty as x, and iy as y, so global mem acccess is closer.
 //				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 //				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -136,16 +135,17 @@ namespace nscale { namespace gpu {
 //			__syncthreads();
 //
 //			// perform iteration
+//	if (by + ty < sy) {
 //			for (int ix = Y_THREADS - 2; ix >= 0; ix--) {
 //				s_old = s_marker[ix][ty];
 //				s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix+1][ty] );
 //				s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 //				s_change |= NEQ( s_old, s_marker[ix][ty] );
 //			}
-//			__syncthreads();
+//}			__syncthreads();
 //
 //			// output result back to global memory
-//			for (int iy = 0; iy < Y_THREADS; iy++) {
+//			for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 //				// now treat ty as x, and iy as y, so global mem acccess is closer.
 //				marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 //			}
@@ -156,7 +156,7 @@ namespace nscale { namespace gpu {
 //		startx = 0;
 //
 //		// copy part of marker and mask to shared memory
-//		for (int iy = 0; iy < Y_THREADS; iy++) {
+//		for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 //			// now treat ty as x, and iy as y, so global mem acccess is closer.
 //			s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 //			s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -164,16 +164,17 @@ namespace nscale { namespace gpu {
 //		__syncthreads();
 //
 //		// perform iteration
+//	if (by + ty < sy) {
 //		for (int ix = Y_THREADS - 2; ix >= 0; ix--) {
 //			s_old = s_marker[ix][ty];
 //			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix+1][ty] );
 //			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 //			s_change |= NEQ( s_old, s_marker[ix][ty] );
 //		}
-//		__syncthreads();
+//}		__syncthreads();
 //
 //		// output result back to global memory
-//		for (int iy = 0; iy < Y_THREADS; iy++) {
+//		for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 //			// now treat ty as x, and iy as y, so global mem acccess is closer.
 //			marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 //			if (s_change) *change = true;
@@ -181,7 +182,6 @@ namespace nscale { namespace gpu {
 //		__syncthreads();
 //
 //
-//	}
 //
 //}
 
@@ -224,7 +224,6 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const unsigned int sx, cons
 
 
 
-//	if (threadIdx.y + blockIdx.x * XY_THREADS < sy) {   require dimension to be perfectly padded.
 	s_marker[threadIdx.y][WARP_SIZE] = 0;  // only need x=0 to be 0
 
 	// the increment allows overlap by 1 between iterations to move the data to next block.
@@ -236,7 +235,7 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const unsigned int sx, cons
 
 		// copy part of marker and mask to shared memory.  works for 1 warp at a time...
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			s_marker[y * ychunk+i][x+1] = marker[start + i*sx];
 			s_mask  [y * ychunk+i][x+1] = mask[start + i*sx];
 		}
@@ -245,16 +244,17 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const unsigned int sx, cons
 		// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
 //			if (threadIdx.x == 0) {  // have all threads do the same work
 //#pragma unroll
+if (threadIdx.y + blockIdx.x * XY_THREADS < sy) {   //require dimension to be perfectly padded.
 		for (unsigned int i = 1; i <= WARP_SIZE; ++i) {
 			s_old = s_marker[threadIdx.y][i];
 			s_new = min( max( s_marker[threadIdx.y][i-1], s_old ), s_mask[threadIdx.y][i] );
 			s_change |= s_new ^ s_old;
 			s_marker[threadIdx.y][i] = s_new;
 		}
-
+}
 		// output result back to global memory and set up for next x chunk
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			marker[start + i*sx] = s_marker[y * ychunk+i][x+1];
 		}
 //			printf("startx: %d, change = %d\n", startx, s_change);
@@ -270,7 +270,7 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const unsigned int sx, cons
 
 		// copy part of marker and mask to shared memory.  works for 1 warp at a time...
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			s_marker[y * ychunk+i][x+1] = marker[start + i*sx];
 			s_mask  [y * ychunk+i][x+1] = mask[start + i*sx];
 		}
@@ -278,15 +278,17 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const unsigned int sx, cons
 		// perform iteration   all X threads do the same operations, so there may be read/write hazards.  but the output is the same.
 		// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
 //#pragma unroll
+if (threadIdx.y + blockIdx.x * XY_THREADS < sy) {   //require dimension to be perfectly padded.
 		for (unsigned int i = 1; i <= WARP_SIZE; ++i) {
 			s_old = s_marker[threadIdx.y][i];
 			s_new = min( max( s_marker[threadIdx.y][i-1], s_old ), s_mask[threadIdx.y][i] );
 			s_change |= s_new ^ s_old;
 			s_marker[threadIdx.y][i] = s_new;
 		}
+}
 		// output result back to global memory and set up for next x chunk
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			marker[start + i*sx] = s_marker[y * ychunk+i][x+1];
 		}
 	}
@@ -295,7 +297,6 @@ iRec1DForward_X_dilation ( T* marker, const T* mask, const unsigned int sx, cons
 //	__syncthreads();
 	if (s_change > 0) *change = true;
 //	__syncthreads();
-
 
 }
 
@@ -320,7 +321,6 @@ iRec1DBackward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 	int startx;
 	unsigned int start;
 	
-	//	if (threadIdx.y + blockIdx.x * XY_THREADS < sy) {   require dimension to be perfectly padded.
 	s_marker[threadIdx.y][0] = 0;  // only need x=WARPSIZE to be 0
 
 	// the increment allows overlap by 1 between iterations to move the data to next block.
@@ -332,7 +332,7 @@ iRec1DBackward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 
 		// copy part of marker and mask to shared memory.  works for 1 warp at a time...
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			s_marker[y * ychunk+i][x] = marker[start + i*sx];
 			s_mask  [y * ychunk+i][x] = mask[start + i*sx];
 		}
@@ -341,16 +341,17 @@ iRec1DBackward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 		// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
 //			if (threadIdx.x == 0) {  // have all threads do the same work
 //#pragma unroll
+if (threadIdx.y + blockIdx.x * XY_THREADS < sy) {   //require dimension to be perfectly padded.
 		for (int i = WARP_SIZE - 1; i >= 0; --i) {
 			s_old = s_marker[threadIdx.y][i];
 			s_new = min( max( s_marker[threadIdx.y][i+1], s_old ), s_mask[threadIdx.y][i] );
 			s_change |= s_new ^ s_old;
 			s_marker[threadIdx.y][i] = s_new;
 		}
-
+}
 		// output result back to global memory and set up for next x chunk
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			marker[start + i*sx] = s_marker[y * ychunk+i][x];
 		}
 //			printf("startx: %d, change = %d\n", startx, s_change);
@@ -365,7 +366,7 @@ iRec1DBackward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 
 		// copy part of marker and mask to shared memory.  works for 1 warp at a time...
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			s_marker[y * ychunk+i][x] = marker[start + i*sx];
 			s_mask  [y * ychunk+i][x] = mask[start + i*sx];
 		}
@@ -373,24 +374,24 @@ iRec1DBackward_X_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 		// perform iteration   all X threads do the same operations, so there may be read/write hazards.  but the output is the same.
 		// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
 //#pragma unroll
+if (threadIdx.y + blockIdx.x * XY_THREADS < sy) {   //require dimension to be perfectly padded.
 		for (int i = WARP_SIZE - 1; i >= 0; --i) {
 			s_old = s_marker[threadIdx.y][i];
 			s_new = min( max( s_marker[threadIdx.y][i+1], s_old ), s_mask[threadIdx.y][i] );
 			s_change |= s_new ^ s_old;
 			s_marker[threadIdx.y][i] = s_new;
 		}
+}
 		// output result back to global memory and set up for next x chunk
 //#pragma unroll
-		for (unsigned int i = 0; i < ychunk; ++i) {
+		for (unsigned int i = 0; i < ychunk && y*ychunk+i < sy; ++i) {
 			marker[start + i*sx] = s_marker[y * ychunk+i][x];
 		}
 	}
 
-
 	//	__syncthreads();
 	if (s_change > 0) *change = true;
 	//	__syncthreads();
-
 }
 
 
@@ -406,7 +407,7 @@ iRec1DForward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, c
 	unsigned int  s_change = 0;
 	T s_old, s_new, s_prev;
 	
-//	if ( (bx + tx) < sx ) {
+if ( (bx + tx) < sx ) {
 
 		s_prev = 0;
 
@@ -423,10 +424,10 @@ iRec1DForward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, c
 			marker[iy * sx + bx + tx] = s_new;
 
 		}
+}
 		
 		if (s_change != 0) *change = true;
 
-//	}
 
 }
 
@@ -441,7 +442,7 @@ iRec1DBackward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 	unsigned int s_change=0;
 	T s_old, s_new, s_prev;
 
-//	if ( (bx + tx) < sx ) {
+if ( (bx + tx) < sx ) {
 
 		s_prev = 0;
 
@@ -458,9 +459,9 @@ iRec1DBackward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 			// output result back to global memory
 			marker[iy * sx + bx + tx] = s_new;
 		}
+}
 		
 		if (s_change != 0) *change = true;
-//	}
 
 }
 
@@ -474,7 +475,6 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 	// parallelize along x.
 	const unsigned int tx = threadIdx.x;
 	const unsigned int bx = blockIdx.x * MAX_THREADS;
-	const unsigned int warpStart = threadIdx.x - (threadIdx.x % WARP_SIZE);
 
 	volatile __shared__ T s_marker_B[MAX_THREADS+2];
 	volatile T* s_marker = s_marker_B + 1;
@@ -482,7 +482,7 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 
 	T s_new, s_old, s_prev;
 
-//	if ( bx + tx < sx ) {  make sure number of threads is a divisor of sx.
+if ( bx + tx < sx ) { // make sure number of threads is a divisor of sx.
 
 	s_prev = 0;
 
@@ -513,7 +513,7 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 
 		s_prev = max( max(s_marker[tx-1], s_marker[tx]), s_marker[tx+1]);
 	}
-
+}
 	if (s_change != 0) *change = true;
 }
 
@@ -525,7 +525,6 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 
 	const int tx = threadIdx.x;
 	const int bx = blockIdx.x * MAX_THREADS;
-	const unsigned int warpStart = threadIdx.x - (threadIdx.x % WARP_SIZE);
 
 	volatile __shared__ T s_marker_B[MAX_THREADS+2];
 	volatile T* s_marker = s_marker_B + 1;
@@ -533,7 +532,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 
 	T s_new, s_old, s_prev;
 
-//	if ( bx + tx < sx ) {  make sure number of threads is a divisor of sx.
+	if ( bx + tx < sx ) {  //make sure number of threads is a divisor of sx.
 
 	s_prev = 0;
 
@@ -566,7 +565,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		s_prev = max( max(s_marker[tx-1], s_marker[tx]), s_marker[tx+1]);
 
 	}
-
+}
 	if (s_change != 0) *change = true;
 
 
@@ -584,7 +583,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 //		else cudaSafeCall( cudaStreamSynchronize(stream));
 
 
-		printf("entering imrecon int caller with conn=%d\n", connectivity);
+//		printf("entering imrecon int caller with conn=%d\n", connectivity);
 
 		// setup execution parameters
 		bool conn8 = (connectivity == 8);
@@ -606,7 +605,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
 		
 		*h_change = true;
-		printf("completed setup for imrecon int caller \n");
+//		printf("completed setup for imrecon int caller \n");
 
 		if (conn8) {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
@@ -671,7 +670,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		cudaSafeCall( cudaFree(d_change) );
 		free(h_change);
 
-		printf("Number of iterations: %d\n", iter);
+//		printf("Number of iterations: %d\n", iter);
 		cudaSafeCall( cudaGetLastError());
 
 		return iter;
