@@ -95,7 +95,7 @@ GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Str
 	GpuMat b1, g1, r1;
 	GpuMat g_bg(g_bgr[0].size(), CV_8U);
 	stream.enqueueMemSet(g_bg, Scalar(0));
-	uchar max = std::numeric_limits<uchar>::max();
+	unsigned char max = std::numeric_limits<unsigned char>::max();
 	threshold(g_bgr[0], b1, 220, max, THRESH_BINARY, stream);
 	threshold(g_bgr[1], g1, 220, max, THRESH_BINARY, stream);
 	threshold(g_bgr[2], r1, 220, max, THRESH_BINARY, stream);
@@ -215,7 +215,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
 	// structuring element is not the same between matlab and opencv.  using the one from matlab explicitly....
 	// (for 4, 6, and 8 connected, they are approximations).
-	uchar disk19raw[361] = {
+	unsigned char disk19raw[361] = {
 			0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
 			0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
 			0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
@@ -307,7 +307,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
     bw1 = imfill(diffIm>G1,'holes');
  *
  */
-	uchar G1 = 80;
+	unsigned char G1 = 80;
 	GpuMat g_diffIm2;
 	threshold(g_diffIm, g_diffIm2, G1, std::numeric_limits<unsigned char>::max(), THRESH_BINARY, stream);
 	stream.waitForCompletion();
@@ -366,7 +366,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
     end
  *
  */
-	bw1 = nscale::bwareaopen<uchar>(bw1, 11, 1000, 8);
+	bw1 = nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8);
 	if (stage == 8) {
 		output = bw1;
 		return 0;
@@ -385,7 +385,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 
 
 
-	uchar G2 = 45;
+	unsigned char G2 = 45;
 	Mat bw2 = diffIm > G2;
 	if (stage == 10) {
 		output = bw2;
@@ -403,7 +403,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 *
 	 */
 
-	Mat seg_norbc = nscale::bwselect<uchar>(bw2, bw1, 8);
+	Mat seg_norbc = nscale::bwselect<unsigned char>(bw2, bw1, 8);
 	if (stage == 11) {
 		output = seg_norbc;
 		return 0;
@@ -416,7 +416,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 //	imwrite("test/out-nucleicandidatesnorbc.ppm", seg_norbc);
 	logger.logTimeElapsedSinceLastLog("blobsGt45");
 
-	Mat seg_nohole = nscale::imfillHoles<uchar>(seg_norbc, true, 4);
+	Mat seg_nohole = nscale::imfillHoles<unsigned char>(seg_norbc, true, 4);
 	logger.logTimeElapsedSinceLastLog("fillHoles2");
 	if (stage == 13) {
 		output = seg_nohole;
@@ -438,7 +438,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
 	 */
 	// bwareaopen is done as a area threshold.
-	Mat seg_big_t = nscale::bwareaopen<uchar>(seg_open, 30, std::numeric_limits<int>::max(), 8);
+	Mat seg_big_t = nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8);
 	logger.logTimeElapsedSinceLastLog("30To1000");
 	if (stage == 15) {
 		output = seg_big_t;
@@ -553,7 +553,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
     seg = ismember(L,ind);
 	 *
 	 */
-	Mat seg = nscale::bwareaopen<uchar>(seg_nonoverlap, 21, 1000, 4);
+	Mat seg = nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4);
 	if (stage == 23) {
 		output = seg;
 		return 0;
@@ -580,7 +580,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 *
 	 */
 	// don't worry about bwlabel.
-	output = nscale::imfillHoles<uchar>(seg, true, 8);
+	output = nscale::imfillHoles<unsigned char>(seg, true, 8);
 	logger.logTimeElapsedSinceLastLog("fillHolesLast");
 
 	imwrite("test/out-nuclei.ppm", seg);
