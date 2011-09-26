@@ -11,6 +11,7 @@
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/copy.h>
 #include <thrust/unique.h>
+#include <thrust/sort.h>
 #include <thrust/count.h>
 
 
@@ -581,7 +582,7 @@ struct Propagate
 		void updateNeighbor(int nId, T center, thrust::minimum<T> mn) {
 			T q = marker[nId];
 			T p = mask[nId];
-			if (q < center && q != p) {
+			if (q != p && q < center) {
 				marker[nId] = mn(center, p);
 				flag[nId] = true;
 			}
@@ -772,6 +773,12 @@ struct IsTrue : public thrust::unary_function<bool,bool>
 //						printf("here3\n");
 //			dummy.resize(queueSize);
 
+			// sort the queue by the value
+			sparseQueue_end = thrust::copy(denseQueue.begin(), denseQueue.end(), sparseQueue.begin());
+			thrust::sort_by_key(thrust::make_permutation_iterator(q, sparseQueue.begin()),
+					thrust::make_permutation_iterator(q, sparseQueue_end),
+					denseQueue.begin());
+
 			thrust::fill(dummy.begin(), dummy.end(), false);
 			thrust::for_each(denseQueue.begin(), denseQueue.end(), Propagate<T>(thrust::raw_pointer_cast(q),
 					thrust::raw_pointer_cast(p), thrust::raw_pointer_cast(&*dummy.begin()), sx));
@@ -803,9 +810,9 @@ struct IsTrue : public thrust::unary_function<bool,bool>
 //					dummy.begin(),
 //					ReconPixel<T, ReconNeighborhood, QueueElement>(-sx, (int)-1, (int)1, sx));
 
-				thrust::fill(testQueue.begin(), testQueue.end(), -1);
-				thrust::transform(image_first, image_last, testQueue.begin(), InitialImageToQueue<T, ReconNeighborhood>());
-				printf("test queue size : %d \n", thrust::count_if(testQueue.begin(), testQueue.end(), GreaterThanConst<int>(-1)));
+//				thrust::fill(testQueue.begin(), testQueue.end(), -1);
+//				thrust::transform(image_first, image_last, testQueue.begin(), InitialImageToQueue<T, ReconNeighborhood>());
+//				printf("test queue size : %d \n", thrust::count_if(testQueue.begin(), testQueue.end(), GreaterThanConst<int>(-1)));
 
 // does not work...
 //				// 8conn
@@ -844,7 +851,7 @@ struct IsTrue : public thrust::unary_function<bool,bool>
 			// and prepare the queue for the next iterations.
 				//sparseQueue_end = thrust::unique(sparseQueue.begin(), sparseQueue.end());
 				queueSize = thrust::count_if(dummy.begin(), dummy.end(), thrust::identity<bool>());
-			printf("here 7 : queueSize =%d \n", queueSize);
+//			printf("here 7 : queueSize =%d \n", queueSize);
 
 			denseQueue.resize(queueSize);
 			thrust::fill(denseQueue.begin(), denseQueue.end(), -1);
