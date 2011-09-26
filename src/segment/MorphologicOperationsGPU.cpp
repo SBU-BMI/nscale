@@ -132,7 +132,7 @@ GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity
 	stream.waitForCompletion();
 	mask.release();
 
-	Rect roi = Rect(1, 1, image.cols, image.rows);
+	Rect roi = Rect(2, 2, image.cols, image.rows);
 	GpuMat output(marker, roi);
 	marker.release();
 
