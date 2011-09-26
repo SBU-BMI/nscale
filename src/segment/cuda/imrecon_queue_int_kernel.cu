@@ -584,6 +584,15 @@ struct Propagate
 			T p = mask[nId];
 			if (q != p && q < center) {
 				marker[nId] = mn(center, p);
+//				flag[nId] = true;
+			}
+	}
+	__host__ __device__
+		void updateAndMarkNeighbor(int nId, T center, thrust::minimum<T> mn) {
+			T q = marker[nId];
+			T p = mask[nId];
+			if (q != p && q < center) {
+				marker[nId] = mn(center, p);
 				flag[nId] = true;
 			}
 	}
@@ -604,6 +613,23 @@ struct Propagate
 			nId = id + step;  updateNeighbor(nId, center, mn);
 			nId = id + step + 1;  updateNeighbor(nId, center, mn);
 
+			nId = id - 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id - 2 * step - 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id - 2 * step - 1;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id - 2 * step;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id - 2 * step + 1;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id - 2 * step + 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id - step - 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id - step + 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + step - 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + step + 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + 2 * step - 2;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + 2 * step - 1;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + 2 * step;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + 2 * step + 1;  updateAndMarkNeighbor(nId, center, mn);
+			nId = id + 2 * step + 2;  updateAndMarkNeighbor(nId, center, mn);
+
         }
 };
 
@@ -623,15 +649,7 @@ struct GreaterThanConst : public thrust::unary_function<T,bool>
         return x > k;
     }
 };
-// this functor returns true if the argument is odd, and false otherwise
-struct IsTrue : public thrust::unary_function<bool,bool>
-{
-    __host__ __device__
-    bool operator()(bool x)
-    {
-        return x;
-    }
-};
+
 
 
 
@@ -702,7 +720,7 @@ struct IsTrue : public thrust::unary_function<bool,bool>
 		thrust::device_ptr<T> q_ym1xp1(marker + 2);
 		thrust::device_ptr<T> q_yp1xm1(marker + 2 * sx);
 		thrust::device_ptr<T> q_yp1xp1(marker + 2 * sx + 2);
-		int area = sx * (sy - 2) - 2;  // actual image area - sx and sy are padded by 1 on each side,
+		int area = sx * (sy - 4) - 4;  // actual image area - sx and sy are padded by 1 on each side,
 
 
 		typedef typename thrust::device_ptr<T> PixelIterator;
@@ -775,7 +793,7 @@ struct IsTrue : public thrust::unary_function<bool,bool>
 
 			// sort the queue by the value
 			sparseQueue_end = thrust::copy(denseQueue.begin(), denseQueue.end(), sparseQueue.begin());
-			thrust::sort_by_key(thrust::make_permutation_iterator(q, sparseQueue.begin()),
+			thrust::stable_sort_by_key(thrust::make_permutation_iterator(q, sparseQueue.begin()),
 					thrust::make_permutation_iterator(q, sparseQueue_end),
 					denseQueue.begin());
 

@@ -112,13 +112,13 @@ GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity
 
     // allocate results
 	GpuMat temp1;
-	copyMakeBorder(seeds, temp1, 1, 1, 1, 1, Scalar(mn), stream);
+	copyMakeBorder(seeds, temp1, 2, 2, 2, 2, Scalar(mn), stream);
 	GpuMat marker = createContinuous(temp1.size(), temp1.type());
 	stream.enqueueCopy(temp1, marker);
 //	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
 
 	GpuMat temp2;
-	copyMakeBorder(image, temp2, 1, 1, 1, 1, Scalar(mn), stream);
+	copyMakeBorder(image, temp2, 2, 2, 2, 2, Scalar(mn), stream);
 	GpuMat mask = createContinuous(temp2.size(), temp2.type());
 	stream.enqueueCopy(temp2, mask);
 //	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
