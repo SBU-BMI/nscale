@@ -1,0 +1,4 @@
+cpu-gpu-imrecon-chunk-times.csv: console output of imreconChunkTest.exe
+
+cpu-segment-chunk-times.txt: logger output of nu-segmentChunk.exe with astroII.1 08-08, w 128-2048, b 0-256, stages 0-25, cpu
+gpu-segment-chunk-times.txt: logger output of nu-segmentChunk.exe with astroII.1 08-08, w 128-2048, b 0-256, stages 0-25, gpu

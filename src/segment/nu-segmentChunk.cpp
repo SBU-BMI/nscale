@@ -17,6 +17,7 @@
 #include "utils.h"
 
 
+
 using namespace cv;
 
 bool areaThreshold1(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx) {
@@ -25,6 +26,7 @@ bool areaThreshold1(const std::vector<std::vector<Point> >& contours, const std:
 
 
 int main (int argc, char **argv){
+	bool timingOnly = true;
 /*	// allow walk through of the directory
 	const char* impath = argc > 1 ? argv[1];
 	// get the files - from http://ubuntuforums.org/showthread.php?t=1409202
@@ -45,18 +47,19 @@ int main (int argc, char **argv){
 	// set the output path
 	const char* resultpath = argc > 2 ? argv[2];
 */
-	if (argc < 7) {
-		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id minw maxb minstage maxstage [cpu | mcore | gpu [id]]" << std::endl;
+	if (argc < 8) {
+		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id minw minb maxb minstage maxstage [cpu | mcore | gpu [id]]" << std::endl;
 		return -1;
 	}
 	const char* imagename = argv[1];
 	const char* runid = argv[2];
 	int minw = atoi(argv[3]);
-	int maxb = atoi(argv[4]);
-	int minstage = atoi(argv[5]);
-	int maxstage = atoi(argv[6]);
+	int minb = atoi(argv[4]);
+	int maxb = atoi(argv[5]);
+	int minstage = atoi(argv[6]);
+	int maxstage = atoi(argv[7]);
 
-	const char* mode = argc > 7 ? argv[7] : "cpu";
+	const char* mode = argc > 8 ? argv[8] : "cpu";
 
 	int modecode = 0;
 	if (strcasecmp(mode, "cpu") == 0) modecode = cciutils::DEVICE_CPU;
@@ -71,12 +74,12 @@ int main (int argc, char **argv){
 			std::cout << "gpu requested, but no gpu available.  please use cpu or mcore option."  << std::endl;
 			return -2;
 		}
-		if (argc > 8) {
-			gpu::setDevice(atoi(argv[8]));
+		if (argc > 9) {
+			gpu::setDevice(atoi(argv[9]));
 		}
 		std::cout << " number of cuda enabled devices = " << gpu::getCudaEnabledDeviceCount() << std::endl;
 	} else {
-		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id minw maxb minstage maxstage [cpu | mcore | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id minw minb maxb minstage maxstage [cpu | mcore | gpu [id]]" << std::endl;
 		return -1;
 	}
 
@@ -85,54 +88,80 @@ int main (int argc, char **argv){
 	std::vector<Mat>::const_iterator last;
 	Size s2;
 	Point ofs;
+	Scalar redc, greenc, yellowc, bluec, cyanc, green2c;
+	redc = Scalar(0, 0, 255);
+	greenc = Scalar(0, 255, 0);
+	green2c = Scalar(0, 96, 0);
+	yellowc = Scalar(0, 255, 255);
+	bluec = Scalar(255, 0, 0);
+	cyanc = Scalar(255, 255, 0);
+	Scalar grayc = Scalar(127, 127, 127);
+	Scalar lightredc = Scalar(255, 255, 255);
+	int startx, endx, starty, endy;
+	int startx2, endx2, starty2, endy2;
 
 	// need to go through filesystem
 	char prefix[80];
 	strcpy(prefix, "results/");
 	strcat(prefix, mode);
-	strcat(prefix, "-chunk");
+	strcat(prefix, "-per-chunk");
 	cciutils::SimpleCSVLogger logger(prefix);
 	logger.consoleOff();
-	logger.off();
+	//logger.off();
 
 	Mat img = imread(imagename);
 	Size s = img.size();
 	if (!img.data) return -1;
+
+	logger.log("run-id", runid);
+	logger.log("filename", imagename);
+	logger.log("w", 4096);
+	logger.log("b", 0);
+	uint64_t t1 = cciutils::ClockGetTime();
+	logger.log("time", cciutils::ClockGetTime());
+	logger.log("type", "cpu");
+	logger.log("chunk x", 0);
+	logger.log("chunk y", 0);
+
 	Mat out3(img.size(), CV_8U);
-	int status = nscale::HistologicalEntities::segmentNuclei(img, out3, logger, 25);
-	std::cout << "groundtruth segmentation completed" << std::endl;
-	Mat out4;
-	cvtColor(out3, out4, CV_GRAY2BGR);
-			Scalar grayc = Scalar(127, 127, 127);
-			Scalar lightredc = Scalar(255, 255, 255);
-			int startx, endx, starty, endy;
-			int startx2, endx2, starty2, endy2;
-			Mat target;
-			Mat nu, nu2, nu3, chunkout, outputROI;
-			Rect outside, inside, bbox, normal;
-			Scalar redc, greenc, yellowc, bluec, cyanc, green2c;
-			redc = Scalar(0, 0, 255);
-			greenc = Scalar(0, 255, 0);
-			green2c = Scalar(0, 96, 0);
+	int status;
+	switch (modecode) {
+	case cciutils::DEVICE_CPU :
+	case cciutils::DEVICE_MCORE :
 
-			yellowc = Scalar(0, 255, 255);
-			bluec = Scalar(255, 0, 0);
-			cyanc = Scalar(255, 255, 0);
-				std::vector<std::vector<Point> > contours;
-				std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
+		status = nscale::HistologicalEntities::segmentNuclei(img, out3, logger, 25);
+		break;
+	case cciutils::DEVICE_GPU :
+		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, out3, logger, 25);
+		break;
+	default :
+		break;
+	}
 
-	Mat output = Mat::zeros(s, CV_8UC3);
+
 	Mat groundtruth = Mat::zeros(s, CV_8UC3);
+	cvtColor(out3, groundtruth, CV_GRAY2BGR);
+	logger.endSession();
+	std::cout << "groundtruth segmentation completed" << std::endl;
+
+	Mat nu, nu2, nu3, chunkout, outputROI;
+	Rect outside, inside, bbox, normal;
+
+	std::vector<std::vector<Point> > contours;
+	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
+
 
 	int b;
+	Mat gridtruth;
 	int stage = 25;
 	for (int w = minw; w < s.width && w < s.height; w = w* 2) {
-		for (int b2 = 1; b2 <= maxb && b2 <= (w / 2); b2 = b2 * 2) {
+		for (int b2 = minb; b2 <= maxb && b2 <= (w / 2); b2 = b2 * 2) {
 			b = b2 / 2;
 
 			// break it apart
 			std::vector<Mat> chunks;
-;
+			gridtruth = Mat::zeros(s, CV_8UC3);
+
 			Mat chunk;
 			Range rx;
 			Range ry;
@@ -150,7 +179,7 @@ int main (int argc, char **argv){
 					box.push_back(Point(rx.end - 1, ry.end-1));
 					box.push_back(Point(rx.end - 1, ry.start));
 					contours.push_back(box);
-					drawContours( groundtruth, contours, 0, grayc, 1, 8);
+					drawContours( gridtruth, contours, 0, grayc, 1, 8);
 					contours.clear();
 					box.clear();
 
@@ -179,58 +208,67 @@ int main (int argc, char **argv){
 					box.push_back(Point(endx, endy));
 					box.push_back(Point(endx, starty));
 					contours.push_back(box);
-					drawContours( groundtruth, contours, 0, lightredc, 1, 8);
+					drawContours( gridtruth, contours, 0, lightredc, 1, 8);
 					contours.clear();
 					box.clear();
 				}
 			}
-			addWeighted(out4, 0.5, groundtruth, 1.0, 0., groundtruth);
+			addWeighted(groundtruth, 0.5, gridtruth, 1.0, 0., gridtruth);
 
-			std::cout << "groundtruth rendered" << std::endl;
+//			std::cout << "groundtruth rendered" << std::endl;
 
 			for (int stage = minstage; stage <= maxstage; ++stage) {
 	
-				std::cout << "***** w = " << w << ", b = " << b << ", stage= " << stage << std::endl;
-
-
-				logger.log("run-id", runid);
-				logger.log("filename", imagename);
-				logger.log("w", w);
-				logger.log("b", b);
-				uint64_t t1 = cciutils::ClockGetTime();
-				logger.log("time", cciutils::ClockGetTime());
-
-
-				Mat out2(img.size(), CV_8U);
+				std::cout << "***** mode = " << mode << " w = " << w << ", b = " << b << ", stage= " << stage << std::endl;
 
 
 
 				it = chunks.begin();
 				last = chunks.end();
-
+				t1 = cciutils::ClockGetTime();
 				std::vector<Mat> outputs;
 				switch (modecode) {
 				case cciutils::DEVICE_CPU :
 				case cciutils::DEVICE_MCORE :
-					logger.log("type", "cpu");
 	//				logger.consoleOn();
 					for (; it < last; ++it) {
+						logger.log("run-id", runid);
+						logger.log("filename", imagename);
+						logger.log("w", w);
+						logger.log("b", b);
+						logger.log("time", cciutils::ClockGetTime());
+						logger.log("type", "cpu");
+
 						chunk = *it;
+						chunk.locateROI(s2, ofs);
+						logger.log("chunk x", ofs.x);
+						logger.log("chunk y", ofs.y);
 						Mat out(chunk.size(), CV_8U, Scalar(0));
 //						std::cout << " segmenting cpu chunk size: " << chunk.size().width << "x" << chunk.size().height << std::endl;
 						status = nscale::HistologicalEntities::segmentNuclei(chunk, out, logger, stage);
 						outputs.push_back(out);
+						logger.endSession();
 					}
 	//				logger.consoleOff();
 					break;
 				case cciutils::DEVICE_GPU :
-					logger.log("type", "gpu");
 					for (; it < last; ++it) {
+						logger.log("run-id", runid);
+						logger.log("filename", imagename);
+						logger.log("w", w);
+						logger.log("b", b);
+						logger.log("time", cciutils::ClockGetTime());
+						logger.log("type", "gpu");
+
 						chunk = *it;
+						chunk.locateROI(s2, ofs);
+						logger.log("chunk x", ofs.x);
+						logger.log("chunk y", ofs.y);
 						Mat out(chunk.size(), CV_8U, Scalar(0));
 //						std::cout << " segmenting cpu chunk size: " << chunk.size().width << "x" << chunk.size().height << std::endl;
 						status = nscale::gpu::HistologicalEntities::segmentNuclei(chunk, out, logger, stage);
 						outputs.push_back(out);
+						logger.endSession();
 					}
 					break;
 				default :
@@ -241,11 +279,14 @@ int main (int argc, char **argv){
 
 				// concat.
 
+				if (timingOnly) continue;
+
 				it = chunks.begin();
 				last = chunks.end();
 				std::vector<Mat>::const_iterator oit = outputs.begin();
 				std::vector<Mat>::const_iterator olast = outputs.end();
 
+				Mat output = Mat::zeros(s, CV_8UC3);
 
 
 				//logger.consoleOn();
@@ -325,21 +366,21 @@ int main (int argc, char **argv){
 									(bbox.y <= outside.y) ||
 									(bbox.x + bbox.width >= outside.x + outside.width) ||
 									(bbox.y + bbox.height >= outside.y + outside.height)) {
-								logger.log("on padded boundary ", idx);
+//								logger.log("on padded boundary ", idx);
 								drawContours( chunkout, contours, idx, redc, 1, 8, hierarchy);
 
 							} else if ((bbox.x <= normal.x) ||
 									(bbox.y <= normal.y) ||
 									(bbox.x + bbox.width >= normal.x + normal.width) ||
 									(bbox.y + bbox.height >= normal.y + normal.height)) {
-								logger.log("on normal boundary ", idx);
+//								logger.log("on normal boundary ", idx);
 								drawContours( chunkout, contours, idx, greenc, 1, 8, hierarchy);
 
 							} else if ((bbox.x <= inside.x) ||
 									(bbox.y <= inside.y) ||
 									(bbox.x + bbox.width >= inside.x + inside.width) ||
 									(bbox.y + bbox.height >= inside.y + inside.height)) {
-								logger.log("on neighbor's boundary ", idx);
+//								logger.log("on neighbor's boundary ", idx);
 								drawContours( chunkout, contours, idx, bluec, 1, 8, hierarchy);
 
 							// on the outside boundary - color it red
@@ -359,7 +400,7 @@ int main (int argc, char **argv){
 					}
 				}
 				//logger.consoleOff();
-				addWeighted(groundtruth, 0.3, output, 1.0, 0.0, output);
+				addWeighted(gridtruth, 0.3, output, 1.0, 0.0, output);
 
 				char ws[10];
 				sprintf(ws, "%d", w);
@@ -371,7 +412,7 @@ int main (int argc, char **argv){
 				if (stage > -1 && stage < 25) {
 					strcpy(prefix, "test/Stages/out-segment-");
 				} else {
-					strcpy(prefix, "test/out-segment-");
+					strcpy(prefix, "test/Segmented/out-segment-");
 				}
 				strcat(prefix, runid);
 				strcat(prefix, "-");
@@ -385,9 +426,8 @@ int main (int argc, char **argv){
 				strcat(prefix, ".pgm");
 				imwrite(prefix, output);
 
-				if (w == s.width || w == s.height) break;
+//				if (w == s.width || w == s.height) break;
 
-				logger.endSession();
 			}  // endif stage
 		}
 	}

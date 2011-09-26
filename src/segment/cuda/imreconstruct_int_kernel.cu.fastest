@@ -34,8 +34,6 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 	volatile __shared__ bool  s_change[Y_THREADS][Y_THREADS+1];
 
 	
-	if (by + ty < sy) {
-
 		int startx, iy, ix;
 		for (int ix = 0; ix < Y_THREADS; ++ix) {
 			s_change[ix][ty] = false;
@@ -46,7 +44,7 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 		// the increment allows overlap by 1 between iterations to move the data to next block.
 		for (startx = 0; startx < sx - Y_THREADS; startx += Y_THREADS - 1) {
 			// copy part of marker and mask to shared memory
-			for (iy = 0; iy < Y_THREADS; ++iy) {
+			for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 				// now treat ty as x, and iy as y, so global mem acccess is closer.
 				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -55,16 +53,18 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 
 			// perform iteration   all X threads do the same operations, so there may be read/write hazards.  but the output is the same.
 			// this is looping for BLOCK_SIZE times, and each iteration the final results are propagated 1 step closer to tx.
+	if (by + ty < sy) {
 			for (ix = 1; ix < Y_THREADS; ++ix) {
 				s_old = s_marker[ix][ty];
 				s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 				s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 				s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
 			}
+}
 			__syncthreads();
 
 			// output result back to global memory
-			for (iy = 0; iy < Y_THREADS; ++iy) {
+			for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 				// now treat ty as x, and iy as y, so global mem acccess is closer.
 				marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			}
@@ -75,7 +75,7 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 		startx = sx - Y_THREADS;
 
 		// copy part of marker and mask to shared memory
-		for (iy = 0; iy < Y_THREADS; ++iy) {
+		for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 			// now treat ty as x, and iy as y, so global mem acccess is closer.
 			s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 			s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -83,23 +83,23 @@ iRec1DForward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, c
 		__syncthreads();
 
 		// perform iteration
+	if (by + ty < sy) {
 		for (ix = 1; ix < Y_THREADS; ++ix) {
 			s_old = s_marker[ix][ty];
 			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix-1][ty] );
 			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 			s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
 		}
-		__syncthreads();
+}		__syncthreads();
 
 		// output result back to global memory
-		for (iy = 0; iy < Y_THREADS; ++iy) {
+		for (iy = 0; iy < Y_THREADS && by+iy<sy; ++iy) {
 			// now treat ty as x, and iy as y, so global mem acccess is closer.
 			marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			if (s_change[iy][ty]) *change = true;
 		}
 		__syncthreads();
 
-	}
 
 }
 
@@ -117,7 +117,6 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 	volatile __shared__ bool  s_change[Y_THREADS][Y_THREADS+1];
 		
 
-	if (by + ty < sy) {
 
 		int startx;
 		for (int ix = 0; ix < Y_THREADS; ix++) {
@@ -129,7 +128,7 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 		for (startx = sx - Y_THREADS; startx > 0; startx -= Y_THREADS - 1) {
 
 			// copy part of marker and mask to shared memory
-			for (int iy = 0; iy < Y_THREADS; iy++) {
+			for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 				// now treat ty as x, and iy as y, so global mem acccess is closer.
 				s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 				s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -137,16 +136,18 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 			__syncthreads();
 
 			// perform iteration
+	if (by + ty < sy) {
 			for (int ix = Y_THREADS - 2; ix >= 0; ix--) {
 				s_old = s_marker[ix][ty];
 				s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix+1][ty] );
 				s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 				s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
 			}
+}
 			__syncthreads();
 
 			// output result back to global memory
-			for (int iy = 0; iy < Y_THREADS; iy++) {
+			for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 				// now treat ty as x, and iy as y, so global mem acccess is closer.
 				marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			}
@@ -157,7 +158,7 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 		startx = 0;
 
 		// copy part of marker and mask to shared memory
-		for (int iy = 0; iy < Y_THREADS; iy++) {
+		for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 			// now treat ty as x, and iy as y, so global mem acccess is closer.
 			s_marker[ty][iy] = marker[(by + iy)*sx + startx + ty];
 			s_mask  [ty][iy] = mask  [(by + iy)*sx + startx + ty];
@@ -165,16 +166,18 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 		__syncthreads();
 
 		// perform iteration
+	if (by + ty < sy) {
 		for (int ix = Y_THREADS - 2; ix >= 0; ix--) {
 			s_old = s_marker[ix][ty];
 			s_marker[ix][ty] = max( s_marker[ix][ty], s_marker[ix+1][ty] );
 			s_marker[ix][ty] = min( s_marker[ix][ty], s_mask  [ix]  [ty] );
 			s_change[ix][ty] |= NEQ( s_old, s_marker[ix][ty] );
 		}
+}
 		__syncthreads();
 
 		// output result back to global memory
-		for (int iy = 0; iy < Y_THREADS; iy++) {
+		for (int iy = 0; iy < Y_THREADS && by+iy<sy; iy++) {
 			// now treat ty as x, and iy as y, so global mem acccess is closer.
 			marker[(by + iy)*sx + startx + ty] = s_marker[ty][iy];
 			if (s_change[iy][ty]) *change = true;
@@ -182,7 +185,6 @@ iRec1DBackward_X_dilation2 (T* __restrict__ marker, const T* __restrict__ mask, 
 		__syncthreads();
 
 
-	}
 
 }
 
@@ -598,7 +600,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 //		else cudaSafeCall( cudaStreamSynchronize(stream));
 
 
-		printf("entering imrecon int caller with conn=%d\n", connectivity);
+//		printf("entering imrecon int caller with conn=%d\n", connectivity);
 
 		// setup execution parameters
 		bool conn8 = (connectivity == 8);
@@ -616,7 +618,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
 		
 		*h_change = true;
-		printf("completed setup for imrecon int caller \n");
+//		printf("completed setup for imrecon int caller \n");
 
 		if (conn8) {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
@@ -681,7 +683,7 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		cudaSafeCall( cudaFree(d_change) );
 		free(h_change);
 
-		printf("Number of iterations: %d\n", iter);
+//		printf("Number of iterations: %d\n", iter);
 		cudaSafeCall( cudaGetLastError());
 
 		return iter;

@@ -456,7 +456,9 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 */
 	// don't worry about bwlabel.
 	output = nscale::imfillHoles<uchar>(seg, true, 8);
-	imwrite("test/out-nuclei.ppm", seg);
+	logger.logTimeElapsedSinceLastLog("fillHolesLast");
+
+//	imwrite("test/out-nuclei.ppm", seg);
 
 //	logger.endSession();
 
