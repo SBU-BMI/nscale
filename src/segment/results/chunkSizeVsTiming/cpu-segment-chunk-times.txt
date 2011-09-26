@@ -1,0 +1,2290 @@
+nohup: ignoring input
+groundtruth segmentation completed
+***** w = 128, b = 0, stage= 0
+**** SEGMENTATION took 865ms
+***** w = 128, b = 0, stage= 1
+**** SEGMENTATION took 164333ms
+***** w = 128, b = 0, stage= 2
+**** SEGMENTATION took 304157ms
+***** w = 128, b = 0, stage= 3
+**** SEGMENTATION took 664616ms
+***** w = 128, b = 0, stage= 4
+**** SEGMENTATION took 1139414ms
+***** w = 128, b = 0, stage= 5
+**** SEGMENTATION took 1157508ms
+***** w = 128, b = 0, stage= 6
+**** SEGMENTATION took 1174685ms
+***** w = 128, b = 0, stage= 7
+**** SEGMENTATION took 1418727ms
+***** w = 128, b = 0, stage= 8
+**** SEGMENTATION took 1478997ms
+***** w = 128, b = 0, stage= 9
+**** SEGMENTATION took 1484420ms
+***** w = 128, b = 0, stage= 10
+**** SEGMENTATION took 1487109ms
+***** w = 128, b = 0, stage= 11
+**** SEGMENTATION took 1554257ms
+***** w = 128, b = 0, stage= 12
+**** SEGMENTATION took 1577489ms
+***** w = 128, b = 0, stage= 13
+**** SEGMENTATION took 1828437ms
+***** w = 128, b = 0, stage= 14
+**** SEGMENTATION took 1821679ms
+***** w = 128, b = 0, stage= 15
+**** SEGMENTATION took 1883031ms
+***** w = 128, b = 0, stage= 16
+**** SEGMENTATION took 1886370ms
+***** w = 128, b = 0, stage= 17
+**** SEGMENTATION took 2023695ms
+***** w = 128, b = 0, stage= 18
+**** SEGMENTATION took 2065702ms
+***** w = 128, b = 0, stage= 19
+**** SEGMENTATION took 2066593ms
+***** w = 128, b = 0, stage= 20
+**** SEGMENTATION took 2075406ms
+***** w = 128, b = 0, stage= 21
+**** SEGMENTATION took 2610299ms
+***** w = 128, b = 0, stage= 22
+**** SEGMENTATION took 2596817ms
+***** w = 128, b = 0, stage= 23
+**** SEGMENTATION took 2692838ms
+***** w = 128, b = 0, stage= 24
+**** SEGMENTATION took 2700471ms
+***** w = 128, b = 0, stage= 25
+**** SEGMENTATION took 3357518ms
+***** w = 128, b = 1, stage= 0
+**** SEGMENTATION took 881ms
+***** w = 128, b = 1, stage= 1
+**** SEGMENTATION took 173037ms
+***** w = 128, b = 1, stage= 2
+**** SEGMENTATION took 317624ms
+***** w = 128, b = 1, stage= 3
+**** SEGMENTATION took 894515ms
+***** w = 128, b = 1, stage= 4
+**** SEGMENTATION took 1382256ms
+***** w = 128, b = 1, stage= 5
+**** SEGMENTATION took 1384493ms
+***** w = 128, b = 1, stage= 6
+**** SEGMENTATION took 1416103ms
+***** w = 128, b = 1, stage= 7
+**** SEGMENTATION took 1656863ms
+***** w = 128, b = 1, stage= 8
+**** SEGMENTATION took 1715253ms
+***** w = 128, b = 1, stage= 9
+**** SEGMENTATION took 1728685ms
+***** w = 128, b = 1, stage= 10
+**** SEGMENTATION took 1706311ms
+***** w = 128, b = 1, stage= 11
+**** SEGMENTATION took 1804095ms
+***** w = 128, b = 1, stage= 12
+**** SEGMENTATION took 1816457ms
+***** w = 128, b = 1, stage= 13
+**** SEGMENTATION took 2051338ms
+***** w = 128, b = 1, stage= 14
+**** SEGMENTATION took 2074805ms
+***** w = 128, b = 1, stage= 15
+**** SEGMENTATION took 2140774ms
+***** w = 128, b = 1, stage= 16
+**** SEGMENTATION took 2134930ms
+***** w = 128, b = 1, stage= 17
+**** SEGMENTATION took 2260896ms
+***** w = 128, b = 1, stage= 18
+**** SEGMENTATION took 2274282ms
+***** w = 128, b = 1, stage= 19
+**** SEGMENTATION took 2304889ms
+***** w = 128, b = 1, stage= 20
+**** SEGMENTATION took 2263494ms
+***** w = 128, b = 1, stage= 21
+**** SEGMENTATION took 2865218ms
+***** w = 128, b = 1, stage= 22
+**** SEGMENTATION took 2891487ms
+***** w = 128, b = 1, stage= 23
+**** SEGMENTATION took 2957378ms
+***** w = 128, b = 1, stage= 24
+**** SEGMENTATION took 2969163ms
+***** w = 128, b = 1, stage= 25
+**** SEGMENTATION took 3663373ms
+***** w = 128, b = 2, stage= 0
+**** SEGMENTATION took 925ms
+***** w = 128, b = 2, stage= 1
+**** SEGMENTATION took 178416ms
+***** w = 128, b = 2, stage= 2
+**** SEGMENTATION took 328395ms
+***** w = 128, b = 2, stage= 3
+**** SEGMENTATION took 883067ms
+***** w = 128, b = 2, stage= 4
+**** SEGMENTATION took 1396269ms
+***** w = 128, b = 2, stage= 5
+**** SEGMENTATION took 1406920ms
+***** w = 128, b = 2, stage= 6
+**** SEGMENTATION took 1422915ms
+***** w = 128, b = 2, stage= 7
+**** SEGMENTATION took 1676988ms
+***** w = 128, b = 2, stage= 8
+**** SEGMENTATION took 1686228ms
+***** w = 128, b = 2, stage= 9
+**** SEGMENTATION took 1761582ms
+***** w = 128, b = 2, stage= 10
+**** SEGMENTATION took 1764185ms
+***** w = 128, b = 2, stage= 11
+**** SEGMENTATION took 1832545ms
+***** w = 128, b = 2, stage= 12
+**** SEGMENTATION took 1843749ms
+***** w = 128, b = 2, stage= 13
+**** SEGMENTATION took 2093595ms
+***** w = 128, b = 2, stage= 14
+**** SEGMENTATION took 2115511ms
+***** w = 128, b = 2, stage= 15
+**** SEGMENTATION took 2176173ms
+***** w = 128, b = 2, stage= 16
+**** SEGMENTATION took 2186656ms
+***** w = 128, b = 2, stage= 17
+**** SEGMENTATION took 2313762ms
+***** w = 128, b = 2, stage= 18
+**** SEGMENTATION took 2343025ms
+***** w = 128, b = 2, stage= 19
+**** SEGMENTATION took 2355627ms
+***** w = 128, b = 2, stage= 20
+**** SEGMENTATION took 2323653ms
+***** w = 128, b = 2, stage= 21
+**** SEGMENTATION took 2930928ms
+***** w = 128, b = 2, stage= 22
+**** SEGMENTATION took 2953612ms
+***** w = 128, b = 2, stage= 23
+**** SEGMENTATION took 3031979ms
+***** w = 128, b = 2, stage= 24
+**** SEGMENTATION took 3043280ms
+***** w = 128, b = 2, stage= 25
+**** SEGMENTATION took 3815578ms
+***** w = 128, b = 4, stage= 0
+**** SEGMENTATION took 912ms
+***** w = 128, b = 4, stage= 1
+**** SEGMENTATION took 185110ms
+***** w = 128, b = 4, stage= 2
+**** SEGMENTATION took 343599ms
+***** w = 128, b = 4, stage= 3
+**** SEGMENTATION took 781342ms
+***** w = 128, b = 4, stage= 4
+**** SEGMENTATION took 1343270ms
+***** w = 128, b = 4, stage= 5
+**** SEGMENTATION took 1359932ms
+***** w = 128, b = 4, stage= 6
+**** SEGMENTATION took 1348005ms
+***** w = 128, b = 4, stage= 7
+**** SEGMENTATION took 1649133ms
+***** w = 128, b = 4, stage= 8
+**** SEGMENTATION took 1716594ms
+***** w = 128, b = 4, stage= 9
+**** SEGMENTATION took 1724961ms
+***** w = 128, b = 4, stage= 10
+**** SEGMENTATION took 1741061ms
+***** w = 128, b = 4, stage= 11
+**** SEGMENTATION took 1796302ms
+***** w = 128, b = 4, stage= 12
+**** SEGMENTATION took 1821884ms
+***** w = 128, b = 4, stage= 13
+**** SEGMENTATION took 2096914ms
+***** w = 128, b = 4, stage= 14
+**** SEGMENTATION took 2108954ms
+***** w = 128, b = 4, stage= 15
+**** SEGMENTATION took 2173490ms
+***** w = 128, b = 4, stage= 16
+**** SEGMENTATION took 2181195ms
+***** w = 128, b = 4, stage= 17
+**** SEGMENTATION took 2291292ms
+***** w = 128, b = 4, stage= 18
+**** SEGMENTATION took 2356819ms
+***** w = 128, b = 4, stage= 19
+**** SEGMENTATION took 2370279ms
+***** w = 128, b = 4, stage= 20
+**** SEGMENTATION took 2379044ms
+***** w = 128, b = 4, stage= 21
+**** SEGMENTATION took 2976190ms
+***** w = 128, b = 4, stage= 22
+**** SEGMENTATION took 2986812ms
+***** w = 128, b = 4, stage= 23
+**** SEGMENTATION took 3067797ms
+***** w = 128, b = 4, stage= 24
+**** SEGMENTATION took 3078807ms
+***** w = 128, b = 4, stage= 25
+**** SEGMENTATION took 3791823ms
+***** w = 128, b = 8, stage= 0
+**** SEGMENTATION took 1017ms
+***** w = 128, b = 8, stage= 1
+**** SEGMENTATION took 201564ms
+***** w = 128, b = 8, stage= 2
+**** SEGMENTATION took 379391ms
+***** w = 128, b = 8, stage= 3
+**** SEGMENTATION took 872113ms
+***** w = 128, b = 8, stage= 4
+**** SEGMENTATION took 1554053ms
+***** w = 128, b = 8, stage= 5
+**** SEGMENTATION took 1577368ms
+***** w = 128, b = 8, stage= 6
+**** SEGMENTATION took 1569111ms
+***** w = 128, b = 8, stage= 7
+**** SEGMENTATION took 1841061ms
+***** w = 128, b = 8, stage= 8
+**** SEGMENTATION took 1955271ms
+***** w = 128, b = 8, stage= 9
+**** SEGMENTATION took 1988666ms
+***** w = 128, b = 8, stage= 10
+**** SEGMENTATION took 2005805ms
+***** w = 128, b = 8, stage= 11
+**** SEGMENTATION took 2066859ms
+***** w = 128, b = 8, stage= 12
+**** SEGMENTATION took 2097067ms
+***** w = 128, b = 8, stage= 13
+**** SEGMENTATION took 2389662ms
+***** w = 128, b = 8, stage= 14
+**** SEGMENTATION took 2412209ms
+***** w = 128, b = 8, stage= 15
+**** SEGMENTATION took 2477180ms
+***** w = 128, b = 8, stage= 16
+**** SEGMENTATION took 2493266ms
+***** w = 128, b = 8, stage= 17
+**** SEGMENTATION took 2639902ms
+***** w = 128, b = 8, stage= 18
+**** SEGMENTATION took 2660890ms
+***** w = 128, b = 8, stage= 19
+**** SEGMENTATION took 2644139ms
+***** w = 128, b = 8, stage= 20
+**** SEGMENTATION took 2686769ms
+***** w = 128, b = 8, stage= 21
+**** SEGMENTATION took 3371500ms
+***** w = 128, b = 8, stage= 22
+**** SEGMENTATION took 3396505ms
+***** w = 128, b = 8, stage= 23
+**** SEGMENTATION took 3473380ms
+***** w = 128, b = 8, stage= 24
+**** SEGMENTATION took 3487744ms
+***** w = 128, b = 8, stage= 25
+**** SEGMENTATION took 4120876ms
+***** w = 128, b = 16, stage= 0
+**** SEGMENTATION took 1299ms
+***** w = 128, b = 16, stage= 1
+**** SEGMENTATION took 235981ms
+***** w = 128, b = 16, stage= 2
+**** SEGMENTATION took 456393ms
+***** w = 128, b = 16, stage= 3
+**** SEGMENTATION took 972278ms
+***** w = 128, b = 16, stage= 4
+**** SEGMENTATION took 1916439ms
+***** w = 128, b = 16, stage= 5
+**** SEGMENTATION took 1949760ms
+***** w = 128, b = 16, stage= 6
+**** SEGMENTATION took 1975003ms
+***** w = 128, b = 16, stage= 7
+**** SEGMENTATION took 2338646ms
+***** w = 128, b = 16, stage= 8
+**** SEGMENTATION took 2444482ms
+***** w = 128, b = 16, stage= 9
+**** SEGMENTATION took 2456697ms
+***** w = 128, b = 16, stage= 10
+**** SEGMENTATION took 2474600ms
+***** w = 128, b = 16, stage= 11
+**** SEGMENTATION took 2565608ms
+***** w = 128, b = 16, stage= 12
+**** SEGMENTATION took 2589039ms
+***** w = 128, b = 16, stage= 13
+**** SEGMENTATION took 2936778ms
+***** w = 128, b = 16, stage= 14
+**** SEGMENTATION took 2971591ms
+***** w = 128, b = 16, stage= 15
+**** SEGMENTATION took 2987947ms
+***** w = 128, b = 16, stage= 16
+**** SEGMENTATION took 3073301ms
+***** w = 128, b = 16, stage= 17
+**** SEGMENTATION took 3250775ms
+***** w = 128, b = 16, stage= 18
+**** SEGMENTATION took 3273943ms
+***** w = 128, b = 16, stage= 19
+**** SEGMENTATION took 3300777ms
+***** w = 128, b = 16, stage= 20
+**** SEGMENTATION took 3317760ms
+***** w = 128, b = 16, stage= 21
+**** SEGMENTATION took 4155198ms
+***** w = 128, b = 16, stage= 22
+**** SEGMENTATION took 4181689ms
+***** w = 128, b = 16, stage= 23
+**** SEGMENTATION took 4275114ms
+***** w = 128, b = 16, stage= 24
+**** SEGMENTATION took 4276067ms
+***** w = 128, b = 16, stage= 25
+**** SEGMENTATION took 5770245ms
+***** w = 128, b = 32, stage= 0
+**** SEGMENTATION took 1808ms
+***** w = 128, b = 32, stage= 1
+**** SEGMENTATION took 326955ms
+***** w = 128, b = 32, stage= 2
+**** SEGMENTATION took 644098ms
+***** w = 128, b = 32, stage= 3
+**** SEGMENTATION took 1403021ms
+***** w = 128, b = 32, stage= 4
+**** SEGMENTATION took 2915997ms
+***** w = 128, b = 32, stage= 5
+**** SEGMENTATION took 2953618ms
+***** w = 128, b = 32, stage= 6
+**** SEGMENTATION took 2989022ms
+***** w = 128, b = 32, stage= 7
+**** SEGMENTATION took 3517175ms
+***** w = 128, b = 32, stage= 8
+**** SEGMENTATION took 3647591ms
+***** w = 128, b = 32, stage= 9
+**** SEGMENTATION took 3670358ms
+***** w = 128, b = 32, stage= 10
+**** SEGMENTATION took 3682849ms
+***** w = 128, b = 32, stage= 11
+**** SEGMENTATION took 3806074ms
+***** w = 128, b = 32, stage= 12
+**** SEGMENTATION took 3820541ms
+***** w = 128, b = 32, stage= 13
+**** SEGMENTATION took 4361055ms
+***** w = 128, b = 32, stage= 14
+**** SEGMENTATION took 4393139ms
+***** w = 128, b = 32, stage= 15
+**** SEGMENTATION took 4497957ms
+***** w = 128, b = 32, stage= 16
+**** SEGMENTATION took 4528948ms
+***** w = 128, b = 32, stage= 17
+**** SEGMENTATION took 4807787ms
+***** w = 128, b = 32, stage= 18
+**** SEGMENTATION took 4901597ms
+***** w = 128, b = 32, stage= 19
+**** SEGMENTATION took 4897924ms
+***** w = 128, b = 32, stage= 20
+**** SEGMENTATION took 4932358ms
+***** w = 128, b = 32, stage= 21
+**** SEGMENTATION took 6134077ms
+***** w = 128, b = 32, stage= 22
+**** SEGMENTATION took 6183111ms
+***** w = 128, b = 32, stage= 23
+**** SEGMENTATION took 6298775ms
+***** w = 128, b = 32, stage= 24
+**** SEGMENTATION took 6326893ms
+***** w = 128, b = 32, stage= 25
+**** SEGMENTATION took 8373630ms
+***** w = 256, b = 0, stage= 0
+**** SEGMENTATION took 785ms
+***** w = 256, b = 0, stage= 1
+**** SEGMENTATION took 145168ms
+***** w = 256, b = 0, stage= 2
+**** SEGMENTATION took 294191ms
+***** w = 256, b = 0, stage= 3
+**** SEGMENTATION took 619042ms
+***** w = 256, b = 0, stage= 4
+**** SEGMENTATION took 1388706ms
+***** w = 256, b = 0, stage= 5
+**** SEGMENTATION took 1411897ms
+***** w = 256, b = 0, stage= 6
+**** SEGMENTATION took 1423243ms
+***** w = 256, b = 0, stage= 7
+**** SEGMENTATION took 1665133ms
+***** w = 256, b = 0, stage= 8
+**** SEGMENTATION took 1691353ms
+***** w = 256, b = 0, stage= 9
+**** SEGMENTATION took 1739461ms
+***** w = 256, b = 0, stage= 10
+**** SEGMENTATION took 1716580ms
+***** w = 256, b = 0, stage= 11
+**** SEGMENTATION took 1800979ms
+***** w = 256, b = 0, stage= 12
+**** SEGMENTATION took 1816660ms
+***** w = 256, b = 0, stage= 13
+**** SEGMENTATION took 2059002ms
+***** w = 256, b = 0, stage= 14
+**** SEGMENTATION took 2075369ms
+***** w = 256, b = 0, stage= 15
+**** SEGMENTATION took 2118436ms
+***** w = 256, b = 0, stage= 16
+**** SEGMENTATION took 2131670ms
+***** w = 256, b = 0, stage= 17
+**** SEGMENTATION took 2299457ms
+***** w = 256, b = 0, stage= 18
+**** SEGMENTATION took 2341066ms
+***** w = 256, b = 0, stage= 19
+**** SEGMENTATION took 2378303ms
+***** w = 256, b = 0, stage= 20
+**** SEGMENTATION took 2315426ms
+***** w = 256, b = 0, stage= 21
+**** SEGMENTATION took 2879639ms
+***** w = 256, b = 0, stage= 22
+**** SEGMENTATION took 3022320ms
+***** w = 256, b = 0, stage= 23
+**** SEGMENTATION took 3064014ms
+***** w = 256, b = 0, stage= 24
+**** SEGMENTATION took 3067781ms
+***** w = 256, b = 0, stage= 25
+**** SEGMENTATION took 3525504ms
+***** w = 256, b = 1, stage= 0
+**** SEGMENTATION took 842ms
+***** w = 256, b = 1, stage= 1
+**** SEGMENTATION took 150264ms
+***** w = 256, b = 1, stage= 2
+**** SEGMENTATION took 303750ms
+***** w = 256, b = 1, stage= 3
+**** SEGMENTATION took 749391ms
+***** w = 256, b = 1, stage= 4
+**** SEGMENTATION took 1558968ms
+***** w = 256, b = 1, stage= 5
+**** SEGMENTATION took 1572874ms
+***** w = 256, b = 1, stage= 6
+**** SEGMENTATION took 1589774ms
+***** w = 256, b = 1, stage= 7
+**** SEGMENTATION took 1788041ms
+***** w = 256, b = 1, stage= 8
+**** SEGMENTATION took 1804251ms
+***** w = 256, b = 1, stage= 9
+**** SEGMENTATION took 1815452ms
+***** w = 256, b = 1, stage= 10
+**** SEGMENTATION took 1855357ms
+***** w = 256, b = 1, stage= 11
+**** SEGMENTATION took 1910792ms
+***** w = 256, b = 1, stage= 12
+**** SEGMENTATION took 1922719ms
+***** w = 256, b = 1, stage= 13
+**** SEGMENTATION took 2176956ms
+***** w = 256, b = 1, stage= 14
+**** SEGMENTATION took 2197124ms
+***** w = 256, b = 1, stage= 15
+**** SEGMENTATION took 2238312ms
+***** w = 256, b = 1, stage= 16
+**** SEGMENTATION took 2254435ms
+***** w = 256, b = 1, stage= 17
+**** SEGMENTATION took 2365594ms
+***** w = 256, b = 1, stage= 18
+**** SEGMENTATION took 2375843ms
+***** w = 256, b = 1, stage= 19
+**** SEGMENTATION took 2418177ms
+***** w = 256, b = 1, stage= 20
+**** SEGMENTATION took 2424039ms
+***** w = 256, b = 1, stage= 21
+**** SEGMENTATION took 3006310ms
+***** w = 256, b = 1, stage= 22
+**** SEGMENTATION took 3023443ms
+***** w = 256, b = 1, stage= 23
+**** SEGMENTATION took 3082581ms
+***** w = 256, b = 1, stage= 24
+**** SEGMENTATION took 3088279ms
+***** w = 256, b = 1, stage= 25
+**** SEGMENTATION took 3539312ms
+***** w = 256, b = 2, stage= 0
+**** SEGMENTATION took 776ms
+***** w = 256, b = 2, stage= 1
+**** SEGMENTATION took 149081ms
+***** w = 256, b = 2, stage= 2
+**** SEGMENTATION took 302056ms
+***** w = 256, b = 2, stage= 3
+**** SEGMENTATION took 727928ms
+***** w = 256, b = 2, stage= 4
+**** SEGMENTATION took 1522190ms
+***** w = 256, b = 2, stage= 5
+**** SEGMENTATION took 1537891ms
+***** w = 256, b = 2, stage= 6
+**** SEGMENTATION took 1523303ms
+***** w = 256, b = 2, stage= 7
+**** SEGMENTATION took 1807352ms
+***** w = 256, b = 2, stage= 8
+**** SEGMENTATION took 1846601ms
+***** w = 256, b = 2, stage= 9
+**** SEGMENTATION took 1859709ms
+***** w = 256, b = 2, stage= 10
+**** SEGMENTATION took 1886362ms
+***** w = 256, b = 2, stage= 11
+**** SEGMENTATION took 1934626ms
+***** w = 256, b = 2, stage= 12
+**** SEGMENTATION took 1954198ms
+***** w = 256, b = 2, stage= 13
+**** SEGMENTATION took 2211450ms
+***** w = 256, b = 2, stage= 14
+**** SEGMENTATION took 2217776ms
+***** w = 256, b = 2, stage= 15
+**** SEGMENTATION took 2270492ms
+***** w = 256, b = 2, stage= 16
+**** SEGMENTATION took 2258859ms
+***** w = 256, b = 2, stage= 17
+**** SEGMENTATION took 2383804ms
+***** w = 256, b = 2, stage= 18
+**** SEGMENTATION took 2360555ms
+***** w = 256, b = 2, stage= 19
+**** SEGMENTATION took 2368290ms
+***** w = 256, b = 2, stage= 20
+**** SEGMENTATION took 2507074ms
+***** w = 256, b = 2, stage= 21
+**** SEGMENTATION took 3116272ms
+***** w = 256, b = 2, stage= 22
+**** SEGMENTATION took 3160890ms
+***** w = 256, b = 2, stage= 23
+**** SEGMENTATION took 3230159ms
+***** w = 256, b = 2, stage= 24
+**** SEGMENTATION took 3245784ms
+***** w = 256, b = 2, stage= 25
+**** SEGMENTATION took 3822538ms
+***** w = 256, b = 4, stage= 0
+**** SEGMENTATION took 790ms
+***** w = 256, b = 4, stage= 1
+**** SEGMENTATION took 153933ms
+***** w = 256, b = 4, stage= 2
+**** SEGMENTATION took 318790ms
+***** w = 256, b = 4, stage= 3
+**** SEGMENTATION took 692413ms
+***** w = 256, b = 4, stage= 4
+**** SEGMENTATION took 1501004ms
+***** w = 256, b = 4, stage= 5
+**** SEGMENTATION took 1540121ms
+***** w = 256, b = 4, stage= 6
+**** SEGMENTATION took 1536510ms
+***** w = 256, b = 4, stage= 7
+**** SEGMENTATION took 1798863ms
+***** w = 256, b = 4, stage= 8
+**** SEGMENTATION took 1853900ms
+***** w = 256, b = 4, stage= 9
+**** SEGMENTATION took 1863605ms
+***** w = 256, b = 4, stage= 10
+**** SEGMENTATION took 1872916ms
+***** w = 256, b = 4, stage= 11
+**** SEGMENTATION took 1927956ms
+***** w = 256, b = 4, stage= 12
+**** SEGMENTATION took 1943535ms
+***** w = 256, b = 4, stage= 13
+**** SEGMENTATION took 2197884ms
+***** w = 256, b = 4, stage= 14
+**** SEGMENTATION took 2215562ms
+***** w = 256, b = 4, stage= 15
+**** SEGMENTATION took 2268426ms
+***** w = 256, b = 4, stage= 16
+**** SEGMENTATION took 2277985ms
+***** w = 256, b = 4, stage= 17
+**** SEGMENTATION took 2348510ms
+***** w = 256, b = 4, stage= 18
+**** SEGMENTATION took 2450468ms
+***** w = 256, b = 4, stage= 19
+**** SEGMENTATION took 2458883ms
+***** w = 256, b = 4, stage= 20
+**** SEGMENTATION took 2461723ms
+***** w = 256, b = 4, stage= 21
+**** SEGMENTATION took 3060360ms
+***** w = 256, b = 4, stage= 22
+**** SEGMENTATION took 3081245ms
+***** w = 256, b = 4, stage= 23
+**** SEGMENTATION took 3140100ms
+***** w = 256, b = 4, stage= 24
+**** SEGMENTATION took 3160270ms
+***** w = 256, b = 4, stage= 25
+**** SEGMENTATION took 3597608ms
+***** w = 256, b = 8, stage= 0
+**** SEGMENTATION took 834ms
+***** w = 256, b = 8, stage= 1
+**** SEGMENTATION took 162194ms
+***** w = 256, b = 8, stage= 2
+**** SEGMENTATION took 329030ms
+***** w = 256, b = 8, stage= 3
+**** SEGMENTATION took 720588ms
+***** w = 256, b = 8, stage= 4
+**** SEGMENTATION took 1628562ms
+***** w = 256, b = 8, stage= 5
+**** SEGMENTATION took 1640704ms
+***** w = 256, b = 8, stage= 6
+**** SEGMENTATION took 1657866ms
+***** w = 256, b = 8, stage= 7
+**** SEGMENTATION took 1936526ms
+***** w = 256, b = 8, stage= 8
+**** SEGMENTATION took 1995840ms
+***** w = 256, b = 8, stage= 9
+**** SEGMENTATION took 2007798ms
+***** w = 256, b = 8, stage= 10
+**** SEGMENTATION took 2019531ms
+***** w = 256, b = 8, stage= 11
+**** SEGMENTATION took 2074037ms
+***** w = 256, b = 8, stage= 12
+**** SEGMENTATION took 2090211ms
+***** w = 256, b = 8, stage= 13
+**** SEGMENTATION took 2366338ms
+***** w = 256, b = 8, stage= 14
+**** SEGMENTATION took 2380294ms
+***** w = 256, b = 8, stage= 15
+**** SEGMENTATION took 2437872ms
+***** w = 256, b = 8, stage= 16
+**** SEGMENTATION took 2443921ms
+***** w = 256, b = 8, stage= 17
+**** SEGMENTATION took 2553084ms
+***** w = 256, b = 8, stage= 18
+**** SEGMENTATION took 2622648ms
+***** w = 256, b = 8, stage= 19
+**** SEGMENTATION took 2631215ms
+***** w = 256, b = 8, stage= 20
+**** SEGMENTATION took 2640735ms
+***** w = 256, b = 8, stage= 21
+**** SEGMENTATION took 3288065ms
+***** w = 256, b = 8, stage= 22
+**** SEGMENTATION took 3298515ms
+***** w = 256, b = 8, stage= 23
+**** SEGMENTATION took 3374961ms
+***** w = 256, b = 8, stage= 24
+**** SEGMENTATION took 3386255ms
+***** w = 256, b = 8, stage= 25
+**** SEGMENTATION took 3876156ms
+***** w = 256, b = 16, stage= 0
+**** SEGMENTATION took 907ms
+***** w = 256, b = 16, stage= 1
+**** SEGMENTATION took 179049ms
+***** w = 256, b = 16, stage= 2
+**** SEGMENTATION took 366642ms
+***** w = 256, b = 16, stage= 3
+**** SEGMENTATION took 779039ms
+***** w = 256, b = 16, stage= 4
+**** SEGMENTATION took 1794152ms
+***** w = 256, b = 16, stage= 5
+**** SEGMENTATION took 1770184ms
+***** w = 256, b = 16, stage= 6
+**** SEGMENTATION took 1819687ms
+***** w = 256, b = 16, stage= 7
+**** SEGMENTATION took 2136485ms
+***** w = 256, b = 16, stage= 8
+**** SEGMENTATION took 2200058ms
+***** w = 256, b = 16, stage= 9
+**** SEGMENTATION took 2205600ms
+***** w = 256, b = 16, stage= 10
+**** SEGMENTATION took 2217908ms
+***** w = 256, b = 16, stage= 11
+**** SEGMENTATION took 2285699ms
+***** w = 256, b = 16, stage= 12
+**** SEGMENTATION took 2296984ms
+***** w = 256, b = 16, stage= 13
+**** SEGMENTATION took 2602796ms
+***** w = 256, b = 16, stage= 14
+**** SEGMENTATION took 2626503ms
+***** w = 256, b = 16, stage= 15
+**** SEGMENTATION took 2679847ms
+***** w = 256, b = 16, stage= 16
+**** SEGMENTATION took 2686375ms
+***** w = 256, b = 16, stage= 17
+**** SEGMENTATION took 2863228ms
+***** w = 256, b = 16, stage= 18
+**** SEGMENTATION took 2917946ms
+***** w = 256, b = 16, stage= 19
+**** SEGMENTATION took 2921704ms
+***** w = 256, b = 16, stage= 20
+**** SEGMENTATION took 2928699ms
+***** w = 256, b = 16, stage= 21
+**** SEGMENTATION took 3639919ms
+***** w = 256, b = 16, stage= 22
+**** SEGMENTATION took 3667630ms
+***** w = 256, b = 16, stage= 23
+**** SEGMENTATION took 3739402ms
+***** w = 256, b = 16, stage= 24
+**** SEGMENTATION took 3747480ms
+***** w = 256, b = 16, stage= 25
+**** SEGMENTATION took 4736404ms
+***** w = 256, b = 32, stage= 0
+**** SEGMENTATION took 1120ms
+***** w = 256, b = 32, stage= 1
+**** SEGMENTATION took 208141ms
+***** w = 256, b = 32, stage= 2
+**** SEGMENTATION took 438694ms
+***** w = 256, b = 32, stage= 3
+**** SEGMENTATION took 960140ms
+***** w = 256, b = 32, stage= 4
+**** SEGMENTATION took 2311707ms
+***** w = 256, b = 32, stage= 5
+**** SEGMENTATION took 2325945ms
+***** w = 256, b = 32, stage= 6
+**** SEGMENTATION took 2352170ms
+***** w = 256, b = 32, stage= 7
+**** SEGMENTATION took 2748789ms
+***** w = 256, b = 32, stage= 8
+**** SEGMENTATION took 2826051ms
+***** w = 256, b = 32, stage= 9
+**** SEGMENTATION took 2847066ms
+***** w = 256, b = 32, stage= 10
+**** SEGMENTATION took 2856875ms
+***** w = 256, b = 32, stage= 11
+**** SEGMENTATION took 2936383ms
+***** w = 256, b = 32, stage= 12
+**** SEGMENTATION took 2935405ms
+***** w = 256, b = 32, stage= 13
+**** SEGMENTATION took 3327923ms
+***** w = 256, b = 32, stage= 14
+**** SEGMENTATION took 3360004ms
+***** w = 256, b = 32, stage= 15
+**** SEGMENTATION took 3427990ms
+***** w = 256, b = 32, stage= 16
+**** SEGMENTATION took 3437062ms
+***** w = 256, b = 32, stage= 17
+**** SEGMENTATION took 3651044ms
+***** w = 256, b = 32, stage= 18
+**** SEGMENTATION took 3714408ms
+***** w = 256, b = 32, stage= 19
+**** SEGMENTATION took 3734579ms
+***** w = 256, b = 32, stage= 20
+**** SEGMENTATION took 3740472ms
+***** w = 256, b = 32, stage= 21
+**** SEGMENTATION took 4639092ms
+***** w = 256, b = 32, stage= 22
+**** SEGMENTATION took 4670786ms
+***** w = 256, b = 32, stage= 23
+**** SEGMENTATION took 4756581ms
+***** w = 256, b = 32, stage= 24
+**** SEGMENTATION took 4772952ms
+***** w = 256, b = 32, stage= 25
+**** SEGMENTATION took 5898926ms
+***** w = 256, b = 64, stage= 0
+**** SEGMENTATION took 1517ms
+***** w = 256, b = 64, stage= 1
+**** SEGMENTATION took 302821ms
+***** w = 256, b = 64, stage= 2
+**** SEGMENTATION took 661572ms
+***** w = 256, b = 64, stage= 3
+**** SEGMENTATION took 1393869ms
+***** w = 256, b = 64, stage= 4
+**** SEGMENTATION took 3400358ms
+***** w = 256, b = 64, stage= 5
+**** SEGMENTATION took 3442905ms
+***** w = 256, b = 64, stage= 6
+**** SEGMENTATION took 3442288ms
+***** w = 256, b = 64, stage= 7
+**** SEGMENTATION took 4048175ms
+***** w = 256, b = 64, stage= 8
+**** SEGMENTATION took 4158593ms
+***** w = 256, b = 64, stage= 9
+**** SEGMENTATION took 4188674ms
+***** w = 256, b = 64, stage= 10
+**** SEGMENTATION took 4205888ms
+***** w = 256, b = 64, stage= 11
+**** SEGMENTATION took 4315758ms
+***** w = 256, b = 64, stage= 12
+**** SEGMENTATION took 4347611ms
+***** w = 256, b = 64, stage= 13
+**** SEGMENTATION took 4926225ms
+***** w = 256, b = 64, stage= 14
+**** SEGMENTATION took 4955066ms
+***** w = 256, b = 64, stage= 15
+**** SEGMENTATION took 5053496ms
+***** w = 256, b = 64, stage= 16
+**** SEGMENTATION took 5075729ms
+***** w = 256, b = 64, stage= 17
+**** SEGMENTATION took 5428072ms
+***** w = 256, b = 64, stage= 18
+**** SEGMENTATION took 5519987ms
+***** w = 256, b = 64, stage= 19
+**** SEGMENTATION took 5527703ms
+***** w = 256, b = 64, stage= 20
+**** SEGMENTATION took 5553516ms
+***** w = 256, b = 64, stage= 21
+**** SEGMENTATION took 6910549ms
+***** w = 256, b = 64, stage= 22
+**** SEGMENTATION took 6966904ms
+***** w = 256, b = 64, stage= 23
+**** SEGMENTATION took 7086663ms
+***** w = 256, b = 64, stage= 24
+**** SEGMENTATION took 7086221ms
+***** w = 256, b = 64, stage= 25
+**** SEGMENTATION took 9501628ms
+***** w = 512, b = 0, stage= 0
+**** SEGMENTATION took 807ms
+***** w = 512, b = 0, stage= 1
+**** SEGMENTATION took 139963ms
+***** w = 512, b = 0, stage= 2
+**** SEGMENTATION took 318814ms
+***** w = 512, b = 0, stage= 3
+**** SEGMENTATION took 663687ms
+***** w = 512, b = 0, stage= 4
+**** SEGMENTATION took 1616968ms
+***** w = 512, b = 0, stage= 5
+**** SEGMENTATION took 1657195ms
+***** w = 512, b = 0, stage= 6
+**** SEGMENTATION took 1668453ms
+***** w = 512, b = 0, stage= 7
+**** SEGMENTATION took 1952674ms
+***** w = 512, b = 0, stage= 8
+**** SEGMENTATION took 1990145ms
+***** w = 512, b = 0, stage= 9
+**** SEGMENTATION took 2017455ms
+***** w = 512, b = 0, stage= 10
+**** SEGMENTATION took 2003561ms
+***** w = 512, b = 0, stage= 11
+**** SEGMENTATION took 2071798ms
+***** w = 512, b = 0, stage= 12
+**** SEGMENTATION took 2072726ms
+***** w = 512, b = 0, stage= 13
+**** SEGMENTATION took 2359437ms
+***** w = 512, b = 0, stage= 14
+**** SEGMENTATION took 2379646ms
+***** w = 512, b = 0, stage= 15
+**** SEGMENTATION took 2422288ms
+***** w = 512, b = 0, stage= 16
+**** SEGMENTATION took 2405426ms
+***** w = 512, b = 0, stage= 17
+**** SEGMENTATION took 2659776ms
+***** w = 512, b = 0, stage= 18
+**** SEGMENTATION took 2692075ms
+***** w = 512, b = 0, stage= 19
+**** SEGMENTATION took 2718795ms
+***** w = 512, b = 0, stage= 20
+**** SEGMENTATION took 2732782ms
+***** w = 512, b = 0, stage= 21
+**** SEGMENTATION took 3391886ms
+***** w = 512, b = 0, stage= 22
+**** SEGMENTATION took 3404947ms
+***** w = 512, b = 0, stage= 23
+**** SEGMENTATION took 3465881ms
+***** w = 512, b = 0, stage= 24
+**** SEGMENTATION took 4127430ms
+***** w = 512, b = 0, stage= 25
+**** SEGMENTATION took 4189135ms
+***** w = 512, b = 1, stage= 0
+**** SEGMENTATION took 1340ms
+***** w = 512, b = 1, stage= 1
+**** SEGMENTATION took 140430ms
+***** w = 512, b = 1, stage= 2
+**** SEGMENTATION took 323459ms
+***** w = 512, b = 1, stage= 3
+**** SEGMENTATION took 745671ms
+***** w = 512, b = 1, stage= 4
+**** SEGMENTATION took 1656861ms
+***** w = 512, b = 1, stage= 5
+**** SEGMENTATION took 1660144ms
+***** w = 512, b = 1, stage= 6
+**** SEGMENTATION took 1692926ms
+***** w = 512, b = 1, stage= 7
+**** SEGMENTATION took 2004515ms
+***** w = 512, b = 1, stage= 8
+**** SEGMENTATION took 2027843ms
+***** w = 512, b = 1, stage= 9
+**** SEGMENTATION took 2046978ms
+***** w = 512, b = 1, stage= 10
+**** SEGMENTATION took 2047804ms
+***** w = 512, b = 1, stage= 11
+**** SEGMENTATION took 2099937ms
+***** w = 512, b = 1, stage= 12
+**** SEGMENTATION took 2118282ms
+***** w = 512, b = 1, stage= 13
+**** SEGMENTATION took 2398784ms
+***** w = 512, b = 1, stage= 14
+**** SEGMENTATION took 2409050ms
+***** w = 512, b = 1, stage= 15
+**** SEGMENTATION took 2457474ms
+***** w = 512, b = 1, stage= 16
+**** SEGMENTATION took 2462596ms
+***** w = 512, b = 1, stage= 17
+**** SEGMENTATION took 2630286ms
+***** w = 512, b = 1, stage= 18
+**** SEGMENTATION took 2675863ms
+***** w = 512, b = 1, stage= 19
+**** SEGMENTATION took 2675471ms
+***** w = 512, b = 1, stage= 20
+**** SEGMENTATION took 2698336ms
+***** w = 512, b = 1, stage= 21
+**** SEGMENTATION took 3377634ms
+***** w = 512, b = 1, stage= 22
+**** SEGMENTATION took 3411684ms
+***** w = 512, b = 1, stage= 23
+**** SEGMENTATION took 3468647ms
+***** w = 512, b = 1, stage= 24
+**** SEGMENTATION took 3476569ms
+***** w = 512, b = 1, stage= 25
+**** SEGMENTATION took 4296311ms
+***** w = 512, b = 2, stage= 0
+**** SEGMENTATION took 745ms
+***** w = 512, b = 2, stage= 1
+**** SEGMENTATION took 141876ms
+***** w = 512, b = 2, stage= 2
+**** SEGMENTATION took 324124ms
+***** w = 512, b = 2, stage= 3
+**** SEGMENTATION took 723904ms
+***** w = 512, b = 2, stage= 4
+**** SEGMENTATION took 1664461ms
+***** w = 512, b = 2, stage= 5
+**** SEGMENTATION took 1663157ms
+***** w = 512, b = 2, stage= 6
+**** SEGMENTATION took 1685827ms
+***** w = 512, b = 2, stage= 7
+**** SEGMENTATION took 1973873ms
+***** w = 512, b = 2, stage= 8
+**** SEGMENTATION took 2027681ms
+***** w = 512, b = 2, stage= 9
+**** SEGMENTATION took 2047365ms
+***** w = 512, b = 2, stage= 10
+**** SEGMENTATION took 2049870ms
+***** w = 512, b = 2, stage= 11
+**** SEGMENTATION took 2096243ms
+***** w = 512, b = 2, stage= 12
+**** SEGMENTATION took 2117972ms
+***** w = 512, b = 2, stage= 13
+**** SEGMENTATION took 2400217ms
+***** w = 512, b = 2, stage= 14
+**** SEGMENTATION took 2411791ms
+***** w = 512, b = 2, stage= 15
+**** SEGMENTATION took 2460982ms
+***** w = 512, b = 2, stage= 16
+**** SEGMENTATION took 2471974ms
+***** w = 512, b = 2, stage= 17
+**** SEGMENTATION took 2623463ms
+***** w = 512, b = 2, stage= 18
+**** SEGMENTATION took 2682359ms
+***** w = 512, b = 2, stage= 19
+**** SEGMENTATION took 2675470ms
+***** w = 512, b = 2, stage= 20
+**** SEGMENTATION took 2700431ms
+***** w = 512, b = 2, stage= 21
+**** SEGMENTATION took 3399588ms
+***** w = 512, b = 2, stage= 22
+**** SEGMENTATION took 3411802ms
+***** w = 512, b = 2, stage= 23
+**** SEGMENTATION took 3468967ms
+***** w = 512, b = 2, stage= 24
+**** SEGMENTATION took 3482981ms
+***** w = 512, b = 2, stage= 25
+**** SEGMENTATION took 4229453ms
+***** w = 512, b = 4, stage= 0
+**** SEGMENTATION took 733ms
+***** w = 512, b = 4, stage= 1
+**** SEGMENTATION took 143903ms
+***** w = 512, b = 4, stage= 2
+**** SEGMENTATION took 328563ms
+***** w = 512, b = 4, stage= 3
+**** SEGMENTATION took 703609ms
+***** w = 512, b = 4, stage= 4
+**** SEGMENTATION took 1636803ms
+***** w = 512, b = 4, stage= 5
+**** SEGMENTATION took 1645155ms
+***** w = 512, b = 4, stage= 6
+**** SEGMENTATION took 1669109ms
+***** w = 512, b = 4, stage= 7
+**** SEGMENTATION took 1966017ms
+***** w = 512, b = 4, stage= 8
+**** SEGMENTATION took 2007330ms
+***** w = 512, b = 4, stage= 9
+**** SEGMENTATION took 2011785ms
+***** w = 512, b = 4, stage= 10
+**** SEGMENTATION took 2025745ms
+***** w = 512, b = 4, stage= 11
+**** SEGMENTATION took 2076317ms
+***** w = 512, b = 4, stage= 12
+**** SEGMENTATION took 2091771ms
+***** w = 512, b = 4, stage= 13
+**** SEGMENTATION took 2385282ms
+***** w = 512, b = 4, stage= 14
+**** SEGMENTATION took 2385927ms
+***** w = 512, b = 4, stage= 15
+**** SEGMENTATION took 2439228ms
+***** w = 512, b = 4, stage= 16
+**** SEGMENTATION took 2442226ms
+***** w = 512, b = 4, stage= 17
+**** SEGMENTATION took 2619380ms
+***** w = 512, b = 4, stage= 18
+**** SEGMENTATION took 2661378ms
+***** w = 512, b = 4, stage= 19
+**** SEGMENTATION took 2665728ms
+***** w = 512, b = 4, stage= 20
+**** SEGMENTATION took 2679005ms
+***** w = 512, b = 4, stage= 21
+**** SEGMENTATION took 3390843ms
+***** w = 512, b = 4, stage= 22
+**** SEGMENTATION took 3404685ms
+***** w = 512, b = 4, stage= 23
+**** SEGMENTATION took 3478147ms
+***** w = 512, b = 4, stage= 24
+**** SEGMENTATION took 3487272ms
+***** w = 512, b = 4, stage= 25
+**** SEGMENTATION took 4498539ms
+***** w = 512, b = 8, stage= 0
+**** SEGMENTATION took 762ms
+***** w = 512, b = 8, stage= 1
+**** SEGMENTATION took 148861ms
+***** w = 512, b = 8, stage= 2
+**** SEGMENTATION took 338016ms
+***** w = 512, b = 8, stage= 3
+**** SEGMENTATION took 712363ms
+***** w = 512, b = 8, stage= 4
+**** SEGMENTATION took 1719787ms
+***** w = 512, b = 8, stage= 5
+**** SEGMENTATION took 1713267ms
+***** w = 512, b = 8, stage= 6
+**** SEGMENTATION took 1724413ms
+***** w = 512, b = 8, stage= 7
+**** SEGMENTATION took 2024567ms
+***** w = 512, b = 8, stage= 8
+**** SEGMENTATION took 2078635ms
+***** w = 512, b = 8, stage= 9
+**** SEGMENTATION took 2091127ms
+***** w = 512, b = 8, stage= 10
+**** SEGMENTATION took 2101863ms
+***** w = 512, b = 8, stage= 11
+**** SEGMENTATION took 2153718ms
+***** w = 512, b = 8, stage= 12
+**** SEGMENTATION took 2176797ms
+***** w = 512, b = 8, stage= 13
+**** SEGMENTATION took 2470304ms
+***** w = 512, b = 8, stage= 14
+**** SEGMENTATION took 2477420ms
+***** w = 512, b = 8, stage= 15
+**** SEGMENTATION took 2527941ms
+***** w = 512, b = 8, stage= 16
+**** SEGMENTATION took 2531452ms
+***** w = 512, b = 8, stage= 17
+**** SEGMENTATION took 2711623ms
+***** w = 512, b = 8, stage= 18
+**** SEGMENTATION took 2738659ms
+***** w = 512, b = 8, stage= 19
+**** SEGMENTATION took 2761597ms
+***** w = 512, b = 8, stage= 20
+**** SEGMENTATION took 2774430ms
+***** w = 512, b = 8, stage= 21
+**** SEGMENTATION took 3496725ms
+***** w = 512, b = 8, stage= 22
+**** SEGMENTATION took 3515420ms
+***** w = 512, b = 8, stage= 23
+**** SEGMENTATION took 3579749ms
+***** w = 512, b = 8, stage= 24
+**** SEGMENTATION took 3590634ms
+***** w = 512, b = 8, stage= 25
+**** SEGMENTATION took 4385753ms
+***** w = 512, b = 16, stage= 0
+**** SEGMENTATION took 910ms
+***** w = 512, b = 16, stage= 1
+**** SEGMENTATION took 155570ms
+***** w = 512, b = 16, stage= 2
+**** SEGMENTATION took 357831ms
+***** w = 512, b = 16, stage= 3
+**** SEGMENTATION took 772612ms
+***** w = 512, b = 16, stage= 4
+**** SEGMENTATION took 1823165ms
+***** w = 512, b = 16, stage= 5
+**** SEGMENTATION took 1839020ms
+***** w = 512, b = 16, stage= 6
+**** SEGMENTATION took 1855253ms
+***** w = 512, b = 16, stage= 7
+**** SEGMENTATION took 2171340ms
+***** w = 512, b = 16, stage= 8
+**** SEGMENTATION took 2227515ms
+***** w = 512, b = 16, stage= 9
+**** SEGMENTATION took 2241057ms
+***** w = 512, b = 16, stage= 10
+**** SEGMENTATION took 2250301ms
+***** w = 512, b = 16, stage= 11
+**** SEGMENTATION took 2306280ms
+***** w = 512, b = 16, stage= 12
+**** SEGMENTATION took 2327432ms
+***** w = 512, b = 16, stage= 13
+**** SEGMENTATION took 2636262ms
+***** w = 512, b = 16, stage= 14
+**** SEGMENTATION took 2646667ms
+***** w = 512, b = 16, stage= 15
+**** SEGMENTATION took 2697817ms
+***** w = 512, b = 16, stage= 16
+**** SEGMENTATION took 2714844ms
+***** w = 512, b = 16, stage= 17
+**** SEGMENTATION took 2890710ms
+***** w = 512, b = 16, stage= 18
+**** SEGMENTATION took 2937090ms
+***** w = 512, b = 16, stage= 19
+**** SEGMENTATION took 2952296ms
+***** w = 512, b = 16, stage= 20
+**** SEGMENTATION took 2959888ms
+***** w = 512, b = 16, stage= 21
+**** SEGMENTATION took 3729198ms
+***** w = 512, b = 16, stage= 22
+**** SEGMENTATION took 3754342ms
+***** w = 512, b = 16, stage= 23
+**** SEGMENTATION took 3820703ms
+***** w = 512, b = 16, stage= 24
+**** SEGMENTATION took 3825183ms
+***** w = 512, b = 16, stage= 25
+**** SEGMENTATION took 4654378ms
+***** w = 512, b = 32, stage= 0
+**** SEGMENTATION took 1099ms
+***** w = 512, b = 32, stage= 1
+**** SEGMENTATION took 171500ms
+***** w = 512, b = 32, stage= 2
+**** SEGMENTATION took 399520ms
+***** w = 512, b = 32, stage= 3
+**** SEGMENTATION took 827288ms
+***** w = 512, b = 32, stage= 4
+**** SEGMENTATION took 2134443ms
+***** w = 512, b = 32, stage= 5
+**** SEGMENTATION took 2159512ms
+***** w = 512, b = 32, stage= 6
+**** SEGMENTATION took 2174214ms
+***** w = 512, b = 32, stage= 7
+**** SEGMENTATION took 2530951ms
+***** w = 512, b = 32, stage= 8
+**** SEGMENTATION took 2598179ms
+***** w = 512, b = 32, stage= 9
+**** SEGMENTATION took 2611746ms
+***** w = 512, b = 32, stage= 10
+**** SEGMENTATION took 2626064ms
+***** w = 512, b = 32, stage= 11
+**** SEGMENTATION took 2684937ms
+***** w = 512, b = 32, stage= 12
+**** SEGMENTATION took 2685093ms
+***** w = 512, b = 32, stage= 13
+**** SEGMENTATION took 3049435ms
+***** w = 512, b = 32, stage= 14
+**** SEGMENTATION took 3060856ms
+***** w = 512, b = 32, stage= 15
+**** SEGMENTATION took 3119580ms
+***** w = 512, b = 32, stage= 16
+**** SEGMENTATION took 3143416ms
+***** w = 512, b = 32, stage= 17
+**** SEGMENTATION took 3345010ms
+***** w = 512, b = 32, stage= 18
+**** SEGMENTATION took 3363281ms
+***** w = 512, b = 32, stage= 19
+**** SEGMENTATION took 3389645ms
+***** w = 512, b = 32, stage= 20
+**** SEGMENTATION took 3405716ms
+***** w = 512, b = 32, stage= 21
+**** SEGMENTATION took 4269092ms
+***** w = 512, b = 32, stage= 22
+**** SEGMENTATION took 4291973ms
+***** w = 512, b = 32, stage= 23
+**** SEGMENTATION took 4356750ms
+***** w = 512, b = 32, stage= 24
+**** SEGMENTATION took 4370889ms
+***** w = 512, b = 32, stage= 25
+**** SEGMENTATION took 5436148ms
+***** w = 512, b = 64, stage= 0
+**** SEGMENTATION took 1398ms
+***** w = 512, b = 64, stage= 1
+**** SEGMENTATION took 206734ms
+***** w = 512, b = 64, stage= 2
+**** SEGMENTATION took 485509ms
+***** w = 512, b = 64, stage= 3
+**** SEGMENTATION took 999539ms
+***** w = 512, b = 64, stage= 4
+**** SEGMENTATION took 2492135ms
+***** w = 512, b = 64, stage= 5
+**** SEGMENTATION took 2524638ms
+***** w = 512, b = 64, stage= 6
+**** SEGMENTATION took 2543334ms
+***** w = 512, b = 64, stage= 7
+**** SEGMENTATION took 2978340ms
+***** w = 512, b = 64, stage= 8
+**** SEGMENTATION took 3059820ms
+***** w = 512, b = 64, stage= 9
+**** SEGMENTATION took 3075651ms
+***** w = 512, b = 64, stage= 10
+**** SEGMENTATION took 3083161ms
+***** w = 512, b = 64, stage= 11
+**** SEGMENTATION took 3162648ms
+***** w = 512, b = 64, stage= 12
+**** SEGMENTATION took 3182521ms
+***** w = 512, b = 64, stage= 13
+**** SEGMENTATION took 3597169ms
+***** w = 512, b = 64, stage= 14
+**** SEGMENTATION took 3613124ms
+***** w = 512, b = 64, stage= 15
+**** SEGMENTATION took 3683585ms
+***** w = 512, b = 64, stage= 16
+**** SEGMENTATION took 3694372ms
+***** w = 512, b = 64, stage= 17
+**** SEGMENTATION took 4012089ms
+***** w = 512, b = 64, stage= 18
+**** SEGMENTATION took 4079272ms
+***** w = 512, b = 64, stage= 19
+**** SEGMENTATION took 4096002ms
+***** w = 512, b = 64, stage= 20
+**** SEGMENTATION took 4107083ms
+***** w = 512, b = 64, stage= 21
+**** SEGMENTATION took 5162526ms
+***** w = 512, b = 64, stage= 22
+**** SEGMENTATION took 5202576ms
+***** w = 512, b = 64, stage= 23
+**** SEGMENTATION took 5275428ms
+***** w = 512, b = 64, stage= 24
+**** SEGMENTATION took 5288170ms
+***** w = 512, b = 64, stage= 25
+**** SEGMENTATION took 6226317ms
+***** w = 512, b = 128, stage= 0
+**** SEGMENTATION took 2257ms
+***** w = 512, b = 128, stage= 1
+**** SEGMENTATION took 288629ms
+***** w = 512, b = 128, stage= 2
+**** SEGMENTATION took 702438ms
+***** w = 512, b = 128, stage= 3
+**** SEGMENTATION took 1451322ms
+***** w = 512, b = 128, stage= 4
+**** SEGMENTATION took 3527098ms
+***** w = 512, b = 128, stage= 5
+**** SEGMENTATION took 3573970ms
+***** w = 512, b = 128, stage= 6
+**** SEGMENTATION took 3605977ms
+***** w = 512, b = 128, stage= 7
+**** SEGMENTATION took 4245748ms
+***** w = 512, b = 128, stage= 8
+**** SEGMENTATION took 4375568ms
+***** w = 512, b = 128, stage= 9
+**** SEGMENTATION took 4372439ms
+***** w = 512, b = 128, stage= 10
+**** SEGMENTATION took 4418235ms
+***** w = 512, b = 128, stage= 11
+**** SEGMENTATION took 4523918ms
+***** w = 512, b = 128, stage= 12
+**** SEGMENTATION took 4564003ms
+***** w = 512, b = 128, stage= 13
+**** SEGMENTATION took 5200196ms
+***** w = 512, b = 128, stage= 14
+**** SEGMENTATION took 5215630ms
+***** w = 512, b = 128, stage= 15
+**** SEGMENTATION took 5322175ms
+***** w = 512, b = 128, stage= 16
+**** SEGMENTATION took 5332374ms
+***** w = 512, b = 128, stage= 17
+**** SEGMENTATION took 5885457ms
+***** w = 512, b = 128, stage= 18
+**** SEGMENTATION took 5987859ms
+***** w = 512, b = 128, stage= 19
+**** SEGMENTATION took 6003553ms
+***** w = 512, b = 128, stage= 20
+**** SEGMENTATION took 6026142ms
+***** w = 512, b = 128, stage= 21
+**** SEGMENTATION took 7686307ms
+***** w = 512, b = 128, stage= 22
+**** SEGMENTATION took 7729413ms
+***** w = 512, b = 128, stage= 23
+**** SEGMENTATION took 7855403ms
+***** w = 512, b = 128, stage= 24
+**** SEGMENTATION took 7881629ms
+***** w = 512, b = 128, stage= 25
+**** SEGMENTATION took 8959061ms
+***** w = 1024, b = 0, stage= 0
+**** SEGMENTATION took 1180ms
+***** w = 1024, b = 0, stage= 1
+**** SEGMENTATION took 140501ms
+***** w = 1024, b = 0, stage= 2
+**** SEGMENTATION took 368523ms
+***** w = 1024, b = 0, stage= 3
+**** SEGMENTATION took 774643ms
+***** w = 1024, b = 0, stage= 4
+**** SEGMENTATION took 1804871ms
+***** w = 1024, b = 0, stage= 5
+**** SEGMENTATION took 1921761ms
+***** w = 1024, b = 0, stage= 6
+**** SEGMENTATION took 1935187ms
+***** w = 1024, b = 0, stage= 7
+**** SEGMENTATION took 2290993ms
+***** w = 1024, b = 0, stage= 8
+**** SEGMENTATION took 2354636ms
+***** w = 1024, b = 0, stage= 9
+**** SEGMENTATION took 2369876ms
+***** w = 1024, b = 0, stage= 10
+**** SEGMENTATION took 2373850ms
+***** w = 1024, b = 0, stage= 11
+**** SEGMENTATION took 2434338ms
+***** w = 1024, b = 0, stage= 12
+**** SEGMENTATION took 2456746ms
+***** w = 1024, b = 0, stage= 13
+**** SEGMENTATION took 2756981ms
+***** w = 1024, b = 0, stage= 14
+**** SEGMENTATION took 2789859ms
+***** w = 1024, b = 0, stage= 15
+**** SEGMENTATION took 2840143ms
+***** w = 1024, b = 0, stage= 16
+**** SEGMENTATION took 2845728ms
+***** w = 1024, b = 0, stage= 17
+**** SEGMENTATION took 3218844ms
+***** w = 1024, b = 0, stage= 18
+**** SEGMENTATION took 3266704ms
+***** w = 1024, b = 0, stage= 19
+**** SEGMENTATION took 3275288ms
+***** w = 1024, b = 0, stage= 20
+**** SEGMENTATION took 3292209ms
+***** w = 1024, b = 0, stage= 21
+**** SEGMENTATION took 4240103ms
+***** w = 1024, b = 0, stage= 22
+**** SEGMENTATION took 4254384ms
+***** w = 1024, b = 0, stage= 23
+**** SEGMENTATION took 4329890ms
+***** w = 1024, b = 0, stage= 24
+**** SEGMENTATION took 4340085ms
+***** w = 1024, b = 0, stage= 25
+**** SEGMENTATION took 4852446ms
+***** w = 1024, b = 1, stage= 0
+**** SEGMENTATION took 1785ms
+***** w = 1024, b = 1, stage= 1
+**** SEGMENTATION took 142186ms
+***** w = 1024, b = 1, stage= 2
+**** SEGMENTATION took 373157ms
+***** w = 1024, b = 1, stage= 3
+**** SEGMENTATION took 784317ms
+***** w = 1024, b = 1, stage= 4
+**** SEGMENTATION took 1868360ms
+***** w = 1024, b = 1, stage= 5
+**** SEGMENTATION took 1894462ms
+***** w = 1024, b = 1, stage= 6
+**** SEGMENTATION took 1908120ms
+***** w = 1024, b = 1, stage= 7
+**** SEGMENTATION took 2280563ms
+***** w = 1024, b = 1, stage= 8
+**** SEGMENTATION took 2349866ms
+***** w = 1024, b = 1, stage= 9
+**** SEGMENTATION took 2356938ms
+***** w = 1024, b = 1, stage= 10
+**** SEGMENTATION took 2367596ms
+***** w = 1024, b = 1, stage= 11
+**** SEGMENTATION took 2426606ms
+***** w = 1024, b = 1, stage= 12
+**** SEGMENTATION took 2442656ms
+***** w = 1024, b = 1, stage= 13
+**** SEGMENTATION took 2803067ms
+***** w = 1024, b = 1, stage= 14
+**** SEGMENTATION took 2811741ms
+***** w = 1024, b = 1, stage= 15
+**** SEGMENTATION took 2871841ms
+***** w = 1024, b = 1, stage= 16
+**** SEGMENTATION took 2879420ms
+***** w = 1024, b = 1, stage= 17
+**** SEGMENTATION took 3131941ms
+***** w = 1024, b = 1, stage= 18
+**** SEGMENTATION took 3255268ms
+***** w = 1024, b = 1, stage= 19
+**** SEGMENTATION took 3292396ms
+***** w = 1024, b = 1, stage= 20
+**** SEGMENTATION took 3303696ms
+***** w = 1024, b = 1, stage= 21
+**** SEGMENTATION took 4375369ms
+***** w = 1024, b = 1, stage= 22
+**** SEGMENTATION took 4278253ms
+***** w = 1024, b = 1, stage= 23
+**** SEGMENTATION took 4353890ms
+***** w = 1024, b = 1, stage= 24
+**** SEGMENTATION took 4371565ms
+***** w = 1024, b = 1, stage= 25
+**** SEGMENTATION took 5140155ms
+***** w = 1024, b = 2, stage= 0
+**** SEGMENTATION took 1813ms
+***** w = 1024, b = 2, stage= 1
+**** SEGMENTATION took 139046ms
+***** w = 1024, b = 2, stage= 2
+**** SEGMENTATION took 358502ms
+***** w = 1024, b = 2, stage= 3
+**** SEGMENTATION took 848384ms
+***** w = 1024, b = 2, stage= 4
+**** SEGMENTATION took 1885980ms
+***** w = 1024, b = 2, stage= 5
+**** SEGMENTATION took 1903780ms
+***** w = 1024, b = 2, stage= 6
+**** SEGMENTATION took 1917657ms
+***** w = 1024, b = 2, stage= 7
+**** SEGMENTATION took 2279504ms
+***** w = 1024, b = 2, stage= 8
+**** SEGMENTATION took 2350518ms
+***** w = 1024, b = 2, stage= 9
+**** SEGMENTATION took 2367115ms
+***** w = 1024, b = 2, stage= 10
+**** SEGMENTATION took 2378984ms
+***** w = 1024, b = 2, stage= 11
+**** SEGMENTATION took 2441058ms
+***** w = 1024, b = 2, stage= 12
+**** SEGMENTATION took 2457580ms
+***** w = 1024, b = 2, stage= 13
+**** SEGMENTATION took 2813363ms
+***** w = 1024, b = 2, stage= 14
+**** SEGMENTATION took 2852333ms
+***** w = 1024, b = 2, stage= 15
+**** SEGMENTATION took 2914199ms
+***** w = 1024, b = 2, stage= 16
+**** SEGMENTATION took 2908914ms
+***** w = 1024, b = 2, stage= 17
+**** SEGMENTATION took 3132163ms
+***** w = 1024, b = 2, stage= 18
+**** SEGMENTATION took 3203295ms
+***** w = 1024, b = 2, stage= 19
+**** SEGMENTATION took 3205895ms
+***** w = 1024, b = 2, stage= 20
+**** SEGMENTATION took 3217402ms
+***** w = 1024, b = 2, stage= 21
+**** SEGMENTATION took 4275139ms
+***** w = 1024, b = 2, stage= 22
+**** SEGMENTATION took 4287111ms
+***** w = 1024, b = 2, stage= 23
+**** SEGMENTATION took 4365369ms
+***** w = 1024, b = 2, stage= 24
+**** SEGMENTATION took 4374273ms
+***** w = 1024, b = 2, stage= 25
+**** SEGMENTATION took 4958018ms
+***** w = 1024, b = 4, stage= 0
+**** SEGMENTATION took 2152ms
+***** w = 1024, b = 4, stage= 1
+**** SEGMENTATION took 144035ms
+***** w = 1024, b = 4, stage= 2
+**** SEGMENTATION took 373612ms
+***** w = 1024, b = 4, stage= 3
+**** SEGMENTATION took 802012ms
+***** w = 1024, b = 4, stage= 4
+**** SEGMENTATION took 1897672ms
+***** w = 1024, b = 4, stage= 5
+**** SEGMENTATION took 1908118ms
+***** w = 1024, b = 4, stage= 6
+**** SEGMENTATION took 1919226ms
+***** w = 1024, b = 4, stage= 7
+**** SEGMENTATION took 2364096ms
+***** w = 1024, b = 4, stage= 8
+**** SEGMENTATION took 2431116ms
+***** w = 1024, b = 4, stage= 9
+**** SEGMENTATION took 2686827ms
+***** w = 1024, b = 4, stage= 10
+**** SEGMENTATION took 2386447ms
+***** w = 1024, b = 4, stage= 11
+**** SEGMENTATION took 2441342ms
+***** w = 1024, b = 4, stage= 12
+**** SEGMENTATION took 2464509ms
+***** w = 1024, b = 4, stage= 13
+**** SEGMENTATION took 2821951ms
+***** w = 1024, b = 4, stage= 14
+**** SEGMENTATION took 2836075ms
+***** w = 1024, b = 4, stage= 15
+**** SEGMENTATION took 2896724ms
+***** w = 1024, b = 4, stage= 16
+**** SEGMENTATION took 2904404ms
+***** w = 1024, b = 4, stage= 17
+**** SEGMENTATION took 3147677ms
+***** w = 1024, b = 4, stage= 18
+**** SEGMENTATION took 3188868ms
+***** w = 1024, b = 4, stage= 19
+**** SEGMENTATION took 3203600ms
+***** w = 1024, b = 4, stage= 20
+**** SEGMENTATION took 3212890ms
+***** w = 1024, b = 4, stage= 21
+**** SEGMENTATION took 4255443ms
+***** w = 1024, b = 4, stage= 22
+**** SEGMENTATION took 4290111ms
+***** w = 1024, b = 4, stage= 23
+**** SEGMENTATION took 4370188ms
+***** w = 1024, b = 4, stage= 24
+**** SEGMENTATION took 4383768ms
+***** w = 1024, b = 4, stage= 25
+**** SEGMENTATION took 4973609ms
+***** w = 1024, b = 8, stage= 0
+**** SEGMENTATION took 2108ms
+***** w = 1024, b = 8, stage= 1
+**** SEGMENTATION took 145293ms
+***** w = 1024, b = 8, stage= 2
+**** SEGMENTATION took 411610ms
+***** w = 1024, b = 8, stage= 3
+**** SEGMENTATION took 800941ms
+***** w = 1024, b = 8, stage= 4
+**** SEGMENTATION took 1924943ms
+***** w = 1024, b = 8, stage= 5
+**** SEGMENTATION took 1912321ms
+***** w = 1024, b = 8, stage= 6
+**** SEGMENTATION took 1924007ms
+***** w = 1024, b = 8, stage= 7
+**** SEGMENTATION took 2302840ms
+***** w = 1024, b = 8, stage= 8
+**** SEGMENTATION took 2371392ms
+***** w = 1024, b = 8, stage= 9
+**** SEGMENTATION took 2387106ms
+***** w = 1024, b = 8, stage= 10
+**** SEGMENTATION took 2399417ms
+***** w = 1024, b = 8, stage= 11
+**** SEGMENTATION took 2460664ms
+***** w = 1024, b = 8, stage= 12
+**** SEGMENTATION took 2474416ms
+***** w = 1024, b = 8, stage= 13
+**** SEGMENTATION took 2842308ms
+***** w = 1024, b = 8, stage= 14
+**** SEGMENTATION took 2858193ms
+***** w = 1024, b = 8, stage= 15
+**** SEGMENTATION took 2925093ms
+***** w = 1024, b = 8, stage= 16
+**** SEGMENTATION took 2926799ms
+***** w = 1024, b = 8, stage= 17
+**** SEGMENTATION took 3151895ms
+***** w = 1024, b = 8, stage= 18
+**** SEGMENTATION took 3209250ms
+***** w = 1024, b = 8, stage= 19
+**** SEGMENTATION took 3239055ms
+***** w = 1024, b = 8, stage= 20
+**** SEGMENTATION took 3237693ms
+***** w = 1024, b = 8, stage= 21
+**** SEGMENTATION took 4306821ms
+***** w = 1024, b = 8, stage= 22
+**** SEGMENTATION took 4333908ms
+***** w = 1024, b = 8, stage= 23
+**** SEGMENTATION took 4406506ms
+***** w = 1024, b = 8, stage= 24
+**** SEGMENTATION took 4407348ms
+***** w = 1024, b = 8, stage= 25
+**** SEGMENTATION took 5007096ms
+***** w = 1024, b = 16, stage= 0
+**** SEGMENTATION took 2153ms
+***** w = 1024, b = 16, stage= 1
+**** SEGMENTATION took 147408ms
+***** w = 1024, b = 16, stage= 2
+**** SEGMENTATION took 386079ms
+***** w = 1024, b = 16, stage= 3
+**** SEGMENTATION took 811756ms
+***** w = 1024, b = 16, stage= 4
+**** SEGMENTATION took 1929911ms
+***** w = 1024, b = 16, stage= 5
+**** SEGMENTATION took 1965832ms
+***** w = 1024, b = 16, stage= 6
+**** SEGMENTATION took 1973132ms
+***** w = 1024, b = 16, stage= 7
+**** SEGMENTATION took 2359048ms
+***** w = 1024, b = 16, stage= 8
+**** SEGMENTATION took 2429347ms
+***** w = 1024, b = 16, stage= 9
+**** SEGMENTATION took 2443934ms
+***** w = 1024, b = 16, stage= 10
+**** SEGMENTATION took 2456581ms
+***** w = 1024, b = 16, stage= 11
+**** SEGMENTATION took 2519640ms
+***** w = 1024, b = 16, stage= 12
+**** SEGMENTATION took 2538427ms
+***** w = 1024, b = 16, stage= 13
+**** SEGMENTATION took 2910990ms
+***** w = 1024, b = 16, stage= 14
+**** SEGMENTATION took 2923105ms
+***** w = 1024, b = 16, stage= 15
+**** SEGMENTATION took 2984496ms
+***** w = 1024, b = 16, stage= 16
+**** SEGMENTATION took 2988437ms
+***** w = 1024, b = 16, stage= 17
+**** SEGMENTATION took 3221586ms
+***** w = 1024, b = 16, stage= 18
+**** SEGMENTATION took 3284236ms
+***** w = 1024, b = 16, stage= 19
+**** SEGMENTATION took 3296853ms
+***** w = 1024, b = 16, stage= 20
+**** SEGMENTATION took 3308653ms
+***** w = 1024, b = 16, stage= 21
+**** SEGMENTATION took 4418360ms
+***** w = 1024, b = 16, stage= 22
+**** SEGMENTATION took 4449387ms
+***** w = 1024, b = 16, stage= 23
+**** SEGMENTATION took 4521248ms
+***** w = 1024, b = 16, stage= 24
+**** SEGMENTATION took 4535977ms
+***** w = 1024, b = 16, stage= 25
+**** SEGMENTATION took 5131631ms
+***** w = 1024, b = 32, stage= 0
+**** SEGMENTATION took 1949ms
+***** w = 1024, b = 32, stage= 1
+**** SEGMENTATION took 154762ms
+***** w = 1024, b = 32, stage= 2
+**** SEGMENTATION took 404061ms
+***** w = 1024, b = 32, stage= 3
+**** SEGMENTATION took 843298ms
+***** w = 1024, b = 32, stage= 4
+**** SEGMENTATION took 2023763ms
+***** w = 1024, b = 32, stage= 5
+**** SEGMENTATION took 2048749ms
+***** w = 1024, b = 32, stage= 6
+**** SEGMENTATION took 2062741ms
+***** w = 1024, b = 32, stage= 7
+**** SEGMENTATION took 2471712ms
+***** w = 1024, b = 32, stage= 8
+**** SEGMENTATION took 2540699ms
+***** w = 1024, b = 32, stage= 9
+**** SEGMENTATION took 2555568ms
+***** w = 1024, b = 32, stage= 10
+**** SEGMENTATION took 2567218ms
+***** w = 1024, b = 32, stage= 11
+**** SEGMENTATION took 2628731ms
+***** w = 1024, b = 32, stage= 12
+**** SEGMENTATION took 2652207ms
+***** w = 1024, b = 32, stage= 13
+**** SEGMENTATION took 3045985ms
+***** w = 1024, b = 32, stage= 14
+**** SEGMENTATION took 3056790ms
+***** w = 1024, b = 32, stage= 15
+**** SEGMENTATION took 3119600ms
+***** w = 1024, b = 32, stage= 16
+**** SEGMENTATION took 3128821ms
+***** w = 1024, b = 32, stage= 17
+**** SEGMENTATION took 3409551ms
+***** w = 1024, b = 32, stage= 18
+**** SEGMENTATION took 3470667ms
+***** w = 1024, b = 32, stage= 19
+**** SEGMENTATION took 3478916ms
+***** w = 1024, b = 32, stage= 20
+**** SEGMENTATION took 3498092ms
+***** w = 1024, b = 32, stage= 21
+**** SEGMENTATION took 4654130ms
+***** w = 1024, b = 32, stage= 22
+**** SEGMENTATION took 4683921ms
+***** w = 1024, b = 32, stage= 23
+**** SEGMENTATION took 4770405ms
+***** w = 1024, b = 32, stage= 24
+**** SEGMENTATION took 4778504ms
+***** w = 1024, b = 32, stage= 25
+**** SEGMENTATION took 5405708ms
+***** w = 1024, b = 64, stage= 0
+**** SEGMENTATION took 2141ms
+***** w = 1024, b = 64, stage= 1
+**** SEGMENTATION took 168910ms
+***** w = 1024, b = 64, stage= 2
+**** SEGMENTATION took 461132ms
+***** w = 1024, b = 64, stage= 3
+**** SEGMENTATION took 985882ms
+***** w = 1024, b = 64, stage= 4
+**** SEGMENTATION took 2254971ms
+***** w = 1024, b = 64, stage= 5
+**** SEGMENTATION took 2287373ms
+***** w = 1024, b = 64, stage= 6
+**** SEGMENTATION took 2303047ms
+***** w = 1024, b = 64, stage= 7
+**** SEGMENTATION took 2783722ms
+***** w = 1024, b = 64, stage= 8
+**** SEGMENTATION took 2874332ms
+***** w = 1024, b = 64, stage= 9
+**** SEGMENTATION took 2884474ms
+***** w = 1024, b = 64, stage= 10
+**** SEGMENTATION took 2904686ms
+***** w = 1024, b = 64, stage= 11
+**** SEGMENTATION took 2967699ms
+***** w = 1024, b = 64, stage= 12
+**** SEGMENTATION took 3001210ms
+***** w = 1024, b = 64, stage= 13
+**** SEGMENTATION took 3427936ms
+***** w = 1024, b = 64, stage= 14
+**** SEGMENTATION took 3434167ms
+***** w = 1024, b = 64, stage= 15
+**** SEGMENTATION took 3502194ms
+***** w = 1024, b = 64, stage= 16
+**** SEGMENTATION took 3509992ms
+***** w = 1024, b = 64, stage= 17
+**** SEGMENTATION took 3871047ms
+***** w = 1024, b = 64, stage= 18
+**** SEGMENTATION took 3932964ms
+***** w = 1024, b = 64, stage= 19
+**** SEGMENTATION took 3951735ms
+***** w = 1024, b = 64, stage= 20
+**** SEGMENTATION took 3963515ms
+***** w = 1024, b = 64, stage= 21
+**** SEGMENTATION took 5250229ms
+***** w = 1024, b = 64, stage= 22
+**** SEGMENTATION took 5290430ms
+***** w = 1024, b = 64, stage= 23
+**** SEGMENTATION took 5368296ms
+***** w = 1024, b = 64, stage= 24
+**** SEGMENTATION took 5379070ms
+***** w = 1024, b = 64, stage= 25
+**** SEGMENTATION took 6057619ms
+***** w = 1024, b = 128, stage= 0
+**** SEGMENTATION took 3296ms
+***** w = 1024, b = 128, stage= 1
+**** SEGMENTATION took 197357ms
+***** w = 1024, b = 128, stage= 2
+**** SEGMENTATION took 571097ms
+***** w = 1024, b = 128, stage= 3
+**** SEGMENTATION took 1240245ms
+***** w = 1024, b = 128, stage= 4
+**** SEGMENTATION took 2706167ms
+***** w = 1024, b = 128, stage= 5
+**** SEGMENTATION took 2751806ms
+***** w = 1024, b = 128, stage= 6
+**** SEGMENTATION took 2770363ms
+***** w = 1024, b = 128, stage= 7
+**** SEGMENTATION took 3291955ms
+***** w = 1024, b = 128, stage= 8
+**** SEGMENTATION took 3502037ms
+***** w = 1024, b = 128, stage= 9
+**** SEGMENTATION took 3518055ms
+***** w = 1024, b = 128, stage= 10
+**** SEGMENTATION took 3534341ms
+***** w = 1024, b = 128, stage= 11
+**** SEGMENTATION took 3623989ms
+***** w = 1024, b = 128, stage= 12
+**** SEGMENTATION took 3661858ms
+***** w = 1024, b = 128, stage= 13
+**** SEGMENTATION took 4264907ms
+***** w = 1024, b = 128, stage= 14
+**** SEGMENTATION took 4280430ms
+***** w = 1024, b = 128, stage= 15
+**** SEGMENTATION took 4371864ms
+***** w = 1024, b = 128, stage= 16
+**** SEGMENTATION took 4383936ms
+***** w = 1024, b = 128, stage= 17
+**** SEGMENTATION took 4902826ms
+***** w = 1024, b = 128, stage= 18
+**** SEGMENTATION took 4999210ms
+***** w = 1024, b = 128, stage= 19
+**** SEGMENTATION took 5012530ms
+***** w = 1024, b = 128, stage= 20
+**** SEGMENTATION took 5039709ms
+***** w = 1024, b = 128, stage= 21
+**** SEGMENTATION took 6778617ms
+***** w = 1024, b = 128, stage= 22
+**** SEGMENTATION took 6809555ms
+***** w = 1024, b = 128, stage= 23
+**** SEGMENTATION took 6922930ms
+***** w = 1024, b = 128, stage= 24
+**** SEGMENTATION took 6945883ms
+***** w = 1024, b = 128, stage= 25
+**** SEGMENTATION took 7837475ms
+***** w = 1024, b = 256, stage= 0
+**** SEGMENTATION took 3342ms
+***** w = 1024, b = 256, stage= 1
+**** SEGMENTATION took 265257ms
+***** w = 1024, b = 256, stage= 2
+**** SEGMENTATION took 864933ms
+***** w = 1024, b = 256, stage= 3
+**** SEGMENTATION took 1945292ms
+***** w = 1024, b = 256, stage= 4
+**** SEGMENTATION took 4061297ms
+***** w = 1024, b = 256, stage= 5
+**** SEGMENTATION took 4126324ms
+***** w = 1024, b = 256, stage= 6
+**** SEGMENTATION took 4159957ms
+***** w = 1024, b = 256, stage= 7
+**** SEGMENTATION took 5167737ms
+***** w = 1024, b = 256, stage= 8
+**** SEGMENTATION took 5342291ms
+***** w = 1024, b = 256, stage= 9
+**** SEGMENTATION took 5375966ms
+***** w = 1024, b = 256, stage= 10
+**** SEGMENTATION took 5394107ms
+***** w = 1024, b = 256, stage= 11
+**** SEGMENTATION took 5543738ms
+***** w = 1024, b = 256, stage= 12
+**** SEGMENTATION took 5578189ms
+***** w = 1024, b = 256, stage= 13
+**** SEGMENTATION took 6574850ms
+***** w = 1024, b = 256, stage= 14
+**** SEGMENTATION took 6584225ms
+***** w = 1024, b = 256, stage= 15
+**** SEGMENTATION took 6754278ms
+***** w = 1024, b = 256, stage= 16
+**** SEGMENTATION took 6761467ms
+***** w = 1024, b = 256, stage= 17
+**** SEGMENTATION took 7645844ms
+***** w = 1024, b = 256, stage= 18
+**** SEGMENTATION took 7894134ms
+***** w = 1024, b = 256, stage= 19
+**** SEGMENTATION took 7819619ms
+***** w = 1024, b = 256, stage= 20
+**** SEGMENTATION took 7914680ms
+***** w = 1024, b = 256, stage= 21
+**** SEGMENTATION took 10809652ms
+***** w = 1024, b = 256, stage= 22
+**** SEGMENTATION took 10841804ms
+***** w = 1024, b = 256, stage= 23
+**** SEGMENTATION took 11041849ms
+***** w = 1024, b = 256, stage= 24
+**** SEGMENTATION took 11086874ms
+***** w = 1024, b = 256, stage= 25
+**** SEGMENTATION took 12643104ms
+***** w = 2048, b = 0, stage= 0
+**** SEGMENTATION took 1764ms
+***** w = 2048, b = 0, stage= 1
+**** SEGMENTATION took 140365ms
+***** w = 2048, b = 0, stage= 2
+**** SEGMENTATION took 445703ms
+***** w = 2048, b = 0, stage= 3
+**** SEGMENTATION took 916061ms
+***** w = 2048, b = 0, stage= 4
+**** SEGMENTATION took 1794588ms
+***** w = 2048, b = 0, stage= 5
+**** SEGMENTATION took 2100342ms
+***** w = 2048, b = 0, stage= 6
+**** SEGMENTATION took 2089162ms
+***** w = 2048, b = 0, stage= 7
+**** SEGMENTATION took 2547550ms
+***** w = 2048, b = 0, stage= 8
+**** SEGMENTATION took 2687440ms
+***** w = 2048, b = 0, stage= 9
+**** SEGMENTATION took 2718825ms
+***** w = 2048, b = 0, stage= 10
+**** SEGMENTATION took 2694799ms
+***** w = 2048, b = 0, stage= 11
+**** SEGMENTATION took 2741658ms
+***** w = 2048, b = 0, stage= 12
+**** SEGMENTATION took 2780230ms
+***** w = 2048, b = 0, stage= 13
+**** SEGMENTATION took 3093020ms
+***** w = 2048, b = 0, stage= 14
+**** SEGMENTATION took 3112487ms
+***** w = 2048, b = 0, stage= 15
+**** SEGMENTATION took 3166755ms
+***** w = 2048, b = 0, stage= 16
+**** SEGMENTATION took 3174818ms
+***** w = 2048, b = 0, stage= 17
+**** SEGMENTATION took 3600687ms
+***** w = 2048, b = 0, stage= 18
+**** SEGMENTATION took 3642260ms
+***** w = 2048, b = 0, stage= 19
+**** SEGMENTATION took 3623387ms
+***** w = 2048, b = 0, stage= 20
+**** SEGMENTATION took 3573088ms
+***** w = 2048, b = 0, stage= 21
+**** SEGMENTATION took 4698804ms
+***** w = 2048, b = 0, stage= 22
+**** SEGMENTATION took 4754379ms
+***** w = 2048, b = 0, stage= 23
+**** SEGMENTATION took 4817070ms
+***** w = 2048, b = 0, stage= 24
+**** SEGMENTATION took 4856103ms
+***** w = 2048, b = 0, stage= 25
+**** SEGMENTATION took 5315899ms
+***** w = 2048, b = 1, stage= 0
+**** SEGMENTATION took 2067ms
+***** w = 2048, b = 1, stage= 1
+**** SEGMENTATION took 140146ms
+***** w = 2048, b = 1, stage= 2
+**** SEGMENTATION took 401816ms
+***** w = 2048, b = 1, stage= 3
+**** SEGMENTATION took 888983ms
+***** w = 2048, b = 1, stage= 4
+**** SEGMENTATION took 1684085ms
+***** w = 2048, b = 1, stage= 5
+**** SEGMENTATION took 2004517ms
+***** w = 2048, b = 1, stage= 6
+**** SEGMENTATION took 2036742ms
+***** w = 2048, b = 1, stage= 7
+**** SEGMENTATION took 2502080ms
+***** w = 2048, b = 1, stage= 8
+**** SEGMENTATION took 2618736ms
+***** w = 2048, b = 1, stage= 9
+**** SEGMENTATION took 2632415ms
+***** w = 2048, b = 1, stage= 10
+**** SEGMENTATION took 2641348ms
+***** w = 2048, b = 1, stage= 11
+**** SEGMENTATION took 2694455ms
+***** w = 2048, b = 1, stage= 12
+**** SEGMENTATION took 2710718ms
+***** w = 2048, b = 1, stage= 13
+**** SEGMENTATION took 3028360ms
+***** w = 2048, b = 1, stage= 14
+**** SEGMENTATION took 3033384ms
+***** w = 2048, b = 1, stage= 15
+**** SEGMENTATION took 3113266ms
+***** w = 2048, b = 1, stage= 16
+**** SEGMENTATION took 3123624ms
+***** w = 2048, b = 1, stage= 17
+**** SEGMENTATION took 3395545ms
+***** w = 2048, b = 1, stage= 18
+**** SEGMENTATION took 3430791ms
+***** w = 2048, b = 1, stage= 19
+**** SEGMENTATION took 3437666ms
+***** w = 2048, b = 1, stage= 20
+**** SEGMENTATION took 3441393ms
+***** w = 2048, b = 1, stage= 21
+**** SEGMENTATION took 4515821ms
+***** w = 2048, b = 1, stage= 22
+**** SEGMENTATION took 4576123ms
+***** w = 2048, b = 1, stage= 23
+**** SEGMENTATION took 4677821ms
+***** w = 2048, b = 1, stage= 24
+**** SEGMENTATION took 4658551ms
+***** w = 2048, b = 1, stage= 25
+**** SEGMENTATION took 5127730ms
+***** w = 2048, b = 2, stage= 0
+**** SEGMENTATION took 1849ms
+***** w = 2048, b = 2, stage= 1
+**** SEGMENTATION took 141013ms
+***** w = 2048, b = 2, stage= 2
+**** SEGMENTATION took 401586ms
+***** w = 2048, b = 2, stage= 3
+**** SEGMENTATION took 904198ms
+***** w = 2048, b = 2, stage= 4
+**** SEGMENTATION took 1694681ms
+***** w = 2048, b = 2, stage= 5
+**** SEGMENTATION took 2021504ms
+***** w = 2048, b = 2, stage= 6
+**** SEGMENTATION took 2039786ms
+***** w = 2048, b = 2, stage= 7
+**** SEGMENTATION took 2528885ms
+***** w = 2048, b = 2, stage= 8
+**** SEGMENTATION took 2627017ms
+***** w = 2048, b = 2, stage= 9
+**** SEGMENTATION took 2651211ms
+***** w = 2048, b = 2, stage= 10
+**** SEGMENTATION took 2650534ms
+***** w = 2048, b = 2, stage= 11
+**** SEGMENTATION took 2698801ms
+***** w = 2048, b = 2, stage= 12
+**** SEGMENTATION took 2718020ms
+***** w = 2048, b = 2, stage= 13
+**** SEGMENTATION took 3035736ms
+***** w = 2048, b = 2, stage= 14
+**** SEGMENTATION took 3047797ms
+***** w = 2048, b = 2, stage= 15
+**** SEGMENTATION took 3115740ms
+***** w = 2048, b = 2, stage= 16
+**** SEGMENTATION took 3124344ms
+***** w = 2048, b = 2, stage= 17
+**** SEGMENTATION took 3389490ms
+***** w = 2048, b = 2, stage= 18
+**** SEGMENTATION took 3451830ms
+***** w = 2048, b = 2, stage= 19
+**** SEGMENTATION took 3447704ms
+***** w = 2048, b = 2, stage= 20
+**** SEGMENTATION took 3455248ms
+***** w = 2048, b = 2, stage= 21
+**** SEGMENTATION took 4519002ms
+***** w = 2048, b = 2, stage= 22
+**** SEGMENTATION took 4558210ms
+***** w = 2048, b = 2, stage= 23
+**** SEGMENTATION took 4715662ms
+***** w = 2048, b = 2, stage= 24
+**** SEGMENTATION took 4727338ms
+***** w = 2048, b = 2, stage= 25
+**** SEGMENTATION took 5149990ms
+***** w = 2048, b = 4, stage= 0
+**** SEGMENTATION took 2057ms
+***** w = 2048, b = 4, stage= 1
+**** SEGMENTATION took 140571ms
+***** w = 2048, b = 4, stage= 2
+**** SEGMENTATION took 401357ms
+***** w = 2048, b = 4, stage= 3
+**** SEGMENTATION took 898891ms
+***** w = 2048, b = 4, stage= 4
+**** SEGMENTATION took 1669478ms
+***** w = 2048, b = 4, stage= 5
+**** SEGMENTATION took 2021827ms
+***** w = 2048, b = 4, stage= 6
+**** SEGMENTATION took 2038098ms
+***** w = 2048, b = 4, stage= 7
+**** SEGMENTATION took 2522615ms
+***** w = 2048, b = 4, stage= 8
+**** SEGMENTATION took 2622199ms
+***** w = 2048, b = 4, stage= 9
+**** SEGMENTATION took 2641129ms
+***** w = 2048, b = 4, stage= 10
+**** SEGMENTATION took 2649252ms
+***** w = 2048, b = 4, stage= 11
+**** SEGMENTATION took 2698459ms
+***** w = 2048, b = 4, stage= 12
+**** SEGMENTATION took 2722715ms
+***** w = 2048, b = 4, stage= 13
+**** SEGMENTATION took 3033502ms
+***** w = 2048, b = 4, stage= 14
+**** SEGMENTATION took 3042167ms
+***** w = 2048, b = 4, stage= 15
+**** SEGMENTATION took 3111645ms
+***** w = 2048, b = 4, stage= 16
+**** SEGMENTATION took 3116681ms
+***** w = 2048, b = 4, stage= 17
+**** SEGMENTATION took 3372392ms
+***** w = 2048, b = 4, stage= 18
+**** SEGMENTATION took 3419146ms
+***** w = 2048, b = 4, stage= 19
+**** SEGMENTATION took 3428176ms
+***** w = 2048, b = 4, stage= 20
+**** SEGMENTATION took 3453422ms
+***** w = 2048, b = 4, stage= 21
+**** SEGMENTATION took 4518110ms
+***** w = 2048, b = 4, stage= 22
+**** SEGMENTATION took 4513747ms
+***** w = 2048, b = 4, stage= 23
+**** SEGMENTATION took 4626163ms
+***** w = 2048, b = 4, stage= 24
+**** SEGMENTATION took 4636939ms
+***** w = 2048, b = 4, stage= 25
+**** SEGMENTATION took 5142354ms
+***** w = 2048, b = 8, stage= 0
+**** SEGMENTATION took 2074ms
+***** w = 2048, b = 8, stage= 1
+**** SEGMENTATION took 141230ms
+***** w = 2048, b = 8, stage= 2
+**** SEGMENTATION took 406631ms
+***** w = 2048, b = 8, stage= 3
+**** SEGMENTATION took 881085ms
+***** w = 2048, b = 8, stage= 4
+**** SEGMENTATION took 1715614ms
+***** w = 2048, b = 8, stage= 5
+**** SEGMENTATION took 2013644ms
+***** w = 2048, b = 8, stage= 6
+**** SEGMENTATION took 2025351ms
+***** w = 2048, b = 8, stage= 7
+**** SEGMENTATION took 2488739ms
+***** w = 2048, b = 8, stage= 8
+**** SEGMENTATION took 2590104ms
+***** w = 2048, b = 8, stage= 9
+**** SEGMENTATION took 2610164ms
+***** w = 2048, b = 8, stage= 10
+**** SEGMENTATION took 2623002ms
+***** w = 2048, b = 8, stage= 11
+**** SEGMENTATION took 2672321ms
+***** w = 2048, b = 8, stage= 12
+**** SEGMENTATION took 2691654ms
+***** w = 2048, b = 8, stage= 13
+**** SEGMENTATION took 2997120ms
+***** w = 2048, b = 8, stage= 14
+**** SEGMENTATION took 3017815ms
+***** w = 2048, b = 8, stage= 15
+**** SEGMENTATION took 3097676ms
+***** w = 2048, b = 8, stage= 16
+**** SEGMENTATION took 3080377ms
+***** w = 2048, b = 8, stage= 17
+**** SEGMENTATION took 3345527ms
+***** w = 2048, b = 8, stage= 18
+**** SEGMENTATION took 3385040ms
+***** w = 2048, b = 8, stage= 19
+**** SEGMENTATION took 3395899ms
+***** w = 2048, b = 8, stage= 20
+**** SEGMENTATION took 3410575ms
+***** w = 2048, b = 8, stage= 21
+**** SEGMENTATION took 4476683ms
+***** w = 2048, b = 8, stage= 22
+**** SEGMENTATION took 4531190ms
+***** w = 2048, b = 8, stage= 23
+**** SEGMENTATION took 4630750ms
+***** w = 2048, b = 8, stage= 24
+**** SEGMENTATION took 4613705ms
+***** w = 2048, b = 8, stage= 25
+**** SEGMENTATION took 5116397ms
+***** w = 2048, b = 16, stage= 0
+**** SEGMENTATION took 2226ms
+***** w = 2048, b = 16, stage= 1
+**** SEGMENTATION took 141850ms
+***** w = 2048, b = 16, stage= 2
+**** SEGMENTATION took 406588ms
+***** w = 2048, b = 16, stage= 3
+**** SEGMENTATION took 892799ms
+***** w = 2048, b = 16, stage= 4
+**** SEGMENTATION took 1696204ms
+***** w = 2048, b = 16, stage= 5
+**** SEGMENTATION took 2025536ms
+***** w = 2048, b = 16, stage= 6
+**** SEGMENTATION took 2043661ms
+***** w = 2048, b = 16, stage= 7
+**** SEGMENTATION took 2516105ms
+***** w = 2048, b = 16, stage= 8
+**** SEGMENTATION took 2619793ms
+***** w = 2048, b = 16, stage= 9
+**** SEGMENTATION took 2634672ms
+***** w = 2048, b = 16, stage= 10
+**** SEGMENTATION took 2640390ms
+***** w = 2048, b = 16, stage= 11
+**** SEGMENTATION took 2693920ms
+***** w = 2048, b = 16, stage= 12
+**** SEGMENTATION took 2713587ms
+***** w = 2048, b = 16, stage= 13
+**** SEGMENTATION took 3029862ms
+***** w = 2048, b = 16, stage= 14
+**** SEGMENTATION took 3043211ms
+***** w = 2048, b = 16, stage= 15
+**** SEGMENTATION took 3117006ms
+***** w = 2048, b = 16, stage= 16
+**** SEGMENTATION took 3115254ms
+***** w = 2048, b = 16, stage= 17
+**** SEGMENTATION took 3388254ms
+***** w = 2048, b = 16, stage= 18
+**** SEGMENTATION took 3466874ms
+***** w = 2048, b = 16, stage= 19
+**** SEGMENTATION took 3436319ms
+***** w = 2048, b = 16, stage= 20
+**** SEGMENTATION took 3434252ms
+***** w = 2048, b = 16, stage= 21
+**** SEGMENTATION took 4523972ms
+***** w = 2048, b = 16, stage= 22
+**** SEGMENTATION took 4576818ms
+***** w = 2048, b = 16, stage= 23
+**** SEGMENTATION took 4670280ms
+***** w = 2048, b = 16, stage= 24
+**** SEGMENTATION took 4684703ms
+***** w = 2048, b = 16, stage= 25
+**** SEGMENTATION took 5160749ms
+***** w = 2048, b = 32, stage= 0
+**** SEGMENTATION took 2082ms
+***** w = 2048, b = 32, stage= 1
+**** SEGMENTATION took 144629ms
+***** w = 2048, b = 32, stage= 2
+**** SEGMENTATION took 519708ms
+***** w = 2048, b = 32, stage= 3
+**** SEGMENTATION took 1173235ms
+***** w = 2048, b = 32, stage= 4
+**** SEGMENTATION took 1739652ms
+***** w = 2048, b = 32, stage= 5
+**** SEGMENTATION took 2486145ms
+***** w = 2048, b = 32, stage= 6
+**** SEGMENTATION took 2538011ms
+***** w = 2048, b = 32, stage= 7
+**** SEGMENTATION took 3164618ms
+***** w = 2048, b = 32, stage= 8
+**** SEGMENTATION took 3271424ms
+***** w = 2048, b = 32, stage= 9
+**** SEGMENTATION took 3295322ms
+***** w = 2048, b = 32, stage= 10
+**** SEGMENTATION took 3315605ms
+***** w = 2048, b = 32, stage= 11
+**** SEGMENTATION took 3370310ms
+***** w = 2048, b = 32, stage= 12
+**** SEGMENTATION took 3388771ms
+***** w = 2048, b = 32, stage= 13
+**** SEGMENTATION took 3884717ms
+***** w = 2048, b = 32, stage= 14
+**** SEGMENTATION took 3886039ms
+***** w = 2048, b = 32, stage= 15
+**** SEGMENTATION took 3998883ms
+***** w = 2048, b = 32, stage= 16
+**** SEGMENTATION took 3991682ms
+***** w = 2048, b = 32, stage= 17
+**** SEGMENTATION took 4411389ms
+***** w = 2048, b = 32, stage= 18
+**** SEGMENTATION took 4459012ms
+***** w = 2048, b = 32, stage= 19
+**** SEGMENTATION took 4486854ms
+***** w = 2048, b = 32, stage= 20
+**** SEGMENTATION took 4505753ms
+***** w = 2048, b = 32, stage= 21
+**** SEGMENTATION took 6058238ms
+***** w = 2048, b = 32, stage= 22
+**** SEGMENTATION took 6093903ms
+***** w = 2048, b = 32, stage= 23
+**** SEGMENTATION took 6208803ms
+***** w = 2048, b = 32, stage= 24
+**** SEGMENTATION took 6231520ms
+***** w = 2048, b = 32, stage= 25
+**** SEGMENTATION took 6992515ms
+***** w = 2048, b = 64, stage= 0
+**** SEGMENTATION took 1880ms
+***** w = 2048, b = 64, stage= 1
+**** SEGMENTATION took 149002ms
+***** w = 2048, b = 64, stage= 2
+**** SEGMENTATION took 587145ms
+***** w = 2048, b = 64, stage= 3
+**** SEGMENTATION took 1221268ms
+***** w = 2048, b = 64, stage= 4
+**** SEGMENTATION took 1764661ms
+***** w = 2048, b = 64, stage= 5
+**** SEGMENTATION took 2586555ms
+***** w = 2048, b = 64, stage= 6
+**** SEGMENTATION took 2613738ms
+***** w = 2048, b = 64, stage= 7
+**** SEGMENTATION took 3284396ms
+***** w = 2048, b = 64, stage= 8
+**** SEGMENTATION took 3386970ms
+***** w = 2048, b = 64, stage= 9
+**** SEGMENTATION took 3348376ms
+***** w = 2048, b = 64, stage= 10
+**** SEGMENTATION took 3440398ms
+***** w = 2048, b = 64, stage= 11
+**** SEGMENTATION took 3531035ms
+***** w = 2048, b = 64, stage= 12
+**** SEGMENTATION took 3545929ms
+***** w = 2048, b = 64, stage= 13
+**** SEGMENTATION took 3988259ms
+***** w = 2048, b = 64, stage= 14
+**** SEGMENTATION took 4013269ms
+***** w = 2048, b = 64, stage= 15
+**** SEGMENTATION took 4096718ms
+***** w = 2048, b = 64, stage= 16
+**** SEGMENTATION took 4101319ms
+***** w = 2048, b = 64, stage= 17
+**** SEGMENTATION took 4500858ms
+***** w = 2048, b = 64, stage= 18
+**** SEGMENTATION took 4594147ms
+***** w = 2048, b = 64, stage= 19
+**** SEGMENTATION took 4546359ms
+***** w = 2048, b = 64, stage= 20
+**** SEGMENTATION took 4579247ms
+***** w = 2048, b = 64, stage= 21
+**** SEGMENTATION took 6174240ms
+***** w = 2048, b = 64, stage= 22
+**** SEGMENTATION took 6235073ms
+***** w = 2048, b = 64, stage= 23
+**** SEGMENTATION took 6460274ms
+***** w = 2048, b = 64, stage= 24
+**** SEGMENTATION took 6400371ms
+***** w = 2048, b = 64, stage= 25
+**** SEGMENTATION took 7173989ms
+***** w = 2048, b = 128, stage= 0
+**** SEGMENTATION took 1992ms
+***** w = 2048, b = 128, stage= 1
+**** SEGMENTATION took 158482ms
+***** w = 2048, b = 128, stage= 2
+**** SEGMENTATION took 607328ms
+***** w = 2048, b = 128, stage= 3
+**** SEGMENTATION took 1313315ms
+***** w = 2048, b = 128, stage= 4
+**** SEGMENTATION took 2338328ms
+***** w = 2048, b = 128, stage= 5
+**** SEGMENTATION took 2744802ms
+***** w = 2048, b = 128, stage= 6
+**** SEGMENTATION took 2762023ms
+***** w = 2048, b = 128, stage= 7
+**** SEGMENTATION took 3451016ms
+***** w = 2048, b = 128, stage= 8
+**** SEGMENTATION took 3585112ms
+***** w = 2048, b = 128, stage= 9
+**** SEGMENTATION took 3607770ms
+***** w = 2048, b = 128, stage= 10
+**** SEGMENTATION took 3600292ms
+***** w = 2048, b = 128, stage= 11
+**** SEGMENTATION took 3707570ms
+***** w = 2048, b = 128, stage= 12
+**** SEGMENTATION took 3717180ms
+***** w = 2048, b = 128, stage= 13
+**** SEGMENTATION took 4227519ms
+***** w = 2048, b = 128, stage= 14
+**** SEGMENTATION took 4237130ms
+***** w = 2048, b = 128, stage= 15
+**** SEGMENTATION took 4345674ms
+***** w = 2048, b = 128, stage= 16
+**** SEGMENTATION took 4338165ms
+***** w = 2048, b = 128, stage= 17
+**** SEGMENTATION took 4770532ms
+***** w = 2048, b = 128, stage= 18
+**** SEGMENTATION took 4860574ms
+***** w = 2048, b = 128, stage= 19
+**** SEGMENTATION took 4841700ms
+***** w = 2048, b = 128, stage= 20
+**** SEGMENTATION took 4812981ms
+***** w = 2048, b = 128, stage= 21
+**** SEGMENTATION took 6530164ms
+***** w = 2048, b = 128, stage= 22
+**** SEGMENTATION took 6603238ms
+***** w = 2048, b = 128, stage= 23
+**** SEGMENTATION took 6715419ms
+***** w = 2048, b = 128, stage= 24
+**** SEGMENTATION took 6735443ms
+***** w = 2048, b = 128, stage= 25
+**** SEGMENTATION took 7567551ms
+***** w = 2048, b = 256, stage= 0
+**** SEGMENTATION took 2509ms
+***** w = 2048, b = 256, stage= 1
+**** SEGMENTATION took 176755ms
+***** w = 2048, b = 256, stage= 2
+**** SEGMENTATION took 622862ms
+***** w = 2048, b = 256, stage= 3
+**** SEGMENTATION took 1430216ms
+***** w = 2048, b = 256, stage= 4
+**** SEGMENTATION took 2441601ms
+***** w = 2048, b = 256, stage= 5
+**** SEGMENTATION took 2854593ms
+***** w = 2048, b = 256, stage= 6
+**** SEGMENTATION took 2883565ms
+***** w = 2048, b = 256, stage= 7
+**** SEGMENTATION took 3663067ms
+***** w = 2048, b = 256, stage= 8
+**** SEGMENTATION took 3804339ms
+***** w = 2048, b = 256, stage= 9
+**** SEGMENTATION took 3836314ms
+***** w = 2048, b = 256, stage= 10
+**** SEGMENTATION took 3869473ms
+***** w = 2048, b = 256, stage= 11
+**** SEGMENTATION took 3932200ms
+***** w = 2048, b = 256, stage= 12
+**** SEGMENTATION took 3959890ms
+***** w = 2048, b = 256, stage= 13
+**** SEGMENTATION took 4561991ms
+***** w = 2048, b = 256, stage= 14
+**** SEGMENTATION took 4576623ms
+***** w = 2048, b = 256, stage= 15
+**** SEGMENTATION took 4707028ms
+***** w = 2048, b = 256, stage= 16
+**** SEGMENTATION took 4696333ms
+***** w = 2048, b = 256, stage= 17
+**** SEGMENTATION took 5202197ms
+***** w = 2048, b = 256, stage= 18
+**** SEGMENTATION took 5288408ms
+***** w = 2048, b = 256, stage= 19
+**** SEGMENTATION took 5309276ms
+***** w = 2048, b = 256, stage= 20
+**** SEGMENTATION took 5331479ms
+***** w = 2048, b = 256, stage= 21
+**** SEGMENTATION took 7252209ms
+***** w = 2048, b = 256, stage= 22
+**** SEGMENTATION took 7351534ms
+***** w = 2048, b = 256, stage= 23
+**** SEGMENTATION took 7507793ms
+***** w = 2048, b = 256, stage= 24
+**** SEGMENTATION took 7509816ms
+***** w = 2048, b = 256, stage= 25
+**** SEGMENTATION took 8417635ms

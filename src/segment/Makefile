@@ -5,14 +5,14 @@ include Makefile.inc
 ## BEGIN CUDA SETTINGS - comment out to disable CUDA
 include Makefile-cuda.inc
 #include Makefile-cuda.keeneland.inc
-CUDA_SRC = cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
+CUDA_SRC = cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
 ## END CUDA SETTINGS
 
 LIB_SRCH = HistologicalEntities.h MorphologicOperations.h PixelOperations.h utils.h
 LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp
 LIB_SRCO = ${LIB_SRC:.cpp=.o}
 
-gputests: tests imreconOptimizeTest.exe imreconOptimizeProfiler.exe 
+gputests: tests imreconChunkTest.exe imreconOptimizeProfiler.exe 
 GPU_SRC = HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperationsGPU.cpp
 GPU_LIB_SRC = ${CUDA_SRC} ${GPU_SRC}
 GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}

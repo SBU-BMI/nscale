@@ -21,7 +21,7 @@
 #include "cuda/imreconstruct_int_kernel.cuh"
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
-//#include "cuda/reconstruction_kernel.cuh"
+#include "cuda/imrecon_queue_int_kernel.cuh"
 
 #endif
 
@@ -36,6 +36,8 @@ using namespace cv::gpu;
 
 template <typename T>
 GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
+template <typename T>
+GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
 // Operates on BINARY IMAGES ONLY
 template <typename T>
 GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) { throw_nogpu();}
@@ -91,10 +93,8 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 /**
  * based on implementation from Pavlo
  */
-/*
- *
 template <typename T>
-GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
+GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
 	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
@@ -108,26 +108,37 @@ GpuMat imreconstruct2(const GpuMat& seeds, const GpuMat& image, int connectivity
 //
 //	GpuMat output(c_output);
 //	return output;
+	T mn = cciutils::min<T>();
 
     // allocate results
-	GpuMat marker = createContinuous(seeds.size(), seeds.type());
-	stream.enqueueCopy(seeds, marker);
+	GpuMat temp1;
+	copyMakeBorder(seeds, temp1, 1, 1, 1, 1, Scalar(mn), stream);
+	GpuMat marker = createContinuous(temp1.size(), temp1.type());
+	stream.enqueueCopy(temp1, marker);
 //	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
 
-	GpuMat mask = createContinuous(image.size(), image.type());
-	stream.enqueueCopy(image, mask);
+	GpuMat temp2;
+	copyMakeBorder(image, temp2, 1, 1, 1, 1, Scalar(mn), stream);
+	GpuMat mask = createContinuous(temp2.size(), temp2.type());
+	stream.enqueueCopy(temp2, mask);
 //	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
 
 	stream.waitForCompletion();
-	iter = reconstruction_by_dilation_kernel(marker.data, mask.data, seeds.cols, seeds.rows, 1);
-    stream.waitForCompletion();
+	temp1.release();
+	temp2.release();
+	iter = imreconQueueIntCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+	StreamAccessor::getStream(stream);
 
+	stream.waitForCompletion();
 	mask.release();
-    return marker;
+
+	Rect roi = Rect(1, 1, image.cols, image.rows);
+	GpuMat output(marker, roi);
+	marker.release();
+
+    return output;
 }
-template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstruct2<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
-*/
+
 
 
 /** optimized serial implementation for binary,
@@ -259,7 +270,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 //	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
 	stream.waitForCompletion();
 	uint64_t t2 = cciutils::ClockGetTime();
-	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
+//	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 	stream.waitForCompletion();
 	marker.release();
 	mask.release();
@@ -296,10 +307,9 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 	// at the selected places.  If not, the marker will be forced to 0 by imrecon.
 
 //	GpuMat marker = imreconstruct2<T>(seeds, binaryImage, connectivity, stream);
-	GpuMat marker = imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
+	return imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
 
 	// no need to and between marker and binaryImage - since marker is always <= binary image
-	return marker;
 }
 //
 //// Operates on BINARY IMAGES ONLY
@@ -627,6 +637,9 @@ template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Strea
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
+
+template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
 
 }

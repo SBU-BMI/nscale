@@ -68,27 +68,33 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 	rd.release();
 	gd.release();
 	bd.release();
-std::cout << "HERE" << std::endl;
 	GpuMat bw3 = PixelOperations::threshold<float>(imR2B, 1.0, std::numeric_limits<float>::max(), stream);
 	GpuMat bw1 = PixelOperations::threshold<float>(imR2G, T1, std::numeric_limits<float>::max(), stream);
 	GpuMat bw2 = PixelOperations::threshold<float>(imR2G, T2, std::numeric_limits<float>::max(), stream);
 	stream.waitForCompletion();
 	imR2G.release();
 	imR2B.release();
-std::cout << "HERE2" << std::endl;
+
 
 	GpuMat rbc(s, CV_8UC1);
 	stream.enqueueMemSet(rbc, Scalar(0));
+
+
 	if (countNonZero(bw1) > 0) {
 		GpuMat temp = nscale::gpu::bwselect<unsigned char>(bw2, bw1, 8, stream);
-		bitwise_and(temp, bw3, rbc, GpuMat(), stream);
-	    stream.waitForCompletion();
+
+//	strange.  have to copy it else bitwise_and gets misaligned address error (see it in debugger)
+		GpuMat temp2(temp.size(), temp.type());
+		stream.enqueueCopy(temp, temp2);
 		temp.release();
+
+		bitwise_and(temp2, bw3, rbc, GpuMat(), stream);
+	    stream.waitForCompletion();
+		temp2.release();
 	}
 	bw1.release();
 	bw2.release();
 	bw3.release();
-std::cout << "HERE3" << std::endl;
 
 	return rbc;
 }
@@ -157,6 +163,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		stream.enqueueDownload(g_bg,temp);
 		stream.waitForCompletion();
 		output = temp;
+		g_img.release();
 		return 0;
 	}
 
@@ -164,10 +171,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	g_bg.release();
 
 	float ratio = (float)bgArea / (float)(img.size().area());
-	std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
+	//std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
 	logger.log("backgroundRatio", ratio);
 	if (ratio >= 0.9) {
-		std::cout << "background.  next." << std::endl;
+		//std::cout << "background.  next." << std::endl;
 		logger.logTimeElapsedSinceLastLog("background");
 		logger.endSession();
 		return 0;
@@ -182,13 +189,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		stream.enqueueDownload(g_rbc, temp);
 		stream.waitForCompletion();
 		output = temp;
+		g_img.release();
 		return 0;
 	}
 	uint64_t t2 = cciutils::ClockGetTime();
 	logger.logTimeElapsedSinceLastLog("RBC");
 	int rbcPixelCount = countNonZero(g_rbc);
 	logger.log("RBCPixCount", rbcPixelCount);
-	std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
+	//std::cout << "rbc took " << t2-t1 << "ms" << std::endl;
 
 	GpuMat g_r(g_bgr[2]);
 	g_bgr[0].release();
@@ -256,6 +264,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		stream.enqueueDownload(g_rc_open, temp);
 		stream.waitForCompletion();
 		output = temp;
+		g_img.release();
 		return 0;
 	}
 
@@ -267,13 +276,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 
 	unsigned int iter;
 	GpuMat g_rc_recon = nscale::gpu::imreconstruct<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
-	// TODO: change back:
-//	GpuMat g_rc_recon = nscale::gpu::imreconstruct2<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
 	stream.waitForCompletion();
+//	std::cout << "\tIterations: " << iter << std::endl;
 	if (stage == 4) {
 		Mat temp(g_rc_recon.size(), g_rc_recon.type());
 		stream.enqueueDownload(g_rc_recon, temp);
+		stream.waitForCompletion();
 		output = temp;
+		g_img.release();
 		return 0;
 	}
 
@@ -285,6 +295,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		stream.enqueueDownload(g_diffIm, temp);
 		stream.waitForCompletion();
 		output = temp;
+		g_img.release();
 		return 0;
 	}
 
@@ -319,6 +330,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		stream.enqueueDownload(g_diffIm2, temp);
 		stream.waitForCompletion();
 		output = temp;
+		g_img.release();
+
 		return 0;
 	}
 
@@ -333,6 +346,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		stream.enqueueDownload(g_bw1, temp);
 		stream.waitForCompletion();
 		output = temp;
+		g_img.release();
+
 		return 0;
 	}
 
@@ -586,7 +601,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	output = nscale::imfillHoles<unsigned char>(seg, true, 8);
 	logger.logTimeElapsedSinceLastLog("fillHolesLast");
 
-	imwrite("test/out-nuclei.ppm", seg);
+//	imwrite("test/out-nuclei.ppm", seg);
 
 
 	logger.endSession();

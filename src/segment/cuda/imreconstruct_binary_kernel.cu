@@ -602,7 +602,7 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 //		else cudaSafeCall( cudaStreamSynchronize(stream));
 
 
-		printf("entering imrecon binary caller with conn=%d\n", connectivity);
+//		printf("entering imrecon binary caller with conn=%d\n", connectivity);
 
 		// setup execution parameters
 		bool conn8 = (connectivity == 8);
@@ -620,7 +620,7 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
 		
 		*h_change = true;
-		printf("completed setup for imrecon binary caller \n");
+//		printf("completed setup for imrecon binary caller \n");
 
 		if (conn8) {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
@@ -685,7 +685,7 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		cudaSafeCall( cudaFree(d_change) );
 		free(h_change);
 
-		printf("Number of iterations: %d\n", iter);
+//		printf("Number of iterations: %d\n", iter);
 		cudaSafeCall( cudaGetLastError());
 
 		return iter;

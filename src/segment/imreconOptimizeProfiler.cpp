@@ -71,7 +71,7 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 */
 	t1 = cciutils::ClockGetTime();
 	if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 8, stream);
-	else g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 8, stream);
+	else g_recon = nscale::gpu::imreconstructQ<uchar>(g_marker, g_mask, 8, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon 8-con took " << t2-t1 << "ms" << std::endl;

@@ -67,10 +67,12 @@ public :
 	};
 	
 	void endSession() {
-		header << std::endl;
-		value << std::endl;
-		header.flush();
-		value.flush();
+		if (_on) {
+			header << std::endl;
+			value << std::endl;
+			header.flush();
+			value.flush();
+		};
 	}
 
 	template <typename T>
