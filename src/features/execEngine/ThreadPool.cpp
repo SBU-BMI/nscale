@@ -7,6 +7,7 @@
 
 #include "ThreadPool.h"
 #include <sched.h>
+#include <string.h>
 
 
 // GPU functions called to initialize device.

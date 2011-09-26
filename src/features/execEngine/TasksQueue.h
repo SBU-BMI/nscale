@@ -12,6 +12,7 @@
 #include <list>
 #include <semaphore.h>
 #include "Task.h"
+#include <pthread.h>
 
 
 class TasksQueue {
