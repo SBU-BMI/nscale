@@ -1,7 +1,7 @@
 
 include ../Makefile.inc
 
-#CXX_FLAGS+=-DPRINT_FEATURES
+CXX_FLAGS+=-DPRINT_FEATURES
 
 all: compFeatures
 

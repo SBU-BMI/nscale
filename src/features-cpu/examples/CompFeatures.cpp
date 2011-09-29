@@ -8,7 +8,7 @@
 #include "RegionalMorphologyAnalysis.h"
 
 IplImage *readImage(string imageFileName){
-	IplImage *readImage = cvLoadImage(imageFileName.c_str(), -1 );
+	IplImage *readImage = cvLoadImage(imageFileName.c_str(), 0 );
 	if(readImage == NULL){
 		cout << "Could not load image: "<< imageFileName <<endl;
 		exit(1);
