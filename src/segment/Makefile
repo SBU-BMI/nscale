@@ -9,7 +9,7 @@ CUDA_SRC = cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel
 ## END CUDA SETTINGS
 
 LIB_SRCH = HistologicalEntities.h MorphologicOperations.h PixelOperations.h utils.h
-LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp
+LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp SegmentTask.cpp FileUtils.cpp
 LIB_SRCO = ${LIB_SRC:.cpp=.o}
 
 gputests: tests imreconChunkTest.exe imreconOptimizeProfiler.exe 
@@ -17,9 +17,9 @@ GPU_SRC = HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperatio
 GPU_LIB_SRC = ${CUDA_SRC} ${GPU_SRC}
 GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}
 
-all: libsegment.so nu-segment.exe nu-segmentChunk.exe
+all: libsegment.so nu-segmentOMP.exe nu-segmentExecEngine.exe nu-segmentChunk.exe
 
-tests: all imreconTest.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
+tests: all nu-segmentChunkTest.exe imreconTest.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
 
 libsegment.so: ${LIB_SRCO} ${GPU_LIB_SRCO} ${LIB_SRCH}
 	$(CXX) ${CXX_FLAGS} $(LDFLAGS) -shared -o libsegment.so ${LIB_SRCO} ${GPU_LIB_SRCO}

@@ -27,10 +27,10 @@ Mat computeGroundtruth(const Mat & img, cciutils::SimpleCSVLogger& logger, const
 	case cciutils::DEVICE_CPU :
 	case cciutils::DEVICE_MCORE :
 
-		status = nscale::HistologicalEntities::segmentNuclei(img, out3, &logger, 25);
+		status = nscale::HistologicalEntities::segmentNuclei(img, out3, &logger);
 		break;
 	case cciutils::DEVICE_GPU :
-		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, out3, &logger, 25);
+		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, out3, &logger);
 		break;
 	default :
 		break;
@@ -297,7 +297,7 @@ int main (int argc, char **argv){
 		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id minw minb maxb minstage maxstage [cpu | mcore | gpu [id]]" << std::endl;
 		return -1;
 	}
-	string imagename(argv[1]);
+	const char* imagename = argv[1];
 	const char* runid = argv[2];
 	int minw = atoi(argv[3]);
 	int minb = atoi(argv[4]);

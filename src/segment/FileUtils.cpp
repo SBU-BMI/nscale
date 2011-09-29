@@ -23,7 +23,7 @@ FileUtils::FileUtils() : ext()
 {
 }
 
-FileUtils::FileUtils(std::string & suffix) : ext(suffix)
+FileUtils::FileUtils(const std::string & suffix) : ext(suffix)
 {
 }
 
@@ -33,8 +33,25 @@ FileUtils::~FileUtils()
     //dtor
 }
 
+string FileUtils::replaceDir(string& filename, const string& oldDir, const string& newDir) {
+	int pos = filename.find(oldDir);
 
-void FileUtils::traverseDirectoryRecursive(string directory, vector<string> *fullList)
+    stringstream newname;
+    newname << newDir << filename.substr(pos + oldDir.length());
+	return newname.str();
+}
+
+string FileUtils::replaceExt(string& filename, const string& oldExt, const string& newExt) {
+	int pos = filename.rfind(oldExt);
+
+    stringstream newname;
+    newname << filename.substr(0, pos) << newExt;
+	return newname.str();
+}
+
+
+
+void FileUtils::traverseDirectoryRecursive(const string & directory, vector<string> & fullList)
 {
 	queue<string> dirList;
 	dirList.push(directory);
@@ -66,8 +83,8 @@ void FileUtils::traverseDirectoryRecursive(string directory, vector<string> *ful
 			closedir(dir);
 		} else {
 			// a file.  add to the fullList
-            if (ext.empty() || d.find_last_of(ext) != std::string::npos) {
-        		fullList->push_back(d);
+            if (ext.empty() || d.rfind(ext) != std::string::npos) {
+        		fullList.push_back(d);
         	}
 		}
     }
