@@ -28,7 +28,9 @@ using namespace cv::gpu;
 #if !defined (HAVE_CUDA)
 GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream) { throw_nogpu(); }
 GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream) { throw_nogpu(); }
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger& logger, int stage) { throw_nogpu(); }
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger *logger, int stage) { throw_nogpu(); }
+int HistologicalEntities::segmentNuclei(const std::string& input, const std::string& output, cciutils::SimpleCSVLogger *logger, int stage) { throw_nogpu(); }
+
 
 
 #else
