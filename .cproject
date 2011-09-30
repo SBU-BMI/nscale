@@ -42,13 +42,19 @@
 </folderInfo>
 <folderInfo id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.539555473.1504272231" name="/" resourcePath="src">
 <toolChain id="org.eclipse.linuxtools.cdt.autotools.core.toolChain.999569159" name="GNU Autotools Toolchain" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolChain" unusedChildren="">
+<targetPlatform id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.targetPlatform" isAbstract="false" name="GNU Autotools Target Platform" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.targetPlatform"/>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.gnu.toolchain.tool.configure.1920441220" name="configure" superClass="org.eclipse.linuxtools.cdt.autotools.core.gnu.toolchain.tool.configure.1400593219"/>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen.1076366128" name="autogen.sh" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen.412395088"/>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc.1945612696" name="GCC C Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc.1762811375">
+<option id="gnu.c.compiler.option.include.paths.2004397983" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="/usr/local/include/opencv"/>
+<listOptionValue builtIn="false" value="/home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/gpu/src"/>
+<listOptionValue builtIn="false" value="/usr/include/mpich2"/>
+</option>
 <inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.467592097" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 </tool>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp.832914106" name="GCC C++ Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp.832888105">
-<option id="gnu.cpp.compiler.option.include.paths.1283453475" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<option id="gnu.cpp.compiler.option.include.paths.1283453475" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 <listOptionValue builtIn="false" value="/usr/local/include/opencv"/>
 <listOptionValue builtIn="false" value="/usr/local/cuda/include"/>
 </option>

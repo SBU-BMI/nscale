@@ -9,15 +9,17 @@ include Makefile.inc
 ## END CUDA SETTINGS
 
 LIB_SRCH = HistologicalEntities.h MorphologicOperations.h PixelOperations.h utils.h
-LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp SegmentTask.cpp FileUtils.cpp
+LIB_SRC = HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp FileUtils.cpp
 LIB_SRCO = ${LIB_SRC:.cpp=.o}
+EXECENG_SRC = SegmentTask.cpp
+EXECENG_SRCO = ${EXECENG_SRC:.cpp=.o}
 
 gputests: tests imreconChunkTest.exe imreconOptimizeProfiler.exe 
 GPU_SRC = HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperationsGPU.cpp
 GPU_LIB_SRC = ${CUDA_SRC} ${GPU_SRC}
 GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}
 
-all: libsegment.so nu-segmentOMP.exe nu-segmentExecEngine.exe nu-segmentChunk.exe
+all: libsegment.so ${EXECENG_SRCO} nu-segmentOMP.exe nu-segmentExecEngine.exe nu-segmentChunk.exe
 
 tests: all nu-segmentChunkTest.exe imreconTest.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
 
@@ -36,7 +38,7 @@ clean:
 %.o: %.cu
 	$(NVCC) $(NVCC_FLAGS) $(NVCC_INCLUDE) ${CUDA_CV_INCLUDE} -o $@ -c $<
 	
-%.exe: %.o libsegment.so ${LIB_SRCH}
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -L. -lsegment -I. -o $@ $< 
+%.exe: %.o libsegment.so ${LIB_SRCH} ${EXECENG_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -L. -lsegment -I. -o $@ ${EXECENG_SRCO} $< 
 #	${LIB_SRCO} ${GPU_LIB_SRCO}
 	

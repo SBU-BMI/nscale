@@ -36,7 +36,7 @@ RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName,
 	}
 
 	// read actual image
-	originalImage = cvLoadImage( grayInputFileName.c_str(), -1 );
+	originalImage = cvLoadImage( grayInputFileName.c_str(), 0 );
 
 	if(originalImage == NULL){
 		cout << "Cound not open input image:"<<grayInputFileName <<endl;

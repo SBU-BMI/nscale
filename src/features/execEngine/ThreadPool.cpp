@@ -197,12 +197,12 @@ void ThreadPool::processTasks(int procType, int tid)
 		curTask = this->tasksQueue->getTask(procType);
 		if(curTask == NULL){
 			printf("procType:%d  tid:%d Task NULL\n", procType, tid);
-//#ifdef	TASK_REPLICATION
+#ifdef	TASK_REPLICATION
 			if(procType == Constant::GPU){
 				taskReplicationAction(procType);
 			}
 			sleep(10);
-//#endif
+#endif
 			break;
 		}
 		
