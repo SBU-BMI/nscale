@@ -26,6 +26,13 @@ public:
 
 	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);
 	static int segmentNuclei(const std::string& input, const std::string& output, cciutils::SimpleCSVLogger *logger=NULL, int stage=-1);
+
+	static const int BACKGROUND = 1;
+	static const int BACKGROUND_LIKELY = 2;
+	static const int NO_CANDIDATES_LEFT = 3;
+	static const int INVALID_IMAGE = -1;
+	static const int SUCCESS = 0;
+
 };
 
 

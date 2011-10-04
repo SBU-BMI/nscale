@@ -17,6 +17,10 @@
 #include <omp.h>
 #include "RegionalMorphologyAnalysis.h"
 
+#include "hdf5.h"
+#include "hdf5_hl.h"
+
+
 #ifdef WITH_MPI
 #include <mpi.h>
 #endif
@@ -40,19 +44,21 @@ int main (int argc, char **argv){
     // relevant to head node only
     std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
-	std::vector<std::string> gray_img;
-	char *inputBufAll, *outputBufAll;
+	std::vector<std::string> features_output;
+	char *inputBufAll, *maskBufAll, *featuresBufAll;
 	inputBufAll=NULL;
-	outputBufAll=NULL;
+	maskBufAll=NULL;
+	featuresBufAll=NULL;
 
 	// relevant to all nodes
 	int modecode = 0;
 	uint64_t t1 = 0, t2 = 0, t3 = 0, t4 = 0;
-	std::string fin, fout;
-	unsigned int perNodeCount=0, maxLenInput=0, maxLenOutput=0;
-	char *inputBuf, *outputBuf;
+	std::string fin, fmask, ffeatures;
+	unsigned int perNodeCount=0, maxLenInput=0, maxLenMask=0, maxLenFeatures=0;
+	char *inputBuf, *maskBuf, *featuresBuf;
 	inputBuf=NULL;
-	outputBuf=NULL;
+	maskBuf=NULL;
+	featuresBuf=NULL;
 
 	if (argc < 4) {
 		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
@@ -114,7 +120,12 @@ int main (int argc, char **argv){
 			temp = futils.replaceExt(filenames[i], ".tif", ".mask.pbm");
 			temp = futils.replaceDir(temp, dirname, outDir);
 			seg_output.push_back(temp);
-			maxLenOutput = maxLenOutput > temp.length() ? maxLenOutput : temp.length();
+			maxLenMask = maxLenMask > temp.length() ? maxLenMask : temp.length();
+			// generate the output file name
+			temp = futils.replaceExt(filenames[i], ".tif", ".features.h5");
+			temp = futils.replaceDir(temp, dirname, outDir);
+			features_output.push_back(temp);
+			maxLenFeatures = maxLenFeatures > temp.length() ? maxLenFeatures : temp.length();
 		}
 	}
 
@@ -122,18 +133,21 @@ int main (int argc, char **argv){
 	if (rank == 0) {
 		perNodeCount = filenames.size() / size + (filenames.size() % size == 0 ? 0 : 1);
 
-		printf("headnode: rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenOutput, maxLenInput);
+		printf("headnode: rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
 
 		// allocate the sendbuffer
 		inputBufAll= (char*)malloc(perNodeCount * size * maxLenInput * sizeof(char));
-		outputBufAll= (char*)malloc(perNodeCount * size * maxLenOutput * sizeof(char));
+		maskBufAll= (char*)malloc(perNodeCount * size * maxLenMask * sizeof(char));
+		featuresBufAll= (char*)malloc(perNodeCount * size * maxLenFeatures * sizeof(char));
 		memset(inputBufAll, 0, perNodeCount * size * maxLenInput);
-		memset(outputBufAll, 0, perNodeCount * size * maxLenOutput);
+		memset(maskBufAll, 0, perNodeCount * size * maxLenMask);
+		memset(featuresBufAll, 0, perNodeCount * size * maxLenFeatures);
 
 		// copy data into the buffers
 		for (unsigned int i = 0; i < filenames.size(); ++i) {
 			strncpy(inputBufAll + i * maxLenInput, filenames[i].c_str(), maxLenInput);
-			strncpy(outputBufAll + i * maxLenOutput, seg_output[i].c_str(), maxLenOutput);
+			strncpy(maskBufAll + i * maxLenMask, seg_output[i].c_str(), maxLenMask);
+			strncpy(featuresBufAll + i * maxLenFeatures, features_output[i].c_str(), maxLenFeatures);
 		}
 	}
 //	printf("rank: %d\n ", rank);
@@ -141,22 +155,27 @@ int main (int argc, char **argv){
 
 	MPI::COMM_WORLD.Bcast(&perNodeCount, 1, MPI::INT, 0);
 	MPI::COMM_WORLD.Bcast(&maxLenInput, 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast(&maxLenOutput, 1, MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast(&maxLenMask, 1, MPI::INT, 0);
+	MPI::COMM_WORLD.Bcast(&maxLenFeatures, 1, MPI::INT, 0);
 
 
-//	printf("rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenOutput, maxLenInput);
+//	printf("rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
 
 	// allocate the receive buffer
 	inputBuf = (char*)malloc(perNodeCount * maxLenInput * sizeof(char));
-	outputBuf = (char*)malloc(perNodeCount * maxLenOutput * sizeof(char));
+	maskBuf = (char*)malloc(perNodeCount * maxLenMask * sizeof(char));
+	featuresBuf = (char*)malloc(perNodeCount * maxLenFeatures * sizeof(char));
 
 	// scatter
 	MPI::COMM_WORLD.Scatter(inputBufAll, perNodeCount * maxLenInput, MPI::CHAR,
 		inputBuf, perNodeCount * maxLenInput, MPI::CHAR,
 		0);
 
-	MPI::COMM_WORLD.Scatter(outputBufAll, perNodeCount * maxLenOutput, MPI::CHAR,
-		outputBuf, perNodeCount * maxLenOutput, MPI::CHAR,
+	MPI::COMM_WORLD.Scatter(maskBufAll, perNodeCount * maxLenMask, MPI::CHAR,
+		maskBuf, perNodeCount * maxLenMask, MPI::CHAR,
+		0);
+	MPI::COMM_WORLD.Scatter(featuresBufAll, perNodeCount * maxLenFeatures, MPI::CHAR,
+		featuresBuf, perNodeCount * maxLenFeatures, MPI::CHAR,
 		0);
 #endif
 
@@ -166,16 +185,16 @@ int main (int argc, char **argv){
 
 
 #ifdef WITH_MPI
-#pragma omp parallel for shared(perNodeCount, inputBuf, outputBuf, maxLenInput, maxLenOutput, modecode, rank) private(fin, fout, t1, t2)
+#pragma omp parallel for shared(perNodeCount, inputBuf, maskBuf, maxLenInput, maxLenMask, modecode, rank) private(fin, fmask, t1, t2)
     for (unsigned int i = 0; i < perNodeCount; ++i) {
 		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
-		fout = std::string(outputBuf + i * maxLenOutput, maxLenOutput);
+		fmask = std::string(maskBuf + i * maxLenMask, maxLenMask);
 //		printf("in MPI seg loop with rank %d, loop %d\n", rank, i);
 #else
-#pragma omp parallel for shared(filenames, seg_output, modecode, rank) private(fin, fout, t1, t2)
+#pragma omp parallel for shared(filenames, seg_output, modecode, rank) private(fin, fmask, t1, t2)
     for (unsigned int i = 0; i < filenames.size(); ++i) {
 		fin = filenames[i];
-		fout = seg_output[i];
+		fmask = seg_output[i];
 //		printf("in seq seg loop with rank %d, loop %d\n", rank, i);
 #endif
 
@@ -191,18 +210,18 @@ int main (int argc, char **argv){
 		switch (modecode) {
 		case cciutils::DEVICE_CPU :
 		case cciutils::DEVICE_MCORE :
-			status = nscale::HistologicalEntities::segmentNuclei(fin, fout);
+			status = nscale::HistologicalEntities::segmentNuclei(fin, fmask);
 			break;
 		case cciutils::DEVICE_GPU :
-			status = nscale::gpu::HistologicalEntities::segmentNuclei(fin, fout);
+			status = nscale::gpu::HistologicalEntities::segmentNuclei(fin, fmask);
 			break;
 		default :
 			break;
 		}
 
 		t2 = cciutils::ClockGetTime();
-		printf("%d::%d: %d us, in %s, out %s\n", rank, tid, (int)(t2-t1), fin.c_str(), fout.c_str());
-//		std::cout << rank <<"::" << tid << ":" << t2-t1 << " us, in " << fin << ", out " << fout << std::endl;
+		printf("%d::%d: segment %d us, in %s, out %s\n", rank, tid, (int)(t2-t1), fin.c_str(), fmask.c_str());
+//		std::cout << rank <<"::" << tid << ":" << t2-t1 << " us, in " << fin << ", out " << fmask << std::endl;
 
     }
 #ifdef WITH_MPI
@@ -216,20 +235,21 @@ int main (int argc, char **argv){
 
 		t3 = cciutils::ClockGetTime();
     }
+
 /*  - DONT NEED THIS ANY MORE
 #pragma omp parallel for
 #ifdef WITH_MPI
     for (int i = 0; i < perNodeCout; ++i) {
 	fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
-	fout = std::string(grayBuf + i * maxLenGray, maxLenGray);
+	fmask = std::string(grayBuf + i * maxLenGray, maxLenGray);
 #else
     for (int i = 0; i < filenames.size(); ++i) {
 	fin = filenames[i];
-	fout = gray_img[i];
+	fmask = gray_img[i];
 #endif
 
-    	cv::imwrite(fout, cv::imread(fin, 0));
-    	std::cout << " grayscale conversion from " << fin << " to " << fout << std::endl;
+    	cv::imwrite(fmask, cv::imread(fin, 0));
+    	std::cout << " grayscale conversion from " << fin << " to " << fmask << std::endl;
     }
 
 #ifdef WITH_MPI
@@ -244,22 +264,32 @@ int main (int argc, char **argv){
     }
 */
 #ifdef WITH_MPI
-#pragma omp parallel for shared(perNodeCount, inputBuf, outputBuf, maxLenInput, maxLenOutput, rank) private(fin, fout)
+#pragma omp parallel for shared(perNodeCount, inputBuf, maskBuf, featuresBuf, maxLenInput, maxLenMask, maxLenFeatures, rank) private(fin, fmask, ffeatures)
     for (unsigned int i = 0; i < perNodeCount; ++i) {
-		fout = std::string(outputBuf + i * maxLenOutput, maxLenOutput);
+		fmask = std::string(maskBuf + i * maxLenMask, maxLenMask);
 		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
+		ffeatures = std::string(featuresBuf + i * maxLenFeatures, maxLenFeatures);
 
 #else
-#pragma omp parallel for shared(filenames, seg_output, rank) private(fin, fout)
+#pragma omp parallel for shared(filenames, seg_output, features_output, rank) private(fin, fmask, ffeatures)
     for (unsigned int i = 0; i < filenames.size(); ++i) {
-		fout = seg_output[i];
+		fmask = seg_output[i];
 		fin = filenames[i];
+		ffeatures = features_output[i];
 #endif
+
+		t1 = cciutils::ClockGetTime();
+
+		Mat test = imread(fmask);
+		if (!test.data) continue;
+		test = imread(fin);
+		if (!test.data) continue;
+
 
     	int tid = omp_get_thread_num();
 
     	// This is another option for inialize the features computation, where the path to the images are given as parameter
-    	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(fout, fin);
+    	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(fmask, fin);
 
     	/////////////// Computes Morphometry based features ////////////////////////
     	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
@@ -269,64 +299,121 @@ int main (int argc, char **argv){
     	vector<vector<float> > morphoFeatures;
     	regional->doMorphometryFeatures(morphoFeatures);
 
-#ifdef	PRINT_FEATURES
-	for(unsigned int i = 0; i < morphoFeatures.size(); i++){
-		printf("Id = %d ", i);
-		for(unsigned int j = 0; j < morphoFeatures[i].size(); j++){
-			printf("MorphFeature %d = %f ", j, morphoFeatures[i][j]);
-		}
-		printf("\n");
-	}
-#endif
-
 		/////////////// Computes Pixel Intensity based features ////////////////////////
 		// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
 		// 	MeanIntensity; MedianIntensity; MinIntensity; MaxIntensity; FirstQuartileIntensity; ThirdQuartileIntensity;
 		vector<vector<float> > intensityFeatures;
 		regional->doIntensityBlob(intensityFeatures);
 
-#ifdef	PRINT_FEATURES
-	for(unsigned int i = 0; i < intensityFeatures.size(); i++){
-		printf("Id = %d ", i);
-		for(unsigned int j = 0; j < intensityFeatures[i].size(); j++){
-			printf("IntensityFeature %d = %f ", j, intensityFeatures[i][j]);
-		}
-		printf("\n");
-	}
-#endif
 		/////////////// Computes Gradient based features ////////////////////////
 		// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
 		// MeanGradMagnitude; MedianGradMagnitude; MinGradMagnitude; MaxGradMagnitude; FirstQuartileGradMagnitude; ThirdQuartileGradMagnitude;
 		vector<vector<float> > gradientFeatures;
 		regional->doGradientBlob(gradientFeatures);
 
-#ifdef	PRINT_FEATURES
-	for(unsigned int i = 0; i < gradientFeatures.size(); i++){
-		printf("Id = %d ", i);
-		for(unsigned int j = 0; j < gradientFeatures[i].size(); j++){
-			printf("GradientFeature %d = %f ", j, gradientFeatures[i][j]);
-		}
-		printf("\n");
-	}
-#endif
 		/////////////// Computes Haralick based features ////////////////////////
 		// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
 		// 	Inertia; Energy; Entropy; Homogeneity; MaximumProbability; ClusterShade; ClusterProminence
 		vector<vector<float> > haralickFeatures;
 		regional->doCoocPropsBlob(haralickFeatures);
 
-#ifdef	PRINT_FEATURES
-	for(unsigned int i = 0; i < haralickFeatures.size(); i++){
-		printf("Id = %d ", i);
-		for(unsigned int j = 0; j < haralickFeatures[i].size(); j++){
-			printf("HaralickFeature %d = %f ", j, haralickFeatures[i][j]);
-		}
-		printf("\n");
-	}
-#endif
+
+		t2 = cciutils::ClockGetTime();
+		printf("%d::%d: features %d us, in %s, out %s\n", rank, tid, (int)(t2-t1), fin.c_str(), fmask.c_str());
+
 		delete regional;
 
-		printf("%d::%d: %s\n", rank, tid, fin.c_str());
+		printf("%d::%d: features: %d, %d, %d, %d\n", rank, tid, morphoFeatures.size(), intensityFeatures.size(), gradientFeatures.size(), haralickFeatures.size());
+		t1 = cciutils::ClockGetTime();
+
+		// create a single data field
+		if (morphoFeatures.size() > 0) {
+			unsigned int recordSize = morphoFeatures[0].size() + intensityFeatures[0].size() + gradientFeatures[0].size() + haralickFeatures[0].size();
+			unsigned int featureSize;
+			float *data = new float[morphoFeatures.size() * recordSize];
+			float *currData;
+			for(unsigned int i = 0; i < morphoFeatures.size(); i++) {
+//				printf("[%d] m ", i);
+				currData = data + i * recordSize;
+				featureSize = morphoFeatures[0].size();
+				for(unsigned int j = 0; j < featureSize; j++) {
+					if (j < morphoFeatures[i].size()) {
+						currData[j] = morphoFeatures[i][j];
+	#ifdef	PRINT_FEATURES
+						printf("%f, ", morphoFeatures[i][j]);
+	#endif
+					}
+				}
+//				printf("\n");
+//				printf("[%d] i ", i);
+
+				currData += featureSize;
+				featureSize = intensityFeatures[0].size();
+				for(unsigned int j = 0; j < featureSize; j++) {
+					if (j < intensityFeatures[i].size()) {
+						currData[j] = intensityFeatures[i][j];
+	#ifdef	PRINT_FEATURES
+						printf("%f, ", intensityFeatures[i][j]);
+	#endif
+					}
+				}
+//				printf("\n");
+//				printf("[%d] g ", i);
+
+				currData += featureSize;
+				featureSize = gradientFeatures[0].size();
+				for(unsigned int j = 0; j < featureSize; j++) {
+					if (j < gradientFeatures[i].size()) {
+						currData[j] = gradientFeatures[i][j];
+	#ifdef	PRINT_FEATURES
+						printf("%f, ", gradientFeatures[i][j]);
+	#endif
+					}
+				}
+//				printf("\n");
+//				printf("[%d] h ", i);
+
+				currData += featureSize;
+				featureSize = haralickFeatures[0].size();
+				for(unsigned int j = 0; j < featureSize; j++) {
+					if (j < haralickFeatures[i].size()) {
+						currData[j] = haralickFeatures[i][j];
+	#ifdef	PRINT_FEATURES
+						printf("%f, ", haralickFeatures[i][j]);
+	#endif
+					}
+				}
+//				printf("\n");
+
+			}
+			  hid_t file_id;
+			  herr_t hstatus;
+
+			hsize_t dims[2];
+			file_id = H5Fcreate ( ffeatures.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
+
+			dims[0] = morphoFeatures.size(); dims[1] = recordSize;
+			hstatus = H5LTmake_dataset ( file_id, "/features",
+					2, // rank
+					dims, // dims
+						 H5T_NATIVE_FLOAT, data );
+
+			// attach the attributes
+			unsigned long ul = morphoFeatures.size();
+			hstatus = H5LTset_attribute_ulong ( file_id, "/features", "num_objs", &ul, 1 );
+			ul = recordSize;
+			hstatus = H5LTset_attribute_ulong ( file_id, "/features", "num_coords", &ul, 1 );
+			hstatus = H5LTset_attribute_string ( file_id, "/features", "image_file", fin.c_str() );
+			H5Fclose ( file_id );
+
+			delete [] data;
+
+		}
+		t2 = cciutils::ClockGetTime();
+		printf("%d::%d: hdf5 %d us, in %s, out %s\n", rank, tid, (int)(t2-t1), fin.c_str(), ffeatures.c_str());
+
+
+
 	//	std::cout << rank << "::" << tid << ":" << fin << std::endl;
     }
 #ifdef WITH_MPI
@@ -340,12 +427,12 @@ int main (int argc, char **argv){
 	//	std::cout << "**** Feature Extraction took " << t4-t3 << " us" << std::endl;
 
 		free(inputBufAll);
-		free(outputBufAll);
+		free(maskBufAll);
     }
 
 
 	free(inputBuf);
-	free(outputBuf);
+	free(maskBuf);
 
 #ifdef WITH_MPI
     MPI::Finalize();
