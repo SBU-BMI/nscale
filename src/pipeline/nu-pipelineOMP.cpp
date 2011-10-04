@@ -49,6 +49,7 @@ int main (int argc, char **argv){
 	inputBufAll=NULL;
 	maskBufAll=NULL;
 	featuresBufAll=NULL;
+	int dataCount;
 
 	// relevant to all nodes
 	int modecode = 0;
@@ -127,6 +128,7 @@ int main (int argc, char **argv){
 			features_output.push_back(temp);
 			maxLenFeatures = maxLenFeatures > temp.length() ? maxLenFeatures : temp.length();
 		}
+		dataCount= filenames.size();
 	}
 
 #ifdef WITH_MPI
@@ -148,6 +150,7 @@ int main (int argc, char **argv){
 			strncpy(inputBufAll + i * maxLenInput, filenames[i].c_str(), maxLenInput);
 			strncpy(maskBufAll + i * maxLenMask, seg_output[i].c_str(), maxLenMask);
 			strncpy(featuresBufAll + i * maxLenFeatures, features_output[i].c_str(), maxLenFeatures);
+
 		}
 	}
 //	printf("rank: %d\n ", rank);
@@ -164,7 +167,6 @@ int main (int argc, char **argv){
 	// allocate the receive buffer
 	inputBuf = (char*)malloc(perNodeCount * maxLenInput * sizeof(char));
 	maskBuf = (char*)malloc(perNodeCount * maxLenMask * sizeof(char));
-	featuresBuf = (char*)malloc(perNodeCount * maxLenFeatures * sizeof(char));
 
 	// scatter
 	MPI::COMM_WORLD.Scatter(inputBufAll, perNodeCount * maxLenInput, MPI::CHAR,
@@ -173,9 +175,6 @@ int main (int argc, char **argv){
 
 	MPI::COMM_WORLD.Scatter(maskBufAll, perNodeCount * maxLenMask, MPI::CHAR,
 		maskBuf, perNodeCount * maxLenMask, MPI::CHAR,
-		0);
-	MPI::COMM_WORLD.Scatter(featuresBufAll, perNodeCount * maxLenFeatures, MPI::CHAR,
-		featuresBuf, perNodeCount * maxLenFeatures, MPI::CHAR,
 		0);
 #endif
 
@@ -189,10 +188,9 @@ int main (int argc, char **argv){
     for (unsigned int i = 0; i < perNodeCount; ++i) {
 		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
 		fmask = std::string(maskBuf + i * maxLenMask, maxLenMask);
-//		printf("in MPI seg loop with rank %d, loop %d\n", rank, i);
 #else
 #pragma omp parallel for shared(filenames, seg_output, modecode, rank) private(fin, fmask, t1, t2)
-    for (unsigned int i = 0; i < filenames.size(); ++i) {
+    for (unsigned int i = 0; i < dataCount; ++i) {
 		fin = filenames[i];
 		fmask = seg_output[i];
 //		printf("in seq seg loop with rank %d, loop %d\n", rank, i);
@@ -219,15 +217,22 @@ int main (int argc, char **argv){
 			break;
 		}
 
+		if (status != nscale::HistologicalEntities::SUCCESS) {
+#ifdef WITH_MPI
+			memset(maskBuf + i * maxLenMask, 0, maxLenMask);
+#else
+			seg_output[i] = std::string("");
+#endif
+		}
 		t2 = cciutils::ClockGetTime();
-		printf("%d::%d: segment %d us, in %s, out %s\n", rank, tid, (int)(t2-t1), fin.c_str(), fmask.c_str());
+		printf("%d::%d: segment %d us, in %s\n", rank, tid, (int)(t2-t1), fin.c_str());
 //		std::cout << rank <<"::" << tid << ":" << t2-t1 << " us, in " << fin << ", out " << fmask << std::endl;
 
     }
+
 #ifdef WITH_MPI
     MPI::COMM_WORLD.Barrier();
 #endif
-
     if (rank == 0)  {
     	t4 = cciutils::ClockGetTime();
 		printf("**** Segment took %d us\n", (int)(t4-t3));
@@ -235,6 +240,92 @@ int main (int argc, char **argv){
 
 		t3 = cciutils::ClockGetTime();
     }
+
+#ifdef WITH_MPI
+    MPI::COMM_WORLD.Barrier();
+
+    // gather the results
+	MPI::COMM_WORLD.Gather(maskBuf, perNodeCount * maxLenMask, MPI::CHAR,
+		maskBufAll, perNodeCount * maxLenMask, MPI::CHAR,
+		0);
+
+	memset(maskBuf, 0, perNodeCount * maxLenMask * sizeof(char));
+	memset(inputBuf, 0, perNodeCount * maxLenInput * sizeof(char));
+	featuresBuf = (char*)malloc(perNodeCount * maxLenFeatures * sizeof(char));
+
+	char* currPos;
+	unsigned int newId;
+	if (rank == 0) {
+	    // and clean it up
+		newId = 0;
+		for (unsigned int i = 0; i < perNodeCount * size; ++i) {
+			currPos = maskBufAll + i * maxLenMask;
+
+			if (*currPos > 0 && newId != i) {  // not an empty string
+				memset(maskBufAll + newId * maxLenMask, 0, maxLenMask);
+				strncpy(maskBufAll + newId * maxLenMask, currPos, maxLenMask);
+				memset(inputBufAll + newId * maxLenInput, 0, maxLenInput);
+				strncpy(inputBufAll + newId * maxLenInput, inputBufAll + i * maxLenInput, maxLenInput);
+				memset(featuresBufAll + newId * maxLenFeatures, 0, maxLenFeatures);
+				strncpy(featuresBufAll + newId * maxLenFeatures, featuresBufAll + i * maxLenFeatures, maxLenFeatures);
+
+				fmask = std::string(maskBufAll + newId * maxLenMask, maxLenMask);
+				fin = std::string(inputBufAll + newId * maxLenInput, maxLenInput);
+				ffeatures = std::string(featuresBufAll + newId * maxLenFeatures, maxLenFeatures);
+				printf("in %s, mask %s, feature %s\n", fin.c_str(), fmask.c_str(), ffeatures.c_str());
+
+				++newId;
+			}
+		}
+		memset(maskBufAll + newId*maxLenMask, 0, (perNodeCount*size - newId) * maxLenMask);
+		memset(inputBufAll + newId*maxLenInput, 0, (perNodeCount*size - newId) * maxLenInput);
+		memset(featuresBufAll + newId*maxLenFeatures, 0, (perNodeCount*size - newId) * maxLenFeatures);
+
+		dataCount = newId;
+		perNodeCount = dataCount / size + (dataCount % size == 0 ? 0 : 1);
+
+		printf("headnode: rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
+	}
+//	printf("rank: %d\n ", rank);
+	MPI::COMM_WORLD.Barrier();
+
+	MPI::COMM_WORLD.Bcast(&perNodeCount, 1, MPI::INT, 0);
+
+//	printf("rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
+
+	// allocate the receive buffer
+
+	// scatter
+	MPI::COMM_WORLD.Scatter(inputBufAll, perNodeCount * maxLenInput, MPI::CHAR,
+		inputBuf, perNodeCount * maxLenInput, MPI::CHAR,
+		0);
+
+	MPI::COMM_WORLD.Scatter(maskBufAll, perNodeCount * maxLenMask, MPI::CHAR,
+		maskBuf, perNodeCount * maxLenMask, MPI::CHAR,
+		0);
+
+	MPI::COMM_WORLD.Scatter(featuresBufAll, perNodeCount * maxLenFeatures, MPI::CHAR,
+		featuresBuf, perNodeCount * maxLenFeatures, MPI::CHAR,
+		0);
+#else
+	std::vector<std::string> tempInput;
+	std::vector<std::string> tempMask;
+	std::vector<std::string> tempFeatures;
+
+	dataCount = 0;
+	for (unsigned int i = 0; i < seg_output.size(); i++) {
+		if (seg_output[i].compare(std::string("")) != 0) {
+			tempMask.push_back(seg_output[i]);
+			tempInput.push_back(filenames[i]);
+			tempFeatures.push_back(features_output[i]);
+			++dataCount;
+		}
+	}
+	filenames = tempInput;
+	features_output = tempFeatures;
+	seg_output = tempMask;
+#endif
+
 
 /*  - DONT NEED THIS ANY MORE
 #pragma omp parallel for
@@ -269,10 +360,11 @@ int main (int argc, char **argv){
 		fmask = std::string(maskBuf + i * maxLenMask, maxLenMask);
 		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
 		ffeatures = std::string(featuresBuf + i * maxLenFeatures, maxLenFeatures);
+		printf("in MPI feature loop with rank %d, loop %d.  %s, %s, %s\n", rank, i, fin.c_str(), fmask.c_str(), ffeatures.c_str());
 
 #else
 #pragma omp parallel for shared(filenames, seg_output, features_output, rank) private(fin, fmask, ffeatures)
-    for (unsigned int i = 0; i < filenames.size(); ++i) {
+    for (unsigned int i = 0; i < dataCount; ++i) {
 		fmask = seg_output[i];
 		fin = filenames[i];
 		ffeatures = features_output[i];
@@ -426,16 +518,22 @@ int main (int argc, char **argv){
 		printf("**** Feature Extraction took %d us \n", (int)(t4-t3));
 	//	std::cout << "**** Feature Extraction took " << t4-t3 << " us" << std::endl;
 
-		free(inputBufAll);
-		free(maskBufAll);
     }
 
 
-	free(inputBuf);
-	free(maskBuf);
 
 #ifdef WITH_MPI
-    MPI::Finalize();
+    if (rank == 0) {
+		free(inputBufAll);
+		free(maskBufAll);
+		free(featuresBufAll);
+    }
+
+	free(inputBuf);
+	free(maskBuf);
+	free(featuresBuf);
+
+	MPI::Finalize();
 #endif
 
 

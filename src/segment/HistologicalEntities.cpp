@@ -92,7 +92,8 @@ int HistologicalEntities::segmentNuclei(const std::string& in, const std::string
 
 	int status = nscale::HistologicalEntities::segmentNuclei(input, output, logger, stage);
 
-	imwrite(out, output);
+	if (status == ::nscale::HistologicalEntities::SUCCESS)
+		imwrite(out, output);
 
 	return status;
 }
