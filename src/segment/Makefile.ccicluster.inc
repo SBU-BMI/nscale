@@ -1,4 +1,4 @@
-CXX=/usr/bin/g++
+CXX=g++
 CXXFLAGS=-fPIC -pg -O3 -fopenmp #-g -msse4.2 
 #CXX=icpc
 #CXXFLAGS=-g -fast -openmp -msse4.2
