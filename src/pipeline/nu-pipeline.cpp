@@ -321,7 +321,7 @@ int main (int argc, char **argv){
 #endif
 		}
 		t2 = cciutils::ClockGetTime();
-		printf("%d::%d: segment %d us, in %s\n", rank, tid, (int)(t2-t1), fin.c_str());
+		printf("%d::%d: segment %lu us, in %s\n", rank, tid, t2-t1, fin.c_str());
 //		std::cout << rank <<"::" << tid << ":" << t2-t1 << " us, in " << fin << ", out " << fmask << std::endl;
 
     }
@@ -331,7 +331,7 @@ int main (int argc, char **argv){
 #endif
     if (rank == 0)  {
     	t4 = cciutils::ClockGetTime();
-		printf("**** Segment took %d us\n", (int)(t4-t3));
+		printf("**** Segment took %lu us\n", t4-t3);
 	//	std::cout << "**** Segment took " << t4-t3 << " us" << std::endl;
 
 		t3 = cciutils::ClockGetTime();
@@ -509,7 +509,7 @@ int main (int argc, char **argv){
 
 
 		t2 = cciutils::ClockGetTime();
-		printf("%d::%d: features %d us, in %s, out %s\n", rank, tid, (int)(t2-t1), fin.c_str(), fmask.c_str());
+		printf("%d::%d: features %lu us, in %s, out %s\n", rank, tid, t2-t1, fin.c_str(), fmask.c_str());
 
 		delete regional;
 
@@ -600,7 +600,7 @@ int main (int argc, char **argv){
 
 		}
 		t2 = cciutils::ClockGetTime();
-		printf("%d::%d: hdf5 %d us, in %s, out %s\n", rank, tid, (int)(t2-t1), fin.c_str(), ffeatures.c_str());
+		printf("%d::%d: hdf5 %lu us, in %s, out %s\n", rank, tid, t2-t1, fin.c_str(), ffeatures.c_str());
 
 
 
@@ -613,7 +613,7 @@ int main (int argc, char **argv){
     if (rank == 0) {
 
     	t4 = cciutils::ClockGetTime();
-		printf("**** Feature Extraction took %d us \n", (int)(t4-t3));
+		printf("**** Feature Extraction took %lu us \n", t4-t3);
 	//	std::cout << "**** Feature Extraction took " << t4-t3 << " us" << std::endl;
 
     }
