@@ -202,17 +202,22 @@ int main (int argc, char **argv){
 		}
 
 
-		std::string temp;
+		std::string temp, tempdir;
 		for (unsigned int i = 0; i < filenames.size(); ++i) {
 			maxLenInput = maxLenInput > filenames[i].length() ? maxLenInput : filenames[i].length();
 				// generate the output file name
 			temp = futils.replaceExt(filenames[i], ".tif", ".mask.pbm");
 			temp = futils.replaceDir(temp, dirname, outDir);
+			tempdir = temp.substr(0, temp.find_last_of("/\\"));
+			futils.mkdirs(tempdir);
+
 			seg_output.push_back(temp);
 			maxLenMask = maxLenMask > temp.length() ? maxLenMask : temp.length();
 			// generate the output file name
 			temp = futils.replaceExt(filenames[i], ".tif", ".features.h5");
 			temp = futils.replaceDir(temp, dirname, outDir);
+			tempdir = temp.substr(0, temp.find_last_of("/\\"));
+			futils.mkdirs(tempdir);
 			features_output.push_back(temp);
 			maxLenFeatures = maxLenFeatures > temp.length() ? maxLenFeatures : temp.length();
 		}

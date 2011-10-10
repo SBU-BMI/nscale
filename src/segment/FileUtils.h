@@ -27,6 +27,7 @@ class FileUtils
 
         string replaceDir(string& filename, const string& oldDir, const string& newDir);
         string replaceExt(string& filename, const string& oldExt, const string& newExt);
+        bool mkdirs(const string& dirname);
 
     protected:
         const std::string ext;

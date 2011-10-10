@@ -16,6 +16,7 @@
 #include <dirent.h>
 #include <vector>
 #include <queue>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -90,3 +91,22 @@ void FileUtils::traverseDirectoryRecursive(const string & directory, vector<stri
     }
 }
 
+bool FileUtils::mkdirs(const string & d)
+{
+	DIR *dir = opendir(d.c_str());
+	if (dir == 0 && d.size() > 0) {
+		// find the parent
+		int currPos = d.find_last_of("/\\");
+		string parent = d.substr(0, currPos);
+		printf("dir to create: %s, parent: %s\n", d.c_str(), parent.c_str());
+		if (FileUtils::mkdirs(parent)) {
+			int n = mkdir(d.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+			if (n != 0) return false;
+		} else {
+			return false;
+		}
+	} else {
+		closedir(dir);
+	}
+	return true;
+}
