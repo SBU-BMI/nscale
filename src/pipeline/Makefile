@@ -15,7 +15,7 @@ include Makefile-mpi.inc
 ## END CUDA SETTINGS
 
 
-all: nu-pipelineOMP.exe test.exe
+all: nu-pipeline.exe nu-pipeline-omp.exe nu-pipeline-mpi.exe nu-pipeline-omp-mpi.exe
 
 clean:
 	$(RM) *.o *.exe
@@ -26,6 +26,12 @@ clean:
 %.o: %.c 
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
 	
-%.exe: %.o 
+%.exe:  %.o 
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< 
-	
+%-omp.exe:  %.o 
+	$(CXX) $(CXXFLAGS) -fopenmp $(LDFLAGS) -o $@ $< 
+%-mpi.exe:  %.o 
+	$(CXX) $(CXXFLAGS) -DWITH_MPI $(LDFLAGS) -o $@ $< 
+%-omp-mpi.exe:  %.o 
+	$(CXX) $(CXXFLAGS) -fopenmp -DWITH_MPI $(LDFLAGS) -o $@ $< 
+		

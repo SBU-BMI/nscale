@@ -14,18 +14,102 @@
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>
-#include <omp.h>
 #include "RegionalMorphologyAnalysis.h"
 
 #include "hdf5.h"
 #include "hdf5_hl.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #ifdef WITH_MPI
 #include <mpi.h>
 #endif
 
 using namespace cv;
+/*
+void get_feature_data( std::vector<std::string>& inputs,
+	float **&objects, unsigned long& num_objs, unsigned long& num_features,
+	MPI::COMM comm)
+{
+  hid_t file_id, acc_plist_id = H5P_DEFAULT, xfer_plist_id, inspace, memspace, dataset;
+  hsize_t dims[2], offset[2], count[2];
+  herr_t status;
+  MPI_Status mpistatus;
+  int i, j, len, divd, rem;
+  int rank, nproc;
+
+  MPI_Comm_rank ( comm, &rank );
+  MPI_Comm_size ( MPI_COMM_WORLD, &nproc );
+
+
+  file_id = H5Fopen ( inputs[0].c_str(), H5F_ACC_RDONLY, acc_plist_id );
+  if (file_id < 0) {
+    cerr << "Error opening file " << inputs[0] << endl;
+    MPI_Finalize();
+    exit(1);
+  }
+
+  // Read the attributes off the dataset 
+  
+  //  status = H5LTget_attribute_ulong ( file_id, "/fr", "num_objs", &num_objs );
+  //  status = H5LTget_attribute_ulong ( file_id, "/fr", "num_coords", &num_coords );
+  
+  status = H5LTget_dataset_info ( file_id, "/fr", dims, NULL, NULL );
+  H5Fclose ( file_id );
+  num_objs = dims[0]; num_coords = dims[1];
+
+  divd = num_objs / nproc;
+  rem  = num_objs % nproc;
+  len  = (rank < rem) ? rank*(divd+1) : rank*divd + rem;
+  //  disp = 2 * sizeof(int) + len * num_coords * sizeof(float);
+
+  dims[0] = num_objs; dims[1] = num_coords;
+  inspace = H5Screate_simple ( 2, dims, dims );
+
+  // adjust numObjs to be local size
+  dims[0] = num_objs = (rank < rem) ? divd+1 : divd;
+  memspace = H5Screate_simple ( 2, dims, dims );
+
+  // allocate object array
+  objects = (float**) calloc ( num_objs, sizeof(float*) );
+  assert ( objects );
+  objects[0] = (float*) calloc ( num_objs * num_coords, sizeof(float) );
+  assert ( objects[0] );
+
+  for (int i = 1; i < num_objs; i++)
+    objects[i] = objects[i-1] + num_coords;
+
+  //
+    Set up the HDF5 dataspace and hyperslab.  Conceptually we want to get the rank'th
+    chunk of len objects.
+  
+  offset[0] = offset[1] = 0;
+  count[0] = num_objs; count[1] = num_coords;
+  H5Sselect_hyperslab ( memspace, H5S_SELECT_SET, offset, NULL, count, NULL );
+
+  offset[0] = (rank < rem) ? rank * num_objs : (rem * (num_objs + 1)) + ((rank - rem) * num_objs);
+  H5Sselect_hyperslab ( inspace, H5S_SELECT_SET, offset, NULL, count, NULL );
+
+  for (int i = 0; i < inputs.size(); i++) {
+
+    file_id = H5Fopen ( inputs[i].c_str(), H5F_ACC_RDONLY, H5P_DEFAULT );
+    dataset = H5Dopen ( file_id, "/fr", H5P_DEFAULT );
+
+    status = H5Dread ( dataset, H5T_NATIVE_FLOAT, memspace, inspace, H5P_DEFAULT, objects[0] );
+
+    status = H5Dclose ( dataset );
+    status = H5Fclose ( file_id );
+
+  }
+
+}
+*/
+
+
+
+
 
 
 int main (int argc, char **argv){
@@ -72,16 +156,20 @@ int main (int argc, char **argv){
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
 		// get core count
+
+#ifdef _OPENMP
 		if (argc > 5) {
 			omp_set_num_threads(atoi(argv[5]));
 		}
+#endif
 	} else if (strcasecmp(mode, "mcore") == 0) {
 		modecode = cciutils::DEVICE_MCORE;
 		// get core count
+#ifdef _OPENMP
 		if (argc > 5) {
 			omp_set_num_threads(atoi(argv[5]));
 		}
-
+#endif
 	} else if (strcasecmp(mode, "gpu") == 0) {
 		modecode = cciutils::DEVICE_GPU;
 		// get device count
@@ -196,8 +284,11 @@ int main (int argc, char **argv){
 //		printf("in seq seg loop with rank %d, loop %d\n", rank, i);
 #endif
 
+#ifdef _OPENMP
     	int tid = omp_get_thread_num();
-
+#else
+		int tid = 0;
+#endif
 
 //  	std::cout << outfile << std::endl;
 
@@ -377,9 +468,11 @@ int main (int argc, char **argv){
 		test = imread(fin);
 		if (!test.data) continue;
 
-
+#ifdef _OPENMP
     	int tid = omp_get_thread_num();
-
+#else
+		int tid = 0;
+#endif
     	// This is another option for inialize the features computation, where the path to the images are given as parameter
     	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(fmask, fin);
 
@@ -532,6 +625,143 @@ int main (int argc, char **argv){
 	free(inputBuf);
 	free(maskBuf);
 	free(featuresBuf);
+/*
+// now do the kmeans stuff.
+  int     numClusters, is_perform_atomic=0, cluster_center_size;
+  unsigned long numObjs, numCoords, totalNumObjs;
+  int   *membership;    // [numObjs] 
+  char   *filename;
+  float **objects;       // [numObjs][numCoords] data objects 
+  float **clusters;      // [numClusters][numCoords] cluster centers 
+  float   threshold = 0.001;
+  float **cluster_centers;
+  double  timing, io_timing, clustering_timing;
+  std::vector< std::string > inputs;
+  string infile, outfile, outpath;
+  struct gengetopt_args_info args_info;
+
+  int        rank, nproc, mpi_namelen;
+  char       mpi_name[MPI_MAX_PROCESSOR_NAME];
+  MPI_Status status;
+  hid_t acc_plist_id, xfer_plist_id;
+
+  cluster_center_size = 0;
+
+  if (cmdline_parser ( argc, argv, &args_info ) != 0) {
+    std::cerr << "Failed to parse command line." << endl;
+    exit(1);
+  }
+
+  build_inputs ( args_info, inputs );
+
+  MPI_Init ( &argc, &argv );
+  MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
+  MPI_Comm_size ( MPI_COMM_WORLD, &nproc );
+  MPI_Get_processor_name ( mpi_name, &mpi_namelen );
+
+
+  MPI_Barrier ( MPI_COMM_WORLD );
+
+  if (_debug) printf("Proc %d of %d running on %s\n", rank, nproc, mpi_name);
+
+  numClusters = args_info.clusters_arg;
+  numObjs = 0; numCoords = 0;
+
+  get_response_data ( inputs, objects, numObjs, numCoords, MPI_COMM_WORLD );
+  //  std::cerr << "numObjs = " << numObjs << ", numCoords = " << numCoords << endl;
+
+  // allocate a 2D space for clusters[] (coordinates of cluster centers)
+     this array should be the same across all processes                  
+  clusters    = (float**) malloc(numClusters * sizeof(float*));
+  assert(clusters != NULL);
+  clusters[0] = (float*)  malloc(numClusters * numCoords * sizeof(float));
+  assert(clusters[0] != NULL);
+  for (int i=1; i<numClusters; i++)
+    clusters[i] = clusters[i-1] + numCoords;
+
+  MPI_Allreduce(&numObjs, &totalNumObjs, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+  //  // pick first numClusters elements in feature[] as initial cluster centers
+  // for (int i=0; i<numClusters; i++)
+  //   for (int j=0; j<numCoords; j++)
+  //            clusters[i][j] = objects[i][j];
+
+  for (int i = 0; i < numClusters; i++) {
+    
+    //  randomly pick a cluster to copy to initial object set
+    int pick;
+
+    //      pick = (int) ((numObjs - 1) * (rand() / (RAND_MAX + 1.0)));
+    pick = (int)(rand() % numObjs);
+    //printf ("pick %d\n", pick);
+    for (int j = 0; j < numCoords; j++) {
+      clusters[i][j] = objects[pick][j];
+    }
+  }
+
+  MPI_Bcast(clusters[0], numClusters*numCoords, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+  // membership: the cluster id for each data object 
+  membership = (int*) malloc(numObjs * sizeof(int));
+  assert(membership != NULL);
+
+
+  //      cluster_center_size += numClusters;
+  cluster_center_size += args_info.clusters_arg;
+
+  mpi_kmeans ( objects, numCoords, numObjs,
+               numClusters, threshold,
+               membership, clusters,
+               MPI_COMM_WORLD );
+
+  cluster_centers = (float**)malloc(cluster_center_size * sizeof(float*));
+  assert(cluster_centers != NULL);
+  cluster_centers[0] = (float*) malloc((numCoords * cluster_center_size ) * sizeof(float));
+  assert(cluster_centers[0] != NULL);
+  for (int n = 1; n < cluster_center_size; n++)
+    cluster_centers[n] = cluster_centers[n-1] + numCoords;
+
+  for (int p = 0; p < cluster_center_size - numClusters; p++)
+    for (int q = 0; q < numCoords; q++)
+      cluster_centers[p][q] = clusters[p][q];
+
+  int p2 = cluster_center_size - numClusters;
+  for (int p = 0; p < numClusters; p++,p2++)
+    for (int q = 0; q < numCoords; q++)
+      cluster_centers[p2][q] = clusters[p][q];
+
+  free(objects[0]);
+  free(objects);
+
+  free(membership);
+  free(clusters[0]);
+  free(clusters);
+
+  outpath = args_info.output_path_given ? args_info.output_path_arg : "./";
+  outfile = args_info.output_file_given ? args_info.output_file_arg : "texton_lib.h5";
+
+  outfile = outpath + "/" + outfile;
+
+  hid_t file_id;
+  hsize_t dims[2];
+  herr_t hdf_status;
+
+  if (rank == 0) {
+    file_id = H5Fcreate ( outfile.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
+    dims[0] = cluster_center_size; dims[1] = numCoords;
+    hdf_status = H5LTmake_dataset ( file_id, "/centroids", 
+	2, //rank
+	dims, //dim
+                                H5T_NATIVE_FLOAT, cluster_centers[0] );
+    add_provenance_attrs ( file_id, "/centroids", argc, argv );
+    H5Fclose ( file_id );
+  }
+
+  free(cluster_centers[0]);
+  free(cluster_centers);
+*/
+
+
 
 	MPI::Finalize();
 #endif
