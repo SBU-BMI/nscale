@@ -125,8 +125,17 @@ CvBox2D Blob::getEllipse(){
 
 	// Do we have to fit the ellipse?
 	if(min_fitting_ellipse.size.width == -1.0){
-		min_fitting_ellipse = cvFitEllipse2(external_contour->getCl());
-
+		try{
+			min_fitting_ellipse = cvFitEllipse2(external_contour->getCl());
+	
+		}
+		catch( cv:: Exception& e){
+			const char* err_msg = e.what();
+			min_fitting_ellipse.size.width = 0;
+			min_fitting_ellipse.size.height = 0;
+			min_fitting_ellipse.angle = 0;
+//			printf("Warning: failed to fitEllipse: %s", err_msg);
+		}
 	/*	double u00,u11,u01,u10,u20,u02, delta, num, den, temp;
 
 		// central moments calculation
