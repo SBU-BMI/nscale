@@ -1,0 +1,8 @@
+0::0: hdf5 756 us, in /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000065536-0000000000.tif, out /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000065536-0000000000.features.h5
+OpenCV Error: Incorrect size of input array (Number of points should be >= 5) in cvFitEllipse2, file /home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/imgproc/src/shapedescr.cpp, line 972
+0::0: 2457 features 1889421 us, in /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000012288-0000020480.tif, out /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000012288-0000020480.features.h5
+
+
+0::0: hdf5 2054 us, in /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000016384-0000012288.tif, out /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000016384-0000012288.features.h5
+OpenCV Error: Incorrect size of input array (Number of points should be >= 5) in cvFitEllipse2, file /home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/imgproc/src/shapedescr.cpp, line 972
+0::0: 4097 features 2691236 us, in /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000061440-0000012288.tif, out /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000061440-0000012288.features.h5

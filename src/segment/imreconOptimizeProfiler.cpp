@@ -70,13 +70,29 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 	g_recon.release();
 */
 	t1 = cciutils::ClockGetTime();
+	if (binary) recon = nscale::imreconstructBinary<uchar>(marker, mask, 8);
+	else recon = nscale::imreconstruct<uchar>(marker, mask, 8);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "\tcpu recon 4-con took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-imrecon-vincent.pgm", recon);
+
+	t1 = cciutils::ClockGetTime();
+	recon = nscale::imreconstructUChar(marker, mask, 8);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "\tcpu downhill recon 4-con took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-imrecon-tony-downhill.pgm", recon);
+
+
+
+/* For profiling
+	t1 = cciutils::ClockGetTime();
 	if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 8, stream);
 	else g_recon = nscale::gpu::imreconstructQ<uchar>(g_marker, g_mask, 8, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon 8-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
-
+*/
 /*	t1 = cciutils::ClockGetTime();
 	if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 4, stream);
 	else g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
