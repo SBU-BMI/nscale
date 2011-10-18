@@ -28,149 +28,176 @@ using namespace cv::gpu::device;
 
 namespace nscale { namespace gpu {
 
-// 3 * WARP_SIZE.  first WARP_SIZE is dummy so to avoid warp divergence in warp_scan.  second WARP_SIZE is the scan area.  third WARP_SIZE is boolean marking the items to copy later.
+
+// 3 * WARP_SIZE.    third WARP_SIZE is boolean marking the items to copy later.
+// does not touch other warps
 template<class T> 
-__device__ int warp_mark(const T* s_in_data, volatile int* s_mark, const int idx) {
-	s_mark[idx - WARP_SIZE] = 0;  // extra padding for the scan part...
-	s_mark[idx + WARP_SIZE] = s_mark[idx] = (s_in_data[threadIdx.x] > 0 ? 1, 0);
-	return s_mark[idx];
+__device__ void warp_mark(const T* s_in_data, volatile int* s_mark) {
+	s_mark[threadIdx.x] = (s_in_data[threadIdx.x] > 0 ? 1, 0);
 } 
 
+// s_mark and s_scan pointers point to the starting pos of current warp's data: s_scan = s_scan + 2*warpId*WARP_SIZE
+// idx is the id within the warp.
+// first WARP_SIZE is dummy so to avoid warp divergence in warp_scan.
+// second WARP_SIZE is the scan area.
+// does not touch other warps
+template<typename T>
+__device__ void init_warp_scan(volatile int* s_mark, volatile int* s_scan, const int idx) {
+	s_scan[idx] = 0;  // extra padding for the scan part...
+	s_scan[idx + WARP_SIZE] = s_mark[threadIdx.x];
+}
 
-// adapted from CudPP.  exclusive should be 1 or 0.
-template<int maxlevel, int exclusive>
-__device__ int warp_scan(volatile int* s_mark, const int idx) {
-	int t = s_mark[idx];
-	if (0 <= maxlevel) { s_mark[idx] = t = t + s_mark[idx - 1]; }
-	if (1 <= maxlevel) { s_mark[idx] = t = t + s_mark[idx - 2]; }
-	if (2 <= maxlevel) { s_mark[idx] = t = t + s_mark[idx - 4]); }
-	if (3 <= maxlevel) { s_mark[idx] = t = t + s_mark[idx - 8]); }
-	if (4 <= maxlevel) { s_mark[idx] = t = t + s_mark[idx -16]); }
-	return s_mark[idx - exclusive]; // exclusive  scan.
+// adapted from CudPP.
+// does not touch other warps
+template<int maxlevel>
+__device__ int warp_scan(volatile int* s_scan, const int idx) {
+	int t = s_scan[idx];
+	if (0 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 1]; }
+	if (1 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 2]; }
+	if (2 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 4]); }
+	if (3 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 8]); }
+	if (4 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx -16]); }
+	return s_scan[WARP - 1]; // return the total
 } 
 
-// out_data points to the starting position where the compacted stuff is to go.
+// s_out_data points to the beginning of the shared array.
+// s_scan points to the scanned position for this warp
+// s_scan should be exclusive
+// return total selected for the warp
+// touches other warps, but can rely on warp execution ordering.
 template<class T> 
-__device__ int warp_select(const T* s_in_data, const int* s_mark, volatile T* s_out_data, const int idx) {
-	const  int pos = s_mark[idx] - 1;  // new position
-	if (s_mark[idx + WARP_SIZE] > 0) { s_out_data[pos] = s_in_data[threadIdx.x]; }
-	return s_mark[idx];
+__device__ void warp_select(const T* s_in_data, const int* s_mark, const int* s_scan, volatile T* s_out_data, const int offset, const int idx) {
+	if (s_mark[threadIdx.x] > 0) { s_out_data[s_scan[idx] + offset] = s_in_data[threadIdx.x]; }
 } 
 
 // unordered
 template<class T>
-__global__ void unordered_compact(const T* in_data, const int dataSize, volatile T* out_data, volatile int* queue_size) {
+__global__ void unordered_select(const T* in_data, const int dataSize, volatile T* out_data, volatile int* queue_size) {
 	// initialize the variables
 	const int idx = threadIdx.x & (WARP_SIZE - 1);
 	const int warpId = threadIdx.x >> 5;
 	const int x = threadIdx.x + blockDim.x * blockIdx.x;
 
-	__shared__ volatile int totals[WARP_SIZE];
-	__shared__ volatile int s_mark[NUM_WARPS][WARP_SIZE * 3 + 1];
+	__shared__ volatile int offsets[(BLOCK_SIZE >> 5) + 1];  // avoid divergence - everyone write...
+	__shared__ volatile int s_mark[BLOCK_SIZE];
+	__shared__ volatile int s_scan[NUM_WARPS][WARP_SIZE * 2 + 1];
 	__shared__ volatile T s_in_data[BLOCK_SIZE];
 	__shared__ volatile T s_out_data[BLOCK_SIZE];
 	int curr_pos;
+	int curr_len;
 
 	// copy in data
-	totals[idx] = 0;
+	if (warpId == 0) offsets[0] = 0;
+	offsets[warpId + 1] = 0;
 	s_out_data[threadIdx.x] = 0;
 	s_in_data[threadIdx.x] = 0;
 	if (x < dataSize) s_in_data[threadIdx.x] = in_data[x];
 	__syncthreads();
 
 	// compact within this block
-	warp_mark(s_in_data, s_mark[warpId] + WARP_SIZE, idx);  // mark the data to be processed
-	warp_scan<5, 0>(s_mark[warpId] + WARP_SIZE, idx);  // perform the in warp scan
-	totals[idx] += warp_select(s_in_data, s_mark[warpId] + WARP_SIZE, s_out_data + totals[WARP_SIZE-1], idx);  // compact the data into the global space.
+	warp_mark(s_in_data, s_mark);  // mark the data to be processed
+	init_warp_scan(s_mark, s_scan[warpId], idx)
+	curr_len = warp_scan<5>(s_scan[warpId] + WARP_SIZE, idx);  // perform the in warp scan.
+	// now update the totals.  note that warpId+1 would only be updated after warpId is updated, because of warp execution order.
+	// note the use of curr_len.  want to avoid reading offsets[warpId] before warp scan is executed for that warpId.
+	offsets[warpId + 1] = offsets[warpId] + curr_len;
+	warp_select(s_in_data, s_mark, s_scan[warpId] + WARP_SIZE, s_out_data, offsets[warpId], idx);  // compact the data into the block space.
 	__syncthreads();
 
 	//copy the data back out.  this block will get a place to write using atomic add.  resulting queue has the blocks shuffled
-	if (totals[WARP_SIZE-1] > 0) {
-		if (threadIdx.x == 0) curr_pos = atomicAdd(queue_size, totals[WARP_SIZE-1]); // only done by first thread in the block
-		if (threadIdx.x < totals[WARP_SIZE-1]) out_data[curr_pos + threadIdx.x] = s_out_data[threadIdx.x];   // dont need to worry about dataSize.  queue size is smaller...
+	// this part is multiblock?
+	int block_len = offsets[(BLOCK_SIZE >> 5)];
+	if (block_len > 0) {
+		if (threadIdx.x == 0) curr_pos = atomicAdd(queue_size, block_len); // only done by first thread in the block
+		if (threadIdx.x < block_len) out_data[curr_pos + threadIdx.x] = s_out_data[threadIdx.x];   // dont need to worry about dataSize.  queue size is smaller...
 	}
 }
-
-// gapped.  so need to have anothr stop to copy stuff over...  block_pos stores the lengths of the blcok queue for each block
-template<class T>
-__global__ void gapped_compact(const T* in_data, const int dataSize, volatile T* out_data, volatile int* block_pos) {
-	// initialize the variables
-	const int idx = threadIdx.x & (WARP_SIZE - 1);
-	const int warpId = threadIdx.x >> 5;
-	const int x = threadIdx.x + blockDim.x * blockIdx.x;
-
-	__shared__ volatile int totals[WARP_SIZE];
-	__shared__ volatile int s_mark[NUM_WARPS][WARP_SIZE * 3 + 1];
-	__shared__ volatile T s_in_data[BLOCK_SIZE];
-	__shared__ volatile T s_out_data[BLOCK_SIZE];
-
-	// copy in data
-	totals[idx] = 0;
-	s_out_data[threadIdx.x] = 0;
-	s_in_data[threadIdx.x] = 0;
-	if (x < dataSize) s_in_data[threadIdx.x] = in_data[x];
-	__syncthreads();
-
-	// compact within this block
-	warp_mark(s_in_data, s_mark[warpId] + WARP_SIZE, idx);  // mark the data to be processed
-	warp_scan<5,0>(s_mark[warpId] + WARP_SIZE, idx);  // perform the in warp scan
-	totals[idx] += warp_select(s_in_data, s_mark[warpId] + WARP_SIZE, s_out_data + totals[WARP_SIZE-1], idx);  // compact the data into the global space.
-	__syncthreads();
-
-	//copy the data back out.  this block will get a place to write using atomic add.  resulting queue has the blocks shuffled
-	if (x < dataSize) out_data[x] = s_out_data[threadIdx.x];
-	if (threadIdx.x == 0) block_pos[blockIdx.x] = totals[WARP_SIZE - 1];
-}
-
-//1024 threads - warpscan all, then 1 warp to scan, then everyone add.
-__device__ void block_scan(volatile int* data, volatile int * s_mark) {
-	const int idx = threadIdx.x & (WARP_SIZE - 1);
-	const int warpId = threadIdx.x >> 5;
-
-	// initialize data:
-	s_mark[NUM_WARPS][warpId] = 0;
-
-	s_mark[warpId][idx+WARP_SIZE] = data[threadIdx.x];
-
-
-	int out = warp_scan<5, 0>(s_mark[warpId] + WARP_SIZE, idx);
-
-	if (idx == WARP_SIZE - 1) s_mark[NUM_WARPS][warpId + WARP_SIZE] = out;
-	__syncthreads();
-
-	// do the second pass
-	if (threadIdx.x < WARP_SIZE) {
-		warp_scan<5, 1>(s_mark[NUM_WARPS] + WARP_SIZE, idx);  // exclusive scan
-	}
-	__synthreads();
-
-	// add back
-	data[threadIdx.x] = s_mark[warpId][idx + WARP_SIZE] + s_mark[NUM_WARPS][warpId + WARP_SIZE - 1];   // using exclusive scan results.
-}
-
-__global__ void scan() {
-
-	__shared__ volatile int s_mark[NUM_WARPS + 1][WARP_SIZE * 3 + 1];
-
-
-	// now do the multiple block version...
-}
-
-
 template<class T>
 __global__ void clear(volatile T* out_data, const int dataSize) {
 	const int x = threadIdx.x + blockDim.x * blockIdx.x;
 	if (x < dataSize) out_data[x] = 0;
 }
 
+// gapped.  so need to have anothr step to remove the gaps...  block_pos stores the lengths of the blcok queue for each block
+template<class T>
+__global__ void gapped_select(const T* in_data, const int dataSize, volatile T* out_data, volatile int* block_pos) {
+	// initialize the variables
+	const int idx = threadIdx.x & (WARP_SIZE - 1);
+	const int warpId = threadIdx.x >> 5;
+	const int x = threadIdx.x + blockDim.x * blockIdx.x;
+
+	__shared__ volatile int offsets[(BLOCK_SIZE >> 5) + 1];  // avoid divergence - everyone write...
+	__shared__ volatile int s_mark[BLOCK_SIZE];
+	__shared__ volatile int s_scan[NUM_WARPS][WARP_SIZE * 2 + 1];
+	__shared__ volatile T s_in_data[BLOCK_SIZE];
+	__shared__ volatile T s_out_data[BLOCK_SIZE];
+	int curr_pos;
+	int curr_len;
+
+	// copy in data
+	if (warpId == 0) offsets[0] = 0;
+	offsets[warpId + 1] = 0;
+	s_out_data[threadIdx.x] = 0;
+	s_in_data[threadIdx.x] = 0;
+	if (x < dataSize) s_in_data[threadIdx.x] = in_data[x];
+	__syncthreads();
+
+	// compact within this block
+	warp_mark(s_in_data, s_mark);  // mark the data to be processed
+	init_warp_scan(s_mark, s_scan[warpId], idx)
+	curr_len = warp_scan<5>(s_scan[warpId] + WARP_SIZE, idx);  // perform the in warp scan.
+	// now update the totals.  note that warpId+1 would only be updated after warpId is updated, because of warp execution order.
+	// note the use of curr_len.  want to avoid reading offsets[warpId] before warp scan is executed for that warpId.
+	offsets[warpId + 1] = offsets[warpId] + curr_len;
+	warp_select(s_in_data, s_mark, s_scan[warpId] + WARP_SIZE, s_out_data, offsets[warpId], idx);  // compact the data into the block space.
+	__syncthreads();
+
+	//copy the data back out.  leaving the space between blocks.
+	if (x < dataSize) out_data[x] = s_out_data[threadIdx.x];
+	block_pos[blockIdx.x + 1] = offsets[(BLOCK_SIZE >> 5)];
+}
+
+// fermi can have maximum of 65K blocks in one dim.
+//1024 threads - warpscan all, then 1 warp to scan, then everyone add.
+// s_totals has size of 32.
+__device__ void scan1024(const int* in_data, const int dataSize, volatile int* out_data, volatile int* s_scan, volatile int* s_scan2, volatile int* block_total) {
+	const int idx = threadIdx.x & (WARP_SIZE - 1);
+	const int warpId = threadIdx.x >> 5;
+	const int x = threadIdx.x + blockDim.x * blockIdx.x;
+
+	// initialize data:
+	if (threadIdx.x < WARP_SIZE) {
+		s_scan2[idx] = 0;
+		s_scan2[idx + WARP_SIZE] = 0;
+	}
+	s_scan[warpId][idx] = 0;
+	s_scan[warpId][idx + WARP_SIZE] = 0;
+	if (x < dataSize) s_scan[warpId][idx + WARP_SIZE] = in_data[x];
+
+	// do the scan
+	s_scan2[warpId+WARP_SIZE] = warp_scan<5>(s_scan[warpId] + WARP_SIZE, idx);
+	__syncthreads();
+
+	// do the second pass - only the first block..
+	if (threadIdx.x < WARP_SIZE)
+		block_total[blockIdx.x] = warp_scan<5>(s_scan2 + WARP_SIZE, idx);  // inclusive scan
+	__synthreads();
+
+	// now add back to the warps
+	if (x < dataSize) out_data[x] = s_scan[warpId][idx+WARP_SIZE] + s_scan2[warpId + WARP_SIZE - 1];
+}
+
+// to scan a large amount of data, do it in multilevel way....  allocate the summary array, scan the blocks with a kernel call, then scan the summary array.  recurse. then add the results to previous level summary
+
 // step 2 of the compacting.  assumes that within each block the values have already been compacted.
+// also block_pos is already scanned to produce final starting positions for each threadblock.
 template<class T>
 __global__ void compact(const T* in_data, const int* block_pos, volatile T* out_data ) {
 	const int x = threadIdx.x + blockDim.x * blockIdx.x;
 	const int pos = block_pos[blockIdx.x];
-	const int len = block_pos[blockIdx.x + gridDim.x];
+	const int len = block_pos[blockIdx.x + 1] - pos;
 
-	if (threadIdx.x < len) out_data[pos + threadIdx.x] = in_data[threadIdx.x];
+	if (threadIdx.x < len) out_data[pos + threadIdx.x] = in_data[x];
 }
 /*
 template<typename T, typename TN>
