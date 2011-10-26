@@ -571,8 +571,8 @@ IplImage *Blob::getCytoplasmMask(CvSize tileSize, int delta, CvPoint &offset)
 		cvDilate(cytoplasmMask, cytoplasmDilated, kernel_disk8);
 
 //		cvSaveImage("cytoMask.tif", cytoplasmMask);
-		cvSaveImage("cytoOpencvDilated.tif", cytoplasmDilated);
-		cvSaveImage("cytoNucleusMaskCalc.tif", cytoplasmMask );
+//		cvSaveImage("cytoOpencvDilated.tif", cytoplasmDilated);
+//		cvSaveImage("cytoNucleusMaskCalc.tif", cytoplasmMask );
 
 		IplImage* cytoplasmDilatedXor = cvCreateImage( cvSize(cytoplasmRect.width, cytoplasmRect.height), IPL_DEPTH_8U, 1);
 		cvSetZero(cytoplasmDilatedXor);
@@ -581,7 +581,7 @@ IplImage *Blob::getCytoplasmMask(CvSize tileSize, int delta, CvPoint &offset)
 		cvXor(cytoplasmDilated, cytoplasmMask, cytoplasmDilatedXor);
 		cvResetImageROI(cytoplasmDilatedXor);
 		
-		cvSaveImage("cytoOpencvDilateXor.tif", cytoplasmDilatedXor);
+//		cvSaveImage("cytoOpencvDilateXor.tif", cytoplasmDilatedXor);
 #ifdef VISUAL_DEBUG
 		IplImage *curNucleusMask = DrawAuxiliar::DrawBlob(this,  CV_RGB(255,255,255),  CV_RGB(0,0,0));
 		cvSaveImage("curNucleusMask.tif", curNucleusMask);
