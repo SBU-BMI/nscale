@@ -14,7 +14,7 @@ float *intensityFeaturesBlobGPU(char *h_inputImage, int width, int height, int n
 void *cudaMallocWrapper(int size){};
 void cudaFreeWrapper(void *data_ptr){};
 
-RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName, string grayInputFileName)
+RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName, string grayInputFileName, bool initCytoplasm)
 {
 	struct timeval startTime;
 	struct timeval endTime;
@@ -71,12 +71,12 @@ RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(string maskInputFileName,
 	// variable blobMaskAllocatedMemory. It will modify its content.
 	// ProcessTime example
 
-	initializeContours();
+	initializeContours(initCytoplasm);
 
 }
 
 
-RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(IplImage *originalImageMaskParam, IplImage *originalImageParam)
+RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(IplImage *originalImageMaskParam, IplImage *originalImageParam, bool initCytoplasm)
 {
 	struct timeval startTime;
 	struct timeval endTime;
@@ -114,7 +114,7 @@ RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(IplImage *originalImageMa
 	// Warning. Do not move this function call before the initialization of the
 	// variable blobMaskAllocatedMemory. It will modify its content.
 	// ProcessTime example
-	initializeContours();
+	initializeContours(initCytoplasm);
 
 }
 
@@ -179,22 +179,26 @@ RegionalMorphologyAnalysis::~RegionalMorphologyAnalysis() {
 		delete originalImageMaskNucleusBoxesGPU;
 	}
 #endif
-// TODO: uncoment this part to cleanup blobs structures
+	// Cleanning up blobs structures
 	for(int i = 0; i < internal_blobs.size(); i++){
 		delete internal_blobs[i];
 	}
 	internal_blobs.clear();
 
+	// Cleanning up blobs structures
+	for(int i = 0; i < cytoplasm_blobs.size(); i++){
+		delete cytoplasm_blobs[i];
+	}
+	cytoplasm_blobs.clear();
+
 }
 
 
-void RegionalMorphologyAnalysis::initializeContours()
+void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 {
 	// create storage to be used by the findContours
 	CvMemStorage* storage = cvCreateMemStorage();
 	CvSeq* first_contour = NULL;
-
-//	cout << "NonZeroMask = "<< cvCountNonZero(originalImageMask)<<endl;;
 
 	IplImage *tempMask = cvCreateImage(cvGetSize(originalImage), IPL_DEPTH_8U, 1);
 	cvCopy(originalImageMask, tempMask);
@@ -205,14 +209,20 @@ void RegionalMorphologyAnalysis::initializeContours()
 		&first_contour,
 		sizeof(CvContour),
 		CV_RETR_TREE,
-		CV_CHAIN_APPROX_SIMPLE
+		CV_CHAIN_APPROX_NONE
 		);
 
 	int maskSizeElements = 0;
 	// for all components found in the same first level
 	for(CvSeq* c= first_contour; c!= NULL; c=c->h_next){
+
+		CvPoint offsetInImage;
+		offsetInImage.x = 0;
+		offsetInImage.y = 0;
+
+
 		// create a blob with the current component and store it in the region
-		Blob* curBlob = new Blob(c, cvGetSize(originalImageMask));
+		Blob* curBlob = new Blob(c, cvGetSize(originalImageMask), offsetInImage);
 		CvRect bounding_box = curBlob->getNonInclinedBoundingBox();
 		this->internal_blobs.push_back(curBlob);
 
@@ -245,25 +255,308 @@ void RegionalMorphologyAnalysis::initializeContours()
 
 	}
 
+	// Calculate cytoplasm mask, and create a blob describing each cytoplasm
+	if(initCytoplasm){
+		for(int i = 0; i < internal_blobs.size(); i++){
+			CvPoint offsetCyto;
+			IplImage *cytoplasmMask = internal_blobs[i]->getCytoplasmMask(cvGetSize(originalImageMask), 8, offsetCyto);
+			// Should be fine til here
+
+			// Create padding around cytoplasm mask to avoid find contours to be truncated by the image bounds
+			IplImage *tempMaskCytoplasm = cvCreateImage(cvSize(cytoplasmMask->width+2, cytoplasmMask->height+2), IPL_DEPTH_8U, 1);
+
+			// set the ROI of the temp Mask to be of the same size as the cytoplasm, but internally 
+			// to the image with 1 pixel padding in each direction. This craziness is need to avoid 
+			// find contours from truncating the contours for pixels touching the image border
+			cvSetImageROI(tempMaskCytoplasm, cvRect(1, 1, cytoplasmMask->width, cytoplasmMask->height));
+
+			// copy mask to image with padding
+			cvCopy(cytoplasmMask, tempMaskCytoplasm);
+
+			// reset ROI of the padded image
+			cvResetImageROI(tempMaskCytoplasm);
+			
+			// change offset of the contours to be found in tempMaskCytoplams, because the mask is one pixel shift in X and Y
+			// in this image, when compare to its original mask (cytoplasmMask). Thus, any contours found will also have X,Y values
+			// increased by 1,1 when compared to the input image.
+			offsetCyto.x-=1;
+			offsetCyto.y-=1;
+
+			// Run find contours in the temp padded image.
+			int Nc = cvFindContours(
+					tempMaskCytoplasm,
+					storage,
+					&first_contour,
+					sizeof(CvContour),
+					CV_RETR_TREE,
+					CV_CHAIN_APPROX_NONE
+					);
+
+			if(first_contour->h_next != NULL){
+				cout << "Warnning: Cytoplasm is being defined through more than one blob!" <<endl;
+
+			}
+
+			// create blob representing the cytoplams we just calculated
+			Blob *cytoBlob = new Blob(first_contour, cvGetSize(originalImageMask), offsetCyto);
+			this->cytoplasm_blobs.push_back(cytoBlob);
+
+			// Release images used to calc. cytoplasm
+			cvReleaseImage(&cytoplasmMask);
+			cvReleaseImage(&tempMaskCytoplasm);
+
+			//		IplImage* cytoMask = cytoBlob->getMask();
+			//		cvSaveImage("cytoplasmMask.tif", cytoplasmMask);
+			//		cvSaveImage("cytoplasmMaskBlobComp.tif", cytoMask);
+			//
+			//		cvNamedWindow("CytoMask - Press any key to continue!");
+			//		cvShowImage("CytoMask - Press any key to continue!", cytoMask);
+			//		cvNamedWindow("CytoMaskComp - Press any key to continue!");
+			//		cvShowImage("CytoMaskComp - Press any key to continue!", cytoplasmMask);
+			//
+			//		cvWaitKey(0);
+			//		cvDestroyWindow("CytoMask - Press any key to continue!");
+			//		cvDestroyWindow("CytoMaskComp - Press any key to continue!");
+		}	
+	}
 	cvReleaseImage(&tempMask);
 	cvReleaseMemStorage(&storage);
+}
+
+// Assuming n > 0
+int rndint(float n)//round float to the nearest integer
+{	
+	int ret = floor(n);
+	float t;
+	t=n-floor(n);
+	if (t>=0.5)    
+	{
+		ret = floor(n) + 1;
+	}
+	return ret;
+}
+
+
+IplImage* RegionalMorphologyAnalysis::gradient(IplImage *inputImage){
+
+	IplImage* drv32f = cvCreateImage(cvGetSize(inputImage), IPL_DEPTH_32F, 1);
+	IplImage* magDrv = cvCreateImage(cvGetSize(inputImage), IPL_DEPTH_32F, 1);
+	IplImage* magDrvUint = cvCreateImage(cvGetSize(inputImage), IPL_DEPTH_8U, 1);
+	cvSetZero( magDrv);
+
+	// Create convolution kernel for x
+	float kernel_array_x[] = {-0.5, 0, 0.5 }; 
+	CvMat kernel_x;
+	cvInitMatHeader(&kernel_x, 1 ,3, CV_32F, kernel_array_x);
+
+	// Calculate derivative in x
+	cvFilter2D(inputImage, drv32f, &kernel_x);
+	
+	// fix values in the first and last colums
+	for(int y = 0; y<drv32f->height; y++){
+		float *derive_ptr = (float*)(drv32f->imageData + y * drv32f->widthStep);
+		derive_ptr[0] *= 2;
+		derive_ptr[drv32f->width-1] *= 2;
+	}
+
+	// Accumulate square of dx
+	cvSquareAcc( drv32f, magDrv);
+
+	// Create convolution kernel for y
+	CvMat kernel_y;
+	cvInitMatHeader(&kernel_y, 3 ,1, CV_32F, kernel_array_x);
+
+	// Calculate derivative in x
+	cvFilter2D(inputImage, drv32f, &kernel_y);
+
+
+	// fix values in the first and last lines
+	float *derive_ptr_first = (float*)(drv32f->imageData);
+	float *derive_ptr_last = (float*)(drv32f->imageData + (drv32f->height-1) * drv32f->widthStep);
+	for(int y = 0; y < drv32f->width; y++){
+		derive_ptr_first[y] *= 2;	
+		derive_ptr_last[y] *= 2;	
+	}
+	
+	// Accumulate square of dx
+	cvSquareAcc( drv32f, magDrv);
+
+	Mat magTemp(magDrv);
+	cv::sqrt( magTemp, magTemp );
+
+	// This is uint8 from MATLAB
+	for(int y = 0; y<drv32f->height; y++){
+		float *mag_dvr_ptr = (float*)(magDrv->imageData + y * magDrv->widthStep);
+		unsigned char *magDrvUint_ptr = (unsigned char*)(magDrvUint->imageData + y * magDrvUint->widthStep);
+		for(int x=0; x < drv32f->width; x++){
+			if(mag_dvr_ptr[x] < 0.0){
+				magDrvUint_ptr[x] = 0;
+			}else{
+				if(mag_dvr_ptr[x] > 255.0){
+					magDrvUint_ptr[x] = 255;
+				}else{
+					magDrvUint_ptr[x] = (unsigned char)rndint((mag_dvr_ptr[x]));
+				}
+			}
+		}
+	}
+	cvReleaseImage(&drv32f);
+	cvReleaseImage(&magDrv);
+	return magDrvUint;
+}
+
+void RegionalMorphologyAnalysis::doNucleiPipelineFeatures(vector<vector<float> > &nucleiFeatures, IplImage *inputImage)
+{
+	vector<Blob *>::iterator blobsIt = internal_blobs.begin();
+	vector<Blob *>::iterator blobsEndIt = internal_blobs.end();
+
+	// this is calculation per cytoplasm
+
+	if(originalImage == NULL){
+		cout << "doNucleiPipelineFeatures: input image is NULL." <<endl;
+		exit(1);
+	}
+	inputImage = originalImage;
+
+	if(inputImage->nChannels != 1){
+		cout << "Error: input image should be grayscale with one channel only"<<endl;
+		exit(1);
+	}
+
+	IplImage *magDrvUint = gradient(inputImage);
+
+	for(int i = 0; blobsIt < blobsEndIt; blobsIt++, i++){
+		Blob *curBlob = *blobsIt;
+
+		vector<float> blobFeatures;
+		// Calculate bounding box information
+		CvRect bb = curBlob->getNonInclinedBoundingBox();
+		blobFeatures.push_back(bb.x);
+		blobFeatures.push_back(bb.y);
+		blobFeatures.push_back(bb.width);
+		blobFeatures.push_back(bb.height);
+		blobFeatures.push_back((float)bb.x+((float)(bb.width-1)/2.0) );
+		blobFeatures.push_back((float)bb.y+((float)(bb.height-1)/2.0));
+
+		//0)
+		blobFeatures.push_back(curBlob->getArea());
+		//1)
+		blobFeatures.push_back(curBlob->getPerimeter());
+		//2)
+		blobFeatures.push_back(curBlob->getEccentricity());
+		// Compactness -> Circularity
+		//3)
+		blobFeatures.push_back(curBlob->getCompacteness());
+		//4)
+		blobFeatures.push_back(curBlob->getMajorAxisLength());
+		//5)
+		blobFeatures.push_back(curBlob->getMinorAxisLength());
+		//6)
+		blobFeatures.push_back(curBlob->getExtent());
+		//7)
+		blobFeatures.push_back(curBlob->getMeanIntensity(inputImage));
+		//8)
+		blobFeatures.push_back(curBlob->getMaxIntensity(inputImage));
+		//9)
+		blobFeatures.push_back(curBlob->getMinIntensity(inputImage));
+		//10)
+		blobFeatures.push_back(curBlob->getStdIntensity(inputImage));
+		//11)
+		blobFeatures.push_back(curBlob->getEntropyIntensity(inputImage));
+		//12)
+		blobFeatures.push_back(curBlob->getEnergyIntensity(inputImage));
+		//13)
+		blobFeatures.push_back(curBlob->getSkewnessIntensity(inputImage));
+		//14)
+		blobFeatures.push_back(curBlob->getKurtosisIntensity(inputImage));
+		// Comment. The Mean and Std grad are calculated on top of the uint8 version of 
+		// the gradient resulting image, instead of the float image. Jun aggreed it should
+		// not make any difference
+		//15)
+		blobFeatures.push_back(curBlob->getMeanGradMagnitude(magDrvUint));
+		//16)
+		blobFeatures.push_back(curBlob->getStdGradMagnitude(magDrvUint));
+		//17)
+		blobFeatures.push_back(curBlob->getEntropyGradMagnitude(magDrvUint));
+		//18)
+		blobFeatures.push_back(curBlob->getEnergyGradMagnitude(magDrvUint));
+		//19)
+		blobFeatures.push_back(curBlob->getSkewnessGradMagnitude(magDrvUint));
+		//20)
+		blobFeatures.push_back(curBlob->getKurtosisGradMagnitude(magDrvUint));
+		//21)
+		blobFeatures.push_back(curBlob->getCannyArea(inputImage, 75.0, 100.0));
+		//22)
+		blobFeatures.push_back(curBlob->getMeanCanny(inputImage, 75.0, 100.0));
+		
+		nucleiFeatures.push_back(blobFeatures);
+	}
+	cvReleaseImage(&magDrvUint);
+
+}
+
+void RegionalMorphologyAnalysis::doCytoplasmPipelineFeatures(vector<vector<float> > &cytoplamsFeatures, IplImage *inputImage)
+{
+	assert(this->internal_blobs.size() == this->cytoplasm_blobs.size());
+	assert(inputImage != NULL);
+	vector<Blob *>::iterator blobsIt = cytoplasm_blobs.begin();
+	vector<Blob *>::iterator blobsEndIt = cytoplasm_blobs.end();
+	
+	if(inputImage == NULL){
+		cout << "doCytoplasmPipelineFeatures: input image is NULL." <<endl;
+		exit(1);
+	}
+
+	if(inputImage->nChannels != 1){
+		cout << "Error: input image should be grayscale with one channel only"<<endl;
+		exit(1);
+	}
+
+	IplImage *magImg = gradient(inputImage);
+
+
+	for(int i = 0; blobsIt < blobsEndIt; blobsIt++, i++){
+		Blob *curBlob = *blobsIt;
+		vector<float> blobFeatures;
+		// Clear blobs internal intermediary data, what will force 
+		// it to recompute intermediary results for the new image.
+		curBlob->resetInternalData();
+			
+		blobFeatures.push_back(curBlob->getMeanIntensity(inputImage));
+//		cout << "INTENSITY histogram"<<endl;
+//		curBlob->printIntensityHistogram(inputImage);
+
+		blobFeatures.push_back(curBlob->getMeanIntensity(inputImage) - curBlob->getMedianIntensity(inputImage) );
+//		cout << "MEDIAN intensity = "<< curBlob->getMedianIntensity(inputImage)<<endl;
+		blobFeatures.push_back(curBlob->getMaxIntensity(inputImage));
+		blobFeatures.push_back(curBlob->getMinIntensity(inputImage));
+		blobFeatures.push_back(curBlob->getStdIntensity(inputImage));
+		blobFeatures.push_back(curBlob->getEntropyIntensity(inputImage));
+		blobFeatures.push_back(curBlob->getEnergyIntensity(inputImage));
+		blobFeatures.push_back(curBlob->getSkewnessIntensity(inputImage));
+		blobFeatures.push_back(curBlob->getKurtosisIntensity(inputImage));
+		blobFeatures.push_back(curBlob->getMeanGradMagnitude(magImg));
+		blobFeatures.push_back(curBlob->getStdGradMagnitude(magImg));
+		blobFeatures.push_back(curBlob->getEntropyGradMagnitude(magImg));
+		blobFeatures.push_back(curBlob->getEnergyGradMagnitude(magImg));
+		blobFeatures.push_back(curBlob->getSkewnessGradMagnitude(magImg));
+		blobFeatures.push_back(curBlob->getKurtosisGradMagnitude(magImg));
+		blobFeatures.push_back(curBlob->getCannyArea(inputImage, 75.0, 100.0));
+		blobFeatures.push_back(curBlob->getMeanCanny(inputImage, 75.0, 100.0));
+		
+		cytoplamsFeatures.push_back(blobFeatures);
+	}
+	cvReleaseImage(&magImg);
 }
 
 // Computes morphometry features for each nuclei in the input image. And returns a array of array of features.
 // Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
 // 	Area; MajorAxisLength;MinorAxisLength; Eccentricity; Orientation; ConvexArea; FilledArea; EulerNumber; 
-// 	EquivalentDiameter; Solidity; Extent; Perimeter; ConvexDeficiency; Compacteness; Porosity; AspectRation; BendingEnergy; ReflectionSymmetry; CannyArea; SobelArea;
-void RegionalMorphologyAnalysis::doMorphometryFeatures(vector<vector<float> > &nucleiFeatures)
+// 	EquivalentDiameter; Solidity; Extent; Perimeter; ConvexDeficiency; Compacteness; Porosity; AspectRation; BendingEnergy; ReflectionSymmetry; CannyArea; MeanCanny, SobelArea;
+void RegionalMorphologyAnalysis::doMorphometryFeatures(vector<vector<float> > &morphoFeatures, bool nuclei, IplImage *inputImage)
 {
-	if(originalImage == NULL){
-		cout << "DoRegionProps: input image is NULL." <<endl;
-		exit(1);
-	}else{
-		if(originalImage->nChannels != 1){
-			cout << "Error: input image should be grayscale with one channel only"<<endl;
-			exit(1);
-		}
-	}
+	vector<Blob *>::iterator blobsIt = internal_blobs.begin();
+	vector<Blob *>::iterator blobsEndIt = internal_blobs.end();
 
 #ifdef VISUAL_DEBUG
 		IplImage* visualizationImage = cvCreateImage( cvGetSize(originalImage), 8, 3);
@@ -274,8 +567,30 @@ void RegionalMorphologyAnalysis::doMorphometryFeatures(vector<vector<float> > &n
 		cvWaitKey(0);
 #endif
 
-	for(int i = 0; i < internal_blobs.size(); i++){
-		Blob *curBlob = internal_blobs[i];
+	// this is calculation per cytoplasm
+	if(nuclei == false){
+		assert(this->internal_blobs.size() == this->cytoplasm_blobs.size());
+		assert(inputImage != NULL);
+		blobsIt = cytoplasm_blobs.begin();
+		blobsEndIt = cytoplasm_blobs.end();
+		cout << "computing features per cytoplasm"<<endl;
+	}else{
+
+		if(originalImage == NULL){
+			cout << "doMorphometryFeatures: input image is NULL." <<endl;
+			exit(1);
+		}
+		inputImage = originalImage;
+	}
+
+	if(inputImage->nChannels != 1){
+		cout << "Error: input image should be grayscale with one channel only"<<endl;
+		exit(1);
+	}
+
+
+	for(; blobsIt < blobsEndIt; blobsIt++){
+		Blob *curBlob = *blobsIt;//internal_blobs[i];
 #ifdef VISUAL_DEBUG
 		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(255, 0, 0), CV_RGB(0,0,0));
 		cvNamedWindow("Input Image");
@@ -301,11 +616,12 @@ void RegionalMorphologyAnalysis::doMorphometryFeatures(vector<vector<float> > &n
 		blobFeatures.push_back(curBlob->getAspectRatio());
 		blobFeatures.push_back(curBlob->getBendingEnery());
 		blobFeatures.push_back(curBlob->getReflectionSymmetry());
-		blobFeatures.push_back(curBlob->getCannyArea(originalImage, 10, 100, 7));
-		blobFeatures.push_back(curBlob->getSobelArea(originalImage, 5, 5, 7));
+		blobFeatures.push_back(curBlob->getCannyArea(inputImage, 75, 100, 3));
+		blobFeatures.push_back(curBlob->getMeanCanny(inputImage, 75, 100, 3));
+		blobFeatures.push_back(curBlob->getSobelArea(inputImage, 5, 5, 7));
 
 		
-		nucleiFeatures.push_back(blobFeatures);
+		morphoFeatures.push_back(blobFeatures);
 
 #ifdef VISUAL_DEBUG
 		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(0, 0, 255), CV_RGB(0,0,0));
@@ -319,25 +635,67 @@ void RegionalMorphologyAnalysis::doMorphometryFeatures(vector<vector<float> > &n
 	cvReleaseImage(&visualizationImage);
 #endif
 }
+
+
 // Computes Gradient features for each nuclei in the input image. And returns a array of array of features.
 // Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-// 	MeanGradMagnitude; MedianGradMagnitude; MinGradMagnitude; MaxGradMagnitude; FirstQuartileGradMagnitude; ThirdQuartileGradMagnitude;
-void RegionalMorphologyAnalysis::doGradientBlob(vector<vector<float> > &gradientFeatures, unsigned int procType, unsigned int gpuId){
+// 	0)Mean;  1)Std; 2)Energy; 3)Entropy; 4)Kurtosis; 5)Skewness;
+//	6)Median; 7)Min; 8)Max; 9)FirstQuartile; 10)ThirdQuartile;
+void RegionalMorphologyAnalysis::doGradientBlob(vector<vector<float> > &gradientFeatures, bool nuclei, IplImage *inputImage, unsigned int procType){
 	if(procType == Constant::CPU){
-		Mat imgMat(originalImage);
+		vector<Blob *>::iterator blobsIt = internal_blobs.begin();
+		vector<Blob *>::iterator blobsEndIt = internal_blobs.end();
+
+#ifdef VISUAL_DEBUG
+		IplImage* visualizationImage = cvCreateImage( cvGetSize(originalImage), 8, 3);
+		cvCvtColor(originalImage, visualizationImage, CV_GRAY2BGR);
+
+		cvNamedWindow("Input Image");
+		cvShowImage("Input Image", visualizationImage);
+		cvWaitKey(0);
+#endif
+
+		// this is calculation per cytoplasm
+		if(nuclei == false){
+			assert(this->internal_blobs.size() == this->cytoplasm_blobs.size());
+			assert(inputImage != NULL);
+			blobsIt = cytoplasm_blobs.begin();
+			blobsEndIt = cytoplasm_blobs.end();
+			cout << "computing features per cytoplasm"<<endl;
+		}else{
+
+			if(originalImage == NULL){
+				cout << "doGradientBlob: input image is NULL." <<endl;
+				exit(1);
+			}
+			inputImage = originalImage;
+		}
+
+		if(inputImage->nChannels != 1){
+			cout << "Error: input image should be grayscale with one channel only"<<endl;
+			exit(1);
+		}
+
+		Mat imgMat(inputImage);
 
 		// This is a temporary structure required by the MorphologyEx operation we'll perform
-		IplImage* magImg = cvCreateImage( cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, 1);
+		IplImage* magImg = cvCreateImage( cvSize(inputImage->width, inputImage->height), IPL_DEPTH_8U, 1);
 		Mat dest(magImg);
 
 		Mat kernelCPU;
 		morphologyEx(imgMat, dest, MORPH_GRADIENT, kernelCPU, Point(-1,-1), 1);
 
-
-		for(int i = 0; i < internal_blobs.size(); i++){
-			Blob *curBlob = internal_blobs[i];
+		for(; blobsIt < blobsEndIt; blobsIt++){
+			Blob *curBlob = *blobsIt;
+			// Cleare intermediary data. Thus, gradient is recalculated for given input
+			curBlob->clearGradientData();
 			vector<float> blobGradFeatures;
 			blobGradFeatures.push_back(curBlob->getMeanGradMagnitude(magImg));
+			blobGradFeatures.push_back(curBlob->getStdGradMagnitude(magImg));
+			blobGradFeatures.push_back(curBlob->getEnergyGradMagnitude(magImg));
+			blobGradFeatures.push_back(curBlob->getEntropyGradMagnitude(magImg));
+			blobGradFeatures.push_back(curBlob->getKurtosisGradMagnitude(magImg));
+			blobGradFeatures.push_back(curBlob->getSkewnessGradMagnitude(magImg));
 			blobGradFeatures.push_back(curBlob->getMedianGradMagnitude(magImg));
 			blobGradFeatures.push_back(curBlob->getMinGradMagnitude(magImg));
 			blobGradFeatures.push_back(curBlob->getMaxGradMagnitude(magImg));
@@ -386,24 +744,66 @@ void RegionalMorphologyAnalysis::doGradientBlob(vector<vector<float> > &gradient
 
 // Computes Pixel Intensity features for each nuclei in the input image. And returns a array of array of features.
 // Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-// 	MeanIntensity; MedianIntensity; MinIntensity; MaxIntensity; FirstQuartileIntensity; ThirdQuartileIntensity;
-void RegionalMorphologyAnalysis::doIntensityBlob(vector<vector<float> > &intensityFeatures, unsigned int procType, unsigned int gpuId){
+// 	MeanIntensity; StdIntensity; EnergyIntensity, EntropyIntensity, KurtosisIntensity, SkewnessIntensity, 
+//	MedianIntensity; MinIntensity; MaxIntensity; FirstQuartileIntensity; ThirdQuartileIntensity;
+void RegionalMorphologyAnalysis::doIntensityBlob(vector<vector<float> > &intensityFeatures, bool nuclei, IplImage *inputImage, unsigned int procType){
 
-//	vector<vector<float> > intensityFeatures;
+	//	vector<vector<float> > intensityFeatures;
 	if(procType == Constant::CPU){
+		vector<Blob *>::iterator blobsIt = internal_blobs.begin();
+		vector<Blob *>::iterator blobsEndIt = internal_blobs.end();
 
-		for(int i = 0; i < internal_blobs.size(); i++){
-			Blob *curBlob = internal_blobs[i];
+#ifdef VISUAL_DEBUG
+		IplImage* visualizationImage = cvCreateImage( cvGetSize(originalImage), 8, 3);
+		cvCvtColor(originalImage, visualizationImage, CV_GRAY2BGR);
+
+		cvNamedWindow("Input Image");
+		cvShowImage("Input Image", visualizationImage);
+		cvWaitKey(0);
+#endif
+
+		// this is calculation per cytoplasm
+		if(nuclei == false){
+			assert(this->internal_blobs.size() == this->cytoplasm_blobs.size());
+			assert(inputImage != NULL);
+			blobsIt = cytoplasm_blobs.begin();
+			blobsEndIt = cytoplasm_blobs.end();
+			cout << "computing features per cytoplasm"<<endl;
+		}else{
+
+			if(originalImage == NULL){
+				cout << "doMorphometryFeatures: input image is NULL." <<endl;
+				exit(1);
+			}
+			inputImage = originalImage;
+		}
+
+		if(inputImage->nChannels != 1){
+			cout << "Error: input image should be grayscale with one channel only"<<endl;
+			exit(1);
+		}
+
+
+		for(; blobsIt < blobsEndIt; blobsIt++){
+			Blob *curBlob = *blobsIt;
+			// Make sure to reset blob internal structure to 
+			// ensure that intensity features a recalculated
+			curBlob->clearIntensityData();
 #ifdef PRINT_FEATURES
 			printf("Blob #%d - MeanIntensity=%lf MedianIntensity=%d MinIntensity=%d MaxIntensity=%d FirstQuartile=%d ThirdQuartile=%d\n", i, curBlob->getMeanIntensity(originalImage), curBlob->getMedianIntensity(originalImage), curBlob->getMinIntensity(originalImage), curBlob->getMaxIntensity(originalImage), curBlob->getFirstQuartileIntensity(originalImage), curBlob->getThirdQuartileIntensity(originalImage));
 #else
 			vector<float> blobFeatures;
-			blobFeatures.push_back(curBlob->getMeanIntensity(originalImage));
-			blobFeatures.push_back(curBlob->getMedianIntensity(originalImage));
-			blobFeatures.push_back(curBlob->getMinIntensity(originalImage));
-			blobFeatures.push_back(curBlob->getMaxIntensity(originalImage));
-			blobFeatures.push_back(curBlob->getFirstQuartileIntensity(originalImage));
-			blobFeatures.push_back(curBlob->getThirdQuartileIntensity(originalImage));
+			blobFeatures.push_back(curBlob->getMeanIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getStdIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getEnergyIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getEntropyIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getKurtosisIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getSkewnessIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getMedianIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getMinIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getMaxIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getFirstQuartileIntensity(inputImage));
+			blobFeatures.push_back(curBlob->getThirdQuartileIntensity(inputImage));
 			intensityFeatures.push_back(blobFeatures);
 #endif
 		}
@@ -434,25 +834,51 @@ void RegionalMorphologyAnalysis::doIntensityBlob(vector<vector<float> > &intensi
 // Computes Haralick features for each nuclei in the input image. And returns a array of array of features.
 // Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
 // 	Inertia; Energy; Entropy; Homogeneity; MaximumProbability; ClusterShade; ClusterProminence
-void RegionalMorphologyAnalysis::doCoocPropsBlob(vector<vector<float> > &haralickFeatures, unsigned int angle, unsigned int procType, bool reuseItermediaryResults, unsigned int gpuId, char*gpuTempData)
+void RegionalMorphologyAnalysis::doCoocPropsBlob(vector<vector<float> > &haralickFeatures, bool nuclei, IplImage *inputImage, unsigned int angle, unsigned int procType,  bool reuseItermediaryResults,  char*gpuTempData)
 {
 
-//	vector<vector<float> >haralickFeatures;
-	
 	bool reuseRes = true;
 	bool useMask = true;
 	if(procType == Constant::CPU){
-		for(int i = 0; i < internal_blobs.size(); i++){
-			Blob *curBlob = internal_blobs[i];
+		vector<Blob *>::iterator blobsIt = internal_blobs.begin();
+		vector<Blob *>::iterator blobsEndIt = internal_blobs.end();
+
+		// this is calculation per cytoplasm
+		if(nuclei == false){
+			assert(this->internal_blobs.size() == this->cytoplasm_blobs.size());
+			assert(inputImage != NULL);
+			blobsIt = cytoplasm_blobs.begin();
+			blobsEndIt = cytoplasm_blobs.end();
+			cout << "computing features per cytoplasm"<<endl;
+		}else{
+
+			if(originalImage == NULL){
+				cout << "doCoocPropsBlob: input image is NULL." <<endl;
+				exit(1);
+			}
+			inputImage = originalImage;
+		}
+
+		if(inputImage->nChannels != 1){
+			cout << "Error: input image should be grayscale with one channel only"<<endl;
+			exit(1);
+		}
+
+
+		for(; blobsIt < blobsEndIt; blobsIt++){
+			Blob *curBlob = *blobsIt;//internal_blobs[i];
 			
+			// Clear intermediary data and ensure that coocpropos is recalculated for whatwhever is the input image
+			curBlob->clearCoocPropsData();
+
 			vector<float> blobHaralickFeatures;
-			blobHaralickFeatures.push_back(curBlob->inertiaFromCoocMatrix(angle, originalImage, useMask, reuseRes));
-			blobHaralickFeatures.push_back(curBlob->energyFromCoocMatrix(angle, originalImage, useMask, reuseRes));
-			blobHaralickFeatures.push_back(curBlob->entropyFromCoocMatrix(angle, originalImage, useMask, reuseRes));
-			blobHaralickFeatures.push_back(curBlob->homogeneityFromCoocMatrix(angle, originalImage, useMask, reuseRes));
-			blobHaralickFeatures.push_back(curBlob->maximumProbabilityFromCoocMatrix(angle, originalImage, useMask, reuseRes));
-			blobHaralickFeatures.push_back(curBlob->clusterShadeFromCoocMatrix(angle, originalImage, useMask, reuseRes));
-			blobHaralickFeatures.push_back(curBlob->clusterProminenceFromCoocMatrix(angle, originalImage, useMask, reuseRes));
+			blobHaralickFeatures.push_back(curBlob->inertiaFromCoocMatrix(angle, inputImage, useMask, reuseRes));
+			blobHaralickFeatures.push_back(curBlob->energyFromCoocMatrix(angle, inputImage, useMask, reuseRes));
+			blobHaralickFeatures.push_back(curBlob->entropyFromCoocMatrix(angle, inputImage, useMask, reuseRes));
+			blobHaralickFeatures.push_back(curBlob->homogeneityFromCoocMatrix(angle, inputImage, useMask, reuseRes));
+			blobHaralickFeatures.push_back(curBlob->maximumProbabilityFromCoocMatrix(angle, inputImage, useMask, reuseRes));
+			blobHaralickFeatures.push_back(curBlob->clusterShadeFromCoocMatrix(angle, inputImage, useMask, reuseRes));
+			blobHaralickFeatures.push_back(curBlob->clusterProminenceFromCoocMatrix(angle, inputImage, useMask, reuseRes));
 
 			haralickFeatures.push_back(blobHaralickFeatures);
 
@@ -541,17 +967,32 @@ void RegionalMorphologyAnalysis::doCoocPropsBlob(vector<vector<float> > &haralic
 }
 
 
-void RegionalMorphologyAnalysis::doAll()
+void RegionalMorphologyAnalysis::doAll(bool nuclei, IplImage *inputImage)
 {
-	if(originalImage == NULL){
-		cout << "DoRegionProps: input image is NULL." <<endl;
-		exit(1);
+	vector<Blob *>::iterator blobsIt = internal_blobs.begin();
+	vector<Blob *>::iterator blobsEndIt = internal_blobs.end();
+
+	// this is calculation per cytoplasm
+	if(nuclei == false){
+		assert(this->internal_blobs.size() == this->cytoplasm_blobs.size());
+		assert(inputImage != NULL);
+		blobsIt = cytoplasm_blobs.begin();
+		blobsEndIt = cytoplasm_blobs.end();
+		cout << "computing features per cytoplasm"<<endl;
 	}else{
-		if(originalImage->nChannels != 1){
-			cout << "Error: input image should be grayscale with one channel only"<<endl;
+
+		if(originalImage == NULL){
+			cout << "doAll: input image is NULL." <<endl;
 			exit(1);
 		}
+		inputImage = originalImage;
 	}
+
+	if(inputImage->nChannels != 1){
+		cout << "Error: input image should be grayscale with one channel only"<<endl;
+		exit(1);
+	}
+
 
 #ifdef VISUAL_DEBUG
 		IplImage* visualizationImage = cvCreateImage( cvGetSize(originalImage), 8, 3);
@@ -563,12 +1004,15 @@ void RegionalMorphologyAnalysis::doAll()
 #endif
 
 //#pragma omp parallel for
-	for(int i = 0; i < internal_blobs.size(); i++){
-		Blob *curBlob = internal_blobs[i];
+	
+	for(int i = 0; blobsIt < blobsEndIt; blobsIt++, i++){
+		Blob *curBlob = *blobsIt;
 #ifdef VISUAL_DEBUG
-		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(255, 0, 0), CV_RGB(0,0,0));
+		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(255, 0, 0), CV_RGB(255,0,0));
 		cvNamedWindow("Input Image");
 		cvShowImage("Input Image", visualizationImage);
+		cvNamedWindow("Mask");
+		cvShowImage("Mask", curBlob->getMask());
 		cvWaitKey(0);
 #endif
 		printf("Blob #%d - area=%lf perimeter=%lf Eccentricity = %lf ED=%lf ",  i, curBlob->getArea(), curBlob->getPerimeter(), curBlob->getEccentricity(), curBlob->getEquivalentDiameter());
@@ -580,12 +1024,14 @@ void RegionalMorphologyAnalysis::doAll()
 		printf(" MeanPixelIntensity=%lf MedianPixelIntensity=%d MinPixelIntensity=%d MaxPixelIntensity=%d FirstQuartilePixelIntensity=%d ThirdQuartilePixelIntensity=%d", curBlob->getMeanIntensity(originalImage), curBlob->getMedianIntensity(originalImage), curBlob->getMinIntensity(originalImage), curBlob->getMaxIntensity(originalImage), curBlob->getFirstQuartileIntensity(originalImage), curBlob->getThirdQuartileIntensity(originalImage));
 		printf(" MeanGradMagnitude=%lf MedianGradMagnitude=%d MinGradMagnitude=%d MaxGradMagnitude=%d FirstQuartileGradMagnitude=%d ThirdQuartileGradMagnitude=%d", curBlob->getMeanGradMagnitude(originalImage), curBlob->getMedianGradMagnitude(originalImage), curBlob->getMinGradMagnitude(originalImage), curBlob->getMaxGradMagnitude(originalImage), curBlob->getFirstQuartileGradMagnitude(originalImage), curBlob->getThirdQuartileGradMagnitude(originalImage));
 		printf(" ReflectionSymmetry = %lf ", curBlob->getReflectionSymmetry());
-		printf(" CannyArea = %d", curBlob->getCannyArea(originalImage, 70.0, 90.0));
-		printf(" SobelArea = %d\n", curBlob->getSobelArea(originalImage, 2, 2, 7 ));
+		printf(" CannyArea = %d", curBlob->getCannyArea(originalImage, 35, 100));
+		printf(" SobelArea = %d\n", curBlob->getSobelArea(originalImage, 5, 5, 7 ));
 
 
 #ifdef VISUAL_DEBUG
-		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(0, 0, 255), CV_RGB(0,0,0));
+		DrawAuxiliar::DrawBlob(visualizationImage, curBlob, CV_RGB(0, 0, 255), CV_RGB(0,0,255));
+
+		cvDestroyWindow("Mask");
 #endif
 //		delete curBlob;
 	}

@@ -52,6 +52,9 @@ private:
 	//! Vector holding the blob identified in the input image
 	vector<Blob *> internal_blobs;
 
+	//! Vector holding the cytoplasm region of each internal_blob in the input image
+	vector<Blob *> cytoplasm_blobs;
+
 	//! Pointer to a in-memory copy of the input image
 	IplImage *originalImage;
 
@@ -107,7 +110,7 @@ private:
 	/*!
 	 * Function responsible for identifying contour into an image, and instantiate the respective blobs
 	 */
-	void initializeContours();
+	void initializeContours(bool initCytoplasm=false);
 
 	/*!
 	 * Simply return a pointer to the image mask
@@ -126,15 +129,19 @@ private:
 	unsigned int *calcGradientHistogram(bool useMask, int procType, bool reuseItermediaryResults, ROI * roi = NULL, int gpuId = 0);
 	unsigned int *calcIntensityHistogram(bool useMask, int procType, bool reuseItermediaryResults, ROI *roi = NULL, int gpuId=0);
 
+	/*!
+	 * Function that calculate the derivative gratient for an intensity (grayscale) image. Return is also a grayscale converted using uint8 from Matlab
+	 */
+	IplImage* gradient(IplImage *inputImage);
 
 public:
 	// Images are read from disk using the path given as parameters
-	RegionalMorphologyAnalysis(string maskInputFileName, string grayInputFileName);
+	RegionalMorphologyAnalysis(string maskInputFileName, string grayInputFileName, bool initCytoplasm=false);
 
 
 	// Image stored in memory is given as parameter, and they are not copied but we only point to those images. 
 	// So, these images should not be deleted or any call to the RegionalMorphologyAnalysis will to fail.
-	RegionalMorphologyAnalysis(IplImage *originalImageMask, IplImage *originalImage);
+	RegionalMorphologyAnalysis(IplImage *originalImageMask, IplImage *originalImage, bool initCytoplasm=false);
 	
 
 	virtual ~RegionalMorphologyAnalysis();
@@ -160,28 +167,37 @@ public:
 	/*!
 	 * Calculates Haralick features derived from coocMatrix for each blob.
 	 */
-	void doCoocPropsBlob(vector<vector<float> > &haralickFeatures, unsigned int angle=Constant::ANGLE_0, unsigned int procType=Constant::CPU, bool reuseItermediaryResults=true, unsigned int gpuId=0, char *gpuTempData=NULL);
+	void doCoocPropsBlob(vector<vector<float> > &haralickFeatures, bool nuclei=true, IplImage *inputImage=NULL, unsigned int angle=Constant::ANGLE_0, unsigned int procType=Constant::CPU, bool reuseItermediaryResults=true, char *gpuTempData=NULL);
 
 	/*!
 	 * Computes Intensity features from each blob found in input image.
 	 */
 
-	void doIntensityBlob(vector<vector<float> > &intensityFeatures,unsigned int procType=Constant::CPU, unsigned int gpuId=0);
+	void doIntensityBlob(vector<vector<float> > &intensityFeatures, bool nuclei=true, IplImage *inputImage=NULL, unsigned int procType=Constant::CPU);
 	/*!
 	 * Computes Gradient features from each blob found in input image.
 	 */
-	void doGradientBlob(vector<vector<float> > &gradientFeatures, unsigned int procType=Constant::CPU, unsigned int gpuId=0);
+	void doGradientBlob(vector<vector<float> > &gradientFeatures, bool nuclei=true, IplImage *inputImage=NULL, unsigned int procType=Constant::CPU);
 
 	/*!
 	 * Computes Morphometry features from each blob found in input image.
 	 */
-	void doMorphometryFeatures(vector<vector<float> > &morphoFeatures);
+	void doMorphometryFeatures(vector<vector<float> > &morphoFeatures, bool nuclei=true, IplImage *inputImage=NULL);
 
 	/*!
 	 * Compute all per blob features, including regionprops, pixel intensity, gradient magnitude, Sobel, and Canny pixels
 	 */
-	void doAll();
+	void doAll(bool nuclei=true, IplImage *inputImage=NULL);
 
+	/*!
+	 * Compute only nuclei the features used by the  pipeline
+	 */
+	void doNucleiPipelineFeatures(vector<vector<float> > &nucleiFeatures, IplImage *inputImage);
+
+	/*!
+	 * Compute only cytoplasm the features used by the  pipeline
+	 */
+	void doCytoplasmPipelineFeatures(vector<vector<float> > &cytoplamsFeatures, IplImage *inputImage);
 
 
 	/* Functions used to manage data transfers among CPU and GPU*/
