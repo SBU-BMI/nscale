@@ -247,6 +247,8 @@ int main (int argc, char **argv){
 
 
 #ifdef PRINT_CONTOUR_TEXT
+#pragma omp critical
+		{  // added critical section on 10/19.s
 		Mat output = imread(fmask, 0);
 		if (output.data > 0) {
 			// for Lee and Jun to test the contour correctness.
@@ -275,6 +277,7 @@ int main (int argc, char **argv){
 				++counter;
 			}
 			fid.close();
+		}
 		}
 #endif
 

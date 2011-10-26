@@ -1,0 +1,5 @@
+in MPI feature loop with rank 0, loop 35.  /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000036864-0000024576.tif, /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000036864-0000024576.mask.pbm, /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000036864-0000024576.features.h5
+OpenCV Error: Incorrect size of input array (Number of points should be >= 5) in cvFitEllipse2, file /home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/imgproc/src/shapedescr.cpp, line 972
+
+in MPI feature loop with rank 0, loop 45.  /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000028672-0000012288.tif, /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000028672-0000012288.mask.pbm, /home/tcpan/PhD/path/Data/Valid-Masks/20X_4096x4096_tiles/gbm2.2/gbm2.2.ndpi-0000028672-0000012288.features.h5
+OpenCV Error: Incorrect size of input array (Number of points should be >= 5) in cvFitEllipse2, file /home/tcpan/PhD/path/ext/OpenCV-2.3.0/modules/imgproc/src/shapedescr.cpp, line 972

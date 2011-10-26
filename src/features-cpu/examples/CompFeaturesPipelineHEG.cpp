@@ -35,22 +35,14 @@ int main (int argc, char **argv){
 	}
 	// Load input images
 	IplImage *originalImageMask = readImage(argv[1]);
-//	IplImage *originalImage = readImage(argv[2]);
-
-	IplImage *originalImage = cvLoadImage(argv[2], 1);
+	IplImage *originalImage = cvLoadImage(argv[2], -1);
 
 
 	bool isNuclei = true;
 
-	/* create new image for the grayscale version */
-//	IplImage *grayscale = cvCreateImage( cvGetSize(originalImage), IPL_DEPTH_8U, 1 );
- 
-	/* CV_RGB2GRAY: convert BGR image to grayscale */
-//	cvCvtColor( originalImage, grayscale, CV_BGR2GRAY );
-
+	// Convert color image to grayscale
 	IplImage *grayscale = bgr2gray(originalImage);
-
-	cvSaveImage("newGrayScale.png", grayscale);
+//	cvSaveImage("newGrayScale.png", grayscale);
 
 	// Find nuclei in image and create an internal representation for each of them.
 	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(originalImageMask, grayscale, true);
@@ -130,7 +122,7 @@ int main (int argc, char **argv){
 #endif
 
 
-	cvSaveImage("ipl_image_h.png", &ipl_image_H);
+//	cvSaveImage("ipl_image_h.png", &ipl_image_H);
 
 	/////////////// Compute cytoplasm based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
@@ -150,7 +142,7 @@ int main (int argc, char **argv){
 	}
 #endif
 
-	cvSaveImage("ipl_image_e.png", &ipl_image_E);
+//	cvSaveImage("ipl_image_e.png", &ipl_image_E);
 	delete regional;
 
 //	namedWindow( "Color Image", CV_WINDOW_AUTOSIZE );

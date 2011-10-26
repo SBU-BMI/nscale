@@ -209,6 +209,7 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 		&first_contour,
 		sizeof(CvContour),
 		CV_RETR_TREE,
+//		CV_CHAIN_APPROX_SIMPLE
 		CV_CHAIN_APPROX_NONE
 		);
 

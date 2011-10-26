@@ -14,8 +14,8 @@ features:features.cpp
 testContour: Test.cpp ../Contour.o
 	g++ ${CXX_FLAGS} ${OPENCV_INCLUDE} -I.. Test.cpp ../Contour.o -o testContour ${OPENCV_LIBS_DIR} ${OPENCV_LIBS}
 
-#testBlob: ${EXAMPLES_DIR}/TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o  Operators.o
-#	g++ ${CXX_FLAGS} -I${OPENCV_INCLUDE} -I. ${EXAMPLES_DIR}/TestBlob.cpp Contour.o Blob.o DrawAuxiliar.o  Operators.o -o ${EXAMPLES_DIR}/testBlob ${OPENCV_LIBS}
+#testBlob: ../Contour.o ../Blob.o ../DrawAuxiliar.o ../Operators.o
+#	g++ ${CXX_FLAGS} ${OPENCV_INCLUDE} -I.. TestBlob.cpp ../Contour.o ../Blob.o ../DrawAuxiliar.o  ../Operators.o -o testBlob ${OPENCV_LIBS}  ${OPENCV_LIBS_GPU} $(CUDA_LIBS) 
 
 testRegional: TestRegional.cpp $(LIB_OBJS)
 	g++ ${CXX_FLAGS} ${OPENCV_INCLUDE} -I.. TestRegional.cpp $(LIB_OBJS) -o testRegional ${OPENCV_LIBS_DIR} ${OPENCV_LIBS} ${OPENCV_LIBS_GPU} $(CUDA_LIBS) 
