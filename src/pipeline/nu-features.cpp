@@ -80,7 +80,8 @@ int main (int argc, char **argv){
 
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
 	} else if (strcasecmp(mode, "mcore") == 0) {
@@ -88,7 +89,8 @@ int main (int argc, char **argv){
 		// get core count
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
 	} else if (strcasecmp(mode, "gpu") == 0) {
@@ -273,26 +275,16 @@ int main (int argc, char **argv){
 			unsigned int recordSize = morphoFeatures[0].size() + intensityFeatures[0].size() + gradientFeatures[0].size() + haralickFeatures[0].size();
 			unsigned int featureSize;
 			float *data = new float[morphoFeatures.size() * recordSize];
-			double *sums = new double[recordSize];
-			double *squareSums = new double[recordSize];
-			for (unsigned int i = 0; i < recordSize; i++) {
-				sums[i] = 0.;
-				squareSums[i] = 0.;
-			}
 			float *currData;
-			int offset;
 			for(unsigned int i = 0; i < morphoFeatures.size(); i++) {
 
 //				printf("[%d] m ", i);
-				offset = 0;
 				currData = data + i * recordSize;
 				featureSize = morphoFeatures[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
 					if (j < morphoFeatures[i].size()) {
 						currData[j] = morphoFeatures[i][j];
 
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -301,14 +293,11 @@ int main (int argc, char **argv){
 //				printf("\n");
 //				printf("[%d] i ", i);
 
-				offset += featureSize;
 				currData += featureSize;
 				featureSize = intensityFeatures[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
 					if (j < intensityFeatures[i].size()) {
 						currData[j] = intensityFeatures[i][j];
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -317,14 +306,11 @@ int main (int argc, char **argv){
 //				printf("\n");
 //				printf("[%d] g ", i);
 
-				offset += featureSize;
 				currData += featureSize;
 				featureSize = gradientFeatures[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
 					if (j < gradientFeatures[i].size()) {
 						currData[j] = gradientFeatures[i][j];
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -333,14 +319,11 @@ int main (int argc, char **argv){
 //				printf("\n");
 //				printf("[%d] h ", i);
 
-				offset += featureSize;
 				currData += featureSize;
 				featureSize = haralickFeatures[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
 					if (j < haralickFeatures[i].size()) {
 						currData[j] = haralickFeatures[i][j];
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -372,40 +355,13 @@ int main (int argc, char **argv){
 					2, // rank
 					dims, // dims
 						 H5T_NATIVE_FLOAT, data );
-			unsigned long ul = morphoFeatures.size();
-			hstatus = H5LTset_attribute_ulong ( file_id, "/data", "num_objs", &ul, 1 );
-			ul = recordSize;
-			hstatus = H5LTset_attribute_ulong ( file_id, "/data", "num_coords", &ul, 1 );
-
 			hstatus = H5LTset_attribute_string ( file_id, "/data", "image_file", fin.c_str() );
 
-			dims[0] = 1;
-			hstatus = H5LTmake_dataset ( file_id, "/meta-sum",
-					2, // rank
-					dims, // dims
-						 H5T_NATIVE_DOUBLE, sums );
-			ul = morphoFeatures.size();
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-sum", "num_objs", &ul, 1 );
-			ul = recordSize;
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-sum", "num_coords", &ul, 1 );
-
-			hstatus = H5LTmake_dataset ( file_id, "/meta-square-sum",
-					2, // rank
-					dims, // dims
-						 H5T_NATIVE_DOUBLE, squareSums );
-
 			// attach the attributes
-			ul = morphoFeatures.size();
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-square-sum", "num_objs", &ul, 1 );
-			ul = recordSize;
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-square-sum", "num_coords", &ul, 1 );
-
 			H5Fclose ( file_id );
 			}
 
 			delete [] data;
-			delete [] sums;
-			delete [] squareSums;
 
 		}
 		t2 = cciutils::ClockGetTime();
