@@ -14,7 +14,7 @@ compFeatures: CompFeatures.cpp
 compFeaturesPipeline: CompFeaturesPipeline.cpp
 	g++ ${CXX_FLAGS} ${OPENCV_INCLUDE} -I.. CompFeaturesPipeline.cpp -o compFeaturesPipeline ${OPENCV_LIBS_DIR} ${OPENCV_LIBS} -L.. -lfeatures
 
-compFeaturesPipelineHEG: compFeaturesPipelineHEG.cpp ColorDeconv_final.o BGR2GRAY.o
+compFeaturesPipelineHEG: CompFeaturesPipelineHEG.cpp ColorDeconv_final.o BGR2GRAY.o
 	g++ ${CXX_FLAGS} ${OPENCV_INCLUDE} -I.. CompFeaturesPipelineHEG.cpp ColorDeconv_final.o BGR2GRAY.o -o compFeaturesPipelineHEG ${OPENCV_LIBS_DIR} ${OPENCV_LIBS} -L.. -lfeatures
 
 
