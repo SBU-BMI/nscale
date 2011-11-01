@@ -15,7 +15,7 @@ include Makefile-mpi.inc
 ## END CUDA SETTINGS
 
 
-all: nu-pipeline.exe nu-features.exe nu-features-summarize.exe
+all: nu-features.exe nu-features-summarize.exe
 
 clean:
 	$(RM) *.o *.exe
@@ -27,5 +27,5 @@ clean:
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
 
 %.exe:  %.o 
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< 
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< ../features-cpu/examples/BGR2GRAY.o ../features-cpu/examples/ColorDeconv_final.o
 

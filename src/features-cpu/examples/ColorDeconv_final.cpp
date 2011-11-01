@@ -168,19 +168,19 @@ void ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, 
 
 }
 
-
-//change the order of {BGR} to {RGB}
-void BGRtoRGB(Mat& image){
-	unsigned char temp;
-	for(int i=0; i<image.rows; i++){
-		for(int j=0; j<image.cols; j++){
-			temp = image.at<Vec3b>(i,j)[0];
-			image.at<Vec3b>(i,j)[0] = image.at<Vec3b>(i,j)[2];
-			image.at<Vec3b>(i,j)[2] = temp;
-		}
-	}
-
-}
+//
+////change the order of {BGR} to {RGB}
+//void BGRtoRGB(Mat& image){
+//	unsigned char temp;
+//	for(int i=0; i<image.rows; i++){
+//		for(int j=0; j<image.cols; j++){
+//			temp = image.at<Vec3b>(i,j)[0];
+//			image.at<Vec3b>(i,j)[0] = image.at<Vec3b>(i,j)[2];
+//			image.at<Vec3b>(i,j)[2] = temp;
+//		}
+//	}
+//
+//}
 
 
 //int main(int argc, char** argv) {
