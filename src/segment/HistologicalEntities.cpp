@@ -288,10 +288,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	}
 //	imwrite("test/out-nucleicandidatessized.ppm", bw1);
 	if (logger) logger->logTimeElapsedSinceLastLog("areaThreshold1");
-	if (stage == 9) {
-		output = bw1;
-		return nscale::HistologicalEntities::SUCCESS;
-	}
+//	if (stage == 9) {
+//		output = bw1;
+//		return nscale::HistologicalEntities::SUCCESS;
+//	}
 
 
 	uchar G2 = 45;
@@ -332,9 +332,29 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		return nscale::HistologicalEntities::SUCCESS;
 	}
 
-	Mat seg_open = Mat::zeros(seg_nohole.size(), seg_nohole.type());
+
+	// a 3x3 mat with a cross
 	Mat disk3 = getStructuringElement(MORPH_ELLIPSE, Size(3,3));
-	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(-1, -1), 1);
+
+	// can't use morphologyEx.  the erode phase is not creating a border even though the method signature makes it appear that way.
+	// because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
+	//	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(1,1)); //, Point(-1, -1), 1, BORDER_REFLECT);
+	Mat t_seg_nohole;
+	copyMakeBorder(seg_nohole, t_seg_nohole, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<uchar>::max());
+	Mat t_seg_erode = Mat::zeros(t_seg_nohole.size(), t_seg_nohole.type());
+	erode(t_seg_nohole, t_seg_erode, disk3);
+	Mat seg_erode = t_seg_erode(Rect(1, 1, seg_nohole.cols, seg_nohole.rows));
+	Mat t_seg_erode2;
+	copyMakeBorder(seg_erode,t_seg_erode2, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<uchar>::min());
+	Mat t_seg_open = Mat::zeros(t_seg_erode2.size(), t_seg_erode2.type());
+	dilate(t_seg_erode2, t_seg_open, disk3);
+	Mat seg_open = t_seg_open(Rect(1,1,seg_nohole.cols, seg_nohole.rows));
+	t_seg_open.release();
+	t_seg_erode2.release();
+	seg_erode.release();
+	t_seg_erode.release();
+	t_seg_nohole.release();
+
 //	imwrite("test/out-nucleicandidatesopened.ppm", seg_open);
 	if (logger) logger->logTimeElapsedSinceLastLog("openBlobs");
 	if (stage == 14) {
@@ -382,19 +402,22 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	// then invert to create basins
 	Mat dist(seg_big.size(), CV_32FC1);
 
+	// opencv: compute the distance to nearest zero
+	// matlab: compute the distance to the nearest non-zero
 	distanceTransform(seg_big, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+	double mmin, mmax;
+	minMaxLoc(dist, &mmin, &mmax);
 	if (stage == 17) {
-		output = dist;
+		output = dist * (std::numeric_limits<uchar>::max() / mmax);
 		return nscale::HistologicalEntities::SUCCESS;
 	}
 
-	double mmin, mmax;
-	minMaxLoc(dist, &mmin, &mmax);
+	// invert and shift (make sure it's still positive)
 	dist = (mmax + 1.0) - dist;
-	if (stage == 18) {
-			output = dist;
-			return nscale::HistologicalEntities::SUCCESS;
-		}
+//	if (stage == 18) {
+//			output = dist * (std::numeric_limits<uchar>::max() / mmax);
+//			return nscale::HistologicalEntities::SUCCESS;
+//		}
 
 //	cciutils::cv::imwriteRaw("test/out-dist", dist);
 
@@ -402,14 +425,16 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	Mat distance = Mat::zeros(dist.size(), dist.type());
 	dist.copyTo(distance, seg_big);
 //	cciutils::cv::imwriteRaw("test/out-distance", distance);
+	if (logger) logger->logTimeElapsedSinceLastLog("distTransform");
+	if (stage == 18) {
+			minMaxLoc(distance, &mmin, &mmax);
+			output = distance * (std::numeric_limits<uchar>::max() / mmax);
+			return nscale::HistologicalEntities::SUCCESS;
+		}
+
 	// then do imhmin.
 	//Mat distance2 = nscale::imhmin<float>(distance, 1.0f, 8);
 	//cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
-	if (logger) logger->logTimeElapsedSinceLastLog("distTransform");
-	if (stage == 19) {
-			output = distance;
-			return nscale::HistologicalEntities::SUCCESS;
-		}
 
 
 	/*
@@ -428,7 +453,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		}
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
-	Mat watermask = nscale::watershed2(nuclei, distance, 8);
+	Mat watermask = nscale::watershed2(img, distance, 8);
+//	Mat watermask = nscale::watershed2(nuclei, distance, 8);
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 	if (stage == 21) {
 			output = watermask;
@@ -473,10 +499,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	}
 //	imwrite("test/out-seg.ppm", seg);
 	if (logger) logger->logTimeElapsedSinceLastLog("20To1000");
-	if (stage == 24) {
-		output = seg;
-		return nscale::HistologicalEntities::SUCCESS;
-	}
+//	if (stage == 24) {
+//		output = seg;
+//		return nscale::HistologicalEntities::SUCCESS;
+//	}
 
 
 	/*
