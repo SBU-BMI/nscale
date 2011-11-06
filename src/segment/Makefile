@@ -1,7 +1,7 @@
 include Makefile.inc
 ## uncomment below for keeneland.
 #include Makefile.keeneland.inc
-#include Makefile-mpi.inc
+include Makefile-mpi.inc
 
 ## BEGIN CUDA SETTINGS - comment out to disable CUDA
 include Makefile-cuda.inc

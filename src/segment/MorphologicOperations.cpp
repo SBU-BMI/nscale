@@ -892,8 +892,11 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 	 */
 
 	Mat minima = localMinima<float>(image, connectivity);
+//imwrite("test-minima.pbm", minima);
 	Mat_<int> labels = bwlabel(minima, false, connectivity);
+//imwrite("test-bwlabel.png", labels);
 
+// need borders, else get edges at edge.
 	Mat input, output;
 	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));

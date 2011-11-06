@@ -14,6 +14,7 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
         fileext = '.tif';
 
         for i = 1:length(image)
+%	for i = 1
             filename=image{i};
             svsNucleiInstrumented(impath,filename, fileext, resultpath,validationpath)
         end
@@ -195,31 +196,31 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 % 
 
     bw2 = diffIm>G2;
-    cv_bw2 = imread([validationpath, filename, '-', sprintf('%d',10), '.mask.pbm']) > 0;
+    cv_bw2 = imread([validationpath, filename, '-', sprintf('%d',9), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  bw2 %d\n', length(find(bw2 ~= cv_bw2)));
 
 
     [rows,cols] = ind2sub(size(diffIm),ind);
     seg_norbc = bwselect(bw2,cols,rows,8) & ~rbc;
     
-    cv_seg_norbc = imread([validationpath, filename, '-', sprintf('%d',12), '.mask.pbm']) >0;
+    cv_seg_norbc = imread([validationpath, filename, '-', sprintf('%d',11), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  candidate no rbc %d\n', length(find(seg_norbc ~= cv_seg_norbc)));
     
     
     seg_nohole = imfill(seg_norbc,'holes');
-    cv_seg_nohole = imread([validationpath, filename, '-', sprintf('%d',13), '.mask.pbm']) >0;
+    cv_seg_nohole = imread([validationpath, filename, '-', sprintf('%d',12), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  hole filled %d\n', length(find(seg_nohole ~= cv_seg_nohole)));
 
     seg_open = imopen(seg_nohole,strel('disk',1));
     
-    cv_seg_open = imread([validationpath, filename, '-', sprintf('%d',14), '.mask.pbm']) >0;
+    cv_seg_open = imread([validationpath, filename, '-', sprintf('%d',13), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  candidate opened %d\n', length(find(seg_open ~= cv_seg_open)));
     
 
     %CHANGE
     seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
 
-    cv_seg_big = imread([validationpath, filename, '-', sprintf('%d',16), '.mask.pbm']) >0;
+    cv_seg_big = imread([validationpath, filename, '-', sprintf('%d',15), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  candidate big %d\n', length(find(seg_big ~= cv_seg_big)));
     
     
@@ -228,7 +229,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %     cv_distance = fread(fid, [4096,4096], '*float32');
 %     cv_distance = single(cv_distance');
 %     fclose(fid);
-     cv_distance = imread([validationpath, filename, '-', sprintf('%d',17), '.mask.pbm']);
+     cv_distance = imread([validationpath, filename, '-', sprintf('%d',16), '.mask.pbm']);
      t = bwdist(~seg_big);  % distance to nearest non-zero
      t = uint8(255.0/(max(max(t))) * t);
      fprintf(1, 'matlab vs cv.  distance transform %d\n', length(find(t ~= cv_distance)));
@@ -245,12 +246,12 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %     t_cv_distance = cv_distance;
 %     t_cv_distance(find(t_cv_distance < -1e38)) = 0;
 %     fprintf(1, 'matlab vs cv.  distance background set %d\n', max(max(abs(t_distance - t_cv_distance) > eps)));
-     cv_distance = imread([validationpath, filename, '-', sprintf('%d',18), '.mask.pbm']);
-     t = distance;  % distance to nearest non-zero
-     t = t - mn + 1.0;
-     t(~seg_big) = 0;
-     t = uint8(255.0/(max(max(t))) * t);
-     fprintf(1, 'matlab vs cv.  distance transform with -inf %d\n', length(find(t ~= cv_distance)));
+%     cv_distance = imread([validationpath, filename, '-', sprintf('%d',18), '.mask.pbm']);
+%     t = distance;  % distance to nearest non-zero
+%     t = t - mn + 1.0;
+%     t(~seg_big) = 0;
+%     t = uint8(255.0/(max(max(t))) * t);
+%     fprintf(1, 'matlab vs cv.  distance transform with -inf %d\n', length(find(t ~= cv_distance)));
     %figure; imshow(abs(t_cv_distance- t_distance) * 60);
     
     distance2 = imhmin(distance, 1);
@@ -263,6 +264,12 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %     t_cv_distance2 = cv_distance2;
 %     t_cv_distance2(find(t_cv_distance2 < -1e38)) = 0;
 %     fprintf(1, 'matlab vs cv.  distance imhmin %d\n', max(max(abs(t_distance2 - t_cv_distance2) > eps)));
+      cv_distance2 = imread([validationpath, filename, '-', sprintf('%d',18), '.mask.pbm']);
+     t = distance2;  % distance to nearest non-zero
+     t = t - mn + 1.0;
+     t(~seg_big) = 0;
+     t = uint8(255.0/(max(max(t))) * t);
+     fprintf(1, 'matlab vs cv.  imhmin %d\n', length(find(t ~= cv_distance2)));
     %figure; imshow(abs(t_cv_distance2- t_distance2) * 60);
     
     
@@ -279,6 +286,9 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %     fprintf(1, 'matlab vs cv. watershed %d\n', max(max(watermask ~= cv_watermask)));
 %    figure; imshow(watermask);
 %    figure; imshow(cv_watermask);
+	t = watermask > 0;    
+ cv_bwatermask = imread([validationpath, filename, '-', sprintf('%d',21), '.mask.pbm']) > 0;
+    fprintf(1, 'matlab vs cv.  watershed contour interior %d\n', length(find(t ~= cv_bwatermask)));
     
     
     seg_nonoverlap = seg_big;
@@ -320,7 +330,15 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %     
     cv_tolabel = imread([validationpath, filename, '-', sprintf('%d',25), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  nuclei pixel difference %d\n', length(find(tolabel ~= cv_tolabel)));
-    figure; imshow(tolabel ~= cv_tolabel);
+%    figure; imshow(tolabel ~= cv_tolabel);
+
+	out = zeros(size(tolabel, 1), size(tolabel, 2), 3, 'uint8');
+	out(:,:,1) = 255 * tolabel;
+	out(:,:,2) = 255 * cv_tolabel;
+	out(:,:,3) = 255 * seg_big;
+	imwrite(out, [validationpath, filename, '-matlab-ocv-compare.mask.pbm']);
+%	figure; imshow(out);
+
     return;
     
     [L,num] = bwlabel(tolabel,4);
