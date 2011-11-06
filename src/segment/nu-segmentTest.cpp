@@ -59,21 +59,23 @@ int main (int argc, char **argv){
 	maskBuf=NULL;
 	boundsBuf=NULL;
 
-	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+	if (argc < 6) {
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id minstage maxstage [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 	std::string imagename(argv[1]);
 	std::string outDir(argv[2]);
-	const char* mode = argc > 4 ? argv[4] : "cpu";
+	int mins = atoi(argv[4]);
+	int maxs = atoi(argv[5]);
+	const char* mode = argc > 6 ? argv[6] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
 		// get core count
 
 #ifdef _OPENMP
-		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+		if (argc > 7) {
+			omp_set_num_threads(atoi(argv[7]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[7]));
 			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
@@ -81,8 +83,8 @@ int main (int argc, char **argv){
 		modecode = cciutils::DEVICE_MCORE;
 		// get core count
 #ifdef _OPENMP
-		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+		if (argc > 7) {
+			omp_set_num_threads(atoi(argv[7]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[7]));
 			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
@@ -94,12 +96,12 @@ int main (int argc, char **argv){
 			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
 			return -2;
 		}
-		if (argc > 5) {
-			gpu::setDevice(atoi(argv[5]));
+		if (argc > 7) {
+			gpu::setDevice(atoi(argv[7]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id minstage maxstage [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 
@@ -112,7 +114,7 @@ int main (int argc, char **argv){
 		futils.traverseDirectoryRecursive(imagename, filenames);
 		std::string dirname;
 		if (filenames.size() == 1) {
-			dirname = imagename.substr(0, imagename.find_last_of("/\\"));
+			dirname = filenames[0].substr(0, filenames[0].find_last_of("/\\"));
 		} else {
 			dirname = imagename;
 		}
@@ -198,13 +200,13 @@ int main (int argc, char **argv){
 
 
 #ifdef WITH_MPI
-#pragma omp parallel for shared(perNodeCount, inputBuf, maskBuf, boundsBuf, maxLenInput, maxLenMask, maxLenBounds, modecode, rank) private(fin, fmask, fbound, t1, t2)
+#pragma omp parallel for shared(perNodeCount, inputBuf, maskBuf, boundsBuf, maxLenInput, maxLenMask, maxLenBounds, modecode, rank, mins, maxs) private(fin, fmask, fbound, t1, t2)
     for (unsigned int i = 0; i < perNodeCount; ++i) {
 		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
 		fmask = std::string(maskBuf + i * maxLenMask, maxLenMask);
 		fbound = std::string(boundsBuf + i * maxLenBounds, maxLenBounds);
 #else
-#pragma omp parallel for shared(filenames, seg_output, bounds_output, modecode, rank) private(fin, fmask, fbound, t1, t2)
+#pragma omp parallel for shared(filenames, seg_output, bounds_output, modecode, rank, mins, maxs) private(fin, fmask, fbound, t1, t2)
     for (unsigned int i = 0; i < dataCount; ++i) {
 		fin = filenames[i];
 		fmask = seg_output[i];
@@ -223,17 +225,23 @@ int main (int argc, char **argv){
 		t1 = cciutils::ClockGetTime();
 
 		int status;
+		FileUtils fu(".mask.pbm");
+		for (int stage = mins; stage <= maxs; ++stage) {
+			char prefix[80];
+		    sprintf(prefix, "-%d%s", stage, ".mask.pbm");
+		    std::string temp = fu.replaceExt(fmask, ".mask.pbm", prefix);;
 
-		switch (modecode) {
-		case cciutils::DEVICE_CPU :
-		case cciutils::DEVICE_MCORE :
-			status = nscale::HistologicalEntities::segmentNuclei(fin, fmask);
-			break;
-		case cciutils::DEVICE_GPU :
-			status = nscale::gpu::HistologicalEntities::segmentNuclei(fin, fmask);
-			break;
-		default :
-			break;
+			switch (modecode) {
+			case cciutils::DEVICE_CPU :
+			case cciutils::DEVICE_MCORE :
+				status = nscale::HistologicalEntities::segmentNuclei(fin, temp, NULL, stage);
+				break;
+			case cciutils::DEVICE_GPU :
+				status = nscale::gpu::HistologicalEntities::segmentNuclei(fin, temp, NULL, stage);
+				break;
+			default :
+				break;
+			}
 		}
 
 		if (status != nscale::HistologicalEntities::SUCCESS) {
@@ -246,43 +254,6 @@ int main (int argc, char **argv){
 		t2 = cciutils::ClockGetTime();
 		printf("%d::%d: segment %lu us, in %s\n", rank, tid, t2-t1, fin.c_str());
 //		std::cout << rank <<"::" << tid << ":" << t2-t1 << " us, in " << fin << ", out " << fmask << std::endl;
-
-
-#ifdef PRINT_CONTOUR_TEXT
-#pragma omp critical
-		{  // added critical section on 10/19.s
-		Mat output = imread(fmask, 0);
-		if (output.data > 0) {
-			// for Lee and Jun to test the contour correctness.
-			Mat temp = Mat::zeros(output.size() + Size(2,2), output.type());
-			copyMakeBorder(output, temp, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-
-			std::vector<std::vector<Point> > contours;
-			std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
-
-			// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-			findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
-			//TODO: TEMP std::cout << "num contours = " << contours.size() << std::endl;
-
-			std::ofstream fid(fbound.c_str());
-			int counter = 0;
-			if (contours.size() > 0) {
-				// iterate over all top level contours (all siblings, draw with own label color
-				for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
-					// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-					fid << idx << ": ";
-					for (int ptc = 0; ptc < contours[idx].size(); ++ptc) {
-						fid << contours[idx][ptc].x << "," << contours[idx][ptc].y << "; ";
-					}
-					fid << std::endl;
-				}
-				++counter;
-			}
-			fid.close();
-		}
-		}
-#endif
-
 
     }
 

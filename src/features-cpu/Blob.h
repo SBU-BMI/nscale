@@ -23,6 +23,8 @@ protected:
 	Contour *external_contour;
 	vector<Contour*> internal_contours;
 
+	CvPoint offsetInImage;
+
 	//! Dimensions of the original image
 	CvSize originalImageSize;
 
@@ -71,6 +73,16 @@ protected:
 	// and stores it in instensity_hist
 	void calcIntensityHistogram(IplImage* img);
 
+	// In this way the intensity, gradient, and cooc features will be recalculated 
+	// for the blob, with the given input image
+	void clearIntensityData();
+	void clearGradientData();
+	void clearCoocPropsData();	
+	void releaseROISubImage();
+
+	// Call the four functions above in sequence
+	void resetInternalData();
+
 	// Computes the Morphology gradient histogram of the
 	// grayscale input image and stores it in instensity_hist
 	void calcGradientHistogram(IplImage *img);
@@ -100,10 +112,13 @@ protected:
 	friend class DrawAuxiliar;
 	friend class RegionalMorphologyAnalysis;
 public:
-	Blob(CvSeq* c, CvSize originalImageSize );
+	Blob(CvSeq* c, CvSize originalImageSize, CvPoint offsetInImage );
 
 	virtual ~Blob();
 
+	CvPoint getOffsetInImage(){
+		return offsetInImage;
+	}
 	/*!
 	 * Calculates Blob's area, which is defined as the area of the
 	 * external contour minus area of the holes.
@@ -242,6 +257,8 @@ public:
 	// its bounding box without inclination
 	IplImage *getMask();
 
+	IplImage *getCytoplasmMask(CvSize tileSize, int delta, CvPoint &offset);
+
 	//! Get Blob bounding box without inclination
 	CvRect getNonInclinedBoundingBox();
 
@@ -251,7 +268,12 @@ public:
 	float getNonInclinedBoundingBoxArea( );
 
 	//! Calculate pixels intensity
-	double getMeanIntensity(IplImage* img);
+	float getMeanIntensity(IplImage* img);
+	float getStdIntensity(IplImage *img);
+	float getEnergyIntensity(IplImage *img);
+	float getEntropyIntensity(IplImage *img);
+	float getKurtosisIntensity(IplImage *img);
+	float getSkewnessIntensity(IplImage *img);
 	unsigned int getMedianIntensity(IplImage* img);
 	unsigned int getMinIntensity(IplImage* img);
 	unsigned int getMaxIntensity(IplImage* img);
@@ -261,12 +283,20 @@ public:
 
 	//! Calculate pixels Gradient Magnitude
 	double getMeanGradMagnitude(IplImage* img);
+	float getStdGradMagnitude(IplImage *img);
+	float getEnergyGradMagnitude(IplImage *img);
+	float getEntropyGradMagnitude(IplImage *img);
+	float getKurtosisGradMagnitude(IplImage *img);
+	float getSkewnessGradMagnitude(IplImage *img);
 	unsigned int getMedianGradMagnitude(IplImage* img);
 	unsigned int getMinGradMagnitude(IplImage* img);
 	unsigned int getMaxGradMagnitude(IplImage* img);
 	unsigned int getFirstQuartileGradMagnitude(IplImage* img);
 	unsigned int getThirdQuartileGradMagnitude(IplImage* img);
+
+	//! Calculate edge features
 	unsigned int getCannyArea(IplImage* img, double lowThresh, double highThresh, int apertureSize = 3);
+	float getMeanCanny(IplImage *img, double lowThresh, double highThresh, int apertureSize = 3);
 	unsigned int getSobelArea( IplImage *img, int xorder, int yorder, int apertureSize=3 );
 
 	/* Haralick Features based on co-occurrence matrix. */

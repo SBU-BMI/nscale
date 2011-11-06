@@ -8,9 +8,13 @@
 #include "Blob.h"
 
 
-Blob::Blob(CvSeq* first_contour, CvSize originalImageSize ) {
+Blob::Blob(CvSeq* first_contour, CvSize originalImageSize, CvPoint offsetOriginalImage ) {
 
 	self_storage = cvCreateMemStorage();
+
+	// this is the offset of the point represented in the contours inside the original image
+	offsetInImage.x = offsetOriginalImage.x;
+	offsetInImage.y = offsetOriginalImage.y;
 
 	if(first_contour != NULL){
 		external_contour = new Contour(first_contour);
@@ -97,17 +101,45 @@ Blob::~Blob() {
 
 }
 
+void Blob::clearIntensityData(){
+	if(intensity_hist != NULL){
+		cvReleaseHist(&intensity_hist);
+		intensity_hist = NULL;
+		intensity_hist_points = 0;
+	}
+
+}
+void Blob::clearGradientData(){
+	if(grad_hist != NULL){
+		cvReleaseHist(&grad_hist);
+		grad_hist = NULL;
+		grad_hist_points = 0;
+	}
+}
+void Blob::clearCoocPropsData(){
+	for(int i = 0; i < Constant::NUM_ANGLES; i++){
+		if(coocMatrix[i] != NULL){
+			free(coocMatrix[i]);
+			coocMatrix[i] = NULL;
+			coocMatrixCount[i] = 0;
+		}
+	}
+
+}
+
 float Blob::getArea()
 {
 	float areaContour = external_contour->getArea();
+
+	IplImage *maskContour = getMask();
 
 	for(int i = 0; i < internal_contours.size(); i++){
 		areaContour -= internal_contours[i]->getArea();
 	}
 
 //	cout << "AreaContour = "<< areaContour<<endl;
-//	float area = countNonZero(this->getMask());
-	return areaContour;
+	float area = cvCountNonZero(this->getMask());
+	return area;
 //	return area;
 }
 
@@ -125,18 +157,18 @@ CvBox2D Blob::getEllipse(){
 
 	// Do we have to fit the ellipse?
 	if(min_fitting_ellipse.size.width == -1.0){
-		try{
-			min_fitting_ellipse = cvFitEllipse2(external_contour->getCl());
-	
-		}
-		catch( cv:: Exception& e){
-			const char* err_msg = e.what();
-			min_fitting_ellipse.size.width = 0;
-			min_fitting_ellipse.size.height = 0;
-			min_fitting_ellipse.angle = 0;
-//			printf("Warning: failed to fitEllipse: %s", err_msg);
-		}
-	/*	double u00,u11,u01,u10,u20,u02, delta, num, den, temp;
+//		try{
+//			min_fitting_ellipse = cvFitEllipse2(external_contour->getCl());
+//	
+//		}
+//		catch( cv:: Exception& e){
+//			const char* err_msg = e.what();
+//			min_fitting_ellipse.size.width = 0;
+//			min_fitting_ellipse.size.height = 0;
+//			min_fitting_ellipse.angle = 0;
+////			printf("Warning: failed to fitEllipse: %s", err_msg);
+//		}
+		double u00,u11,u01,u10,u20,u02, delta, num, den, temp;
 
 		// central moments calculation
 		u00 = this->getMoment(0, 0);
@@ -199,14 +231,15 @@ CvBox2D Blob::getEllipse(){
 			}
 			if( num != 0 && den  != 00 )
 			{
-				min_fitting_ellipse.angle = 180.0 + (180.0 / CV_PI) * atan( num / den );
+//				min_fitting_ellipse.angle = 180.0 + (180.0 / CV_PI) * atan( num / den );
+
+				min_fitting_ellipse.angle = (180.0 / CV_PI) * atan( num / den );
 			}
 			else
 			{
 				min_fitting_ellipse.angle = 0;
 			}
-
-		}*/
+		}
 	}
 	return min_fitting_ellipse;
 }
@@ -218,8 +251,8 @@ float Blob::getConvexArea()
 
 float Blob::getExtent()
 {
-	CvRect boundingBox = this->getNonInclinedBoundingBox();
-	float extent = external_contour->getArea()/ this->getNonInclinedBoundingBoxArea();
+//	CvRect boundingBox = this->getNonInclinedBoundingBox();
+	float extent = this->getArea()/ this->getNonInclinedBoundingBoxArea();
 	return extent;
 }
 
@@ -236,9 +269,9 @@ float Blob::getPerimeter()
 {
 	float perimeter = external_contour->getPerimeter();
 
-	for(int i = 0; i < internal_contours.size(); i++){
-		perimeter += internal_contours[i]->getPerimeter();
-	}
+//	for(int i = 0; i < internal_contours.size(); i++){
+//		perimeter += internal_contours[i]->getPerimeter();
+//	}
 	return perimeter;
 }
 
@@ -263,9 +296,9 @@ float Blob::getMinorAxisLength()
 		//	min_fitting_ellipse = cvFitEllipse2(c_l);
 		}
 		if(min_fitting_ellipse.size.width > min_fitting_ellipse.size.height){
-			minorAxisLength = min_fitting_ellipse.size.height;
+			minorAxisLength = 2 * min_fitting_ellipse.size.height;
 		}else{
-			minorAxisLength = min_fitting_ellipse.size.width;
+			minorAxisLength = 2 * min_fitting_ellipse.size.width;
 		}
 	}
     return minorAxisLength;
@@ -280,15 +313,6 @@ float Blob::getSolidity()
 
 float Blob::getOrientation()
 {
-
-/*	this->getEllipse();
-	float angle = min_fitting_ellipse.angle;
-
-	while(angle > 90) angle -=90;
-	angle -= 90;
-	angle *=-1.0;
-
-	return angle;*/
 	return min_fitting_ellipse.angle;
 }
 
@@ -302,9 +326,9 @@ float Blob::getMajorAxisLength()
 			//min_fitting_ellipse = cvFitEllipse2(c_l);
 		}
 		if(min_fitting_ellipse.size.width > min_fitting_ellipse.size.height){
-			majorAxisLength = min_fitting_ellipse.size.width;
+			majorAxisLength = 2 * min_fitting_ellipse.size.width;
 		}else{
-			majorAxisLength = min_fitting_ellipse.size.height;
+			majorAxisLength = 2 * min_fitting_ellipse.size.height;
 		}
 	}
     return majorAxisLength;
@@ -355,7 +379,10 @@ float Blob::getEllipticity()
 
 CvRect Blob::getNonInclinedBoundingBox()
 {
-	return this->external_contour->getNonInclinedBoundingBox(this->originalImageSize);
+	CvRect bb = this->external_contour->getNonInclinedBoundingBox();
+//	bb.x += offsetInImage.x;
+//	bb.y += offsetInImage.y;
+	return bb;
 }
 
 void Blob::calcIntensityHistogram(IplImage *img)
@@ -377,6 +404,7 @@ void Blob::calcIntensityHistogram(IplImage *img)
 		// Region of interest is the same as the bounding box of the blob
 		IplImage *ROISubImage = getROISubImage(img);
 
+
 		// Do not be silly and use the cvSetImageROI as bellow. It will store the ROI in the
 		// Image itself, and as the library may be multithreaded it is likely to incurr in errors.
 //		cvSetImageROI(img, blob_bounding_box);
@@ -386,21 +414,36 @@ void Blob::calcIntensityHistogram(IplImage *img)
 
 		intensity_hist_points = 0;
 
+//		cout<< "Starting hist"<<endl;
 		for(int i=0;i<256;i++){
 				float histValue = cvQueryHistValue_1D(intensity_hist, i);
 				intensity_hist_points += (unsigned int)histValue;
-//				cout<< "mat["<<i<<"]="<<histValue<<endl;
+//				cout<< histValue<<endl;
 		}
 //		cvAnd(ROISubImage, this->getMask(), ROISubImage);
 //		cout << "NonZero = " << cvCountNonZero(ROISubImage) <<" histPoints = " << intensity_hist_points <<endl;
 
+//		cout<< "End hist"<<endl;
 #ifdef VISUAL_DEBUG
+		cvNamedWindow("Img");
+		cvShowImage("Img", img);
+		cvNamedWindow("Img-roi");
+		cvShowImage("Img-roi", ROISubImage);
+		cvNamedWindow("Img-mask");
+		cvShowImage("Img-mask", this->getMask());
+
+		cvSaveImage("cytoMask.tif", this->getMask());
+		cvSaveImage("cytoROI.tif", ROISubImage);
+	
 		IplImage* histDraw = DrawAuxiliar::DrawHistogram(intensity_hist);
 		cvNamedWindow("Resulting Intensity Histogram");
 		cvShowImage("Resulting Intensity Histogram", histDraw);
 		cvReleaseImage(&histDraw);
 		cvWaitKey(0);
 		cvDestroyWindow("Resulting Intensity Histogram");
+		cvDestroyWindow("Img-roi");
+		cvDestroyWindow("Img-mask");
+		cvDestroyWindow("Img");
 #endif
 
 	}
@@ -420,6 +463,158 @@ float Blob::getPorosity()
 }
 
 
+CvRect getCytoplasmBounds(CvSize tileSize, CvRect bounding_box,  int delta){
+	CvRect cytoplasmBounds;
+//	cout << "Cytobounding box = x -> "<<bounding_box.x << " y= " << bounding_box.y<< " width = "<< bounding_box.width << " height = "<<bounding_box.height<<endl;
+
+	// limit box from moving outside x limits
+	cytoplasmBounds.x = max(0, (bounding_box.x - delta));
+
+	// calc actually change in X
+	int leftMoveX = bounding_box.x - cytoplasmBounds.x;
+
+	// limit box from move outside y limits
+	cytoplasmBounds.y = max(0, (bounding_box.y - delta));
+
+	// calc actually change in Y
+	int upMoveY = bounding_box.y - cytoplasmBounds.y;
+
+
+	if(bounding_box.x + bounding_box.width + delta > tileSize.width){
+		cytoplasmBounds.width = tileSize.width - bounding_box.x + leftMoveX;
+	}else{
+		cytoplasmBounds.width = bounding_box.width + delta + leftMoveX;
+	}
+
+	if(bounding_box.y + bounding_box.height + delta > tileSize.height){
+		cytoplasmBounds.height = tileSize.height - bounding_box.y + upMoveY;
+	}else{
+		cytoplasmBounds.height = bounding_box.height + delta + upMoveY;
+	}
+
+//	cout << "After- delta - Cytobounding box = x -> "<<cytoplasmBounds.x << " y= " << cytoplasmBounds.y<< " width = "<< cytoplasmBounds.width << " height = "<<cytoplasmBounds.height<<endl;
+	return cytoplasmBounds;
+}
+
+IplImage *Blob::getCytoplasmMask(CvSize tileSize, int delta, CvPoint &offset)
+{
+
+	// This is the bounding_box of the nucleus
+	CvRect bounding_box = this->getNonInclinedBoundingBox();
+	IplImage *cytoplasmMaskRet = NULL;
+	// Make sure that the bounding box is okay
+	if(bounding_box.height != 0 && bounding_box.width != 0 ){
+		// Calculate limit of the dilation for this nucleus --- this is another bounding box
+		CvRect cytoplasmRect = getCytoplasmBounds(tileSize, bounding_box, delta);
+
+		// Create mask within the same size as the bounding box
+		IplImage *cytoplasmMask = cvCreateImage( cvSize(cytoplasmRect.width, cytoplasmRect.height), IPL_DEPTH_8U, 1);
+
+		// Fill the image with background
+		cvSetZero(cytoplasmMask);
+
+		// The offset of the location of these contours in the original image to the location in
+		// the mask that has the same dimensions as the bounding box. Thus, the contours can now be
+		// draw from position (0,0) in a new image
+//		offset.x = -bounding_box.x;
+//		offset.y = -bounding_box.y;
+
+		// However, the bounding box increases before the dilation, and the contours "nucleus" should be draw 
+		// in the new image before the dilation. The new position of the contours takes into account how many
+		// pixels the original nucleus bounding box increases in X and Y.
+
+		// Calculate changes in X for the new bounding box: cytoplasmLeftMove 
+		int cytoplasmLeftMove = bounding_box.x - cytoplasmRect.x;
+	
+		// Calculate changes in Y for the new bounding box: cytoplasmLeftMove 
+		int cytoplasmUpMove = bounding_box.y - cytoplasmRect.y;
+
+		// Update the offset with values calculated before
+		CvPoint auxOffsetLocalCytoplasmMask;
+		auxOffsetLocalCytoplasmMask.x = -bounding_box.x;
+		auxOffsetLocalCytoplasmMask.x += cytoplasmLeftMove;
+		auxOffsetLocalCytoplasmMask.y = -bounding_box.y;
+		auxOffsetLocalCytoplasmMask.y += cytoplasmUpMove;
+
+
+		// First draw the external contour
+		cvDrawContours( cytoplasmMask, this->external_contour->getCl(), CV_RGB(255,255,255), CV_RGB(255,255,255),0, CV_FILLED, 8, auxOffsetLocalCytoplasmMask );
+
+		// Fill each hole in the mask
+		for(int i = 0; i < internal_contours.size(); i++){
+			cvDrawContours( cytoplasmMask, internal_contours[i]->getCl(), CV_RGB(0,0,0), CV_RGB(0,0,0),0, CV_FILLED, 8, auxOffsetLocalCytoplasmMask );
+		}
+
+		static int disk_r8_17_17[289] = {
+			0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,
+			0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,
+			0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,
+			0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,
+			0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
+			0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
+			0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
+			1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+			0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
+			0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
+			0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
+			0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,
+			0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,
+			0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,
+			0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0
+		};
+	
+		IplImage* cytoplasmDilated = cvCloneImage(cytoplasmMask);
+	
+		IplConvKernel *kernel_disk8 = cvCreateStructuringElementEx(17,17,8,8,CV_SHAPE_CUSTOM,disk_r8_17_17);
+		cvDilate(cytoplasmMask, cytoplasmDilated, kernel_disk8);
+
+//		cvSaveImage("cytoMask.tif", cytoplasmMask);
+//		cvSaveImage("cytoOpencvDilated.tif", cytoplasmDilated);
+//		cvSaveImage("cytoNucleusMaskCalc.tif", cytoplasmMask );
+
+		IplImage* cytoplasmDilatedXor = cvCreateImage( cvSize(cytoplasmRect.width, cytoplasmRect.height), IPL_DEPTH_8U, 1);
+		cvSetZero(cytoplasmDilatedXor);
+	//	cvSetImageROI(cytoplasmDilatedXor, cvRect(2,2,cytoplasmRect.width,cytoplasmRect.height));
+		//IplImage* cytoplasmDilatedXor = cvCloneImage(cytoplasmDilated);
+		cvXor(cytoplasmDilated, cytoplasmMask, cytoplasmDilatedXor);
+		cvResetImageROI(cytoplasmDilatedXor);
+		
+//		cvSaveImage("cytoOpencvDilateXor.tif", cytoplasmDilatedXor);
+#ifdef VISUAL_DEBUG
+		IplImage *curNucleusMask = DrawAuxiliar::DrawBlob(this,  CV_RGB(255,255,255),  CV_RGB(0,0,0));
+		cvSaveImage("curNucleusMask.tif", curNucleusMask);
+
+		cvNamedWindow("Nucleus - Press any key to continue!");
+		cvShowImage("Nucleus - Press any key to continue!", cytoplasmMask);
+		cvNamedWindow("Cytoplams - Press any key to continue!");
+		cvShowImage("Cytoplams - Press any key to continue!", cytoplasmDilated);
+		cvNamedWindow("CytoplamsXor - Press any key to continue!");
+		cvShowImage("CytoplamsXor - Press any key to continue!", cytoplasmDilatedXor);
+
+
+		cvWaitKey(0);
+		cvDestroyWindow("Nucleus - Press any key to continue!");
+		cvDestroyWindow("Cytoplams - Press any key to continue!");
+		cvDestroyWindow("CytoplamsXor - Press any key to continue!");
+#endif
+
+		cvReleaseStructuringElement( &kernel_disk8 );
+		cvReleaseImage(&cytoplasmDilated);
+		cvReleaseImage(&cytoplasmMask);
+
+
+		offset.x = cytoplasmRect.x;
+		offset.y = cytoplasmRect.y;
+
+		cytoplasmMaskRet = cytoplasmDilatedXor;
+//		offset.x *= -1;
+//		offset.y *= -1;
+	}
+	return cytoplasmMaskRet;
+}
+
 
 IplImage *Blob::getMask()
 {
@@ -432,6 +627,7 @@ IplImage *Blob::getMask()
 		// Create mask within the same size as the bounding box
 		mask = cvCreateImage( cvSize(bounding_box.width, bounding_box.height), IPL_DEPTH_8U, 1);
 
+//		cout << "Mask - width = "<< bounding_box.width << " height =  "<< bounding_box.height <<endl;
 		// Fill the image with background
 		cvSetZero(mask);
 
@@ -446,18 +642,19 @@ IplImage *Blob::getMask()
 
 		// Fill each hole in the mask
 		for(int i = 0; i < internal_contours.size(); i++){
-
 			cvDrawContours( mask, internal_contours[i]->getCl(), CV_RGB(0,0,0), CV_RGB(0,0,0),0, CV_FILLED, 8, offset );
 
+			// the draw contours includes the external line, and we remover it here
+			cvDrawContours( mask, internal_contours[i]->getCl(), CV_RGB(255,255,255), CV_RGB(255,255,255),0, 1, 8, offset );
 		}
 
-		cout <<endl<< "bounding_box.width = "<< bounding_box.width <<" mask->stepSize = "<< mask->widthStep <<endl;
+//		cout <<endl<< "bounding_box.width = "<< bounding_box.width <<" mask->stepSize = "<< mask->widthStep <<endl;
 
 #ifdef VISUAL_DEBUG
-		cvNamedWindow("Mask - Press any key to continue!");
-		cvShowImage("Mask - Press any key to continue!", mask);
-		cvWaitKey(0);
-		cvDestroyWindow("Mask - Press any key to continue!");
+//		cvNamedWindow("Mask - Press any key to continue!");
+//		cvShowImage("Mask - Press any key to continue!", mask);
+//		cvWaitKey(0);
+//		cvDestroyWindow("Mask - Press any key to continue!");
 #endif
 
 	}
@@ -467,10 +664,10 @@ IplImage *Blob::getMask()
 // These are the set of pixel Intensity features
 
 
-double Blob::getMeanIntensity(IplImage *img)
+float Blob::getMeanIntensity(IplImage *img)
 {
 
-	double meanIntensity = 0;
+	float meanIntensity = 0;
 
 	// Get blob bounding box that is used to set the
 	// region of interest in the input image
@@ -490,21 +687,101 @@ double Blob::getMeanIntensity(IplImage *img)
 			meanIntensity += i * histBinValue;
 		}
 
-		// Get dimensionality of the input image
-		CvSize imgDims = cvGetSize(img);
-
-		// This operation is available in opencv.. So it can be used as a ground truth
-// 		// Region of interest is the same as the bounding box of the blob
-//		cvSetImageROI(img, blob_bounding_box);
-//		CvScalar avgScalar = cvAvg(img, this->getMask());
-//		cout << "OpenCV Mean Intensity = "<< avgScalar.val[0]<<endl;
-// 		cvResetImageROI(img);
-
-
 		// Average the pixels intensity according to the number of pixels in the image
 		meanIntensity = meanIntensity / this->getIntensityHistPoints();
 	}
 	return meanIntensity;
+}
+
+float Blob::getStdIntensity(IplImage *img)
+{
+
+	float stdIntensity = 0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculates the histogram
+		this->calcIntensityHistogram(img);
+		stdIntensity = Operators::calcStdFromHistogram(intensity_hist, 256);
+	}
+	return stdIntensity;
+}
+
+float Blob::getEnergyIntensity(IplImage *img)
+{
+	float energyIntensity = 0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculates the histogram
+		this->calcIntensityHistogram(img);
+		energyIntensity = Operators::calcEneryFromHistogram(intensity_hist, 256);
+	}
+	return energyIntensity;
+}
+
+float Blob::getEntropyIntensity(IplImage *img)
+{
+	float entropyIntensity = 0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculates the histogram
+		this->calcIntensityHistogram(img);
+		entropyIntensity = Operators::calcEntropyFromHistogram(intensity_hist, 256);
+	}
+	return entropyIntensity;
+}
+
+float Blob::getKurtosisIntensity(IplImage *img)
+{
+	float kurtosisIntensity = 0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculates the histogram
+		this->calcIntensityHistogram(img);
+		kurtosisIntensity = Operators::calcKurtosisFromHistogram(intensity_hist, 256);
+	}
+	return kurtosisIntensity;
+}
+
+float Blob::getSkewnessIntensity(IplImage *img)
+{
+	float skewnessIntensity = 0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculates the histogram
+		this->calcIntensityHistogram(img);
+		skewnessIntensity = Operators::calcSkewnessFromHistogram(intensity_hist, 256);
+	}
+	return skewnessIntensity;
 }
 
 unsigned int Blob::getMedianIntensity(IplImage *img)
@@ -521,27 +798,8 @@ unsigned int Blob::getMedianIntensity(IplImage *img)
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
 
-		// used to count the accumulated number of pixels up to a given intensity
-		unsigned int acc = 0;
+		median = Operators::calcMedianFromHistogram(intensity_hist, 256);
 
-		unsigned int medianPixelsValue = this->getIntensityHistPoints() / 2;
-
-		// Iterates on the histogram of the input image and calculates the
-		// accumulated number of pixel up to the median pixel intensity
-		for(int i = 0; i < 256; i++){
-
-			// gets the number of pixels in the ith bin
-			float histValue = cvQueryHistValue_1D(intensity_hist, i);
-
-			// accumulates the pixels up to the ith bin
-			acc += (unsigned int)histValue;
-
-			// if #of pixels accumulated is in median, break and retrieve the bin number
-			if(acc >= medianPixelsValue){
-				median = i;
-				break;
-			}
-		}
 	}
 	return median;
 }
@@ -695,35 +953,60 @@ void Blob::calcGradientHistogram(IplImage *img)
 			float *ranges[] = { range };
 			grad_hist = cvCreateHist(1, &numBins, CV_HIST_ARRAY, ranges, 1);
 		}
-		// Region of interest is the same as the bounding box of the blob
-		IplImage *ROISubImage = getROISubImage(img);
-		Mat ROIMat(ROISubImage);
+//		// Region of interest is the same as the bounding box of the blob
+//		IplImage *ROISubImage = getROISubImage(img);
+//		Mat ROIMat(ROISubImage);
+//
+//		// copy data
+//		Mat Res(ROISubImage, true);
+//
+//		// This is the data used to store the gradient results
+//		IplImage* magImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
+//
+//		// copy data
+//		Mat magImageMat(magImg);
+//
+//
+//		// This is a temporary structure required by the MorphologyEx operation we'll perform
+//	//	IplImage* tempImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
+//
+////		cvMorphologyEx(ROISubImage, magImg, tempImg, NULL, CV_MOP_GRADIENT);
+//		Mat kernelCPU;
+//		morphologyEx(ROIMat, magImageMat, MORPH_GRADIENT, kernelCPU, Point(-1,-1), 1);
 
-		// copy data
-		Mat Res(ROISubImage, true);
 
-		// This is the data used to store the gradient results
-		IplImage* magImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
+//		CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+		blob_bounding_box.x += offsetInImage.x;
+		blob_bounding_box.y += offsetInImage.y;
 
-		// copy data
-		Mat magImageMat(magImg);
+		IplImage *ROISubImage = cvCreateImageHeader(cvSize(blob_bounding_box.width, blob_bounding_box.height), img->depth, img->nChannels);
+		ROISubImage->origin = img->origin;
+		ROISubImage->widthStep = img->widthStep;
+		ROISubImage->imageData = img->imageData + blob_bounding_box.y * img->widthStep + blob_bounding_box.x * img->nChannels;
 
-
-		// This is a temporary structure required by the MorphologyEx operation we'll perform
-	//	IplImage* tempImg = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
-
-//		cvMorphologyEx(ROISubImage, magImg, tempImg, NULL, CV_MOP_GRADIENT);
-		Mat kernelCPU;
-		morphologyEx(ROIMat, magImageMat, MORPH_GRADIENT, kernelCPU, Point(-1,-1), 1);
-
-		// Calculates the histogram in the input image for the pixels in the input mask
-		cvCalcHist(&magImg, grad_hist, 0, this->getMask());
+		cvCalcHist(&ROISubImage, grad_hist, 0, this->getMask());
 
 		grad_hist_points = 0;
 		for(int i=0;i<256;i++){
 			float histValue = cvQueryHistValue_1D(grad_hist, i);
 			grad_hist_points += (unsigned int)histValue;
 		}
+		// Calculates the histogram in the input image for the pixels in the input mask
+	//	cvCalcHist(&magImg, grad_hist, 0, this->getMask());
+
+
+		cvReleaseImageHeader(&ROISubImage);
+
+//		cout<< "Starting hist"<<endl;
+//		for(int i=0;i<256;i++){
+//				float histValue = cvQueryHistValue_1D(grad_hist, i);
+//				intensity_hist_points += (unsigned int)histValue;
+//				cout<< histValue<<endl;
+//		}
+////		cvAnd(ROISubImage, this->getMask(), ROISubImage);
+////		cout << "NonZero = " << cvCountNonZero(ROISubImage) <<" histPoints = " << intensity_hist_points <<endl;
+//		cout<< "End hist"<<endl;
+
 
 		// This operation is available in opencv.. So it can be used as a ground truth
  		// Region of interest is the same as the bounding box of the blob
@@ -731,7 +1014,7 @@ void Blob::calcGradientHistogram(IplImage *img)
 //		cout << "OpenCV Mean Magnitude = "<< avgScalar.val[0]<<endl;
 
 //		cvReleaseImage(&tempImg);
-		cvReleaseImage(&magImg);
+//		cvReleaseImage(&magImg);
 
 
 /*		// Images used to store temporary results with gradient values
@@ -825,6 +1108,90 @@ double Blob::getMeanGradMagnitude(IplImage *img)
 	return meanGradMagnitude;
 }
 
+float Blob::getStdGradMagnitude(IplImage *img)
+{
+	float std = 0.0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculate the histogram
+		this->calcGradientHistogram(img);
+		std = Operators::calcStdFromHistogram(grad_hist, 256);
+	}
+	return std;
+}
+
+float Blob::getEnergyGradMagnitude(IplImage *img){
+	float energy = 0.0;
+
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculate the histogram
+		this->calcGradientHistogram(img);
+		energy = Operators::calcEneryFromHistogram(grad_hist, 256);
+	}
+	return energy;
+}
+
+
+float Blob::getEntropyGradMagnitude(IplImage *img){
+	float entropy = 0.0;
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculate the histogram
+		this->calcGradientHistogram(img);
+		entropy = Operators::calcEntropyFromHistogram(grad_hist, 256);
+	}
+	return entropy;
+}
+
+float Blob::getKurtosisGradMagnitude(IplImage *img){
+	float kurtosis = 0.0;
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculate the histogram
+		this->calcGradientHistogram(img);
+		kurtosis = Operators::calcKurtosisFromHistogram(grad_hist, 256);
+	}
+	return kurtosis;
+}
+
+float Blob::getSkewnessGradMagnitude(IplImage *img){
+	float skewness = 0.0;
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
+	{
+		// Calculate the histogram
+		this->calcGradientHistogram(img);
+		skewness = Operators::calcSkewnessFromHistogram(grad_hist, 256);
+	}
+	return skewness;
+}
+
 unsigned int Blob::getMedianGradMagnitude(IplImage *img)
 {
 	unsigned int median = 1000;
@@ -838,30 +1205,8 @@ unsigned int Blob::getMedianGradMagnitude(IplImage *img)
 		// Calculates the histogram
 		this->calcGradientHistogram(img);
 
-		// Get size of the input image
-		CvSize imgDims = cvGetSize(img);
+		median = Operators::calcMedianFromHistogram(grad_hist, 256);
 
-		// used to count the accumulated number of pixels up to a given intensity
-		unsigned int acc = 0;
-
-		unsigned int medianPixelsValue = this->getGradHistPoints() / 2;
-
-		// Iterates on the histogram of the input image and calculates the
-		// accumulated number of pixel up to the median pixel intensity
-		for(int i = 0; i < 256; i++){
-
-			// gets the number of pixels in the ith bin
-			float histValue = cvQueryHistValue_1D(grad_hist, i);
-
-			// accumulates the pixels up to the ith bin
-			acc += (unsigned int)histValue;
-
-			// if #of pixels accumulated is in median, break and retrieve the bin number
-			if(acc >= medianPixelsValue ){
-				median = i;
-				break;
-			}
-		}
 	}
 	return median;
 }
@@ -1018,13 +1363,57 @@ unsigned int Blob::getCannyArea(IplImage *img, double lowThresh, double highThre
 		// Make a copy only of the ROI in this image
 		cvCopy(roiImg, edges, NULL);
 
+		cvCanny(edges, edges, lowThresh, highThresh, apertureSize);
+
+		cvAnd(edges, this->getMask(), edges);
+
+		// Calculate the #white pixels
+		cannyArea = cvCountNonZero(edges);
+
+
+#ifdef VISUAL_DEBUG
+
+//		cvNamedWindow("Canny - Input image");
+//		cvShowImage("Canny - Input image", img);
+		cvNamedWindow("Canny - Resulting image");
+		cvShowImage("Canny - Resulting image", edges);
+		cvWaitKey(0);
+//		cvDestroyWindow("Canny - Input image");
+		cvDestroyWindow("Canny - Resulting image");
+#endif
+
+
+		// release temporary image used to calculate Canny
+		cvReleaseImage(&edges);
+	}
+	return cannyArea;
+}
+float Blob::getMeanCanny(IplImage *img, double lowThresh, double highThresh, int apertureSize)
+{
+	float meanCanny = 0;
+	// Get blob bounding box that is used to set the
+	// region of interest in the input image
+	CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+
+	// if parameters are okay, so calculate the mean intensity
+	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img )){
+		// Create edge image to store the result of applying
+		// the Canny with the same size as the bounding box
+		IplImage *edges = cvCreateImage( cvSize(blob_bounding_box.width, blob_bounding_box.height), IPL_DEPTH_8U, 1);
+
+		IplImage *roiImg = getROISubImage(img);
+
+		// Make a copy only of the ROI in this image
+		cvCopy(roiImg, edges, NULL);
+
 		cvAnd(edges, this->getMask(), edges);
 
 		cvCanny(edges, edges, lowThresh, highThresh, apertureSize);
 
 		// Calculate the #white pixels
-		cannyArea = cvCountNonZero(edges);
+		int cannyArea = cvCountNonZero(edges);
 
+		meanCanny = cannyArea / getArea();
 
 #ifdef VISUAL_DEBUG
 
@@ -1041,7 +1430,8 @@ unsigned int Blob::getCannyArea(IplImage *img, double lowThresh, double highThre
 		// release temporary image used to calculate Canny
 		cvReleaseImage(&edges);
 	}
-	return cannyArea;
+
+	return meanCanny;
 }
 
 unsigned int Blob::getSobelArea(IplImage *img, int xorder, int yorder, int apertureSize)
@@ -1068,13 +1458,13 @@ unsigned int Blob::getSobelArea(IplImage *img, int xorder, int yorder, int apert
 
 #ifdef VISUAL_DEBUG
 
-		cvNamedWindow("Sobel - Input image");
-		cvShowImage("Sobel - Input image", img);
-		cvNamedWindow("Sobel - Resulting image");
-		cvShowImage("Sobel - Resulting image", edges);
-		cvWaitKey(0);
-		cvDestroyWindow("Sobel - Input image");
-		cvDestroyWindow("Sobel - Resulting image");
+//		cvNamedWindow("Sobel - Input image");
+//		cvShowImage("Sobel - Input image", img);
+//		cvNamedWindow("Sobel - Resulting image");
+//		cvShowImage("Sobel - Resulting image", edges);
+//		cvWaitKey(0);
+//		cvDestroyWindow("Sobel - Input image");
+//		cvDestroyWindow("Sobel - Resulting image");
 #endif
 
 		// release temporary image used to calculate Sobel
@@ -1131,12 +1521,29 @@ IplImage *Blob::getROISubImage(IplImage *img)
 {
 	if(ROISubImage == NULL){
 		CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
+		blob_bounding_box.x += offsetInImage.x;
+		blob_bounding_box.y += offsetInImage.y;
+
 		ROISubImage = cvCreateImageHeader(cvSize(blob_bounding_box.width, blob_bounding_box.height), img->depth, img->nChannels);
 		ROISubImage->origin = img->origin;
 		ROISubImage->widthStep = img->widthStep;
 		ROISubImage->imageData = img->imageData + blob_bounding_box.y * img->widthStep + blob_bounding_box.x * img->nChannels;
 	}
 	return ROISubImage;
+}
+
+void Blob::releaseROISubImage(){
+	if(ROISubImage != NULL){
+		cvReleaseImageHeader(&ROISubImage);
+		ROISubImage = NULL;
+	}
+}
+
+void Blob::resetInternalData(){
+	this->clearIntensityData();
+	this->clearGradientData();
+	this->clearCoocPropsData();
+	this->releaseROISubImage();
 }
 
 void Blob::setMaskInUserDataRegion(char *data)
@@ -1166,7 +1573,9 @@ void Blob::setMaskInUserDataRegion(char *data)
 	for(int j = 0; j < internal_contours.size(); j++){
 		cvDrawContours( mask, internal_contours[j]->getCl(), CV_RGB(0,0,0), CV_RGB(0,0,0),0, CV_FILLED, 8, offset );
 	}
-
+//	cvSaveImage("oneNucleusOpencvMaskDraw.tif", mask);
+//
+//	cout << "Count non zero "<< cvCountNonZero(mask) << endl;
 /*	char test=255;
 	cout << "Count non zero "<< cvCountNonZero(mask)<<" test= "<< (int)test<<endl;
 	cout <<endl<< "bounding_box.width = "<< bounding_box.width <<" mask->stepSize = "<< mask->widthStep <<endl;
@@ -1253,30 +1662,6 @@ void Blob::printIntensityHistogram(IplImage *img)
 	if (blob_bounding_box.height != 0 && blob_bounding_box.width != 0 && CV_IS_IMAGE( img ))
 	{
 
-/*		int *tempHist = (int *) malloc(sizeof(int) * 256);
-		for(int i = 0 ; i < 256; i++){
-			tempHist[i] = 0;
-		}
-
-		IplImage *imgRoi = getROISubImage(img);
-
-
-		for (int i=0; i<imgRoi->height; i++){
-			int offSet = i*imgRoi->width;
-			for(int j=0; j<imgRoi->width; j++){
-
-				int jMaskValue = (cvGet2D(mask, i, j)).val[0];
-				if(jMaskValue == 0) continue;
-
-				unsigned int intensityAdd = (cvGet2D(imgRoi, i, j)).val[0];;
-				tempHist[intensityAdd]++;
-			}
-		}
-		for(int i = 0; i < 256; i++){
-			cout << i<<":"<<tempHist[i]<< " ";
-		}
-		cout<<endl;*/
-
 		// Calculates the histogram
 		this->calcIntensityHistogram(img);
 
@@ -1285,7 +1670,12 @@ void Blob::printIntensityHistogram(IplImage *img)
 			histBinValue = (int)cvQueryHistValue_1D(intensity_hist, i);
 			cout << i<<":"<<histBinValue<< " ";
 		}
+		for(int i = 0; i < 256; i++){
+			histBinValue = (int)cvQueryHistValue_1D(intensity_hist, i);
+			cout <<histBinValue<<endl;
+		}
 		cout<<endl;
+
 	}
 }
 
@@ -1296,7 +1686,7 @@ void Blob::setMaximumProb(float maximumProb)
 
 float Blob::getNonInclinedBoundingBoxArea()
 {
-	CvRect bounding = external_contour->getNonInclinedBoundingBox(this->originalImageSize);
+	CvRect bounding = external_contour->getNonInclinedBoundingBox();
 	return (bounding.width * bounding.height);
 }
 

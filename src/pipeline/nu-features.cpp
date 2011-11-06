@@ -15,6 +15,8 @@
 #include "FileUtils.h"
 #include <dirent.h>
 #include "RegionalMorphologyAnalysis.h"
+#include "BGR2GRAY.h"
+#include "ColorDeconv_final.h"
 
 #include "hdf5.h"
 #include "hdf5_hl.h"
@@ -80,7 +82,8 @@ int main (int argc, char **argv){
 
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
 	} else if (strcasecmp(mode, "mcore") == 0) {
@@ -88,7 +91,8 @@ int main (int argc, char **argv){
 		// get core count
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
 	} else if (strcasecmp(mode, "gpu") == 0) {
@@ -116,12 +120,11 @@ int main (int argc, char **argv){
 		FileUtils futils(suffix);
 		futils.traverseDirectoryRecursive(maskname, seg_output);
 		std::string dirname;
-		if (filenames.size() == 1) {
+		if (seg_output.size() == 1) {
 			dirname = maskname.substr(0, maskname.find_last_of("/\\"));
 		} else {
 			dirname = maskname;
 		}
-
 
 		std::string temp, tempdir;
 		for (unsigned int i = 0; i < seg_output.size(); ++i) {
@@ -157,7 +160,7 @@ int main (int argc, char **argv){
 		memset(featuresBufAll, 0, perNodeCount * size * maxLenFeatures);
 
 		// copy data into the buffers
-		for (unsigned int i = 0; i < filenames.size(); ++i) {
+		for (unsigned int i = 0; i < seg_output.size(); ++i) {
 			strncpy(inputBufAll + i * maxLenInput, filenames[i].c_str(), maxLenInput);
 			strncpy(maskBufAll + i * maxLenMask, seg_output[i].c_str(), maxLenMask);
 			strncpy(featuresBufAll + i * maxLenFeatures, features_output[i].c_str(), maxLenFeatures);
@@ -217,82 +220,116 @@ int main (int argc, char **argv){
 
 		t1 = cciutils::ClockGetTime();
 
-		Mat test = imread(fmask);
-		if (!test.data) continue;
-		test = imread(fin);
-		if (!test.data) continue;
-
 #ifdef _OPENMP
     	int tid = omp_get_thread_num();
 #else
 		int tid = 0;
 #endif
+		// Load input images
+		IplImage *originalImageMask = cvLoadImage(fmask.c_str(), -1);
+		IplImage *originalImage = cvLoadImage(fin.c_str(), -1);
+
+		if (! originalImageMask) continue;
+		if (! originalImage) continue;
+
+		bool isNuclei = true;
+
+		// Convert color image to grayscale
+		IplImage *grayscale = bgr2gray(originalImage);
+	//	cvSaveImage("newGrayScale.png", grayscale);
+
+		// This is another option for inialize the features computation, where the path to the images are given as parameter
+    	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(originalImageMask, grayscale, true);
+
+    	// Create H and E images
+    	Mat image(originalImage);
+
+    	//initialize H and E channels
+    	Mat H = Mat::zeros(image.size(), CV_8UC1);
+    	Mat E = Mat::zeros(image.size(), CV_8UC1);
+    	Mat b = (Mat_<char>(1,3) << 1, 1, 0);
+    	Mat M = (Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
+
+    	ColorDeconv(image, M, b, H, E);
+
+    	IplImage ipl_image_H(H);
+    	IplImage ipl_image_E(E);
+
+
     	// This is another option for inialize the features computation, where the path to the images are given as parameter
-    	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(fmask, fin);
+    //	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(argv[1], argv[2]);
 
-    	/////////////// Computes Morphometry based features ////////////////////////
+    	vector<vector<float> > nucleiFeatures;
+
+    	/////////////// Compute nuclei based features ////////////////////////
     	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-    	//	Area; MajorAxisLength; MinorAxisLength; Eccentricity; Orientation; ConvexArea; FilledArea; EulerNumber;
-    	// 	EquivalentDiameter; Solidity; Extent; Perimeter; ConvexDeficiency; Compacteness; Porosity; AspectRatio;
-    	//	BendingEnergy; ReflectionSymmetry; CannyArea; SobelArea;
-    	vector<vector<float> > morphoFeatures;
-    	regional->doMorphometryFeatures(morphoFeatures);
+    	// 	0)BoundingBox (BB) X; 1) BB.y; 2) BB.width; 3) BB.height; 4) Centroid.x; 5) Centroid.y) 7)Area; 8)Perimeter; 9)Eccentricity;
+    	//	10)Circularity/Compacteness; 11)MajorAxis; 12)MinorAxis; 13)ExtentRatio; 14)MeanIntensity 15)MaxIntensity; 16)MinIntensity;
+    	//	17)StdIntensity; 18)EntropyIntensity; 19)EnergyIntensity; 20)SkewnessIntensity;	21)KurtosisIntensity; 22)MeanGrad; 23)StdGrad;
+    	//	24)EntropyGrad; 25)EnergyGrad; 26)SkewnessGrad; 27)KurtosisGrad; 28)CannyArea; 29)MeanCanny
+    	regional->doNucleiPipelineFeatures(nucleiFeatures, grayscale);
 
-		/////////////// Computes Pixel Intensity based features ////////////////////////
-		// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-		// 	MeanIntensity; MedianIntensity; MinIntensity; MaxIntensity; FirstQuartileIntensity; ThirdQuartileIntensity;
-		vector<vector<float> > intensityFeatures;
-		regional->doIntensityBlob(intensityFeatures);
+    	/////////////// Compute cytoplasm based features ////////////////////////
+    	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
+    	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
+    	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
+    	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
+    	vector<vector<float> > cytoplasmFeatures_G;
+    	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_G, grayscale);
 
-		/////////////// Computes Gradient based features ////////////////////////
-		// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-		// MeanGradMagnitude; MedianGradMagnitude; MinGradMagnitude; MaxGradMagnitude; FirstQuartileGradMagnitude; ThirdQuartileGradMagnitude;
-		vector<vector<float> > gradientFeatures;
-		regional->doGradientBlob(gradientFeatures);
 
-		/////////////// Computes Haralick based features ////////////////////////
-		// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-		// 	Inertia; Energy; Entropy; Homogeneity; MaximumProbability; ClusterShade; ClusterProminence
-		vector<vector<float> > haralickFeatures;
-		regional->doCoocPropsBlob(haralickFeatures);
+    	/////////////// Compute cytoplasm based features ////////////////////////
+    	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
+    	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
+    	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
+    	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
+    	vector<vector<float> > cytoplasmFeatures_H;
+    	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_H, &ipl_image_H);
+
+    	/////////////// Compute cytoplasm based features ////////////////////////
+    	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
+    	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
+    	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
+    	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
+    	vector<vector<float> > cytoplasmFeatures_E;
+    	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_E, &ipl_image_E);
 
 
 		t2 = cciutils::ClockGetTime();
-//		printf("%d::%d: %d features %lu us, in %s, out %s\n", rank, tid, morphoFeatures.size(), t2-t1, fin.c_str(), ffeatures.c_str());
+//		printf("%d::%d: %d features %lu us, in %s, out %s\n", rank, tid, nucleiFeatures.size(), t2-t1, fin.c_str(), ffeatures.c_str());
 
 		delete regional;
+
+		cvReleaseImage(&originalImage);
+		cvReleaseImage(&originalImageMask);
+		cvReleaseImage(&grayscale);
+
+		H.release();
+		E.release();
+		M.release();
+		b.release();
 
 		t1 = cciutils::ClockGetTime();
 
 		// also calculate the mean and stdev
 
 		// create a single data field
-		if (morphoFeatures.size() > 0) {
+		if (nucleiFeatures.size() > 0) {
 
 
-			unsigned int recordSize = morphoFeatures[0].size() + intensityFeatures[0].size() + gradientFeatures[0].size() + haralickFeatures[0].size();
+			unsigned int recordSize = nucleiFeatures[0].size() + cytoplasmFeatures_G[0].size() + cytoplasmFeatures_H[0].size() + cytoplasmFeatures_E[0].size();
 			unsigned int featureSize;
-			float *data = new float[morphoFeatures.size() * recordSize];
-			double *sums = new double[recordSize];
-			double *squareSums = new double[recordSize];
-			for (unsigned int i = 0; i < recordSize; i++) {
-				sums[i] = 0.;
-				squareSums[i] = 0.;
-			}
+			float *data = new float[nucleiFeatures.size() * recordSize];
 			float *currData;
-			int offset;
-			for(unsigned int i = 0; i < morphoFeatures.size(); i++) {
+			for(unsigned int i = 0; i < nucleiFeatures.size(); i++) {
 
 //				printf("[%d] m ", i);
-				offset = 0;
 				currData = data + i * recordSize;
-				featureSize = morphoFeatures[0].size();
+				featureSize = nucleiFeatures[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < morphoFeatures[i].size()) {
-						currData[j] = morphoFeatures[i][j];
+					if (j < nucleiFeatures[i].size()) {
+						currData[j] = nucleiFeatures[i][j];
 
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -301,14 +338,11 @@ int main (int argc, char **argv){
 //				printf("\n");
 //				printf("[%d] i ", i);
 
-				offset += featureSize;
 				currData += featureSize;
-				featureSize = intensityFeatures[0].size();
+				featureSize = cytoplasmFeatures_G[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < intensityFeatures[i].size()) {
-						currData[j] = intensityFeatures[i][j];
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
+					if (j < cytoplasmFeatures_G[i].size()) {
+						currData[j] = cytoplasmFeatures_G[i][j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -317,14 +351,11 @@ int main (int argc, char **argv){
 //				printf("\n");
 //				printf("[%d] g ", i);
 
-				offset += featureSize;
 				currData += featureSize;
-				featureSize = gradientFeatures[0].size();
+				featureSize = cytoplasmFeatures_H[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < gradientFeatures[i].size()) {
-						currData[j] = gradientFeatures[i][j];
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
+					if (j < cytoplasmFeatures_H[i].size()) {
+						currData[j] = cytoplasmFeatures_H[i][j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -333,14 +364,11 @@ int main (int argc, char **argv){
 //				printf("\n");
 //				printf("[%d] h ", i);
 
-				offset += featureSize;
 				currData += featureSize;
-				featureSize = haralickFeatures[0].size();
+				featureSize = cytoplasmFeatures_E[0].size();
 				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < haralickFeatures[i].size()) {
-						currData[j] = haralickFeatures[i][j];
-						sums[j + offset] += currData[j];
-						squareSums[j + offset] += currData[j] * currData[j];
+					if (j < cytoplasmFeatures_E[i].size()) {
+						currData[j] = cytoplasmFeatures_E[i][j];
 	#ifdef	PRINT_FEATURES
 						printf("%f, ", currData[j]);
 	#endif
@@ -367,46 +395,22 @@ int main (int argc, char **argv){
 			hsize_t dims[2];
 			file_id = H5Fcreate ( ffeatures.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
 
-			dims[0] = morphoFeatures.size(); dims[1] = recordSize;
+			dims[0] = nucleiFeatures.size(); dims[1] = recordSize;
 			hstatus = H5LTmake_dataset ( file_id, "/data",
 					2, // rank
 					dims, // dims
 						 H5T_NATIVE_FLOAT, data );
-			unsigned long ul = morphoFeatures.size();
-			hstatus = H5LTset_attribute_ulong ( file_id, "/data", "num_objs", &ul, 1 );
-			ul = recordSize;
-			hstatus = H5LTset_attribute_ulong ( file_id, "/data", "num_coords", &ul, 1 );
-
 			hstatus = H5LTset_attribute_string ( file_id, "/data", "image_file", fin.c_str() );
 
-			dims[0] = 1;
-			hstatus = H5LTmake_dataset ( file_id, "/meta-sum",
-					2, // rank
-					dims, // dims
-						 H5T_NATIVE_DOUBLE, sums );
-			ul = morphoFeatures.size();
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-sum", "num_objs", &ul, 1 );
-			ul = recordSize;
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-sum", "num_coords", &ul, 1 );
-
-			hstatus = H5LTmake_dataset ( file_id, "/meta-square-sum",
-					2, // rank
-					dims, // dims
-						 H5T_NATIVE_DOUBLE, squareSums );
-
 			// attach the attributes
-			ul = morphoFeatures.size();
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-square-sum", "num_objs", &ul, 1 );
-			ul = recordSize;
-			hstatus = H5LTset_attribute_ulong ( file_id, "/meta-square-sum", "num_coords", &ul, 1 );
-
 			H5Fclose ( file_id );
 			}
 
 			delete [] data;
-			delete [] sums;
-			delete [] squareSums;
-
+			nucleiFeatures.clear();
+			cytoplasmFeatures_G.clear();
+			cytoplasmFeatures_H.clear();
+			cytoplasmFeatures_E.clear();
 		}
 		t2 = cciutils::ClockGetTime();
 //		printf("%d::%d: hdf5 %lu us, in %s, out %s\n", rank, tid, t2-t1, fin.c_str(), ffeatures.c_str());

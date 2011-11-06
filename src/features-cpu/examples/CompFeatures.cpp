@@ -22,7 +22,6 @@ IplImage *readImage(string imageFileName){
 }
 
 int main (int argc, char **argv){
-
 	if(argc != 3){
 		cout << "Usage: ./compFeatures <image-mask> <image>" <<endl;
 		exit(1);
@@ -32,18 +31,21 @@ int main (int argc, char **argv){
 	IplImage *originalImage = readImage(argv[2]);
 
 	// Find nuclei in image and create an internal representation for each of them.
-	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(originalImageMask, originalImage);
+	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(originalImageMask, originalImage, true);
+
+	bool isNuclei = true;
 
 	// This is another option for inialize the features computation, where the path to the images are given as parameter
 //	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(argv[1], argv[2]);
 
 	/////////////// Computes Morphometry based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-	//	Area; MajorAxisLength; MinorAxisLength; Eccentricity; Orientation; ConvexArea; FilledArea; EulerNumber; 
-	// 	EquivalentDiameter; Solidity; Extent; Perimeter; ConvexDeficiency; Compacteness; Porosity; AspectRatio; 
-	//	BendingEnergy; ReflectionSymmetry; CannyArea; SobelArea;
+	//	0) Area; 1) MajorAxisLength; 2) MinorAxisLength; 3) Eccentricity; 4) Orientation; 5) ConvexArea; 6) FilledArea; 7) EulerNumber; 
+	// 	8) EquivalentDiameter; 9) Solidity; 10) ExtentRatio; 11) Perimeter; 12) ConvexDeficiency; 13) Compacteness/Circularity; 14) Porosity; 15) AspectRatio; 
+	//	16) BendingEnergy; 17) ReflectionSymmetry; 18) CannyArea; 19) MeanCanny; 20) SobelArea;
 	vector<vector<float> > morphoFeatures;
-	regional->doMorphometryFeatures(morphoFeatures);
+
+	regional->doMorphometryFeatures(morphoFeatures, isNuclei, originalImage);
 
 #ifdef	PRINT_FEATURES
 	for(int i = 0; i < morphoFeatures.size(); i++){
@@ -57,9 +59,10 @@ int main (int argc, char **argv){
 
 	/////////////// Computes Pixel Intensity based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-	// 	MeanIntensity; MedianIntensity; MinIntensity; MaxIntensity; FirstQuartileIntensity; ThirdQuartileIntensity;
+	// 	0)MeanIntensity; 1)StdIntensity; 2)EnergyIntensity; 3)EntropyIntensity; 4)KurtosisIntensity; 5)SkewnessIntensity;
+	//	6)MedianIntensity; 7)MinIntensity; 8)MaxIntensity; 9)FirstQuartileIntensity; 10)ThirdQuartileIntensity;
 	vector<vector<float> > intensityFeatures;
-	regional->doIntensityBlob(intensityFeatures);
+	regional->doIntensityBlob(intensityFeatures, isNuclei, originalImage);
 
 #ifdef	PRINT_FEATURES
 	for(int i = 0; i < intensityFeatures.size(); i++){
@@ -72,9 +75,10 @@ int main (int argc, char **argv){
 #endif
 	/////////////// Computes Gradient based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-	// MeanGradMagnitude; MedianGradMagnitude; MinGradMagnitude; MaxGradMagnitude; FirstQuartileGradMagnitude; ThirdQuartileGradMagnitude;
+	// 0)Mean; 1)Std; 2)Energy; 3)Entropy; 4)Kurtosis; 5)Skewness;
+	// 6)Median; 7)Min; 8)Max; 9)FirstQuartile; 10)ThirdQuartile;
 	vector<vector<float> > gradientFeatures;
-	regional->doGradientBlob(gradientFeatures);
+	regional->doGradientBlob(gradientFeatures, isNuclei, originalImage);
 
 #ifdef	PRINT_FEATURES
 	for(int i = 0; i < gradientFeatures.size(); i++){
@@ -87,9 +91,9 @@ int main (int argc, char **argv){
 #endif
 	/////////////// Computes Haralick based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-	// 	Inertia; Energy; Entropy; Homogeneity; MaximumProbability; ClusterShade; ClusterProminence
+	// 0)Inertia; 1)Energy; 2)Entropy; 3)Homogeneity; 4)MaximumProbability; 5)ClusterShade; 6)ClusterProminence
 	vector<vector<float> > haralickFeatures;
-	regional->doCoocPropsBlob(haralickFeatures);
+	regional->doCoocPropsBlob(haralickFeatures, isNuclei, originalImage);
 
 #ifdef	PRINT_FEATURES
 	for(int i = 0; i < haralickFeatures.size(); i++){

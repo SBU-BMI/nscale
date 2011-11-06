@@ -6,6 +6,20 @@
  */
 
 #include "Operators.h"
+
+// Assuming n > 0
+int Operators::rndint(float n)//round float to the nearest integer
+{	
+	int ret = floor(n);
+	float t;
+	t=n-floor(n);
+	if (t>=0.5)    
+	{
+		ret = floor(n) + 1;
+	}
+	return ret;
+}
+
 // Matlab calls it contrast
 float Operators::inertiaFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount)
 {
@@ -44,7 +58,7 @@ float Operators::entropyFromCoocMatrix(unsigned int *coocMatrix, unsigned int co
 			entropy += (auxDivision) * log2(auxDivision);
 		}
 	}
-	return entropy;
+	return (-1.0*entropy);
 }
 
 
@@ -261,6 +275,196 @@ double Operators::calcMeanFromHistogram(unsigned int *hist, unsigned int numBins
 	return histMean /= (numElements);
 }
 
+int Operators::calcNumElementsFromHistogram(CvHistogram *hist, int numBins)
+{
+	int numElements  = 0;
+	for(int i = 0; i < numBins; i++){
+		numElements += (float)cvQueryHistValue_1D(hist, i);
+	}
+	return numElements;
+}
+
+int Operators::calcMedianFromHistogram(CvHistogram *hist, int numBins)
+{
+	int median = 0;
+	int numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
+	bool odd = numElements%2;
+
+	// there is a central pixel that represents the median
+	if(odd){
+		int accElements = 0;
+		for(int i = 0; i < numBins; i++){
+			accElements += (int)cvQueryHistValue_1D(hist, i);;
+			if(accElements >= (numElements/2 +1)){
+				median = i;
+			break;
+			}
+		}
+
+	}else{
+		// There isn't a central pixel, and the median is calculated as mean of two midle pixels values
+		int accElements = 0;
+		for(int i = 0; i < numBins; i++){
+			accElements += (int)cvQueryHistValue_1D(hist, i);
+			if(accElements >= (numElements/2)){
+				// If two midle pixels are in the same bin
+				if(accElements > (numElements/2)){
+					median = i;
+				}else{
+					// accElements is equal to numElements/2, thus we have to find the 
+					// next non NULL bin to calculate mean of midle pixels
+					for(int j=i+1; j <numBins;j++){
+						int j_element = (int)cvQueryHistValue_1D(hist, j);
+						if(j_element != 0){
+							median = Operators::rndint((float(i+j)/2.0));
+
+					//		median = (i+j)/2;
+							break;					
+						}
+					}
+				}
+				break;
+			}
+		}
+
+	}
+	return median;
+}
+
+float Operators::calcStdFromHistogram(CvHistogram *hist, int numBins)
+{
+	  if(numBins == 0)
+	        return 0.0;
+
+	  float sum = 0.0;
+	  float numElements = 0;
+	  for(int i = 0; i < numBins; i++){
+		  sum += i * (float)cvQueryHistValue_1D(hist, i);
+		  numElements += (float)cvQueryHistValue_1D(hist, i);
+	  }
+
+	  float mean = sum/numElements;
+
+	  float sq_diff_sum = 0.0;
+	  for(int i = 0; i < numBins; i++){
+		  float diff = i - mean;
+		  sq_diff_sum += diff * diff * (float)cvQueryHistValue_1D(hist, i);
+	  }
+	  float variance = sq_diff_sum/(numElements-1);
+	  return sqrt(variance);
+}
+
+
+float Operators::calcEneryFromHistogram(CvHistogram *hist, int numBins)
+{
+	  float energy = 0.0;
+	  float numElements = 0;
+	  for(int i = 0; i < numBins; i++){
+		  numElements += (float)cvQueryHistValue_1D(hist, i);
+	  }
+
+	  for(int i = 0; i < numBins; i++){
+		  energy += pow((float)cvQueryHistValue_1D(hist, i)/numElements, 2);
+	  }
+
+	  return energy;
+}
+
+void Operators::printHistogram(CvHistogram *hist, int numBins){
+	for(int i = 0; i < numBins; i++){
+		cout << "i = "<< i<< " hist[i] = " << cvQueryHistValue_1D(hist, i) <<endl;
+	}
+}
+
+float Operators::calcEntropyFromHistogram(CvHistogram *hist, int numBins)
+{
+//	cout << "Entropy "<<endl;
+	float entropy = 0.0;
+	float numElements = 0;
+	for(int i = 0; i < numBins; i++){
+		numElements += (float)cvQueryHistValue_1D(hist, i);
+	}
+	for(int i = 0; i < numBins; i++){
+		float p_i = (float)cvQueryHistValue_1D(hist, i)/numElements;
+		// ignore 0 entries	
+		if((int)cvQueryHistValue_1D(hist, i) == 0)continue;
+		entropy += ((p_i) * log2(p_i));
+//		cout << "i="<< i<< " hist[i] = "<< cvQueryHistValue_1D(hist, i) <<"  p_i="<< p_i << " log2(p_i) = "<< log2(p_i)<<endl;
+	}
+//	cout << "End entropy" <<endl;
+	return (-1.0*entropy);
+}
+
+// Using MATLAB default definition:
+// k_1 = (1/n SUM_{i to n} ( x_i - x_avg)^4) / (1/n SUM_{i to n} ( x_i - x_avg)^2 )^2
+float Operators::calcKurtosisFromHistogram(CvHistogram *hist, int numBins)
+{
+	float kurtosis = 0.0;
+	float avg = 0.0;
+	float numElements = 0;
+	for(int i = 0; i < numBins; i++){
+		numElements += (float)cvQueryHistValue_1D(hist, i);
+		avg += i * (float)cvQueryHistValue_1D(hist, i);
+	}
+	//  AVG calculation
+	avg /= numElements;
+
+
+	float dividend = 0.0;
+	float divisor = 0.0;
+	
+	for(int i = 0; i < numBins; i++){
+		float e_i = (float)cvQueryHistValue_1D(hist, i);
+		dividend += e_i * pow(i - avg, 4);
+		divisor += e_i * pow(i - avg, 2);
+
+	}
+
+	if(dividend != 0 && divisor != 0 && numElements != 0){
+		dividend /= numElements;
+		divisor /= numElements;
+
+		divisor = pow( divisor, 2);
+
+		kurtosis = dividend / divisor;
+	}
+	return kurtosis;
+}
+
+// Using MATLAB default definition:
+// k_1 = (1/n SUM_{i to n} ( x_i - x_avg)^3) / (  (1/n SUM_{i to n} ( x_i - x_avg)^2)^1/2 )^3
+float Operators::calcSkewnessFromHistogram(CvHistogram *hist, int numBins)
+{
+	float skewness = 0.0;
+	float avg = 0.0;
+	float numElements = 0;
+	for(int i = 0; i < numBins; i++){
+		numElements += (float)cvQueryHistValue_1D(hist, i);
+		avg += i * (float)cvQueryHistValue_1D(hist, i);
+	}
+	// finilizing AVG calculation
+	avg /= numElements;
+
+	float dividend = 0.0;
+	float divisor = 0.0;
+	
+	for(int i = 0; i < numBins; i++){
+		float e_i = (float)cvQueryHistValue_1D(hist, i);
+		dividend += e_i * pow(i - avg, 3);
+		divisor += e_i * pow(i - avg, 2);
+
+
+	}
+
+	if(dividend != 0 && divisor != 0 && numElements != 0){
+		dividend /= numElements;
+		divisor /= numElements;
+		divisor = sqrt(divisor);
+		divisor = pow( divisor, 3);
+		skewness = dividend / divisor;
+	}
+	return skewness;
+}
 
 
 double Operators::calcStdFromHistogram(unsigned int *hist, unsigned int numBins)
@@ -282,7 +486,7 @@ double Operators::calcStdFromHistogram(unsigned int *hist, unsigned int numBins)
 		  double diff = i - mean;
 		  sq_diff_sum += diff * diff * hist[i];
 	  }
-	  double variance = sq_diff_sum/numElements;
+	  double variance = sq_diff_sum/(numElements-1);
 	  return sqrt(variance);
 }
 
@@ -320,15 +524,45 @@ int Operators::calcMaxFromHistogram(unsigned int *hist, unsigned int numBins)
 
 int Operators::calcMedianFromHistogram(unsigned int *hist, unsigned int numBins)
 {
-	int numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
-	int accElements = 0;
 	int median = 0;
-	for(int i = 0; i < numBins; i++){
-		accElements += hist[i];
-		if(accElements >= numElements/2){
-			median = i;
+	int numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
+	bool odd = numElements%2;
+
+	// there is a central pixel that represents the median
+	if(odd){
+		int accElements = 0;
+		for(int i = 0; i < numBins; i++){
+			accElements += (int)hist[i];
+			if(accElements >= (numElements/2 +1)){
+				median = i;
 			break;
+			}
 		}
+
+	}else{
+		// There isn't a central pixel, and the median is calculated as mean of two midle pixels values
+		int accElements = 0;
+		for(int i = 0; i < numBins; i++){
+			accElements += (int)hist[i];
+			if(accElements >= (numElements/2)){
+				// If two midle pixels are in the same bin
+				if(accElements > (numElements/2)){
+					median = i;
+				}else{
+					// accElements is equal to numElements/2, thus we have to find the 
+					// next non NULL bin to calculate mean of midle pixels
+					for(int j=i+1; j <numBins;j++){
+						int j_element = (int)hist[i];
+						if(j_element != 0){
+							median = i+j/2;
+							break;					
+						}
+					}
+				}
+				break;
+			}
+		}
+
 	}
 	return median;
 }

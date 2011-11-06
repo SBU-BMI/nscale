@@ -764,7 +764,9 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 
 // inclusive min, exclusive max
 bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea) {
-	if (contours.size() == 0) return false;
+	CV_Assert(contours.size() > 0);
+	CV_Assert(contours.size() > idx);
+	CV_Assert(idx > 0);
 
 	int area = contourArea(contours[idx]);
 	int circum = contours[idx].size() / 2 + 1;
@@ -785,21 +787,40 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 	return true;
 }
 
+// get area of contour
+int getContourArea(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx) {
+	CV_Assert(contours.size() > 0);
+	CV_Assert(contours.size() > idx);
+	CV_Assert(idx >= 0);
 
-/*
+	std::vector<Point> contour = contours[idx];
+	if (contour.size() == 0) return 0;	
+
+	Rect box = boundingRect(Mat(contour));
+	Mat canvas = Mat::zeros(box.height, box.width, CV_8U);
+	Point offset(-box.x, -box.y);
+	drawContours(canvas, contours, idx, Scalar(255), CV_FILLED, 8, hierarchy, INT_MAX, offset);
+	int area= countNonZero(canvas);
+	canvas.release();
+	return area;
+}
+
+
+
+
 // inclusive min, exclusive max
-// TODO:  still not right...
 bool contourAreaFilter2(const std::vector<std::vector<Point> >& contours, const std::vector<Vec4i>& hierarchy, int idx, int minArea, int maxArea) {
 
-	uint64_t area = ScanlineOperations::getContourArea(contours, hierarchy, idx);
+	// using scanline operation's getContourArea does not work correctly.  There are a lot of special cases that cause problems.
+	//uint64_t area = ScanlineOperations::getContourArea(contours, hierarchy, idx);
+	int area = getContourArea(contours, hierarchy, idx);	
 
 	//std::cout << idx << " total area = " << area << std::endl;
 
 	if (area < minArea || area >= maxArea) return false;
 	else return true;
-
 }
-*/
+
 
 
 // inclusive min, exclusive max
@@ -828,7 +849,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 		Scalar color(std::numeric_limits<T>::max());
 		// iterate over all top level contours (all siblings, draw with own label color
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
-			if (contourAreaFilter(contours, hierarchy, idx, minSize, maxSize)) {
+			if (contourAreaFilter2(contours, hierarchy, idx, minSize, maxSize)) {
 				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 				drawContours(output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
 			}
@@ -871,8 +892,11 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 	 */
 
 	Mat minima = localMinima<float>(image, connectivity);
-	Mat_<int> labels = bwlabel(minima, true, connectivity);
+//imwrite("test-minima.pbm", minima);
+	Mat_<int> labels = bwlabel(minima, false, connectivity);
+//imwrite("test-bwlabel.png", labels);
 
+// need borders, else get edges at edge.
 	Mat input, output;
 	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));

@@ -30,7 +30,7 @@ private:
 	virtual ~Operators(){};
 
 public:
-
+	static int rndint(float n);
 	//Co-occurence related operators
 	static float calcMxFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount);
 	static float calcMyFromCoocMatrix(unsigned int *coocMatrix, unsigned int coocMatrixSize, unsigned int coocMatrixCount);
@@ -57,9 +57,17 @@ public:
 	static int calcThirdQuartileFromHistogram(unsigned int *hist, unsigned int numBins);
 	static int calcNumElementsFromHistogram(unsigned int *hist, unsigned int numBins);
 
-	//  operators
 
-
+	// OpenCV histograms operators
+	static int calcNumElementsFromHistogram(CvHistogram *hist, int numBins);
+	static int calcMedianFromHistogram(CvHistogram *hist, int numBins);
+	static float calcMeanFromHistogram(CvHistogram *hist, int numBins);
+	static float calcStdFromHistogram(CvHistogram *hist, int numBins);
+	static float calcEneryFromHistogram(CvHistogram *hist, int numBins);
+	static float calcEntropyFromHistogram(CvHistogram *hist, int numBins);
+	static float calcKurtosisFromHistogram(CvHistogram *hist, int numBins);
+	static float calcSkewnessFromHistogram(CvHistogram *hist, int numBins);
+	void printHistogram(CvHistogram *hist, int numBins);
 };
 
 #endif /* OPERATORS_H_ */

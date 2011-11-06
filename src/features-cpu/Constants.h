@@ -20,6 +20,7 @@ public:
 	static const int GPU=2;
 
 	static const int N_INTENSITY_FEATURES=6;
+
 };
 
 #endif

@@ -77,7 +77,6 @@ IplImage *DrawAuxiliar::DrawBlob(Blob *blobToPrint, CvScalar external, CvScalar 
 
 	// Make sure that the bounding box is okay
 	if(bounding_box.height != 0 && bounding_box.width != 0){
-
 		// Create mask within the same size as the bounding box
 		printedBlob = cvCreateImage( cvSize(bounding_box.width, bounding_box.height), IPL_DEPTH_8U, 3);
 
@@ -108,11 +107,13 @@ void DrawAuxiliar::DrawBlob(IplImage* printBlob, Blob *blobToPrint, CvScalar ext
 {
 
 	// First draw the external contour
-	cvDrawContours( printBlob, blobToPrint->external_contour->getCl(), external, external,0, CV_FILLED);
+//	cvDrawContours( printBlob, blobToPrint->external_contour->getCl(), external, external,0, CV_FILLED);
 
+	CvPoint offset = blobToPrint->getOffsetInImage();
+	cvDrawContours( printBlob, blobToPrint->external_contour->getCl(), external, external,0, 1, 8, offset);
 	// Fill each hole in the mask
 	for(int i = 0; i < blobToPrint->internal_contours.size(); i++){
-		cvDrawContours( printBlob, blobToPrint->internal_contours[i]->getCl(), holes, holes,0, CV_FILLED);
+		cvDrawContours( printBlob, blobToPrint->internal_contours[i]->getCl(), holes, holes,0, 1, 8, offset);
 
 	}
 

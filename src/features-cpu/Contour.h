@@ -25,7 +25,6 @@ using namespace std;
 	for details.
  */
 
-// TODO: Make sure we have 6 or more points in a Contour before fitting an Ellipse
 class Contour {
 private:
 
@@ -79,9 +78,9 @@ private:
 
 public:
 	/*!
-		Constructor that receives a list of points defining the Contour,
-		and correctly initialize its properties/variables.
-	*/
+	  Constructor that receives a list of points defining the Contour,
+	  and correctly initialize its properties/variables.
+	 */
 	Contour(CvSeq *c_l);
 
 	//! A simple class destructor that takes care of deallocate used data structures
@@ -95,82 +94,82 @@ public:
 	 * Calculates the area inside the contour
 	 * \return Contour's area
 	 */
-    float getArea();
+	float getArea();
 
-    /*!
-     * Calculates Contour's circularity, which is defined as follows:
-     *  Circularity = Perimeter^2/Area - (4 * PI)
-     */
-    float getCircularity();
+	/*!
+	 * Calculates Contour's circularity, which is defined as follows:
+	 *  Circularity = Perimeter^2/Area - (4 * PI)
+	 */
+	float getCircularity();
 
-    /*!
-     * Calculates Contour's Compacteness, which is defined as follows:
-     *
-     *  Compacteness = (4 * PI * Area) / Perimeter^2
-     */
-    float getCompacteness();
+	/*!
+	 * Calculates Contour's Compacteness, which is defined as follows:
+	 *
+	 *  Compacteness = (4 * PI * Area) / Perimeter^2
+	 */
+	float getCompacteness();
 
-    /*!
-     * Calculates Contour's Convex Area(ConvexArea). It first calculates the
-     * Convex Hull, if was not initialized, transforms the points defining the
-     * Convex Hull into a Contour and calculates its area.
-     */
-    float getConvexArea();
+	/*!
+	 * Calculates Contour's Convex Area(ConvexArea). It first calculates the
+	 * Convex Hull, if was not initialized, transforms the points defining the
+	 * Convex Hull into a Contour and calculates its area.
+	 */
+	float getConvexArea();
 
-    /*!
-     * Calculates Contour's Convex Deficiency. The Convex Deficiency is defined
-     * as follows:
-     *
-     *  ConvexDeficiency = (ConvexArea - Area) / Area
-     */
-    float getConvexDeficiency();
+	/*!
+	 * Calculates Contour's Convex Deficiency. The Convex Deficiency is defined
+	 * as follows:
+	 *
+	 *  ConvexDeficiency = (ConvexArea - Area) / Area
+	 */
+	float getConvexDeficiency();
 
-    /*!
-     * Calculates a Contour's Equivalent Diameter, which is the diameter of the circle
-     * with the same area as the Contour. Follows the definition:
-     *
-     * 	EquivDiameter = 2 * (PI/Area)^1/2
-     */
-    float getEquivalentDiameter();
+	/*!
+	 * Calculates a Contour's Equivalent Diameter, which is the diameter of the circle
+	 * with the same area as the Contour. Follows the definition:
+	 *
+	 * 	EquivDiameter = 2 * (PI/Area)^1/2
+	 */
+	float getEquivalentDiameter();
 
-    /*!
-     * Calculates a Contour's extent, which is the fraction of pixels within the bounding
-     * box that are also within the Contour:
-     *
-     *	Extent = Area / (bounding.box.width*bounding.box.height)
-     */
-    float getExtent();
+	/*!
+	 * Calculates a Contour's extent, which is the fraction of pixels within the bounding
+	 * box that are also within the Contour:
+	 *
+	 *	Extent = Area / (bounding.box.width*bounding.box.height)
+	 */
+	float getExtent();
 
-    /*!
-     * It calculates Contour's Perimeter. The function calculates it as sum of lengths of
-     *  segments between subsequent points that defines the Contour.
-     */
-    float getPerimeter();
+	/*!
+	 * It calculates Contour's Perimeter. The function calculates it as sum of lengths of
+	 *  segments between subsequent points that defines the Contour.
+	 */
+	float getPerimeter();
 
-    /*!
-     * Calculates the Contour's Solidity. It is defined as the fraction of pixels within the
-     * Convex Hull that are also within the Contour.
-     *
-     * 	Solidity = Area/ConvexArea
-     */
-    float getSolidity();
+	/*!
+	 * Calculates the Contour's Solidity. It is defined as the fraction of pixels within the
+	 * Convex Hull that are also within the Contour.
+	 *
+	 * 	Solidity = Area/ConvexArea
+	 */
+	float getSolidity();
 
-    /*!
-     * Calculates the Contour's bounding box are. The bounding box refers to the minimum
-     * rectangle that encompasses all points of the contour. The Area is further calculated
-     * as the width*height.
-     */
-    float getMinBoundingBoxArea();
-    float getBoundingBoxWidth();
-    float getBoundingBoxHeight();
+	/*!
+	 * Calculates the Contour's bounding box are. The bounding box refers to the minimum
+	 * rectangle that encompasses all points of the contour. The Area is further calculated
+	 * as the width*height.
+	 */
+	float getMinBoundingBoxArea();
+	float getBoundingBoxWidth();
+	float getBoundingBoxHeight();
 
-    /*!
-     * Calculates the Contour's bounding box without inclination
-     */
-    CvRect getNonInclinedBoundingBox(CvSize originalImageSize );
+	/*!
+	 * Calculates the Contour's bounding box without inclination
+	 */
+	CvRect getNonInclinedBoundingBox( );
 
 
-    float getBendingEnergy();
+	float getBendingEnergy();
 };
 
 #endif /* CONTOUR_H_ */

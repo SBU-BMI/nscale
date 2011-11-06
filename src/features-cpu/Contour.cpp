@@ -14,29 +14,29 @@ Contour::Contour() {
 Contour::Contour(CvSeq *c_l_param)
 {
 	// Initialize memory block used to store Contour structs
-	 self_storage = cvCreateMemStorage();
+	self_storage = cvCreateMemStorage();
 
-	 // Copy the given list sequence of objects defining the Contour
-	 this->c_l = cvCloneSeq(c_l_param, self_storage);
+	// Copy the given list sequence of objects defining the Contour
+	this->c_l = cvCloneSeq(c_l_param, self_storage);
 
-	 // Initialize contour features, which is used to
-	 // check whether it was calculated before or not
-	 this->area = -1.0;
-	 this->circularity = -1.0;
-	 this->compacteness = -1.0;
-	 this->convexArea = -1.0;
-	 this->convexDeficiency = -1.0;
-	 this->eccentricity = -1.0;
-	 this->equivalentDiameter = -1.0;
-	 this->extent = -1.0;
-	 this->perimeter = -1.0;
-	 this->bendingEnergy = -1.0;
-	 this->solidity = -1.0;
-	 this->min_bounding_box.size.width = -1.0;
-	 this->min_bounding_box.size.height = -1.0;
-	 this->m_bounding_box.width = -1;
-	 this->convexHull = NULL;
-	 this->m_moments.m00 = -1.0;
+	// Initialize contour features, which is used to
+	// check whether it was calculated before or not
+	this->area = -1.0;
+	this->circularity = -1.0;
+	this->compacteness = -1.0;
+	this->convexArea = -1.0;
+	this->convexDeficiency = -1.0;
+	this->eccentricity = -1.0;
+	this->equivalentDiameter = -1.0;
+	this->extent = -1.0;
+	this->perimeter = -1.0;
+	this->bendingEnergy = -1.0;
+	this->solidity = -1.0;
+	this->min_bounding_box.size.width = -1.0;
+	this->min_bounding_box.size.height = -1.0;
+	this->m_bounding_box.width = -1;
+	this->convexHull = NULL;
+	this->m_moments.m00 = -1.0;
 }
 
 Contour::~Contour() {
@@ -46,9 +46,25 @@ Contour::~Contour() {
 float Contour::getArea()
 {
 	if(area == -1.0){
-		area = fabs( cvContourArea(c_l) );
+		CvRect bounding_box = this->getNonInclinedBoundingBox();
+		IplImage *contourMask = cvCreateImage(cvSize(bounding_box.width, bounding_box.height), IPL_DEPTH_8U, 1);
+      
+		// Fill the image with background
+		cvSetZero(contourMask);
+		// The offset of the location of these contours in the original image to the location in
+		// the mask that has the same dimensions as the bounding box
+		CvPoint offset;
+		offset.x = -bounding_box.x;
+		offset.y = -bounding_box.y;
+
+		cvDrawContours( contourMask, c_l, CV_RGB(255,255,255), CV_RGB(1,1,1),0, CV_FILLED, 8 , offset);
+
+		area = cvCountNonZero(contourMask);
+		cvReleaseImage(&contourMask);
+//		Old version of our code uses Gree's approximation to calculate area
+//		area = fabs( cvContourArea(c_l) ) + getPerimeter()/2.0;
 	}
-    return area;
+	return area;
 }
 
 float Contour::getPerimeter()
@@ -108,18 +124,63 @@ float Contour::getConvexArea()
 		int hullcount = convexHull->total;
 		CvSeq* ptseq  = cvCreateSeq( CV_SEQ_CONTOUR|CV_32SC2, sizeof(CvContour), sizeof(CvPoint),  local_storage );
 
+
+		CvSeqReader reader;
+		CvRect local_bounding_box;
+
+		local_bounding_box.x = 1000000000;
+		local_bounding_box.y = 1000000000;
+		local_bounding_box.width = 0;
+		local_bounding_box.height = 0;
+
+
 		for(int  i = 0; i < hullcount; i++){
 			CvPoint pt = **CV_GET_SEQ_ELEM( CvPoint*, convexHull, i );
 			cvSeqPush( ptseq , &pt );
+			
+			local_bounding_box.x = MIN( pt.x, local_bounding_box.x );
+			local_bounding_box.y = MIN( pt.y, local_bounding_box.y );
+
+			local_bounding_box.width = MAX( pt.x, local_bounding_box.width );
+			local_bounding_box.height = MAX( pt.y, local_bounding_box.height );
+
 		}
 
+		local_bounding_box.width -= (local_bounding_box.x-1);
+		local_bounding_box.height -= (local_bounding_box.y-1);
+
+
+
+		// Create mask within the same size as the bounding box
+		IplImage *maskConvex = cvCreateImage( cvSize(local_bounding_box.width, local_bounding_box.height), IPL_DEPTH_8U, 1);
+		// DELETE THIS STUFF.
+
+		// Fill the image with background
+		cvSetZero(maskConvex);
+
+		// The offset of the location of these contours in the original image to the location in
+		// the mask that has the same dimensions as the bounding box
+		CvPoint offset;
+		offset.x = -local_bounding_box.x;
+		offset.y = -local_bounding_box.y;
+
+		// First draw the external contour
+		cvDrawContours( maskConvex, ptseq, CV_RGB(255,255,255), CV_RGB(255,255,255),0, CV_FILLED, 8, offset );
+
+
+		convexArea = cvCountNonZero(maskConvex);
+
+		// This is old version of the convexArea calculation which relies in Green's approximation to calculate 
+		// area. We replaced it by the actually pixel couting in used in last command.
 		// After calculating the convex hull area with cvContourArea( ptseq  ) so:
-		convexArea =  cvContourArea(ptseq) ;
+		//convexArea =  cvContourArea(ptseq) + (cvArcLength(ptseq, CV_WHOLE_SEQ, 1)/2.0);
+
+		cvReleaseImage(&maskConvex);
 
 		// Release memory used to allocate points describing the convex hull
 		cvReleaseMemStorage(&local_storage);
 	}
-    return convexArea;
+	return convexArea;
 }
 
 float Contour::getSolidity()
@@ -195,7 +256,7 @@ float Contour::getBoundingBoxHeight()
 	return min_bounding_box.size.height;
 }
 
-CvRect Contour::getNonInclinedBoundingBox(CvSize originalImageSize )
+CvRect Contour::getNonInclinedBoundingBox( )
 {
 	// it is calculated?
 	if( m_bounding_box.width != -1 )
@@ -221,8 +282,8 @@ CvRect Contour::getNonInclinedBoundingBox(CvSize originalImageSize )
 
 	cvStartReadSeq( c_l, &reader);
 
-	m_bounding_box.x = originalImageSize.width;
-	m_bounding_box.y = originalImageSize.height;
+	m_bounding_box.x = numeric_limits<int>::max();
+	m_bounding_box.y = numeric_limits<int>::max();
 	m_bounding_box.width = 0;
 	m_bounding_box.height = 0;
 
@@ -237,11 +298,10 @@ CvRect Contour::getNonInclinedBoundingBox(CvSize originalImageSize )
 		m_bounding_box.height = MAX( actualPoint.y, m_bounding_box.height );
 	}
 
-	//m_boundingBox.x = max( m_boundingBox.x , 0 );
-	//m_boundingBox.y = max( m_boundingBox.y , 0 );
 
-	m_bounding_box.width -= m_bounding_box.x;
-	m_bounding_box.height -= m_bounding_box.y;
+//	cout <<	"m_bounding_box.height "<< m_bounding_box.height <<endl;
+	m_bounding_box.width -= (m_bounding_box.x-1);
+	m_bounding_box.height -= (m_bounding_box.y-1);
 
 	return m_bounding_box;
 }
