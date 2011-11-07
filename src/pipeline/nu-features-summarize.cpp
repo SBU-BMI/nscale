@@ -70,8 +70,9 @@ int main (int argc, char **argv){
 
 #ifdef _OPENMP
 		if (argc > 4) {
-			omp_set_num_threads(atoi(argv[4]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[4]));
-			printf("number of threads used = %d\n", omp_get_num_threads());
+	//		omp_set_num_threads(atoi(argv[4]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[4]));
+			omp_set_num_threads(atoi(argv[4]));	
+		printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
 	} else if (strcasecmp(mode, "mcore") == 0) {
@@ -79,7 +80,8 @@ int main (int argc, char **argv){
 		// get core count
 #ifdef _OPENMP
 		if (argc > 4) {
-			omp_set_num_threads(atoi(argv[4]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[4]));
+//			omp_set_num_threads(atoi(argv[4]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[4]));
+			omp_set_num_threads(atoi(argv[4]));
 			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif

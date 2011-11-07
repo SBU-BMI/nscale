@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>
+#include <stdio.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -32,7 +33,10 @@ int main (int argc, char **argv){
     MPI::Init(argc, argv);
     int size = MPI::COMM_WORLD.Get_size();
     int rank = MPI::COMM_WORLD.Get_rank();
-    printf( " MPI enabled: rank %d \n", rank);
+    char hostname[256];
+	gethostname(hostname, 255);
+    
+    printf( " MPI enabled: %s rank %d \n", hostname, rank);
 #else
     int size = 1;
     int rank = 0;
@@ -73,8 +77,9 @@ int main (int argc, char **argv){
 
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
-			printf("number of threads used = %d\n", omp_get_num_threads());
+//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? (omp_get_max_threads() > 1 ? omp_get_max_threads() : atoi(argv[5])) : atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]));
+			printf("number of threads used = %d requested %d\n", omp_get_num_threads(), atoi(argv[5]));
 		}
 #endif
 	} else if (strcasecmp(mode, "mcore") == 0) {
@@ -82,8 +87,9 @@ int main (int argc, char **argv){
 		// get core count
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
-			printf("number of threads used = %d\n", omp_get_num_threads());
+//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? (omp_get_max_threads() > 1 ? omp_get_max_threads() : atoi(argv[5])) : atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]));
+			printf("number of threads used = %d requested %d\n", omp_get_num_threads(), atoi(argv[5]));
 		}
 #endif
 	} else if (strcasecmp(mode, "gpu") == 0) {
@@ -143,7 +149,7 @@ int main (int argc, char **argv){
 	if (rank == 0) {
 		perNodeCount = filenames.size() / size + (filenames.size() % size == 0 ? 0 : 1);
 
-		printf("headnode: rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
+		printf("headnode %s: rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", hostname, rank, perNodeCount, maxLenMask, maxLenInput);
 
 		// allocate the sendbuffer
 		inputBufAll= (char*)malloc(perNodeCount * size * maxLenInput * sizeof(char));
@@ -244,7 +250,7 @@ int main (int argc, char **argv){
 #endif
 		}
 		t2 = cciutils::ClockGetTime();
-		printf("%d::%d: segment %lu us, in %s\n", rank, tid, t2-t1, fin.c_str());
+		printf("%s %d::%d: segment %lu us, in %s\n", hostname, rank, tid, t2-t1, fin.c_str());
 //		std::cout << rank <<"::" << tid << ":" << t2-t1 << " us, in " << fin << ", out " << fmask << std::endl;
 
 

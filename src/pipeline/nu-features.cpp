@@ -82,7 +82,8 @@ int main (int argc, char **argv){
 
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]));
 			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
@@ -91,7 +92,8 @@ int main (int argc, char **argv){
 		// get core count
 #ifdef _OPENMP
 		if (argc > 5) {
-			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
+			omp_set_num_threads(atoi(argv[5]));
 			printf("number of threads used = %d\n", omp_get_num_threads());
 		}
 #endif
@@ -126,14 +128,29 @@ int main (int argc, char **argv){
 			dirname = maskname;
 		}
 
-		std::string temp, tempdir;
+		std::string temp, temp2, tempdir;
+		FILE *file;
 		for (unsigned int i = 0; i < seg_output.size(); ++i) {
 			maxLenMask = maxLenMask > seg_output[i].length() ? maxLenMask : seg_output[i].length();
 				// generate the input file name
 			temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".tif");
 			temp = futils.replaceDir(temp, dirname, outDir);
-			filenames.push_back(temp);
-			maxLenInput = maxLenInput > temp.length() ? maxLenInput : temp.length();
+			temp2 = futils.replaceExt(seg_output[i], ".mask.pbm", ".tiff");
+			temp2 = futils.replaceDir(temp2, dirname, outDir);
+			if (file = fopen(temp.c_str(), "r")) {
+				fclose(file);
+				filenames.push_back(temp);
+				maxLenInput = maxLenInput > temp.length() ? maxLenInput : temp.length();
+			} else if (file = fopen(temp2.c_str(), "r")) {
+				fclose(file);
+				filenames.push_back(temp2);
+				maxLenInput = maxLenInput > temp2.length() ? maxLenInput : temp2.length();
+			} else {
+				// file does not exist.  continue;
+				continue;
+			}
+				
+			//filenames.push_back(temp);
 
 			// generate the output file name
 			temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
@@ -225,12 +242,20 @@ int main (int argc, char **argv){
 #else
 		int tid = 0;
 #endif
+		printf("thread id: %d\n", tid);
+
 		// Load input images
 		IplImage *originalImageMask = cvLoadImage(fmask.c_str(), -1);
 		IplImage *originalImage = cvLoadImage(fin.c_str(), -1);
 
-		if (! originalImageMask) continue;
-		if (! originalImage) continue;
+		if (! originalImageMask) {
+			printf("can't read original image mask\n");
+			continue;
+		}
+		if (! originalImage) {
+			printf("can't read original image\n");
+			continue;
+		}
 
 		bool isNuclei = true;
 
@@ -392,6 +417,8 @@ int main (int argc, char **argv){
 			  hid_t file_id;
 			  herr_t hstatus;
 
+			printf("writing out %s\n", ffeatures.c_str());		
+	
 			hsize_t dims[2];
 			file_id = H5Fcreate ( ffeatures.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
 
@@ -399,17 +426,17 @@ int main (int argc, char **argv){
 			hstatus = H5LTmake_dataset ( file_id, "/data",
 					2, // rank
 					dims, // dims
-						 H5T_NATIVE_FLOAT, data );
-			hstatus = H5LTset_attribute_string ( file_id, "/data", "image_file", fin.c_str() );
+                                                H5T_NATIVE_FLOAT, data );
+                       hstatus = H5LTset_attribute_string ( file_id, "/data", "image_file", fin.c_str() );
 
-			// attach the attributes
-			H5Fclose ( file_id );
-			}
+                       // attach the attributes
+                       H5Fclose ( file_id );
+                       }
 
-			delete [] data;
-			nucleiFeatures.clear();
-			cytoplasmFeatures_G.clear();
-			cytoplasmFeatures_H.clear();
+                       delete [] data;
+                       nucleiFeatures.clear();
+                       cytoplasmFeatures_G.clear();
+ 			cytoplasmFeatures_H.clear();
 			cytoplasmFeatures_E.clear();
 		}
 		t2 = cciutils::ClockGetTime();
