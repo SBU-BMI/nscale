@@ -336,7 +336,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 	out(:,:,1) = 255 * tolabel;
 	out(:,:,2) = 255 * cv_tolabel;
 	out(:,:,3) = 255 * seg_big;
-	imwrite(out, [validationpath, filename, '-matlab-ocv-compare.mask.pbm']);
+	imwrite(out, [validationpath, filename, '-matlab-ocv-compare.mask.png']);
 %	figure; imshow(out);
 
     return;
