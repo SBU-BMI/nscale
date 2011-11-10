@@ -165,7 +165,7 @@ int main (int argc, char **argv){
 	MPI::COMM_WORLD.Bcast(&maxLenInput, 1, MPI::INT, 0);
 
 
-//	printf("rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
+	printf("rank is %d here.  perNodeCount is %d, inputLen %d \n", rank, perNodeCount, maxLenInput);
 
 	// allocate the receive buffer
 	inputBuf = (char*)malloc(perNodeCount * maxLenInput * sizeof(char));
@@ -201,7 +201,7 @@ int main (int argc, char **argv){
 #pragma omp parallel for shared(perNodeCount, inputBuf, maxLenInput, rank, n_cols, node_sums, node_sum_squares) private(file_id, hstatus, n_rows, i, j, k, fin, t1, t2) reduction(+: node_rows)
     for (i = 0; i < perNodeCount; ++i) {
 		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
-//		printf("in MPI feature summary loop with rank %d, loop %d.  \"%s\"\n", rank, i, fin.c_str());
+		printf("in MPI feature summary loop with rank %d, loop %d.  \"%s\"\n", rank, i, fin.c_str());
 
 #else
 #pragma omp parallel for shared(filenames, rank, n_cols, node_sums, node_sum_squares) private(file_id, hstatus, n_rows, i, j, k, fin, t1, t2) reduction(+: node_rows)
@@ -231,9 +231,9 @@ int main (int argc, char **argv){
 			H5LTread_dataset (file_id, "/data", H5T_NATIVE_FLOAT, data);
 			H5Fclose ( file_id );
 		}
-		t2 = cciutils::ClockGetTime();
+//		t2 = cciutils::ClockGetTime();
 		//printf("file read took %lu us for %s\n", t2-t1, fin.c_str());
-		t1 = cciutils::ClockGetTime();
+//		t1 = cciutils::ClockGetTime();
 
 		double t;
 		double sum, sum_square;
@@ -258,9 +258,9 @@ int main (int argc, char **argv){
 			file_sums[j] = sum;
 			file_sum_squares[j] = sum_square;
 		}
-		t2 = cciutils::ClockGetTime();
+//		t2 = cciutils::ClockGetTime();
 //		printf("file summarize %d entries took %lu us for %s\n", n_rows, t2-t1, fin.c_str());
-		t1 = cciutils::ClockGetTime();
+//		t1 = cciutils::ClockGetTime();
 
 #pragma omp critical
 		{
@@ -273,8 +273,8 @@ int main (int argc, char **argv){
 		}
 
 		t2 = cciutils::ClockGetTime();
-//		printf("file write took %lu us for %s\n", t2-t1, fin.c_str());
-		t1 = cciutils::ClockGetTime();
+		printf("file read, summarize, write %d x %d entries took %lu us for %s\n", n_rows, n_cols, t2-t1, fin.c_str());
+//		t1 = cciutils::ClockGetTime();
 
 		// gather some summary info for this node
 		node_rows += n_rows;
@@ -286,7 +286,7 @@ int main (int argc, char **argv){
 				node_sum_squares[j] += file_sum_squares[j];
 			}
 		}
-		t2 = cciutils::ClockGetTime();
+//		t2 = cciutils::ClockGetTime();
 //		printf("node summarize took %lu us\n", t2-t1);
 
 		delete [] data;
@@ -339,7 +339,6 @@ int main (int argc, char **argv){
 
 	for (j = 0; j < n_cols; ++j) {
 		node_sum_squares[j] /= (double)global_rows;
-		node_sum_squares[j] -= global_sums[j] * global_sums[j] * ((double)node_rows / (double)global_rows);
 //		ss<< node_sum_squares[i] << ",";
 	}
 //	printf("node vars: %s \n", ss.str().c_str());
@@ -354,6 +353,7 @@ int main (int argc, char **argv){
 #endif
 
 	for (j = 0; j < n_cols; ++j) {
+		global_sum_squares[j] -= global_sums[j] * global_sums[j];
 		global_sum_squares[j] = sqrt(global_sum_squares[j]);
 		ss<<  global_sum_squares[j] << ",";
 	}
@@ -362,7 +362,7 @@ int main (int argc, char **argv){
 	ss.clear();
 
 	t2 = cciutils::ClockGetTime();
-//	printf("global summarize took %lu us\n", t2-t1);
+	printf("global summarize took %lu us\n", t2-t1);
 
 
 	// this program is mostly doing file io.  don't use openmp because we are not using parallel hdf5
@@ -370,7 +370,7 @@ int main (int argc, char **argv){
 #pragma omp parallel for shared(perNodeCount, inputBuf, maxLenInput, rank) private(fin, t1, t2)
 	for (i = 0; i < perNodeCount; ++i) {
 		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
-//		printf("in MPI summary update loop with rank %d, loop %d. \"%s\"\n", rank, i, fin.c_str());
+		printf("in MPI summary update loop with rank %d, loop %d. \"%s\"\n", rank, i, fin.c_str());
 
 #else
 #pragma omp parallel for shared(filenames, rank) private(fin, t1, t2)
@@ -437,7 +437,7 @@ int main (int argc, char **argv){
 */
 
 		t2 = cciutils::ClockGetTime();
-//		printf("file update took %lu us %s\n", t2-t1, fin.c_str());
+		printf("file update took %lu us %s\n", t2-t1, fin.c_str());
 
 
 	//	std::cout << rank << "::" << tid << ":" << fin << std::endl;
