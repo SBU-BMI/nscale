@@ -62,6 +62,7 @@ int main (int argc, char **argv){
 		return -1;
 	}
 	std::string filename(argv[1]);
+	std::string runid(argv[2]);
 	const char* mode = argc > 3 ? argv[3] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
@@ -102,6 +103,7 @@ int main (int argc, char **argv){
 		return -1;
 	}
 
+	std::string aggregate;
 	if (rank == 0) {
 		// check to see if it's a directory or a file
 		std::string suffix;
@@ -123,6 +125,11 @@ int main (int argc, char **argv){
 			maxLenInput = maxLenInput > filenames[i].length() ? maxLenInput : filenames[i].length();
 		}
 		dataCount= filenames.size();
+		
+		aggregate.assign(filename);
+		aggregate.append("/");
+		aggregate.append(runid);
+		aggregate.append(".features.h5");
 	}
 
 	hid_t file_id;
@@ -137,6 +144,10 @@ int main (int argc, char **argv){
 		hstatus = H5LTget_dataset_info ( file_id, "/data", dims, NULL, NULL );
 		n_cols = dims[1];
 		H5Fclose ( file_id );
+
+
+		// and create the file
+		
 
 	}
 
@@ -397,11 +408,11 @@ int main (int argc, char **argv){
 		hstatus = H5LTset_attribute_double(file_id, "/data", "global_means", global_sums, n_cols);
 		hstatus = H5LTset_attribute_double(file_id, "/data", "global_stdevs", global_sum_squares, n_cols);
 
-		hstatus = H5LTget_dataset_info ( file_id, "/data", ldims, NULL, NULL );
-		n_rows = ldims[0];
-		data = new float[n_rows * n_cols];
+//		hstatus = H5LTget_dataset_info ( file_id, "/data", ldims, NULL, NULL );
+//		n_rows = ldims[0];
+//		data = new float[n_rows * n_cols];
 
-		H5LTread_dataset (file_id, "/data", H5T_NATIVE_FLOAT, data);
+//		H5LTread_dataset (file_id, "/data", H5T_NATIVE_FLOAT, data);
 		H5Fclose ( file_id );
 
 		}
