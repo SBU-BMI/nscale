@@ -2,11 +2,24 @@
 
 #include "internal_shared.hpp"
 #include "change_kernel.cuh"
+#include <sys/time.h>
+
 
 #define MAX_THREADS		256
 #define X_THREADS			32
 #define Y_THREADS			32
 #define NEQ(a,b)    ( (a) != (b) )
+
+
+long ClockGetTimeb()
+{
+	struct timeval ts;
+	gettimeofday(&ts, NULL);
+ //   timespec ts;
+//    clock_gettime(CLOCK_REALTIME, &ts);
+	return (ts.tv_sec*1000000 + (ts.tv_usec))/1000LL;
+//    return (uint64_t)ts.tv_sec * 1000000LL + (uint64_t)ts.tv_nsec / 1000LL;
+}
 
 
 using namespace cv::gpu;
@@ -621,10 +634,13 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		
 		*h_change = true;
 //		printf("completed setup for imrecon binary caller \n");
+		long t1, t2;
 
 		if (conn8) {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
 			{
+
+				t1 = ClockGetTimeb();
 				iter++;
 				*h_change = false;
 				init_change<<< 1, 1, 0, stream>>>( d_change );
@@ -650,10 +666,17 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 //				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
+				t2 = ClockGetTimeb();
+				if (iter == 1) {
+					printf("first pass 8conn binary== scan, %lu ms\n", t2-t1);
+				}
+
+
 			}
 		} else {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
 			{
+				t1 = ClockGetTimeb();
 				iter++;
 				*h_change = false;
 				init_change<<< 1, 1, 0, stream>>>( d_change );
@@ -678,6 +701,11 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 //				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
+
+				t2 = ClockGetTimeb();
+				if (iter == 1) {
+					printf("first pass 4conn binary == scan, %lu ms\n", t2-t1);
+				}
 
 			}
 		}
