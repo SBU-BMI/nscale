@@ -11,6 +11,7 @@
 #include "cv.h"
 #include <fstream>
 #include <iostream>
+#include <sys/time.h>
 
 namespace cciutils {
 
@@ -21,9 +22,12 @@ const int DEVICE_GPU = 2;
 
 inline uint64_t ClockGetTime()
 {
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return (uint64_t)ts.tv_sec * 1000000LL + (uint64_t)ts.tv_nsec / 1000LL;
+	struct timeval ts;
+	gettimeofday(&ts, NULL);
+ //   timespec ts;
+//    clock_gettime(CLOCK_REALTIME, &ts);
+	return (ts.tv_sec*1000000 + (ts.tv_usec))/1000LL;
+//    return (uint64_t)ts.tv_sec * 1000000LL + (uint64_t)ts.tv_nsec / 1000LL;
 }
 
 template <typename T>
