@@ -20,7 +20,7 @@ GPU_SRC = HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperatio
 GPU_LIB_SRC = ${CUDA_SRC} ${GPU_SRC}
 GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}
 
-all: libsegment.so ${EXECENG_SRCO} nu-segment.exe nu-segmentTest.exe nu-segmentExecEngine.exe nu-segmentChunk.exe
+all: libsegment.so ${EXECENG_SRCO} nu-segment.exe nu-segment-mpi-bot.exe nu-segmentTest.exe nu-segmentExecEngine.exe nu-segmentChunk.exe
 
 tests: all nu-segmentChunkTest.exe imreconTest.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
 
