@@ -26,7 +26,7 @@ using namespace cv::gpu;
 
 int main (int argc, char **argv){
 	// test perfromance of imreconstruct.
-	Mat mask(Size(4096,4096), CV_8U);
+/*	Mat mask(Size(4096,4096), CV_8U);
 	randn(mask, Scalar::all(128), Scalar::all(30));
 	imwrite("test/in-mask.ppm", mask);
 	Mat el = getStructuringElement(MORPH_RECT, Size(7,7));
@@ -46,40 +46,45 @@ int main (int argc, char **argv){
 
 	Mat marker2(Size(256,256), CV_8U);
 	marker2.ptr<uchar>(112)[93] = 255;
+*/
 
-
+	Mat marker = imread("test/in-imrecon-gray-marker.pgm", -1);
+	Mat mask = imread("test/in-imrecon-gray-mask.pgm", -1);
+	Mat markerb = marker > 96;
+	Mat maskb = mask > 128;
+	
 	Mat recon, recon2;
 	uint64_t t1, t2;
 
-	Stream stream;
-	GpuMat g_marker;
-	GpuMat g_mask, g_recon;
-
-
-
-	stream.enqueueUpload(marker2, g_marker);
-	stream.enqueueUpload(mask2, g_mask);
-	stream.waitForCompletion();
-	std::cout << "finished uploading" << std::endl;
-
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 8, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "gpu recon loop took " << t2-t1 << "ms" << std::endl;
-	g_recon.download(recon2);
-	imwrite("test/out-reconLoop-gpu.pbm", recon2);
-	g_recon.release();
-
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "gpu recon loop 4 took " << t2-t1 << "ms" << std::endl;
-	g_recon.download(recon2);
-	imwrite("test/out-reconLoop4-gpu.pbm", recon2);
-	g_recon.release();
-
+////	Stream stream;
+////	GpuMat g_marker;
+////	GpuMat g_mask, g_recon;
+////
+////
+////
+////	stream.enqueueUpload(marker2, g_marker);
+////	stream.enqueueUpload(mask2, g_mask);
+////	stream.waitForCompletion();
+////	std::cout << "finished uploading" << std::endl;
+////
+////	t1 = cciutils::ClockGetTime();
+////	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 8, stream);
+////	stream.waitForCompletion();
+////	t2 = cciutils::ClockGetTime();
+////	std::cout << "gpu recon loop took " << t2-t1 << "ms" << std::endl;
+////	g_recon.download(recon2);
+////	imwrite("test/out-reconLoop-gpu.pbm", recon2);
+////	g_recon.release();
+////
+////	t1 = cciutils::ClockGetTime();
+////	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
+////	stream.waitForCompletion();
+////	t2 = cciutils::ClockGetTime();
+////	std::cout << "gpu recon loop 4 took " << t2-t1 << "ms" << std::endl;
+////	g_recon.download(recon2);
+////	imwrite("test/out-reconLoop4-gpu.pbm", recon2);
+////	g_recon.release();
+//
 //	t1 = cciutils::ClockGetTime();
 //	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 8, stream);
 //	stream.waitForCompletion();
@@ -99,14 +104,14 @@ int main (int argc, char **argv){
 //	g_recon.release();
 
 
-	g_marker.release();
-	g_mask.release();
-
-
-	stream.enqueueUpload(marker, g_marker);
-	stream.enqueueUpload(mask, g_mask);
-	stream.waitForCompletion();
-	std::cout << "finished uploading" << std::endl;
+////	g_marker.release();
+////	g_mask.release();
+////
+////
+////	stream.enqueueUpload(marker, g_marker);
+////	stream.enqueueUpload(mask, g_mask);
+////	stream.waitForCompletion();
+////	std::cout << "finished uploading" << std::endl;
 
 //	t1 = cciutils::ClockGetTime();
 //	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 8, stream);
@@ -126,60 +131,60 @@ int main (int argc, char **argv){
 //	imwrite("test/out-recon24-gpu.ppm", recon);
 //	g_recon.release();
 
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 8, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "gpu recon took " << t2-t1 << "ms" << std::endl;
-	g_recon.download(recon);
-	imwrite("test/out-recon-gpu.ppm", recon);
-	g_recon.release();
-
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "gpu recon4 took " << t2-t1 << "ms" << std::endl;
-	g_recon.download(recon);
-	imwrite("test/out-recon4-gpu.ppm", recon);
-	g_recon.release();
-
-	g_marker.release();
-	g_mask.release();
-
-
-	stream.enqueueUpload(markerb, g_marker);
-	stream.enqueueUpload(maskb, g_mask);
-	stream.waitForCompletion();
-	std::cout << "finished uploading" << std::endl;
-
-
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 8, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "gpu recon Binary took " << t2-t1 << "ms" << std::endl;
-	g_recon.download(recon2);
-	imwrite("test/out-reconBin-gpu.pbm", recon2);
-	g_recon.release();
-
-	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 4, stream);
-	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
-	std::cout << "gpu reconBinary4 took " << t2-t1 << "ms" << std::endl;
-	g_recon.download(recon2);
-	imwrite("test/out-reconBin4-gpu.pbm", recon2);
-	g_recon.release();
-	g_marker.release();
-	g_mask.release();
+////	t1 = cciutils::ClockGetTime();
+////	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 8, stream);
+////	stream.waitForCompletion();
+////	t2 = cciutils::ClockGetTime();
+////	std::cout << "gpu recon took " << t2-t1 << "ms" << std::endl;
+////	g_recon.download(recon);
+////	imwrite("test/out-recon-gpu.ppm", recon);
+////	g_recon.release();
+////
+////	t1 = cciutils::ClockGetTime();
+////	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
+////	stream.waitForCompletion();
+////	t2 = cciutils::ClockGetTime();
+////	std::cout << "gpu recon4 took " << t2-t1 << "ms" << std::endl;
+////	g_recon.download(recon);
+////	imwrite("test/out-recon4-gpu.ppm", recon);
+////	g_recon.release();
+////
+////	g_marker.release();
+////	g_mask.release();
+////
+////
+////	stream.enqueueUpload(markerb, g_marker);
+////	stream.enqueueUpload(maskb, g_mask);
+////	stream.waitForCompletion();
+////	std::cout << "finished uploading" << std::endl;
+////
+////
+////	t1 = cciutils::ClockGetTime();
+////	g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 8, stream);
+////	stream.waitForCompletion();
+////	t2 = cciutils::ClockGetTime();
+////	std::cout << "gpu recon Binary took " << t2-t1 << "ms" << std::endl;
+////	g_recon.download(recon2);
+////	imwrite("test/out-reconBin-gpu.pbm", recon2);
+////	g_recon.release();
+////
+////	t1 = cciutils::ClockGetTime();
+////	g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 4, stream);
+////	stream.waitForCompletion();
+////	t2 = cciutils::ClockGetTime();
+////	std::cout << "gpu reconBinary4 took " << t2-t1 << "ms" << std::endl;
+////	g_recon.download(recon2);
+////	imwrite("test/out-reconBin4-gpu.pbm", recon2);
+////	g_recon.release();
+////	g_marker.release();
+////	g_mask.release();
 
 
 
 	t1 = cciutils::ClockGetTime();
 	recon = nscale::imreconstruct<uchar>(marker, mask, 8);
 	t2 = cciutils::ClockGetTime();
-	std::cout << "recon took " << t2-t1 << "ms" << std::endl;
+	std::cout << "recon8 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-recon.ppm", recon);
 
 	t1 = cciutils::ClockGetTime();
@@ -191,7 +196,7 @@ int main (int argc, char **argv){
 	t1 = cciutils::ClockGetTime();
 	recon = nscale::imreconstructUChar(marker, mask, 8);
 	t2 = cciutils::ClockGetTime();
-	std::cout << "reconUchar took " << t2-t1 << "ms" << std::endl;
+	std::cout << "reconUchar 8 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-reconu.ppm", recon);
 
 	t1 = cciutils::ClockGetTime();
@@ -202,7 +207,7 @@ int main (int argc, char **argv){
 
 
 
-
+/*
 	t1 = cciutils::ClockGetTime();
 	recon = nscale::imreconstruct<uchar>(marker2, mask2, 8);
 	t2 = cciutils::ClockGetTime();
@@ -226,7 +231,7 @@ int main (int argc, char **argv){
 	t2 = cciutils::ClockGetTime();
 	std::cout << "reconUcharLoop 4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-reconuL4.ppm", recon);
-
+*/
 
 
 	t1 = cciutils::ClockGetTime();
@@ -234,7 +239,7 @@ int main (int argc, char **argv){
 	t2 = cciutils::ClockGetTime();
 	std::cout << "recon Binary took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-reconBin-gpu.pbm", recon2);
-	g_recon.release();
+////	g_recon.release();
 
 	t1 = cciutils::ClockGetTime();
 	recon2 = nscale::imreconstructBinary<uchar>(markerb, maskb, 4);
