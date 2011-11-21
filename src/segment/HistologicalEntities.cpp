@@ -138,12 +138,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	if (ratio >= 0.99) {
 		//TODO: TEMP std::cout << "background.  next." << std::endl;
 		if (logger) logger->logTimeElapsedSinceLastLog("background");
-//		if (logger) logger->endSession();
 		return nscale::HistologicalEntities::BACKGROUND;
 	} else if (ratio >= 0.9) {
 		//TODO: TEMP std::cout << "background.  next." << std::endl;
 		if (logger) logger->logTimeElapsedSinceLastLog("background likely");
-//		if (logger) logger->endSession();
 		return nscale::HistologicalEntities::BACKGROUND_LIKELY;
 	}
 
@@ -257,6 +255,13 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	}
 
 
+	return ::nscale::HistologicalEntities::segmentNucleiStage2(img, diffIm, bw1, rbc, output, logger, stage);
+
+}
+
+int HistologicalEntities::segmentNucleiStage2(const Mat& img, const Mat& diffIm, const Mat& bw11, const Mat& rbc, Mat& output, cciutils::SimpleCSVLogger *logger, int stage) {
+
+
 //	// TODO: change back
 //	return nscale::HistologicalEntities::SUCCESS;
 /*
@@ -276,14 +281,13 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
     end
  *
  */
-	bw1 = nscale::bwareaopen<uchar>(bw1, 11, 1000, 8);
+	Mat bw1 = nscale::bwareaopen<uchar>(bw11, 11, 1000, 8);
 	if (stage == 8) {
 		output = bw1;
 		return nscale::HistologicalEntities::SUCCESS;
 	}
 	if (countNonZero(bw1) == 0) {
 		if (logger) logger->logTimeElapsedSinceLastLog("areaThreshold1");
-//		if (logger) logger->endSession();
 		return nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
 //	imwrite("test/out-nucleicandidatessized.ppm", bw1);
@@ -474,31 +478,19 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		}
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
-//	Mat watermask = nscale::watershed2(img, distance2, 8);
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
 	Mat watermask = nscale::watershed2(nuclei, distance2, 8);
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
-	// erode a bit
+	if (logger) logger->logTimeElapsedSinceLastLog("watershed");
 	if (stage == 20) {
 			output = watermask;
 			return nscale::HistologicalEntities::SUCCESS;
 		}
-/*
-	Mat bwatermask = watermask > 0;
-	Mat twm;
-	copyMakeBorder(bwatermask, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(std::numeric_limits<uchar>::max()));
-	Mat t_watermask = Mat::zeros(twm.size(), twm.type());
-	erode(twm, t_watermask, disk3);
-	bwatermask = t_watermask(Rect(1, 1, watermask.cols, watermask.rows));
-	if (logger) logger->logTimeElapsedSinceLastLog("watershed erode");
-	if (stage == 21) {
-		output = bwatermask;
-		return nscale::HistologicalEntities::SUCCESS;
-	}
-*/
 
 	Mat seg_nonoverlap = Mat::zeros(seg_big.size(), seg_big.type());
 	seg_big.copyTo(seg_nonoverlap, (watermask >= 0));
+	// erode a bit
+	if (logger) logger->logTimeElapsedSinceLastLog("water to mask");
 	if (stage == 21) {
 		output = seg_nonoverlap;
 		return nscale::HistologicalEntities::SUCCESS;
@@ -510,9 +502,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	Mat t_nonoverlap = Mat::zeros(twm.size(), twm.type());
 	erode(twm, t_nonoverlap, disk3);
 	seg_nonoverlap = t_nonoverlap(Rect(1,1,seg_nonoverlap.cols, seg_nonoverlap.rows));
-//	seg_big.copyTo(seg_nonoverlap, bwatermask);
 //	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
-	if (logger) logger->logTimeElapsedSinceLastLog("watershed");
+	if (logger) logger->logTimeElapsedSinceLastLog("watershed erode");
 	if (stage == 22) {
 		output = seg_nonoverlap;
 		return nscale::HistologicalEntities::SUCCESS;
@@ -535,21 +526,15 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 *
 	 */
 	Mat seg = nscale::bwareaopen<uchar>(seg_nonoverlap, 21, 1000, 4);
+	if (logger) logger->logTimeElapsedSinceLastLog("20To1000");
+	if (countNonZero(seg) == 0) {
+		return nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
+	}
 	if (stage == 23) {
 		output = seg;
 		return nscale::HistologicalEntities::SUCCESS;
 	}
-	if (countNonZero(seg) == 0) {
-		if (logger) logger->logTimeElapsedSinceLastLog("20To1000");
-//		if (logger) logger->endSession();
-		return nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
-	}
 //	imwrite("test/out-seg.ppm", seg);
-	if (logger) logger->logTimeElapsedSinceLastLog("20To1000");
-//	if (stage == 24) {
-//		output = seg;
-//		return nscale::HistologicalEntities::SUCCESS;
-//	}
 
 
 	/*

@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <vector>
 #include <string>
-#include "HistologicalEntities.h"
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>
@@ -29,95 +28,21 @@
 using namespace cv;
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.
-#define WITH_MPI
+//#define WITH_MPI
 
 #ifdef WITH_MPI
 #include <mpi.h>
 
-MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank);
+MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
 int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outdir);
 void getFiles(const std::string &maskName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &features_output);
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank);
-void computeFeatures(const char *input, const char *mask, const char *output);
+void compute(const char *input, const char *mask, const char *output);
 
 
-// initialize MPI
-MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank) {
-    MPI::Init(argc, argv);
-    size = MPI::COMM_WORLD.Get_size();
-    rank = MPI::COMM_WORLD.Get_rank();
-    return MPI::COMM_WORLD;
-}
-
-// not necessary to create a new comm object
-MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid) {
-	// get old group
-	MPI::Group world_group = comm_world.Get_group();
-	// create new group from old group
-	int worker_size = comm_world.Get_size() - 1;
-	int *workers = new int[worker_size];
-	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
-		if (id == managerid) ++id;  // skip the manager id
-		workers[i] = id;
-	}
-	MPI::Group worker_group = world_group.Incl(worker_size, workers);
-	delete [] workers;
-	return comm_world.Create(worker_group);
-}
-
-int main (int argc, char **argv){
-	// parse the input
-	int modecode;
-	std::string maskName, outDir;
-	int status = parseInput(argc, argv, modecode, maskName, outDir);
-	if (status != 0) return status;
-
-	// set up mpi
-	int rank, size, worker_size, manager_rank;
-	MPI::Intracomm comm_world = init_mpi(argc, argv, size, rank);
-
-	if (size == 1) {
-		printf("ERROR:  this program can only be run with 2 or more MPI nodes.  The head node does not process data\n");
-		return -4;
-	}
-
-	// initialize the worker comm object
-	worker_size = size - 1;
-	manager_rank = size - 1;
-
-	// NOT NEEDED
-	//MPI::Intracomm comm_worker = init_workers(MPI::COMM_WORLD, manager_rank);
-	//int worker_rank = comm_worker.Get_rank();
-
-
-	uint64_t t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
-
-	// decide based on rank of worker which way to process
-	if (rank == manager_rank) {
-		// manager thread
-		manager_process(comm_world, manager_rank, worker_size, maskName, outDir);
-		t2 = cciutils::ClockGetTime();
-		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
-		comm_world.Barrier();
-		MPI::Finalize();
-		exit(0);
-
-	} else {
-		// worker bees
-		worker_process(comm_world, manager_rank, rank);
-		t2 = cciutils::ClockGetTime();
-		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
-		comm_world.Barrier();
-		MPI::Finalize();
-		exit(0);
-
-	}
-
-}
 
 int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outdir) {
 	if (argc < 4) {
@@ -200,6 +125,87 @@ void getFiles(const std::string &maskName, const std::string &outDir, std::vecto
 }
 
 
+
+// initialize MPI
+MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname) {
+    MPI::Init(argc, argv);
+
+    char * temp = new char[256];
+    gethostname(temp, 255);
+    hostname.assign(temp);
+    delete [] temp;
+
+    size = MPI::COMM_WORLD.Get_size();
+    rank = MPI::COMM_WORLD.Get_rank();
+
+    return MPI::COMM_WORLD;
+}
+
+// not necessary to create a new comm object
+MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid) {
+	// get old group
+	MPI::Group world_group = comm_world.Get_group();
+	// create new group from old group
+	int worker_size = comm_world.Get_size() - 1;
+	int *workers = new int[worker_size];
+	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
+		if (id == managerid) ++id;  // skip the manager id
+		workers[i] = id;
+	}
+	MPI::Group worker_group = world_group.Incl(worker_size, workers);
+	delete [] workers;
+	return comm_world.Create(worker_group);
+}
+
+int main (int argc, char **argv){
+	// parse the input
+	int modecode;
+	std::string maskName, outDir;
+	int status = parseInput(argc, argv, modecode, maskName, outDir);
+	if (status != 0) return status;
+
+	// set up mpi
+	int rank, size, worker_size, manager_rank;
+	std::string hostname;
+	MPI::Intracomm comm_world = init_mpi(argc, argv, size, rank, hostname);
+
+	if (size == 1) {
+		printf("ERROR:  this program can only be run with 2 or more MPI nodes.  The head node does not process data\n");
+		return -4;
+	}
+
+	// initialize the worker comm object
+	worker_size = size - 1;
+	manager_rank = size - 1;
+
+	// NOT NEEDED
+	//MPI::Intracomm comm_worker = init_workers(MPI::COMM_WORLD, manager_rank);
+	//int worker_rank = comm_worker.Get_rank();
+
+
+	uint64_t t1 = 0, t2 = 0;
+	t1 = cciutils::ClockGetTime();
+
+	// decide based on rank of worker which way to process
+	if (rank == manager_rank) {
+		// manager thread
+		manager_process(comm_world, manager_rank, worker_size, maskName, outDir);
+		t2 = cciutils::ClockGetTime();
+		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
+
+	} else {
+		// worker bees
+		worker_process(comm_world, manager_rank, rank);
+		t2 = cciutils::ClockGetTime();
+		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
+
+	}
+	comm_world.Barrier();
+	MPI::Finalize();
+	exit(0);
+
+}
+
 static const char MANAGER_READY = 10;
 static const char MANAGER_FINISHED = 12;
 static const char MANAGER_ERROR = -11;
@@ -214,15 +220,15 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
    	std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
 	std::vector<std::string> features_output;
+	uint64_t t1, t0;
+
+	t0 = cciutils::ClockGetTime();
 
 	getFiles(maskName, outDir, filenames, seg_output, features_output);
-	for (unsigned int i = 0; i < filenames.size(); i++) {
-		printf("[%s]\n", filenames[i].c_str());
-		printf("[%s]\n", seg_output[i].c_str());
-		printf("[%s]\n", features_output[i].c_str());
-	}
 
-	printf("Manager ready at %d \n", manager_rank);
+	t1 = cciutils::ClockGetTime();
+	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
+
 	comm_world.Barrier();
 
 	// now start the loop to listen for messages
@@ -309,9 +315,12 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 	char *mask;
 
 	comm_world.Barrier();
+	uint64_t t0, t1;
 
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
+		t0 = cciutils::ClockGetTime();
+
 		// tell the manager - ready
 		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
 		printf("worker %d signal ready\n", rank);
@@ -338,15 +347,20 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			comm_world.Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA);
 			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
-			// now do some work
-			printf("worker %d processing \"%s\" + \"%s\" -> \"%s\"\n", rank, input, mask, output);
+			t1 = cciutils::ClockGetTime();
+			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
-			computeFeatures(input, mask, output);
+			// now do some work
+			compute(input, mask, output);
+
+			t1 = cciutils::ClockGetTime();
+			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
 
 			// clean up
 			delete [] input;
 			delete [] mask;
 			delete [] output;
+
 		}
 	}
 }
@@ -355,7 +369,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 
 
-void computeFeatures(const char *input, const char *mask, const char *output) {
+void compute(const char *input, const char *mask, const char *output) {
 	// Load input images
 	IplImage *originalImageMask = cvLoadImage(mask, -1);
 	IplImage *originalImage = cvLoadImage(input, -1);
