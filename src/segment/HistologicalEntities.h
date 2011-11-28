@@ -33,6 +33,10 @@ public:
 	static const int INVALID_IMAGE = -1;
 	static const int SUCCESS = 0;
 
+	// shared code between cpu and gpu.
+	static int segmentNucleiStage2(const cv::Mat& img, const cv::Mat& diffIm, const cv::Mat& bw11, const cv::Mat& rbc, cv::Mat& output, cciutils::SimpleCSVLogger *logger, int stage);
+
+
 };
 
 
