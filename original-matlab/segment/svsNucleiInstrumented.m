@@ -9,8 +9,8 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
             'normal.3/normal.3.ndpi-0000028672-0000012288',...
             };
         impath='/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/';
-        resultpath='/home/tcpan/PhD/path/Data/segmentation-tests/';
-        validationpath='/home/tcpan/PhD/path/Data/segmentation-tests/';
+        resultpath='/home/tcpan/PhD/path/Data/seg-gpu-tests/';
+        validationpath='/home/tcpan/PhD/path/Data/seg-gpu-tests/';
         fileext = '.tif';
 
         for i = 1:length(image)
@@ -44,18 +44,26 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
     % p.CR='0.5';
 
 
+    logfile = 'seg-matlab-timing.csv';
+    logfid = fopen(logfile, 'a');
+
     I=imread([impath,filename,fileext]);
 
+	tic;
     THR = 0.9;
     grayI = rgb2gray(I);
     area_bg = length(find(I(:,:,1)>=220&I(:,:,2)>=220&I(:,:,3)>=220));
-    ratio = area_bg/numel(grayI);
-    if ratio >= THR
+	ratio = area_bg/numel(grayI);
+ 	t = toc;
+	fprintf(logfid, '%s, background, %d\n', filename, t);
+	fclose(logfid);
+
+   if ratio >= THR
         return;
     end
 
     tic;
-    [f,L] = segNucleiMorphMeanshiftInstrumented(I, validationpath, filename);
+    [f,L] = segNucleiMorphMeanshiftInstrumented(I, validationpath, filename, logfile);
     t = toc;
     
 
@@ -101,13 +109,19 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
 end
 
 
-function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, filename)
+function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, filename, logfile)
     f = [];
 
+    logfid = fopen(logfile, 'a');
+
+    tic;
     r = color_img( :, :, 1);
     g = color_img( :, :, 2);
     b = color_img( :, :, 3);
+    t = toc;
+    fprintf(logfid, '%s, toRGB, %d\n', filename, t);
 
+	tic;
     %T1=2.5; T2=2;
     T1=5; T2=4;
 
@@ -121,6 +135,9 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
     else
         rbc = zeros(size(imR2G));
     end
+    t = toc;
+    fprintf(logfid, '%s, RBC, %d\n', filename, t);
+
 
     cv_rbc = imread([validationpath, filename, '-', sprintf('%d',2), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  RBC %d\n', length(find(rbc ~= cv_rbc)));
@@ -130,23 +147,31 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %         figure; imshow(rbc ~= cv_rbc);
 %     end;
     
-    disk = strel('disk', 10);
-    
+   
+tic 
     rc = 255 - r;
-    rc_open = imopen(rc, strel('disk',10));
-    cv_rc_open = imread([validationpath, filename, '-', sprintf('%d',3), '.mask.pbm']);
+t = toc;
+fprintf(logfid, '%s, invert, %d\n', filename, t);
+tic
+    disk = strel('disk', 10);
+   rc_open = imopen(rc, strel('disk',10));
+t = toc;
+fprintf(logfid, '%s, open19, %d\n', filename, t);
+   cv_rc_open = imread([validationpath, filename, '-', sprintf('%d',3), '.mask.pbm']);
     fprintf(1, 'matlab vs cv.  rc open %d\n', length(find(rc_open ~= cv_rc_open))); 
 %     if (max(max(rc_open ~= cv_rc_open)) > 0) 
 %         figure; imshow(rc_open);
 %         figure; imshow(cv_rc_open);
 %         figure; imshow(rc_open ~= cv_rc_open);
 %     end;
-
+tic
     rc_recon = imreconstruct(rc_open,rc);
+    diffIm = rc-rc_recon;
+t = toc;
+fprintf(logfid, '%s, reconToNuclei, %d\n', filename, t);
     cv_rc_recon = imread([validationpath, filename, '-', sprintf('%d',4), '.mask.pbm']);
     fprintf(1, 'matlab vs cv.  rc recon %d\n', length(find(rc_recon ~= cv_rc_recon))); 
 
-    diffIm = rc-rc_recon;
 
     cv_diffIm = imread([validationpath, filename, '-', sprintf('%d',5), '.mask.pbm']);
     fprintf(1, 'matlab vs cv.  rc peaks %d\n', length(find(diffIm ~= cv_diffIm))); 
@@ -156,12 +181,17 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %         figure; imshow(diffIm ~= cv_diffIm);
 %     end;
 
-    
+tic    
     G1=80; G2=45; % default settings
     %G1=80; G2=30;  % 2nd run
-
-    bw1 = imfill(diffIm>G1,'holes');
-    
+diffIm2 = diffIm > G1;
+t = toc;
+fprintf(logfid, '%s, threshold1, %d\n', filename, t);
+tic;
+    bw1 = imfill(diffIm2,'holes');
+t = toc;
+fprintf(logfid, '%s, fillHols1, %d\n', filename, t);
+   
     cv_bw1 = imread([validationpath, filename, '-', sprintf('%d',7), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  rc filled holes %d\n', length(find(bw1 ~= cv_bw1)));
 %     if (max(max(bw1 ~= cv_bw1)) > 0) 
@@ -171,7 +201,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %     end;
 
 
-
+tic
     %CHANGE
     [L] = bwlabel(bw1, 8);
     stats = regionprops(L, 'Area');
@@ -181,8 +211,11 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
     ind = find(areas>10 & areas<1000);
     bw1 = ismember(L,ind);
     ind = find(bw1);
+t = toc;
+fprintf(logfid, '%s, areaThreshold1, %d\n', filename, t);
 
     if isempty(ind)
+	fclose(logfid);
         return;
     end
 
@@ -194,37 +227,54 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %         figure; imshow(bw1 ~= cv_bw1);
 %     end;
 % 
-
+tic;
     bw2 = diffIm>G2;
+    [rows,cols] = ind2sub(size(diffIm),ind);
+    seg_norbc = bwselect(bw2,cols,rows,8) & ~rbc;
+t=toc;
+fprintf(logfid, '%s, blobsGt45, %d\n', filename, t);
+
+
     cv_bw2 = imread([validationpath, filename, '-', sprintf('%d',9), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  bw2 %d\n', length(find(bw2 ~= cv_bw2)));
 
 
-    [rows,cols] = ind2sub(size(diffIm),ind);
-    seg_norbc = bwselect(bw2,cols,rows,8) & ~rbc;
     
     cv_seg_norbc = imread([validationpath, filename, '-', sprintf('%d',11), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  candidate no rbc %d\n', length(find(seg_norbc ~= cv_seg_norbc)));
     
-    
+tic; 
     seg_nohole = imfill(seg_norbc,'holes');
+t=toc;
+fprintf(logfid, '%s, fillHoles2, %d\n', filename, t);
+
     cv_seg_nohole = imread([validationpath, filename, '-', sprintf('%d',12), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  hole filled %d\n', length(find(seg_nohole ~= cv_seg_nohole)));
-
+tic;
     seg_open = imopen(seg_nohole,strel('disk',1));
-    
+t = toc;
+fprintf(logfid, '%s, openBlobs, %d\n', filename, t);
+
     cv_seg_open = imread([validationpath, filename, '-', sprintf('%d',13), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  candidate opened %d\n', length(find(seg_open ~= cv_seg_open)));
     
 
     %CHANGE
-    seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
+tic;
+	seg_big_t = bwareaopen(seg_open,30);
+t=toc;
+fprintf(logfid, '%s, 30To1000 , %d\n', filename, t);
+
+tic;
+    seg_big = imdilate(seg_big_t,strel('disk',1));
+t=toc;
+fprintf(logfid, '%s, dilate, %d\n', filename, t);
+
 
     cv_seg_big = imread([validationpath, filename, '-', sprintf('%d',15), '.mask.pbm']) >0;
     fprintf(1, 'matlab vs cv.  candidate big %d\n', length(find(seg_big ~= cv_seg_big)));
     
     
-    distance = -bwdist(~seg_big);
 %     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-dist_4096_x_4096.raw', 'r');
 %     cv_distance = fread(fid, [4096,4096], '*float32');
 %     cv_distance = single(cv_distance');
@@ -234,9 +284,13 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
      t = uint8(255.0/(max(max(t))) * t);
      fprintf(1, 'matlab vs cv.  distance transform %d\n', length(find(t ~= cv_distance)));
     %figure; imshow(abs(cv_distance - distance) * 60.0);
-    
+tic;    
+    distance = -bwdist(~seg_big);
     mn = min(min(distance));
     distance(~seg_big) = -Inf;
+t=toc;
+fprintf(logfid, '%s, distTransform, %d\n', filename, t);
+
 %     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distance_4096_x_4096.raw', 'r');
 %     cv_distance = fread(fid, [4096,4096], '*float32');
 %     cv_distance = single(cv_distance');
@@ -253,8 +307,11 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 %     t = uint8(255.0/(max(max(t))) * t);
 %     fprintf(1, 'matlab vs cv.  distance transform with -inf %d\n', length(find(t ~= cv_distance)));
     %figure; imshow(abs(t_cv_distance- t_distance) * 60);
-    
+tic;
     distance2 = imhmin(distance, 1);
+t=toc;
+fprintf(logfid, '%s, imhmin, %d\n', filename, t);
+
 %     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distanceimhmin_4096_x_4096.raw', 'r');
 %     cv_distance2 = fread(fid, [4096,4096], '*float32');
 %     cv_distance2 = single(cv_distance2');
@@ -278,7 +335,12 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
     %lines(watershed(distance2)==0)=0;
 
     %clear distance
+tic;
     watermask = watershed(distance2);
+t=toc;
+fprintf(logfid, '%s, watershed, %d\n', filename, t);
+
+
 %     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-watershed_4096_x_4096.raw', 'r');
 %     cv_watermask = fread(fid, [4096,4096], '*int32');
 %     cv_watermask = cv_watermask';
@@ -290,24 +352,33 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
  cv_bwatermask = imread([validationpath, filename, '-', sprintf('%d',21), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  watershed contour interior %d\n', length(find(t ~= cv_bwatermask)));
     
-    
+tic;    
     seg_nonoverlap = seg_big;
     seg_nonoverlap(watermask==0) = 0;
+t=toc;
+fprintf(logfid, '%s, water to mask, %d\n', filename, t);
+
     %seg_nonoverlap = lines & seg_big;
     cv_seg_nonoverlap = imread([validationpath, filename, '-', sprintf('%d',22), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  nonoverlap %d\n', length(find(seg_nonoverlap ~= cv_seg_nonoverlap)));
     
     %clear lines distance2
 
-    %CHANGE
+    %CHANGEi
+tic;
     [L] = bwlabel(seg_nonoverlap, 4);
     stats = regionprops(L, 'Area');
     areas = [stats.Area];
 
     %CHANGE
     ind = find(areas>20 & areas<1000);
+t=toc;
+fprintf(logfid, '%s, 20To1000, %d\n', filename, t);
+
+
 
     if isempty(ind)
+	fclose(logfid);
         return;
     end
 
@@ -319,8 +390,12 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
     
 
     %CHANGE
+tic;
     tolabel = imfill(seg, 'holes');
-    
+t=toc;
+fprintf(logfid, '%s, fillHolesLast, %d\n', filename, t);
+
+
     % debug
 %     result = zeros(size(tolabel, 1), size(tolabel, 2), 3, 'uint8');
 %     result(:, :, 2) = tolabel * 255;
@@ -339,6 +414,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
 	imwrite(out, [validationpath, filename, '-matlab-ocv-compare.mask.png']);
 %	figure; imshow(out);
 
+	fclose(logfid);
     return;
     
     [L,num] = bwlabel(tolabel,4);

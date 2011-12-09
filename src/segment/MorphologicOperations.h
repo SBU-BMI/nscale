@@ -122,10 +122,11 @@ cv::gpu::GpuMat bwselect(const cv::gpu::GpuMat& binaryImage, const cv::gpu::GpuM
 //template <typename T>
 //cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity);
 //
-//template <typename T>
-//cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
+template <typename T>
+cv::gpu::GpuMat imhmin(const cv::gpu::GpuMat& image, T h, int connectivity, cv::gpu::Stream& stream);
 //
-//cv::Mat_<int> watershed2(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
+cv::gpu::GpuMat watershedCA(const cv::gpu::GpuMat& origImage, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
+cv::gpu::GpuMat watershedDW(const cv::gpu::GpuMat& origImage, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
 //
 //template <typename T>
 //cv::Mat_<uchar> localMaxima(const cv::Mat& image, int connectivity);

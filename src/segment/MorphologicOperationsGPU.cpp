@@ -16,12 +16,14 @@
 #include "PixelOperations.h"
 #include "precomp.hpp"
 
+#define HAVE_CUDA
 
 #if defined (HAVE_CUDA)
 #include "cuda/imreconstruct_int_kernel.cuh"
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
 #include "cuda/imrecon_queue_int_kernel.cuh"
+#include "cuda/watershed-dw-korbes.cuh"
 
 #endif
 
@@ -45,6 +47,14 @@ template <typename T>
 GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {throw_nogpu();}
 template <typename T>
 GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu();}
+
+// input should have foreground > 0, and 0 for background
+GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
+// input should have foreground > 0, and 0 for background
+GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
+// input should have foreground > 0, and 0 for background
+template <typename T>
+GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) { throw_nogpu(); }
 
 #else
 
@@ -78,9 +88,9 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 
 	stream.waitForCompletion();
 	if (std::numeric_limits<T>::is_integer) {
-	    iter = imreconstructIntCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+	    iter = imreconstructIntCaller<T>((T*)marker.data, (T*)mask.data, marker.cols, marker.rows, connectivity, StreamAccessor::getStream(stream));
 	} else {
-		iter = imreconstructFloatCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+		iter = imreconstructFloatCaller<T>((T*)marker.data, (T*)mask.data, marker.cols, marker.rows, connectivity, StreamAccessor::getStream(stream));
 	}
     stream.waitForCompletion();
     mask.release();
@@ -126,7 +136,7 @@ GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity
 	stream.waitForCompletion();
 	temp1.release();
 	temp2.release();
-	iter = imreconQueueIntCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+	iter = imreconQueueIntCaller<T>((T*)marker.data, (T*)mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
 	StreamAccessor::getStream(stream);
 
 	stream.waitForCompletion();
@@ -166,7 +176,7 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 
 	stream.waitForCompletion();
 
-    iter = imreconstructBinaryCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+    iter = imreconstructBinaryCaller<T>((T*)marker.data, (T*)mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
     stream.waitForCompletion();
     mask.release();
 
@@ -311,6 +321,7 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 
 	// no need to and between marker and binaryImage - since marker is always <= binary image
 }
+
 //
 //// Operates on BINARY IMAGES ONLY
 //// ideally, output should be 64 bit unsigned.
@@ -466,65 +477,123 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 //	}
 //	return output;
 //}
-//
-//template <typename T>
-//Mat imhmin(const Mat& image, T h, int connectivity) {
-//	// only works for intensity images.
-//	CV_Assert(image.channels() == 1);
-//
-//	//	IMHMIN(I,H) suppresses all minima in I whose depth is less than h
-//	// MatLAB implementation:
-//	/**
-//	 *
-//		I = imcomplement(I);
-//		I2 = imreconstruct(imsubtract(I,h), I, conn);
-//		I2 = imcomplement(I2);
-//	 *
-//	 */
-//	Mat mask = nscale::gpu::PixelOperations::invert<T>(image, stream);
-//	Mat marker = mask - h;
-//	Mat output = imreconstruct<T>(marker, mask, connectivity);
-//	return nscale::gpu::PixelOperations::invert<T>(output,stream);
-//}
-//
-//// input should have foreground > 0, and 0 for background
-//Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connectivity) {
-//	// only works for intensity images.
-//	CV_Assert(image.channels() == 1);
-//
-//	/*
-//	 * MatLAB implementation:
-//		cc = bwconncomp(imregionalmin(A, conn), conn);
-//		L = watershed_meyer(A,conn,cc);
-//
-//	 */
-//
-//	Mat minima = localMinima<float>(image, connectivity);
-//	Mat_<int> labels = bwlabel(minima, true, connectivity);
-//
-//	// convert to grayscale
-//	// now scale, shift, clear background.
-//	double mmin, mmax;
-//	minMaxLoc(image, &mmin, &mmax);
-//	std::cout << " image: min=" << mmin << " max=" << mmax<< std::endl;
-//	double range = (mmax - mmin);
-//	double scaling = std::numeric_limits<uchar>::max() / range;
-//	Mat shifted(image.size(), CV_8U);
-//	image.convertTo(shifted, CV_8U, scaling, 0.0);
-//
-//
-//	Mat image3(shifted.size(), CV_8UC3);
-//	cvtColor(shifted, image3, CV_GRAY2BGR);
-//
-//	watershed(origImage, labels);
-//
-//	mmin, mmax;
-//	minMaxLoc(labels, &mmin, &mmax);
-//	std::cout << " watershed: min=" << mmin << " max=" << mmax<< std::endl;
-//
-//
-//	return labels;
-//}
+
+template <typename T>
+GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+
+	//	IMHMIN(I,H) suppresses all minima in I whose depth is less than h
+	// MatLAB implementation:
+	/**
+	 *
+		I = imcomplement(I);
+		I2 = imreconstruct(imsubtract(I,h), I, conn);
+		I2 = imcomplement(I2);
+	 *
+	 */
+	GpuMat mask = nscale::gpu::PixelOperations::invert<T>(image, stream);
+	stream.waitForCompletion();
+	GpuMat marker(mask.size(), mask.type());
+	subtract(mask, Scalar(h), marker);
+	int iter;
+	GpuMat recon = nscale::gpu::imreconstruct<T>(marker, mask, connectivity, stream);
+	GpuMat output = nscale::gpu::PixelOperations::invert<T>(recon,stream);
+	stream.waitForCompletion();
+	recon.release();
+	marker.release();
+	mask.release();
+	return output;
+}
+
+
+// input should have foreground > 0, and 0 for background
+GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) {
+
+	CV_Assert(image.channels() == 1);
+	CV_Assert(image.type() == CV_32FC1);
+//	CV_Assert(image.type() == CV_8UC1);
+
+
+	/*
+	 * MatLAB implementation:
+		cc = bwconncomp(imregionalmin(A, conn), conn);
+		L = watershed_meyer(A,conn,cc);
+	 */
+
+	// this implementation requires seed image.
+	Mat h_img(image.size(), image.type());
+	stream.enqueueDownload(image, h_img);
+	Mat minima = localMinima<float>(h_img, connectivity);
+//imwrite("test-minima.pbm", minima);
+	Mat_<int> h_labels = bwlabel(minima, false, connectivity);
+//imwrite("test-bwlabel.png", labels);
+	GpuMat d_labels(h_labels.size(), h_labels.type());
+	stream.enqueueUpload(h_labels, d_labels);
+	GpuMat seeds(d_labels.rows + 2, d_labels.cols + 2, d_labels.type());
+	copyMakeBorder(d_labels, seeds, 1, 1, 1, 1, Scalar(0), stream);
+	stream.waitForCompletion();
+	h_img.release();
+	minima.release();
+	h_labels.release();
+	d_labels.release();
+
+
+
+	GpuMat input = createContinuous(image.size().height + 2, image.size().width + 2, image.type());
+	copyMakeBorder(image, input, 1, 1, 1, 1, Scalar(0), stream);
+
+	// allocate results
+	GpuMat labels = createContinuous(image.size().height + 2, image.size().width + 2, CV_32SC1);
+	stream.enqueueMemSet(labels, Scalar(0));
+	stream.waitForCompletion();
+
+	// here call the cuda function.
+	ca::ws_kauffmann((int*)(labels.data), (float*)(input.data), (int*)seeds.data, input.cols, input.rows, connectivity);
+//	::ws_kauffmann((int*)labels.data, (unsigned char*)input.data, input.cols, input.rows, connectivity);
+
+    stream.waitForCompletion();
+    input.release();
+    seeds.release();
+
+	return labels(Rect(1,1, image.cols, image.rows));
+}
+
+// input should have foreground > 0, and 0 for background
+GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) {
+
+	CV_Assert(image.channels() == 1);
+	CV_Assert(image.type() == CV_32FC1);
+//	CV_Assert(image.type() == CV_8UC1);
+
+
+	/*
+	 * MatLAB implementation:
+		cc = bwconncomp(imregionalmin(A, conn), conn);
+		L = watershed_meyer(A,conn,cc);
+	 */
+
+	// this implementation does not require seed image, nor the original image (at all).
+
+	GpuMat input = createContinuous(image.size().height + 2, image.size().width + 2, image.type());
+	copyMakeBorder(image, input, 1, 1, 1, 1, Scalar(0), stream);
+
+	// allocate results
+	GpuMat labels = createContinuous(image.size().height + 2, image.size().width + 2, CV_32SC1);
+	stream.enqueueMemSet(labels, Scalar(0));
+	stream.waitForCompletion();
+
+	// here call the cuda function.
+	dw::giwatershed((int*)(labels.data), (float*)(input.data), input.cols, input.rows, connectivity, StreamAccessor::getStream(stream));
+//	::giwatershed((int*)labels.data, (unsigned*)input.data, input.cols, input.rows, connectivity);
+
+    stream.waitForCompletion();
+    input.release();
+
+	return labels(Rect(1,1, image.cols, image.rows));
+}
+
+
 //
 //// only works with integer images
 //template <typename T>
@@ -633,6 +702,10 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 //template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
@@ -641,6 +714,8 @@ template GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
 template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
+template GpuMat imhmin(const GpuMat& image, unsigned char h, int connectivity, Stream&);
+template GpuMat imhmin(const GpuMat& image, float h, int connectivity, Stream&);
 
 }
 

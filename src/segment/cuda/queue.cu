@@ -1,63 +1,49 @@
-// adaptation of Pavel's imreconstruction code for openCV
+// testing gpu queue (compacted array)
 
-#include "internal_shared.hpp"
-#include "opencv2/gpu/device/vecmath.hpp"
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/tuple.h>
-#include <thrust/functional.h>
-#include <thrust/tuple.h>
-#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/copy.h>
-#include <thrust/unique.h>
-#include <thrust/sort.h>
-#include <thrust/count.h>
-
-
-#define MAX_THREADS		256
-#define XX_THREADS	4
-#define XY_THREADS	32
-#define NEQ(a,b)    ( (a) != (b) )
+#include <stdio.h>
 
 #define WARP_SIZE 32
-
-using namespace cv::gpu;
-using namespace cv::gpu::device;
+#define NUM_WARPS 16
+// blocksize: threads should be less than 1024.
+#define BLOCK_SIZE (WARP_SIZE * NUM_WARPS)
+// also blocks should be arranged in 2D (would be 32 bit at 64k x 64k).  preferrably in a shape that's closest to square.
 
 
 namespace nscale { namespace gpu {
 
 
-// 3 * WARP_SIZE.    third WARP_SIZE is boolean marking the items to copy later.
-// does not touch other warps
-template<class T> 
-__device__ void warp_mark(const T* s_in_data, volatile int* s_mark) {
-	s_mark[threadIdx.x] = (s_in_data[threadIdx.x] > 0 ? 1, 0);
-} 
-
-// s_mark and s_scan pointers point to the starting pos of current warp's data: s_scan = s_scan + 2*warpId*WARP_SIZE
-// idx is the id within the warp.
-// first WARP_SIZE is dummy so to avoid warp divergence in warp_scan.
-// second WARP_SIZE is the scan area.
 // does not touch other warps
 template<typename T>
-__device__ void init_warp_scan(volatile int* s_mark, volatile int* s_scan, const int idx) {
+inline __device__ void warp_mark(const T* s_in_data, int* s_mark, const int tid) {
+	s_mark[tid] = (s_in_data[tid] > 0 ? 1 : 0);
+} 
+
+// s_mark and s_scan pointers point to the starting pos of current warp's data
+// idx is the id within the warp.
+// first WARP_SIZE in s_scan is dummy so to avoid warp divergence in warp_scan.
+// second WARP_SIZE in s_scan is the scan area.
+// does not touch other warps
+inline __device__ void init_warp_scan(int* s_mark, int* s_scan, const int idx, const int tid) {
 	s_scan[idx] = 0;  // extra padding for the scan part...
-	s_scan[idx + WARP_SIZE] = s_mark[threadIdx.x];
+	s_scan[idx + WARP_SIZE] = s_mark[tid];
 }
 
-// adapted from CudPP.
+// adapted from CudPP.  inclusive scan.
 // does not touch other warps
 template<int maxlevel>
-__device__ int warp_scan(volatile int* s_scan, const int idx) {
+inline __device__ int warp_scan(int* s_scan, const int idx) {
 	int t = s_scan[idx];
 	if (0 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 1]; }
 	if (1 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 2]; }
-	if (2 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 4]); }
-	if (3 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 8]); }
-	if (4 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx -16]); }
-	return s_scan[WARP - 1]; // return the total
+	if (2 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 4]; }
+	if (3 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx - 8]; }
+	if (4 <= maxlevel) { s_scan[idx] = t = t + s_scan[idx -16]; }
+	return s_scan[WARP_SIZE - 1]; // return the total
 } 
 
 // s_out_data points to the beginning of the shared array.
@@ -65,105 +51,182 @@ __device__ int warp_scan(volatile int* s_scan, const int idx) {
 // s_scan should be exclusive
 // return total selected for the warp
 // touches other warps, but can rely on warp execution ordering.
-template<class T> 
-__device__ void warp_select(const T* s_in_data, const int* s_mark, const int* s_scan, volatile T* s_out_data, const int offset, const int idx) {
-	if (s_mark[threadIdx.x] > 0) { s_out_data[s_scan[idx] + offset] = s_in_data[threadIdx.x]; }
+template<typename T>
+inline __device__ void warp_select(const T* s_in_data, const int* s_mark, const int* s_scan, T* s_out_data, const int offset, const int idx, const int tid, const int warpId) {
+	//if (tid % 32 == 5) printf("%d output is %d\n", tid, s_out_data[tid]);
+	if (warpId == 1) {
+		printf("%d %d scan %d, mark %d\n", warpId, idx, s_scan[idx-1], s_mark[tid]);
+	}
+	if (s_mark[tid] > 0) {
+		if (idx == 1) printf("%d scan position %d, offset %d\n", tid, s_scan[idx-1], offset);
+		s_out_data[s_scan[idx-1] + offset] = s_in_data[tid];
+	}
 } 
 
 // unordered
-template<class T>
-__global__ void unordered_select(const T* in_data, const int dataSize, volatile T* out_data, volatile int* queue_size) {
+template<typename T>
+__global__ void unordered_select(const T* in_data, const int dataSize, T* out_data, unsigned int* queue_size) {
+
 	// initialize the variables
+	const int x = threadIdx.x + blockDim.x * (blockIdx.y + blockIdx.x * gridDim.y);
+	if (x >= dataSize - (dataSize & (WARP_SIZE - 1)) + WARP_SIZE) return;
+
 	const int idx = threadIdx.x & (WARP_SIZE - 1);
 	const int warpId = threadIdx.x >> 5;
-	const int x = threadIdx.x + blockDim.x * blockIdx.x;
 
-	__shared__ volatile int offsets[(BLOCK_SIZE >> 5) + 1];  // avoid divergence - everyone write...
-	__shared__ volatile int s_mark[BLOCK_SIZE];
-	__shared__ volatile int s_scan[NUM_WARPS][WARP_SIZE * 2 + 1];
-	__shared__ volatile T s_in_data[BLOCK_SIZE];
-	__shared__ volatile T s_out_data[BLOCK_SIZE];
-	int curr_pos;
-	int curr_len;
+	//if (threadIdx.x == 0) printf("block %d %d, thread %d, warpid %d, x %d\n", blockIdx.x, blockIdx.y, threadIdx.x, warpId, x);
+
+
+	__shared__ int offsets[WARP_SIZE + 1];  // avoid divergence - everyone write...  only using NUM_WARPS
+	__shared__ int s_mark[BLOCK_SIZE];
+	__shared__ int s_scan[NUM_WARPS][WARP_SIZE * 2 + 1];
+	__shared__ int s_block_scan[WARP_SIZE * 2];   // warp size is 32, block size is 1024, so at most we have 32 warps.  so top scan would require 1 warp.
+	__shared__ T s_in_data[BLOCK_SIZE];
+	__shared__ T s_out_data[BLOCK_SIZE];
+	__shared__ int curr_pos[1];
 
 	// copy in data
-	if (warpId == 0) offsets[0] = 0;
-	offsets[warpId + 1] = 0;
+	if (warpId == 0) {
+		offsets[idx] = 0;
+		offsets[WARP_SIZE] = 0;
+	}
+	__syncthreads();
+
 	s_out_data[threadIdx.x] = 0;
 	s_in_data[threadIdx.x] = 0;
 	if (x < dataSize) s_in_data[threadIdx.x] = in_data[x];
-	__syncthreads();
 
 	// compact within this block
-	warp_mark(s_in_data, s_mark);  // mark the data to be processed
-	init_warp_scan(s_mark, s_scan[warpId], idx)
-	curr_len = warp_scan<5>(s_scan[warpId] + WARP_SIZE, idx);  // perform the in warp scan.
-	// now update the totals.  note that warpId+1 would only be updated after warpId is updated, because of warp execution order.
-	// note the use of curr_len.  want to avoid reading offsets[warpId] before warp scan is executed for that warpId.
-	offsets[warpId + 1] = offsets[warpId] + curr_len;
-	warp_select(s_in_data, s_mark, s_scan[warpId] + WARP_SIZE, s_out_data, offsets[warpId], idx);  // compact the data into the block space.
+	warp_mark(s_in_data, s_mark, threadIdx.x);  // mark the data to be processed
+	init_warp_scan(s_mark, s_scan[warpId], idx, threadIdx.x);
+	offsets[warpId + 1] = warp_scan<5>(s_scan[warpId] + WARP_SIZE, idx);  // perform the in warp scan.
+
+	// now scan the warp offsets - want exclusive scan hence the idx+1.  note that this is done by 1 warp only, so need thread sync before and after.
 	__syncthreads();
+	if (warpId == 0) {
+		init_warp_scan(offsets + 1, s_block_scan, idx, idx);
+		warp_scan<5>(s_block_scan + WARP_SIZE, idx);
+//		printf("warpId %d offsets: %d, blockscan %d %d\n", idx, offsets[idx+1], s_block_scan[idx], s_block_scan[idx + WARP_SIZE]);
+		offsets[idx + 1] = s_block_scan[idx + WARP_SIZE];
+		printf("222 warpId %d offsets: %d, blockscan %d %d\n", idx, offsets[idx+1], s_block_scan[idx], s_block_scan[idx + WARP_SIZE]);
+	}
+	__syncthreads();
+
+	warp_select(s_in_data, s_mark, s_scan[warpId] + WARP_SIZE, s_out_data, offsets[warpId], idx, threadIdx.x, warpId);  // compact the data into the block space.
 
 	//copy the data back out.  this block will get a place to write using atomic add.  resulting queue has the blocks shuffled
 	// this part is multiblock?
-	int block_len = offsets[(BLOCK_SIZE >> 5)];
+	int block_len = offsets[WARP_SIZE];
+//	if (threadIdx.x == 0)
+//		printf("block %d, %d, thread %d, warp %d, total = %d\n", blockIdx.x, blockIdx.y, threadIdx.x, warpId, block_len);
+	int curr_p = 0;
 	if (block_len > 0) {
-		if (threadIdx.x == 0) curr_pos = atomicAdd(queue_size, block_len); // only done by first thread in the block
-		if (threadIdx.x < block_len) out_data[curr_pos + threadIdx.x] = s_out_data[threadIdx.x];   // dont need to worry about dataSize.  queue size is smaller...
+		if (threadIdx.x == 0) {
+			curr_pos[0] = atomicAdd(queue_size, block_len); // only done by first thread in the block
+			printf("before block %d %d curr pos %d, block len %d \n ", blockIdx.x, blockIdx.y, curr_pos[0], block_len);
+		}
+		curr_p = curr_pos[0];  // move from a single shared memory location to threads' registers
+		if (threadIdx.x == 10) printf("after block %d %d curr pos %d, block len %d \n ", blockIdx.x, blockIdx.y, curr_p, block_len);
+		if (threadIdx.x < block_len) out_data[curr_p + threadIdx.x] = s_out_data[threadIdx.x];   // dont need to worry about dataSize.  queue size is smaller...
 	}
+	if (x < dataSize) out_data[x] = s_out_data[threadIdx.x];
 }
-template<class T>
-__global__ void clear(volatile T* out_data, const int dataSize) {
-	const int x = threadIdx.x + blockDim.x * blockIdx.x;
+
+template<typename T>
+__global__ void clear(T* out_data, const int dataSize) {
+	const int x = threadIdx.x + blockDim.x * (blockIdx.y + blockIdx.x * gridDim.y);
+	if (x >= dataSize - (dataSize & (WARP_SIZE - 1)) + WARP_SIZE) return;
+
 	if (x < dataSize) out_data[x] = 0;
 }
 
-// gapped.  so need to have anothr step to remove the gaps...  block_pos stores the lengths of the blcok queue for each block
-template<class T>
-__global__ void gapped_select(const T* in_data, const int dataSize, volatile T* out_data, volatile int* block_pos) {
-	// initialize the variables
+
+// use after the gapped compact.  (global sync for all blocks.
+// step 2 of the compacting.  assumes that within each block the values have already been compacted.
+// also block_pos is already scanned to produce final starting positions for each threadblock.
+template<typename T>
+__global__ void compact(const T* in_data, const int dataSize, const int* block_pos, T* out_data, unsigned int* queue_size) {
+	const int x = threadIdx.x + blockDim.x * (blockIdx.y + blockIdx.x * gridDim.y);
+	if (x >= dataSize - (dataSize & (WARP_SIZE - 1)) + WARP_SIZE) return;
+
+	const int pos = block_pos[(blockIdx.y + blockIdx.x * gridDim.y)];
+	const int len = block_pos[(blockIdx.y + blockIdx.x * gridDim.y) + 1] - pos;
+
+	if (threadIdx.x < len) out_data[pos + threadIdx.x] = in_data[x];
+
+	// do a global reduction to get the queue size.
+	if (threadIdx.x == 0) atomicAdd(queue_size, len);
+}
+
+
+// gapped.  so need to have another step to remove the gaps...  block_pos stores the lengths of the blcok queue for each block
+template<typename T>
+__global__ void gapped_select(const T* in_data, const int dataSize, T* out_data, int* block_pos) {
+	const int x = threadIdx.x + blockDim.x * (blockIdx.y + blockIdx.x * gridDim.y);
+	if (x >= dataSize - (dataSize & (WARP_SIZE - 1)) + WARP_SIZE) return;
+
 	const int idx = threadIdx.x & (WARP_SIZE - 1);
 	const int warpId = threadIdx.x >> 5;
-	const int x = threadIdx.x + blockDim.x * blockIdx.x;
 
-	__shared__ volatile int offsets[(BLOCK_SIZE >> 5) + 1];  // avoid divergence - everyone write...
-	__shared__ volatile int s_mark[BLOCK_SIZE];
-	__shared__ volatile int s_scan[NUM_WARPS][WARP_SIZE * 2 + 1];
-	__shared__ volatile T s_in_data[BLOCK_SIZE];
-	__shared__ volatile T s_out_data[BLOCK_SIZE];
-	int curr_pos;
-	int curr_len;
+	//if (blockIdx.x == 0 && threadIdx.x == 0) printf("block %d %d, thread %d, warpid %d, blockdim %d, gridDim %d, x %d\n", blockIdx.x, blockIdx.y, threadIdx.x, warpId, blockDim.x, gridDim.y, x);
+
+	__shared__ int offsets[WARP_SIZE + 1];  // avoid divergence - everyone write...  only using NUM_WARPS
+	__shared__ int s_mark[BLOCK_SIZE];
+	__shared__ int s_scan[NUM_WARPS][WARP_SIZE * 2 + 1];
+	__shared__ int s_block_scan[WARP_SIZE * 2];   // warp size is 32, block size is 1024, so at most we have 32 warps.  so top scan would require 1 warp.
+	__shared__ T s_in_data[BLOCK_SIZE];
+	__shared__ T s_out_data[BLOCK_SIZE];
 
 	// copy in data
-	if (warpId == 0) offsets[0] = 0;
-	offsets[warpId + 1] = 0;
+	if (warpId == 0) {
+		offsets[idx] = 0;
+		offsets[WARP_SIZE] = 0;
+	}
+	__syncthreads();
+
 	s_out_data[threadIdx.x] = 0;
 	s_in_data[threadIdx.x] = 0;
 	if (x < dataSize) s_in_data[threadIdx.x] = in_data[x];
+
+	// scan the warps
+	warp_mark(s_in_data, s_mark, threadIdx.x);  // mark the data to be processed
+	init_warp_scan(s_mark, s_scan[warpId], idx, threadIdx.x);
+	offsets[warpId + 1] = warp_scan<5>(s_scan[warpId] + WARP_SIZE, idx);  // perform the in warp scan.
+
+	// now scan the warp offsets - want exclusive scan hence the idx+1.  note that this is done by 1 warp only, so need thread sync before and after.
+	__syncthreads();
+	if (warpId == 0) {
+		init_warp_scan(offsets + 1, s_block_scan, idx, idx);
+		warp_scan<5>(s_block_scan + WARP_SIZE, idx);
+		//printf("warpId %d offsets: %d, blockscan %d %d\n", idx, offsets[idx+1], s_block_scan[idx], s_block_scan[idx + WARP_SIZE]);
+		offsets[idx + 1] = s_block_scan[idx + WARP_SIZE];
+		//printf("222 warpId %d offsets: %d, blockscan %d %d\n", idx, offsets[idx+1], s_block_scan[idx], s_block_scan[idx + WARP_SIZE]);
+		block_pos[(blockIdx.y + blockIdx.x * gridDim.y) + 1] = offsets[WARP_SIZE];
+	}
 	__syncthreads();
 
-	// compact within this block
-	warp_mark(s_in_data, s_mark);  // mark the data to be processed
-	init_warp_scan(s_mark, s_scan[warpId], idx)
-	curr_len = warp_scan<5>(s_scan[warpId] + WARP_SIZE, idx);  // perform the in warp scan.
-	// now update the totals.  note that warpId+1 would only be updated after warpId is updated, because of warp execution order.
-	// note the use of curr_len.  want to avoid reading offsets[warpId] before warp scan is executed for that warpId.
-	offsets[warpId + 1] = offsets[warpId] + curr_len;
-	warp_select(s_in_data, s_mark, s_scan[warpId] + WARP_SIZE, s_out_data, offsets[warpId], idx);  // compact the data into the block space.
-	__syncthreads();
+	// now do the per warp select
+	warp_select(s_in_data, s_mark, s_scan[warpId] + WARP_SIZE - 1, s_out_data, offsets[warpId], idx, threadIdx.x, warpId);  // compact the data into the block space.
 
+	//if (threadIdx.x == 0) printf("tada: %d\n", s_out_data[threadIdx.x]);
 	//copy the data back out.  leaving the space between blocks.
 	if (x < dataSize) out_data[x] = s_out_data[threadIdx.x];
-	block_pos[blockIdx.x + 1] = offsets[(BLOCK_SIZE >> 5)];
+//	if (threadIdx.x == 0)
+//		printf("block %d, %d, thread %d, warp %d, total = %d\n", blockIdx.x, blockIdx.y, threadIdx.x, warpId, block_pos[(blockIdx.y + blockIdx.x * gridDim.y) + 1]);
+
 }
+
+
 
 // fermi can have maximum of 65K blocks in one dim.
 //1024 threads - warpscan all, then 1 warp to scan, then everyone add.
 // s_totals has size of 32.
-__device__ void scan1024(const int* in_data, const int dataSize, volatile int* out_data, volatile int* s_scan, volatile int* s_scan2, volatile int* block_total) {
+inline __device__ void scan1024(const int* in_data, const int dataSize, int* out_data, int** s_scan, int* s_scan2, int* block_total) {
+	const int x = threadIdx.x + blockDim.x * (blockIdx.y + blockIdx.x * gridDim.y);
+	if (x >= dataSize - (dataSize & (WARP_SIZE - 1)) + WARP_SIZE) return;
+
 	const int idx = threadIdx.x & (WARP_SIZE - 1);
 	const int warpId = threadIdx.x >> 5;
-	const int x = threadIdx.x + blockDim.x * blockIdx.x;
 
 	// initialize data:
 	if (threadIdx.x < WARP_SIZE) {
@@ -180,8 +243,8 @@ __device__ void scan1024(const int* in_data, const int dataSize, volatile int* o
 
 	// do the second pass - only the first block..
 	if (threadIdx.x < WARP_SIZE)
-		block_total[blockIdx.x] = warp_scan<5>(s_scan2 + WARP_SIZE, idx);  // inclusive scan
-	__synthreads();
+		block_total[(blockIdx.y + blockIdx.x * gridDim.y)] = warp_scan<5>(s_scan2 + WARP_SIZE, idx);  // inclusive scan
+	__syncthreads();
 
 	// now add back to the warps
 	if (x < dataSize) out_data[x] = s_scan[warpId][idx+WARP_SIZE] + s_scan2[warpId + WARP_SIZE - 1];
@@ -189,158 +252,227 @@ __device__ void scan1024(const int* in_data, const int dataSize, volatile int* o
 
 // to scan a large amount of data, do it in multilevel way....  allocate the summary array, scan the blocks with a kernel call, then scan the summary array.  recurse. then add the results to previous level summary
 
-// step 2 of the compacting.  assumes that within each block the values have already been compacted.
-// also block_pos is already scanned to produce final starting positions for each threadblock.
-template<class T>
-__global__ void compact(const T* in_data, const int* block_pos, volatile T* out_data ) {
-	const int x = threadIdx.x + blockDim.x * blockIdx.x;
-	const int pos = block_pos[blockIdx.x];
-	const int len = block_pos[blockIdx.x + 1] - pos;
-
-	if (threadIdx.x < len) out_data[pos + threadIdx.x] = in_data[x];
-}
-/*
-template<typename T, typename TN>
-struct InitialImageToQueue : public thrust::unary_function<TN, int>
-{
-    __host__ __device__
-        int operator()(const TN& pixel) const
-        {
-		T center = thrust::get<1>(pixel);
-		T curr;
-		int id = thrust::get<0>(pixel);
-		curr = thrust::get<2>(pixel);
-		if (curr < center && curr < thrust::get<6>(pixel)) return id;
-		curr = thrust::get<3>(pixel);
-		if (curr < center && curr < thrust::get<7>(pixel)) return id;
-		curr = thrust::get<4>(pixel);
-		if (curr < center && curr < thrust::get<8>(pixel)) return id;
-		curr = thrust::get<5>(pixel);
-		if (curr < center && curr < thrust::get<9>(pixel)) return id;
-		return -1;
-        }
-};
-*/
-
-
 
 
 
 // connectivity:  need to have border of 0 ,and should be continuous
 template <typename T>
-unsigned int SelectTesting(const T* in_data, volatile T* out_data, cudaStream_t stream) {
+unsigned int SelectCPUTesting(const T* in_data, const int size, T* out_data) {
 
-	dim3 threadsx( XX_THREADS, XY_THREADS );
-	dim3 blocksx( divUp(sy, threadsx.y) );
-	dim3 threadsy( MAX_THREADS );
-	dim3 blocksy( divUp(sx, threadsy.x) );
+	// cpu
+	unsigned int newId = 0;
+	for (int i = 0; i < size; i++) {
+		if (in_data[i] > 0) {
+			out_data[newId] = in_data[i];
+			++newId;
+		}
+	}
+	return newId;
+}
 
-	// stability detection
+// this functor returns true if the argument is odd, and false otherwise
+template <typename T>
+struct GreaterThanConst : public thrust::unary_function<T,bool>
+{
+	const T k;
 
+	__host__ __device__
+	GreaterThanConst(T _k) : k(_k) {}
 
+    __host__ __device__
+    bool operator()(T x)
+    {
+    	return x > k;
+    }
+};
+// connectivity:  need to have border of 0 ,and should be continuous
+template <typename T>
+unsigned int SelectThrustScanTesting(const T* in_data, const int size, T* out_data, cudaStream_t stream) {
 
-	typedef typename thrust::device_ptr<T> PixelIterator;
+	// get data to GPU
+	T *d_in_data, *d_out_data;
+	cudaMalloc(&d_in_data, sizeof(T) * size);
+	cudaMalloc(&d_out_data, sizeof(T) * size);
+	cudaMemcpy(d_in_data, in_data, sizeof(T) * size, cudaMemcpyHostToDevice);
+	cudaMemset(d_out_data, 0, sizeof(T) * size);
 
-//		typedef typename thrust::tuple<int, T, T, T, T, T> PixelNeighborhood;
-//		typedef typename thrust::tuple<thrust::counting_iterator<int>, PixelIterator, PixelIterator, PixelIterator, PixelIterator, PixelIterator> WindowedImage;
-//		typedef typename thrust::zip_iterator<WindowedImage> WindowedPixelIterator;
-
-	typedef typename thrust::tuple<signed int, T, T, T, T, T, T, T, T, T> ReconNeighborhood;
-	typedef typename thrust::tuple<signed int, T, T, T> ReconNeighborhood2;
-	typedef typename thrust::tuple<thrust::counting_iterator<int>, PixelIterator, PixelIterator, PixelIterator, PixelIterator, PixelIterator, PixelIterator, PixelIterator, PixelIterator, PixelIterator> ReconImage;
-	typedef typename thrust::zip_iterator<ReconImage> ReconPixelIterator;
-
-	typedef typename thrust::device_vector<int> Queue;
-	typedef typename Queue::iterator QueueIterator;
-	typedef typename thrust::tuple<int, int, int, int> QueueElement;
-
-
-	thrust::counting_iterator<int> ids;
-//		WindowedImage markerImg = thrust::make_tuple(ids, q_ym1xm1, q_ym1, q_ym1xp1, q_xm1, q, q_xp1, q_yp1xm1, q_yp1, q_yp1xp1);
-//		WindowedImage markerImgEnd = thrust::make_tuple(ids+area, q_ym1xm1+area, q_ym1+area, q_ym1xp1+area, q_xm1+area, q+area, q_xp1+area, q_yp1xm1+area, q_yp1+area, q_yp1xp1+area);
-//		WindowedImage maskImg = thrust::make_tuple(ids, p_ym1xm1, p_ym1, p_ym1xp1, p_xm1, p, p_xp1, p_yp1xm1, p_yp1, p_yp1xp1);
-//		ReconPixelIterator mask_last = thrust::make_zip_iterator(thrust::make_tuple(p_ym1xm1+area, p_ym1+area, p_ym1xp1+area, p_xm1+area, p+area, p_xp1+area, p_yp1xm1+area, p_yp1+area, p_yp1xp1+area));
-
-	ReconImage markermaskNp = thrust::make_tuple(ids, q, q_xp1, q_yp1xm1, q_yp1, q_yp1xp1, p_xp1, p_yp1xm1, p_yp1, p_yp1xp1);
-	ReconImage markermaskNpEnd = thrust::make_tuple(ids+area, q+area, q_xp1+area, q_yp1xm1+area, q_yp1+area, q_yp1xp1+area, p_xp1+area, p_yp1xm1+area, p_yp1+area, p_yp1xp1+area);
-	ReconPixelIterator image_first = thrust::make_zip_iterator(markermaskNp);
-	ReconPixelIterator image_last = thrust::make_zip_iterator(markermaskNpEnd); 
-
-	// put the candidates into the queue
-	int queueSize = area;
-	Queue sparseQueue(queueSize, -1);
+	// thrust
+	thrust::device_ptr<T> queueBegin(d_in_data);
+	thrust::device_ptr<T> queueEnd(d_in_data + size);
 
 	// can change into transform_iterator to use in the copy operation.  the only challenge is don't know queue size, and would still need to compact later...
-	// mark
-	thrust::transform(image_first, image_last, sparseQueue.begin(), InitialImageToQueue<T, ReconNeighborhood>());
-	// select
-	queueSize = thrust::count_if(sparseQueue.begin(), sparseQueue.end(), GreaterThanConst<int>(-1));
+	// count
+//	unsigned queueSize = thrust::count_if(queueBegin, queueEnd, GreaterThanConst<T>(0));
+	thrust::device_ptr<T> queueBegin2(d_out_data);
+	thrust::device_ptr<T> queueEnd2 = thrust::copy_if(queueBegin, queueEnd, queueBegin2, GreaterThanConst<T>(0));
 
-	Queue testQueue(area, -1);
+	unsigned int queueSize = queueEnd2.get() - queueBegin2.get();
 
-	// compact the queue
-	Queue denseQueue(queueSize, 0);
-	QueueIterator denseQueue_end = thrust::copy_if(sparseQueue.begin(), sparseQueue.end(), denseQueue.begin(), GreaterThanConst<int>(-1));
-	QueueIterator sparseQueue_end;
+	cudaMemcpy(out_data, d_out_data, sizeof(T) * size, cudaMemcpyDeviceToHost);
 
-	thrust::device_vector<bool> dummy(area, false);
-	printf("number of entries in sparseQueue: %d, denseQueue: %d \n", queueSize, denseQueue_end - denseQueue.begin());
-	int iterations = 0;
-	int total = 0;
-	while (queueSize > 0 && iterations < 10000) {
-		++iterations;
-		total += queueSize;
+	cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
 
-//			printf("here\n");
-		// allocate some memory
-//			sparseQueue.resize(queueSize * 8);  // 8 neighbors
-//			thrust::fill(sparseQueue.begin(), sparseQueue.end(), -1);
-		// also set up as 8 devPtrs
-//			QueueIterator ym1xm1 = sparseQueue.begin();
-//			QueueIterator ym1 = ym1xm1+queueSize;
-//			QueueIterator ym1xp1 = ym1+queueSize;
-//			QueueIterator xm1 = ym1xp1+queueSize;
-//			QueueIterator xp1 = xm1+queueSize;
-//			QueueIterator yp1xm1 = xp1+queueSize;
-//			QueueIterator yp1 = yp1xm1+queueSize;
-//			QueueIterator yp1xp1 = yp1+queueSize;
-//						printf("here3\n");
-//			dummy.resize(queueSize);
+	cudaFree(d_in_data);
+	cudaFree(d_out_data);
 
-		// sort the queue by the value
-		sparseQueue_end = thrust::copy(denseQueue.begin(), denseQueue.end(), sparseQueue.begin());
-		thrust::stable_sort_by_key(thrust::make_permutation_iterator(q, sparseQueue.begin()),
-				thrust::make_permutation_iterator(q, sparseQueue_end),
-				denseQueue.begin());
-
-		thrust::fill(dummy.begin(), dummy.end(), false);
-		thrust::for_each(denseQueue.begin(), denseQueue.end(), Propagate<T>(thrust::raw_pointer_cast(q),
-				thrust::raw_pointer_cast(p), thrust::raw_pointer_cast(&*dummy.begin()), sx));
-
-
-		// and prepare the queue for the next iterations.
-			//sparseQueue_end = thrust::unique(sparseQueue.begin(), sparseQueue.end());
-			queueSize = thrust::count_if(dummy.begin(), dummy.end(), thrust::identity<bool>());
-//			printf("here 7 : queueSize =%d \n", queueSize);
-
-		denseQueue.resize(queueSize);
-		thrust::fill(denseQueue.begin(), denseQueue.end(), -1);
-
-		denseQueue_end = thrust::copy_if(ids, ids+area, dummy.begin(), denseQueue.begin(), thrust::identity<bool>());
-		printf("number of entries in queue: %d \n", denseQueue_end - denseQueue.begin());
-
-	}
-
-
-	if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-	else cudaSafeCall( cudaStreamSynchronize(stream));
-	cudaSafeCall( cudaGetLastError());
-
-	printf("iterations: %d, total: %d\n", iterations, total);
-	return total;
+	return queueSize;
 
 }
 
-template unsigned int imreconQueueIntCaller<unsigned char>(unsigned char*, unsigned char*, const int, const int,
-	const int, cudaStream_t );
+
+
+
+// warp-scan
+// connectivity:  need to have border of 0 ,and should be continuous
+template <typename T>
+unsigned int SelectWarpScanUnorderedTesting(const T* in_data, const int size, T* out_data, cudaStream_t stream) {
+
+	dim3 threads( BLOCK_SIZE, 1);
+	unsigned int numBlocks = size / threads.x + (size % threads.x > 0 ? 1 : 0);
+	unsigned int minbx = (unsigned int) ceil(sqrt((double)numBlocks));
+	unsigned int minby = numBlocks / minbx + (numBlocks % minbx > 0 ? 1 : 0);
+	dim3 blocks( minbx, minby );
+
+	// get data to GPU
+	T *d_in_data;
+	T *d_out_data;
+	cudaMalloc(&d_in_data, sizeof(T) * size);
+	cudaMalloc(&d_out_data, sizeof(T) * size);
+	cudaMemcpy(d_in_data, in_data, sizeof(T) * size, cudaMemcpyHostToDevice);
+	cudaMemset(d_out_data, 0, sizeof(T) * size);
+
+	cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
+	unsigned int *d_queue_size;
+	cudaMalloc(&d_queue_size, sizeof(unsigned int));
+	cudaMemset(d_queue_size, 0, sizeof(unsigned int));
+
+	err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
+	printf("blocks: %d, %d, threads: %d\n", blocks.x, blocks.y, threads.x);
+	//	::nscale::gpu::unordered_select<<<blocks, threads, 0, stream >>>(d_in_data, size, d_out_data, d_queue_size);
+	unordered_select<<<blocks, threads >>>(d_in_data, size, d_out_data, d_queue_size);
+
+	err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
+
+	// get data off gpu
+	unsigned int queue_size = 0;
+	cudaMemcpy((void*)&queue_size, (void*)d_queue_size, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(out_data, d_out_data, sizeof(T) * size, cudaMemcpyDeviceToHost);
+
+	err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
+
+	cudaFree(d_in_data);
+	cudaFree(d_out_data);
+	cudaFree(d_queue_size);
+
+	return queue_size;
+
+}
+
+// warp-scan
+// connectivity:  need to have border of 0 ,and should be continuous
+template <typename T>
+unsigned int SelectWarpScanOrderedTesting(const T* in_data, const int size, T* out_data, cudaStream_t stream) {
+
+	dim3 threads( BLOCK_SIZE, 1);
+	unsigned int numBlocks = size / threads.x + (size % threads.x > 0 ? 1 : 0);
+	unsigned int minbx = (unsigned int) ceil(sqrt((double)numBlocks));
+	unsigned int minby = numBlocks / minbx + (numBlocks % minbx > 0 ? 1 : 0);
+	dim3 blocks( minbx, minby );
+
+	// get data to GPU
+	T *d_in_data;
+	T *d_out_data;
+	T *d_out_data2;
+	cudaMalloc((void **)&d_in_data, sizeof(T) * size);
+	cudaMalloc((void **)&d_out_data, sizeof(T) * size);
+	cudaMalloc((void **)&d_out_data2, sizeof(T) * size);
+	cudaMemcpy(d_in_data, in_data, sizeof(T) * size, cudaMemcpyHostToDevice);
+	cudaMemset(d_out_data, 0, sizeof(T) * size);
+	cudaMemset(d_out_data2, 0, sizeof(T) * size);
+
+	cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
+
+	int *d_block_pos;
+	cudaMalloc(&d_block_pos, sizeof(int) * blocks.x * blocks.y);
+	cudaMemset(d_block_pos, 0, sizeof(int) * blocks.x * blocks.y);
+	unsigned int *d_queue_size;
+
+	cudaMalloc(&d_queue_size, sizeof(unsigned int));
+	cudaMemset(d_queue_size, 0, sizeof(unsigned int));
+
+	err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
+
+
+	printf("ordered blocks: %d, %d, threads: %d, size %d \n", blocks.x, blocks.y, threads.x, size);
+
+	//	::nscale::gpu::gapped_select<<<blocks, threads, 0, stream >>>(d_in_data, size, d_out_data, d_block_pos);
+	//	::nscale::gpu::compact <<<blocks, threads, 0, stream >>>(d_out_data, size, d_block_pos, d_out_data2);
+	gapped_select<<<blocks, threads >>>(d_in_data, size, d_out_data, d_block_pos);
+	compact <<<blocks, threads >>>(d_out_data, size, d_block_pos, d_out_data2, d_queue_size);
+
+
+
+	err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("ERROR: %s\n", cudaGetErrorString(err));
+    }
+	cudaThreadSynchronize();
+
+	// get data off gpu
+	unsigned int queue_size ;
+	cudaMemcpy((void*)&queue_size, (void*)d_queue_size, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(out_data, d_out_data2, sizeof(T) * size, cudaMemcpyDeviceToHost);
+
+	err = cudaGetLastError();
+	    if (err != cudaSuccess) {
+	        printf("ERROR: %s\n", cudaGetErrorString(err));
+	    }
+	cudaThreadSynchronize();
+
+
+
+	cudaFree(d_in_data);
+	cudaFree(d_out_data);
+	cudaFree(d_out_data2);
+	cudaFree(d_block_pos);
+	cudaFree(d_queue_size);
+
+	return queue_size;
+}
+
+template unsigned int SelectCPUTesting<int>(const int* in_data, const int size, int* out_data);
+template unsigned int SelectThrustScanTesting<int>(const int* in_data, const int size, int* out_data, cudaStream_t stream);
+
+template unsigned int SelectWarpScanUnorderedTesting<int>(const int* in_data, const int size, int* out_data, cudaStream_t stream);
+
+template unsigned int SelectWarpScanOrderedTesting<int>(const int* in_data, const int size, int* out_data, cudaStream_t stream);
 }}
+

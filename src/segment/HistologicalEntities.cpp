@@ -254,14 +254,6 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		return nscale::HistologicalEntities::SUCCESS;
 	}
 
-
-	return ::nscale::HistologicalEntities::segmentNucleiStage2(img, diffIm, bw1, rbc, output, logger, stage);
-
-}
-
-int HistologicalEntities::segmentNucleiStage2(const Mat& img, const Mat& diffIm, const Mat& bw11, const Mat& rbc, Mat& output, cciutils::SimpleCSVLogger *logger, int stage) {
-
-
 //	// TODO: change back
 //	return nscale::HistologicalEntities::SUCCESS;
 /*
@@ -281,7 +273,7 @@ int HistologicalEntities::segmentNucleiStage2(const Mat& img, const Mat& diffIm,
     end
  *
  */
-	Mat bw1 = nscale::bwareaopen<uchar>(bw11, 11, 1000, 8);
+	bw1 = nscale::bwareaopen<uchar>(bw1, 11, 1000, 8);
 	if (stage == 8) {
 		output = bw1;
 		return nscale::HistologicalEntities::SUCCESS;
@@ -335,7 +327,6 @@ int HistologicalEntities::segmentNucleiStage2(const Mat& img, const Mat& diffIm,
 		output = seg_nohole;
 		return nscale::HistologicalEntities::SUCCESS;
 	}
-
 
 	// a 3x3 mat with a cross
 	Mat disk3 = getStructuringElement(MORPH_ELLIPSE, Size(3,3));
@@ -554,6 +545,7 @@ int HistologicalEntities::segmentNucleiStage2(const Mat& img, const Mat& diffIm,
 //	if (logger) logger->endSession();
 
 	return nscale::HistologicalEntities::SUCCESS;
+
 }
 
 }

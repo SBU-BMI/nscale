@@ -19,6 +19,10 @@ public:
 
 	template <typename T>
 	static ::cv::Mat invert(const ::cv::Mat& img);
+
+	template <typename T>
+	static ::cv::Mat mod(const ::cv::Mat& img, T mod);
+
 };
 
 namespace gpu {
@@ -31,6 +35,9 @@ public:
 
 	template <typename T>
 	static ::cv::gpu::GpuMat threshold(const ::cv::gpu::GpuMat& img, T lower, T upper, ::cv::gpu::Stream& stream);
+
+	template <typename T>
+	static ::cv::gpu::GpuMat mod(const ::cv::gpu::GpuMat& img, T mod, ::cv::gpu::Stream& stream);
 };
 
 }
