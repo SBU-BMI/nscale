@@ -23,6 +23,7 @@
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
 #include "cuda/imrecon_queue_int_kernel.cuh"
+#include "cuda/watershed-ca-korbes.cuh"
 #include "cuda/watershed-dw-korbes.cuh"
 
 #endif

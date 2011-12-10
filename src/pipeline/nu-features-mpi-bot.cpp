@@ -41,6 +41,8 @@ void getFiles(const std::string &maskName, const std::string &outDir, std::vecto
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank);
 void compute(const char *input, const char *mask, const char *output);
+void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cytoplasmFeatures_G, vector<vector<float> >& cytoplasmFeatures_H, vector<vector<float> >& cytoplasmFeatures_E,
+		const char* input, const char* mask, const char* output);
 
 
 
@@ -284,6 +286,10 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 				delete [] output;
 
 			}
+
+			if (curr % 100 == 1) {
+				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
+			}
 		}
 	}
 /* tell everyone to quit */
@@ -456,19 +462,45 @@ void compute(const char *input, const char *mask, const char *output) {
 	M.release();
 	b.release();
 
+	saveData(nucleiFeatures, cytoplasmFeatures_G, cytoplasmFeatures_H, cytoplasmFeatures_E,
+			input, mask, output);
+	nucleiFeatures.clear();
+	cytoplasmFeatures_G.clear();
+	cytoplasmFeatures_H.clear();
+	cytoplasmFeatures_E.clear();
+
+}
+
+void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cytoplasmFeatures_G, vector<vector<float> >& cytoplasmFeatures_H, vector<vector<float> >& cytoplasmFeatures_E,
+		const char* input, const char* mask, const char* output) {
 	// create a single data field
 	if (nucleiFeatures.size() > 0) {
-		unsigned int recordSize = nucleiFeatures[0].size() + cytoplasmFeatures_G[0].size() + cytoplasmFeatures_H[0].size() + cytoplasmFeatures_E[0].size();
+
+		// first deal with the metadata
+		unsigned int metadataSize = 6;
+		float *metadata = new float[nucleiFeatures.size() * metadataSize];
+		float *currData;
+		for (unsigned int i = 0; i < nucleiFeatures.size(); i++) {
+			currData = metadata + i * metadataSize;
+			for (unsigned int j = 0; j < metadataSize; j++) {
+				currData[j] = nucleiFeatures[i][j];
+#ifdef	PRINT_FEATURES
+					printf("%f, ", currData[j]);
+#endif
+			}
+		}
+
+		unsigned int nuFeatureSize = nucleiFeatures[0].size() - 6;
+		unsigned int recordSize = nuFeatureSize + cytoplasmFeatures_G[0].size() + cytoplasmFeatures_H[0].size() + cytoplasmFeatures_E[0].size();
 		unsigned int featureSize;
 		float *data = new float[nucleiFeatures.size() * recordSize];
-		float *currData;
 		for(unsigned int i = 0; i < nucleiFeatures.size(); i++) {
 
 			currData = data + i * recordSize;
-			featureSize = nucleiFeatures[0].size();
+			featureSize = nuFeatureSize;
 			for(unsigned int j = 0; j < featureSize; j++) {
-				if (j < nucleiFeatures[i].size()) {
-					currData[j] = nucleiFeatures[i][j];
+				if (j < nucleiFeatures[i].size() - 6) {
+					currData[j] = nucleiFeatures[i][j+6];
 
 #ifdef	PRINT_FEATURES
 					printf("%f, ", currData[j]);
@@ -525,19 +557,21 @@ void compute(const char *input, const char *mask, const char *output) {
 				2, // rank
 				dims, // dims
 				H5T_NATIVE_FLOAT, data );
-		hstatus = H5LTset_attribute_string ( file_id, "/data", "image_file", input );
-		hstatus = H5LTset_attribute_string ( file_id, "/data", "mask_file", mask );
 
+		dims[0] = nucleiFeatures.size(); dims[1] = metadataSize;
+		hstatus = H5LTmake_dataset ( file_id, "/metadata",
+				2, // rank
+				dims, // dims
+				H5T_NATIVE_FLOAT, metadata );
 		// attach the attributes
+		hstatus = H5LTset_attribute_string ( file_id, "/metadata", "image_tile", input );
+		hstatus = H5LTset_attribute_string ( file_id, "/metadata", "mask_tile", mask );
 		H5Fclose ( file_id );
 
 
 		// clear the data
 		delete [] data;
-		nucleiFeatures.clear();
-		cytoplasmFeatures_G.clear();
-		cytoplasmFeatures_H.clear();
-		cytoplasmFeatures_E.clear();
+		delete [] metadata;
 	}
 
 }

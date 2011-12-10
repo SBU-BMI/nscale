@@ -15,7 +15,7 @@ include Makefile-mpi.inc
 ## END CUDA SETTINGS
 
 
-all: nu-features.exe nu-features-summarize.exe nu-features-mpi-bot.exe nu-features-summarize-mpi-bot.exe
+all: nu-features.exe nu-features-summarize.exe nu-features-mpi-bot.exe nu-features-fix-mpi-bot.exe nu-features-summarize-mpi-bot.exe
 
 clean:
 	$(RM) *.o *.exe

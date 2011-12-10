@@ -38,7 +38,7 @@ void computeStage3(const char *input, double *global_sums, double *global_sum_sq
 
 int parseInput(int argc, char **argv, int &modecode, std::string &inputName) {
 	if (argc < 3) {
-		std::cout << "Usage:  " << argv[0] << " <feature_filename | feature_dir> " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " feature_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 	inputName.assign(argv[1]);

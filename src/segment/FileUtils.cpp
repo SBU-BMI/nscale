@@ -34,6 +34,25 @@ FileUtils::~FileUtils()
     //dtor
 }
 
+string FileUtils::getDir(string& filename) {
+	int pos = filename.rfind('/');
+	if (pos > 0) return filename.substr(0, pos);
+	else return string("");
+}
+
+string FileUtils::getRelativePath(string& filename, const string& dir) {
+	int pos = filename.find(dir);
+
+	string result = filename;
+	if (pos > 0) {
+		result = filename.substr(pos + dir.length());
+		if (result.find('/') == 0) {
+			result = result.substr(1);
+		}
+	}  // else give an absolute path
+	return result;
+}
+
 string FileUtils::replaceDir(string& filename, const string& oldDir, const string& newDir) {
 	int pos = filename.find(oldDir);
 
