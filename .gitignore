@@ -4,15 +4,13 @@
 *.o
 autom4te.cache
 original-matlab/segment/codegen
-out-*.pbm
-out-*.ppm
-out-*.raw
+src/segment/test/out-*.*
 *.m~
 *.out
 *.profile
 *.trc
 Profiler
-src/segment/test/out-*-stage-*.pgm
+src/segment/test/Segmented
 src/segment/test/Stages
 *.ptx
 *.cubin
