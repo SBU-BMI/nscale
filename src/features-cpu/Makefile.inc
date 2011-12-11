@@ -1,5 +1,5 @@
 CXX=g++
-CXX_FLAGS = -fPIC -O3  #-DVISUAL_DEBUG  # -O3 # -fopenmp #-g -DVISUAL_DEBUG -O3 
+CXX_FLAGS = -fPIC -O3 # -DUSE_GPU #-DVISUAL_DEBUG  # -O3 # -fopenmp #-g -DVISUAL_DEBUG -O3 
 CUDA_OBJS=cooc.o cudaToCInterface.o 
 OBJS=Contour.o Blob.o RegionalMorphologyAnalysis.o DrawAuxiliar.o Operators.o 
 

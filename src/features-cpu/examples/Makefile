@@ -3,7 +3,7 @@ include ../Makefile.inc
 
 CXX_FLAGS+=-DPRINT_FEATURES
 
-all: compFeatures compFeaturesPipeline compFeaturesPipelineHEG
+all: compFeatures compFeaturesPipeline compFeaturesPipelineHEG testConv
 
 %.o: %.cpp
 	$(CXX) ${CXX_FLAGS} -I.. ${OPENCV_INCLUDE} -c $<
@@ -17,6 +17,7 @@ compFeaturesPipeline: CompFeaturesPipeline.cpp
 compFeaturesPipelineHEG: CompFeaturesPipelineHEG.cpp ColorDeconv_final.o BGR2GRAY.o
 	g++ ${CXX_FLAGS} ${OPENCV_INCLUDE} -I.. CompFeaturesPipelineHEG.cpp ColorDeconv_final.o BGR2GRAY.o -o compFeaturesPipelineHEG ${OPENCV_LIBS_DIR} ${OPENCV_LIBS} -L.. -lfeatures
 
-
+testConv: TestConv.cpp ColorDeconv_final.o
+	g++ ${CXX_FLAGS} ${OPENCV_INCLUDE} -I.. -I../../segment TestConv.cpp ColorDeconv_final.o -o testConv ${OPENCV_LIBS_DIR} ${OPENCV_LIBS} #-L.. -lfeatures
 clean:
-	rm -rf compFeatures compFeaturesPipeline compFeaturesPipelineHEG *.o *.dSYM 
+	rm -rf compFeatures compFeaturesPipeline compFeaturesPipelineHEG testConv *.o *.dSYM 

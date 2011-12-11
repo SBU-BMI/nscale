@@ -327,12 +327,12 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 // Assuming n > 0
 int rndint(float n)//round float to the nearest integer
 {	
-	int ret = floor(n);
+	int ret = (int)floor(n);
 	float t;
 	t=n-floor(n);
 	if (t>=0.5)    
 	{
-		ret = floor(n) + 1;
+		ret = (int)floor(n) + 1;
 	}
 	return ret;
 }
