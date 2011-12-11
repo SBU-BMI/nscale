@@ -1,0 +1,100 @@
+astroII.1/astroII.1.ndpi-0000008192-0000008192, background, 4.398170e-01
+astroII.1/astroII.1.ndpi-0000008192-0000008192, toRGB, 5.722200e-02
+astroII.1/astroII.1.ndpi-0000008192-0000008192, RBC, 1.032589e+00
+astroII.1/astroII.1.ndpi-0000008192-0000008192, invert, 7.729000e-03
+astroII.1/astroII.1.ndpi-0000008192-0000008192, open19, 5.132656e+00
+astroII.1/astroII.1.ndpi-0000008192-0000008192, reconToNuclei, 2.268909e+00
+astroII.1/astroII.1.ndpi-0000008192-0000008192, threshold1, 1.602700e-02
+astroII.1/astroII.1.ndpi-0000008192-0000008192, fillHols1, 3.643970e-01
+astroII.1/astroII.1.ndpi-0000008192-0000008192, areaThreshold1, 6.103240e-01
+astroII.1/astroII.1.ndpi-0000008192-0000008192, blobsGt45, 3.923720e-01
+astroII.1/astroII.1.ndpi-0000008192-0000008192, fillHoles2, 3.672190e-01
+astroII.1/astroII.1.ndpi-0000008192-0000008192, openBlobs, 8.038900e-02
+astroII.1/astroII.1.ndpi-0000008192-0000008192, 30To1000 , 7.729400e-02
+astroII.1/astroII.1.ndpi-0000008192-0000008192, dilate, 3.367800e-02
+astroII.1/astroII.1.ndpi-0000008192-0000008192, distTransform, 1.314106e+00
+astroII.1/astroII.1.ndpi-0000008192-0000008192, imhmin, 4.245030e-01
+astroII.1/astroII.1.ndpi-0000008192-0000008192, watershed, 5.455202e+00
+astroII.1/astroII.1.ndpi-0000008192-0000008192, water to mask, 8.540200e-02
+astroII.1/astroII.1.ndpi-0000008192-0000008192, 20To1000, 3.933810e-01
+astroII.1/astroII.1.ndpi-0000008192-0000008192, fillHolesLast, 3.637550e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, background, 3.276860e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, toRGB, 4.024100e-02
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, RBC, 6.615480e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, invert, 7.902000e-03
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, open19, 4.807300e+00
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, reconToNuclei, 1.126026e+00
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, threshold1, 1.610900e-02
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, fillHols1, 3.612110e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, areaThreshold1, 7.577100e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, blobsGt45, 5.186810e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, fillHoles2, 3.542460e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, openBlobs, 5.089300e-02
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, 30To1000 , 9.748100e-02
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, dilate, 2.254100e-02
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, distTransform, 1.271197e+00
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, imhmin, 4.016000e-01
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, watershed, 6.202587e+00
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, water to mask, 8.162600e-02
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, 20To1000, 1.146308e+00
+gbm2.1/gbm2.1.ndpi-0000004096-0000004096, fillHolesLast, 3.491260e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, background, 3.112490e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, toRGB, 4.066800e-02
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, RBC, 6.478250e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, invert, 9.508000e-03
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, open19, 4.754351e+00
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, reconToNuclei, 1.274454e+00
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, threshold1, 1.649700e-02
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, fillHols1, 3.517270e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, areaThreshold1, 8.687940e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, blobsGt45, 4.686690e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, fillHoles2, 3.455550e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, openBlobs, 4.225400e-02
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, 30To1000 , 9.407600e-02
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, dilate, 1.666100e-02
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, distTransform, 1.317054e+00
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, imhmin, 4.134060e-01
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, watershed, 6.396859e+00
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, water to mask, 8.879400e-02
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, 20To1000, 1.552325e+00
+oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672, fillHolesLast, 3.629780e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, background, 3.135980e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, toRGB, 4.008500e-02
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, RBC, 6.214590e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, invert, 8.127000e-03
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, open19, 4.783874e+00
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, reconToNuclei, 1.170137e+00
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, threshold1, 8.001000e-03
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, fillHols1, 3.645650e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, areaThreshold1, 2.187966e+00
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, blobsGt45, 6.643150e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, fillHoles2, 3.669780e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, openBlobs, 5.803400e-02
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, 30To1000 , 1.974840e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, dilate, 3.011500e-02
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, distTransform, 1.256239e+00
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, imhmin, 4.018440e-01
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, watershed, 8.212142e+00
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, water to mask, 6.852700e-02
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, 20To1000, 6.393004e+00
+oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192, fillHolesLast, 3.635320e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, background, 2.772060e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, toRGB, 4.071100e-02
+normal.3/normal.3.ndpi-0000028672-0000012288, RBC, 6.080000e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, invert, 8.272000e-03
+normal.3/normal.3.ndpi-0000028672-0000012288, open19, 4.724513e+00
+normal.3/normal.3.ndpi-0000028672-0000012288, reconToNuclei, 3.024645e+00
+normal.3/normal.3.ndpi-0000028672-0000012288, threshold1, 7.909000e-03
+normal.3/normal.3.ndpi-0000028672-0000012288, fillHols1, 3.319040e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, areaThreshold1, 5.165140e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, blobsGt45, 3.599480e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, fillHoles2, 3.578090e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, openBlobs, 4.300800e-02
+normal.3/normal.3.ndpi-0000028672-0000012288, 30To1000 , 5.640800e-02
+normal.3/normal.3.ndpi-0000028672-0000012288, dilate, 1.956800e-02
+normal.3/normal.3.ndpi-0000028672-0000012288, distTransform, 1.244230e+00
+normal.3/normal.3.ndpi-0000028672-0000012288, imhmin, 3.924430e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, watershed, 5.553179e+00
+normal.3/normal.3.ndpi-0000028672-0000012288, water to mask, 6.393800e-02
+normal.3/normal.3.ndpi-0000028672-0000012288, 20To1000, 4.803290e-01
+normal.3/normal.3.ndpi-0000028672-0000012288, fillHolesLast, 3.513780e-01
