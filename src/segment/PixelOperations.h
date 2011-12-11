@@ -11,6 +11,9 @@
 #include "cv.h"
 #include "opencv2/gpu/gpu.hpp"
 
+using namespace cv;
+using namespace cv::gpu;
+
 namespace nscale {
 
 class PixelOperations {
@@ -31,6 +34,10 @@ public:
 
 	template <typename T>
 	static ::cv::gpu::GpuMat threshold(const ::cv::gpu::GpuMat& img, T lower, T upper, ::cv::gpu::Stream& stream);
+
+	static void convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream);
+
+	static void convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream);
 };
 
 }

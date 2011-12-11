@@ -94,7 +94,6 @@ template void invertFloatCaller<float>(int, int, int, const PtrStep_<float>, Ptr
 
 
 
-
 template <typename T>
 __global__ void thresholdKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep_<unsigned char> result, T lower, T upper)
 {
@@ -121,6 +120,63 @@ void thresholdCaller(int rows, int cols, const PtrStep_<T> img1,
     if (stream == 0)
         cudaSafeCall(cudaDeviceSynchronize());
 }
+
+
+
+
+__global__ void intToCharKernel(int rows, int cols, int *input, unsigned char *result)
+{
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int index = y * cols + x;
+
+	if (y < rows && x < cols)
+	{
+		result[index] = (unsigned char)input[index];
+	}
+}
+
+
+void convertIntToChar(int rows, int cols, int *input, unsigned char *result, cudaStream_t stream)
+{
+    dim3 threads(16, 16);
+    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+
+    intToCharKernel<<<grid, threads, 0, stream>>>(rows, cols, input, result);
+    cudaSafeCall( cudaGetLastError() );
+
+    if (stream == 0)
+        cudaSafeCall(cudaDeviceSynchronize());
+}
+
+__global__ void intToCharBorderKernel(int rows, int cols, int top, int bottom, int left, int right, int *input, unsigned char *result)
+{
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	// only threads within the input image - border
+	if (y < (rows-bottom) && y >= top && x < (cols-right) && x >= (left) )
+	{
+		int input_index = y * cols + x;
+		// for the resuting image we must shift the pixels according to the border size
+		int result_index = (y-top) * (cols-left-right) + (x-left);
+		result[result_index] = (unsigned char)input[input_index];
+	}
+}
+
+
+void convertIntToCharAndRemoveBorder(int rows, int cols, int top, int bottom, int left, int right, int *input, unsigned char *result, cudaStream_t stream)
+{
+    dim3 threads(16, 16);
+    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+
+    intToCharBorderKernel<<<grid, threads, 0, stream>>>(rows, cols, top, bottom, left, right, input, result);
+    cudaSafeCall( cudaGetLastError() );
+
+    if (stream == 0)
+        cudaSafeCall(cudaDeviceSynchronize());
+}
+
 
 template void thresholdCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char, unsigned char, cudaStream_t);
 template void thresholdCaller<float>(int, int, const PtrStep_<float>, PtrStep_<unsigned char>, float, float, cudaStream_t);

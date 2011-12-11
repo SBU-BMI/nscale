@@ -20,4 +20,7 @@ template <typename T>
 void thresholdCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1,
  cv::gpu::PtrStep_<unsigned char> result, T lower, T upper, cudaStream_t stream);
 
+void convertIntToChar(int rows, int cols, int* input, unsigned char *result, cudaStream_t stream);
+void convertIntToCharAndRemoveBorder(int rows, int cols, int top, int bottom, int left, int right, int* input, unsigned char *result, cudaStream_t stream);
+
 }}

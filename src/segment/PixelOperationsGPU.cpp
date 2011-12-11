@@ -14,13 +14,14 @@
 #include "cuda/pixel-ops.cuh"
 #endif
 
+using namespace cv;
+using namespace cv::gpu;
+
 namespace nscale {
 
-using namespace cv;
 
 namespace gpu {
 
-using namespace cv::gpu;
 
 
 #if !defined (HAVE_CUDA)
@@ -28,8 +29,23 @@ template <typename T>
 GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) { throw_nogpu(); }
 template <typename T>
 GpuMat PixelOperations::threshold(const GpuMat& img, T lower, T upper, Stream& stream) { throw_nogpu(); }
+void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){ throw_nogpu();};
+void PixelOperations::convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, int down, Stream& stream){ throw_nogpu();};
 
 #else
+
+void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){
+	// TODO: check if types/size are okay	
+	::nscale::gpu::convertIntToChar(input.rows, input.cols, (int*)input.data, (unsigned char*)result.data,  StreamAccessor::getStream(stream));
+
+}
+
+void PixelOperations::convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream){ 
+
+	::nscale::gpu::convertIntToCharAndRemoveBorder(input.rows, input.cols, top, bottom, left, right, (int*)input.data, (unsigned char*)result.data,  StreamAccessor::getStream(stream));
+
+};
+
 
 template <typename T>
 GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) {

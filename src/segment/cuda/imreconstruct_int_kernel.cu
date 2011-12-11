@@ -7,12 +7,12 @@
 
 
 #define MAX_THREADS		256
-#define YX_THREADS	64
-#define YY_THREADS  4
-#define X_THREADS			32
-#define Y_THREADS			64
-#define XX_THREADS	4
-#define XY_THREADS	32
+#define YX_THREADS		64
+#define YY_THREADS  		4
+#define X_THREADS		32
+#define Y_THREADS		64
+#define XX_THREADS		4
+#define XY_THREADS		64
 #define NEQ(a,b)    ( (a) != (b) )
 
 #define WARP_SIZE 32
@@ -446,7 +446,7 @@ if ( (bx + tx) < sx ) {
 }
 
 template <typename T>
-__global__ void
+	__global__ void
 iRec1DBackward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, const unsigned int sx, const unsigned int sy, bool* __restrict__ change )
 {
 
@@ -456,7 +456,7 @@ iRec1DBackward_Y_dilation ( T* __restrict__ marker, const T* __restrict__ mask, 
 	unsigned int s_change=0;
 	T s_old, s_new, s_prev;
 
-if ( (bx + tx) < sx ) {
+	if ( (bx + tx) < sx ) {
 
 		s_prev = 0;
 
@@ -473,9 +473,9 @@ if ( (bx + tx) < sx ) {
 			// output result back to global memory
 			marker[iy * sx + bx + tx] = s_new;
 		}
-}
-		
-		if (s_change != 0) *change = true;
+	}
+
+	if (s_change != 0) *change = true;
 
 }
 
@@ -586,127 +586,378 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 }
 
 
-	// connectivity:  if 8 conn, need to have border.
+// connectivity:  if 8 conn, need to have border.
+template <typename T>
+unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy,
+		const int connectivity, cudaStream_t stream, unsigned char*h_markerFistPass) {
 
-	template <typename T>
-	unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy,
-		const int connectivity, cudaStream_t stream) {
-
-		// here because we are not using streams inside.
-//		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-//		else cudaSafeCall( cudaStreamSynchronize(stream));
+	// here because we are not using streams inside.
+	//		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+	//		else cudaSafeCall( cudaStreamSynchronize(stream));
 
 
-//		printf("entering imrecon int caller with conn=%d\n", connectivity);
+	//		printf("entering imrecon int caller with conn=%d\n", connectivity);
 
-		// setup execution parameters
-		bool conn8 = (connectivity == 8);
+	// setup execution parameters
+	bool conn8 = (connectivity == 8);
 
-		dim3 threadsx( XX_THREADS, XY_THREADS );
-		dim3 blocksx( divUp(sy, threadsx.y) );
-//		dim3 threadsx2( Y_THREADS );
-//		dim3 blocksx2( divUp(sy, threadsx2.y) );
-		dim3 threadsy( MAX_THREADS );
-		dim3 blocksy( divUp(sx, threadsy.x) );
-//		dim3 threadsy2( YX_THREADS, YY_THREADS );
-//		dim3 blocksy2( divUp(sx, threadsy2.x), divUp(sy, threadsy2.y)  );
-//		size_t Nsy = (threadsy.x * 3 + 2) * sizeof(uchar4);
+	dim3 threadsx( XX_THREADS, XY_THREADS );
+	dim3 blocksx( divUp(sy, threadsx.y) );
+	//		dim3 threadsx2( Y_THREADS );
+	//		dim3 blocksx2( divUp(sy, threadsx2.y) );
+	dim3 threadsy( MAX_THREADS );
+	dim3 blocksy( divUp(sx, threadsy.x) );
+	//		dim3 threadsy2( YX_THREADS, YY_THREADS );
+	//		dim3 blocksy2( divUp(sx, threadsy2.x), divUp(sy, threadsy2.y)  );
+	//		size_t Nsy = (threadsy.x * 3 + 2) * sizeof(uchar4);
 
-		// stability detection
-		unsigned int iter = 0;
-		bool *h_change, *d_change;
-		h_change = (bool*) malloc( sizeof(bool) );
-		cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
+	// stability detection
+	unsigned int iter = 0;
+	bool *h_change, *d_change;
+	h_change = (bool*) malloc( sizeof(bool) );
+	cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
+
+	*h_change = true;
+	//		printf("completed setup for imrecon int caller \n");
+
+	long t1, t2;
+
+	if (conn8) {
+		while ( (*h_change) && (iter < 100000) )  // repeat until stability
+		{
+			t1 = ClockGetTime();
+			iter++;
+			*h_change = false;
+			init_change<<< 1, 1, 0, stream>>>( d_change );
+
+			// dopredny pruchod pres osu X
+			iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+			//				iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// dopredny pruchod pres osu Y
+			iRec1DForward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu X
+			iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+			//				iRec1DBackward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu Y
+			iRec1DBackward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+			else cudaSafeCall( cudaStreamSynchronize(stream));
+			//				printf("%d sync \n", iter);
+
+			cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
+			//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
+
+			t2 = ClockGetTime();
+
+			if (iter == 1) {
 		
-		*h_change = true;
-//		printf("completed setup for imrecon int caller \n");
-
-		long t1, t2;
-
-		if (conn8) {
-			while ( (*h_change) && (iter < 100000) )  // repeat until stability
-			{
-				t1 = ClockGetTime();
-				iter++;
-				*h_change = false;
-				init_change<<< 1, 1, 0, stream>>>( d_change );
-
-				// dopredny pruchod pres osu X
-				iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
-//				iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				// dopredny pruchod pres osu Y
-				iRec1DForward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				// zpetny pruchod pres osu X
-				iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
-//				iRec1DBackward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				// zpetny pruchod pres osu Y
-				iRec1DBackward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-				else cudaSafeCall( cudaStreamSynchronize(stream));
-//				printf("%d sync \n", iter);
-
-				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
-//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
-
-				t2 = ClockGetTime();
-
-				if (iter == 1) {
-					printf("first pass 8conn == scan, %lu ms\n", t2-t1);
-				}
-
+				cudaSafeCall( cudaMemcpy( h_markerFistPass, marker, sizeof(unsigned char) * sx * sy, cudaMemcpyDeviceToHost ) );
+				printf("first pass 8conn == scan, %lu ms\n", t2-t1);
 			}
-		} else {
-			while ( (*h_change) && (iter < 100000) )  // repeat until stability
-			{
-				t1 = ClockGetTime();
 
-				iter++;
-				*h_change = false;
-				init_change<<< 1, 1, 0, stream>>>( d_change );
-
-				// dopredny pruchod pres osu X
-				iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
-//				iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				// dopredny pruchod pres osu Y
-				iRec1DForward_Y_dilation <<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				// zpetny pruchod pres osu X
-				iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
-//				iRec1DBackward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				// zpetny pruchod pres osu Y
-				iRec1DBackward_Y_dilation<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
-
-				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-				else cudaSafeCall( cudaStreamSynchronize(stream));
-//				printf("%d sync \n", iter);
-
-				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
-//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
-
-				t2 = ClockGetTime();
-				if (iter == 1) {
-					printf("first pass 4conn == scan, %lu ms\n", t2-t1);
-				}
-
-
-			}
 		}
+	} else {
+		while ( (*h_change) && (iter < 100000) )  // repeat until stability
+		{
+			t1 = ClockGetTime();
 
-		cudaSafeCall( cudaFree(d_change) );
-		free(h_change);
+			iter++;
+			*h_change = false;
+			init_change<<< 1, 1, 0, stream>>>( d_change );
 
-//		printf("Number of iterations: %d\n", iter);
-		cudaSafeCall( cudaGetLastError());
+			// dopredny pruchod pres osu X
+			iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+			//				iRec1DForward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
-		return iter;
+			// dopredny pruchod pres osu Y
+			iRec1DForward_Y_dilation <<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu X
+			iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+			//				iRec1DBackward_X_dilation2<<< blocksx2, threadsx2, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu Y
+			iRec1DBackward_Y_dilation<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+			else cudaSafeCall( cudaStreamSynchronize(stream));
+			//				printf("%d sync \n", iter);
+
+			cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
+			//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
+
+			t2 = ClockGetTime();
+			if (iter == 1) {
+				//cudaSafeCall( cudaMemcpy( h_markerFistPass, marker, sizeof(unsigned char) * sx * sy, cudaMemcpyDeviceToDevice ) );
+				printf("first pass 4conn == scan, %lu ms\n", t2-t1);
+//				break;
+			}
+
+
+		}
 	}
 
-	template unsigned int imreconstructIntCaller<unsigned char>(unsigned char*, const unsigned char*, const int, const int,
-		const int, cudaStream_t );
+	cudaSafeCall( cudaFree(d_change) );
+	free(h_change);
+
+	//		printf("Number of iterations: %d\n", iter);
+	cudaSafeCall( cudaGetLastError());
+
+	return iter;
+}
+
+__device__ bool checkCandidateNeighbor4(unsigned char *marker, const unsigned char *mask, int x, int y, int ncols, int nrows,unsigned char pval){
+	bool isCandidate = false;
+	int index = 0;
+
+	unsigned char markerXYval;
+	unsigned char maskXYval;
+	if(x < (ncols-1)){
+		// check right pixel
+		index = y * ncols + (x+1);
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval, maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+
+	if(y < (nrows-1)){
+		// check pixel bellow current
+		index = (y+1) * ncols + x;
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval,maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+
+	// check left pixel
+	if(x > 0){
+		index = y * ncols + (x-1);
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval,maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+
+	if(y > 0){
+		// check up pixel
+		index = (y-1) * ncols + x;
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval,maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+	return isCandidate;
+}
+
+__device__ bool checkCandidateNeighbor8(unsigned char *marker, const unsigned char *mask, int x, int y, int ncols, int nrows,unsigned char pval){
+	int index = 0;
+	bool isCandidate = checkCandidateNeighbor4(marker, mask, x, y, ncols, nrows, pval);
+//	if(threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0){
+//		printf("checkCandidateNeighbor8\n");
+//	}
+
+	unsigned char markerXYval;
+	unsigned char maskXYval;
+
+	// check up right corner
+	if(x < (ncols-1) && y > 0){
+		// check right pixel
+		index = (y-1) * ncols + (x+1);
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval, maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+
+	// check up left corner
+	if(x> 0 && y > 0){
+		// check pixel bellow current
+		index = (y-1) * ncols + (x-1);
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval,maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+
+	// check bottom left pixel
+	if(x > 0 && y < (nrows-1)){
+		index = (y+1) * ncols + (x-1);
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval,maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+
+	// check bottom right
+	if(x < (ncols-1) && y < (nrows-1)){
+		index = (y+1) * ncols + (x+1);
+
+		markerXYval = marker[index];
+		maskXYval = mask[index];
+		if( (markerXYval < min(pval,maskXYval)) ){
+			isCandidate = true;
+		}
+	}
+	return isCandidate;
+}
+
+
+__global__ void initQueuePixels(unsigned char *marker, const unsigned char *mask, int sx, int sy, bool conn8, int *d_queue, int *d_queue_size){
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	// if it is inside image without right/bottom borders
+	if(y < (sy) && x < (sx)){
+		int input_index = y * sy + x;
+		unsigned char pval = marker[input_index];
+		bool isCandidate = false;
+		if(conn8){
+			// connectivity 8
+			isCandidate = checkCandidateNeighbor8(marker, mask, x, y, sx, sy, pval);
+		}else{
+			// connectivity 4
+			isCandidate = checkCandidateNeighbor4(marker, mask, x, y, sx, sy, pval);
+		}
+		if(isCandidate){
+			int queuePos = atomicAdd((unsigned int*)d_queue_size, 1);
+			d_queue[queuePos] = input_index;
+		}	
+	}
+}
+
+// connectivity:  if 8 conn, need to have border.
+template <typename T> int *imreconstructIntCallerBuildQueue(T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, const int connectivity, int &queueSize, int num_iterations, cudaStream_t stream) {
+
+	// setup execution parameters
+	bool conn8 = (connectivity == 8);
+
+	dim3 threadsx( XX_THREADS, XY_THREADS );
+	dim3 blocksx( divUp(sy, threadsx.y) );
+	
+	dim3 threadsy( MAX_THREADS );
+	dim3 blocksy( divUp(sx, threadsy.x) );
+	bool *d_change;
+	cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
+
+	// alloc it with the same size as the input image.
+	int *d_queue = NULL;
+	cudaSafeCall( cudaMalloc( (void**) &d_queue, sizeof(int) * sx * sy ) );
+
+	int *d_queue_size;
+	cudaSafeCall( cudaMalloc( (void**) &d_queue_size, sizeof(int)) );
+	cudaSafeCall( cudaMemset( (void*) d_queue_size, 0, sizeof(int)) );
+
+	// stability detection
+	unsigned int iter = 0;
+
+	long t1, t2, t3;
+
+	t1 = ClockGetTime();
+	if (conn8) {
+		while(iter < num_iterations){
+			iter++;
+
+			// dopredny pruchod pres osu X
+			iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// dopredny pruchod pres osu Y
+			iRec1DForward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu X
+			iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu Y
+			iRec1DBackward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+			else cudaSafeCall( cudaStreamSynchronize(stream));
+		}
+	} else {
+		while(iter < num_iterations){
+			iter++;
+			// dopredny pruchod pres osu X
+			iRec1DForward_X_dilation <<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// dopredny pruchod pres osu Y
+			iRec1DForward_Y_dilation <<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu X
+			iRec1DBackward_X_dilation<<< blocksx, threadsx, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			// zpetny pruchod pres osu Y
+			iRec1DBackward_Y_dilation<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
+
+			if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+			else cudaSafeCall( cudaStreamSynchronize(stream));
+		}
+	}
+
+
+	t2 = ClockGetTime();
+	printf("first pass 4conn == scan, %lu ms\n", t2-t1);
+	cudaSafeCall( cudaFree(d_change) );
+
+	// This is now a per pixel operation where we build the 
+	// first queue of pixels that may propagate their values.
+	// Creating a single thread per-pixel in the input image
+	dim3 threads(16, 16);
+	dim3 grid(divUp(sx, threads.x), divUp(sy, threads.y));
+
+	//
+	initQueuePixels<<< grid, threads, 0, stream >>>(marker, mask, sx, sy, conn8, d_queue, d_queue_size);
+			if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
+			else cudaSafeCall( cudaStreamSynchronize(stream));
+
+	int h_compact_queue_size;
+
+	cudaSafeCall( cudaMemcpy( &h_compact_queue_size, d_queue_size, sizeof(int), cudaMemcpyDeviceToHost ) );
+	
+	t3 = ClockGetTime();
+//	printf("	compactQueueSize %d, time to generate %lu ms\n", h_compact_queue_size, t3-t2);
+
+
+	int *d_queue_fit = NULL;
+	// alloc current size +1000 (magic number)
+	cudaSafeCall( cudaMalloc( (void**) &d_queue_fit, sizeof(int) * (h_compact_queue_size+1000)*2 ) );
+
+	// Copy content of the d_queue (which has the size of the image x*y) to a more compact for (d_queue_fit). 
+	// This should save a lot of memory, since the compact queue is usually much smaller than the image size
+	cudaSafeCall( cudaMemcpy( d_queue_fit, d_queue, sizeof(int) * h_compact_queue_size, cudaMemcpyDeviceToDevice ) );
+
+	// This is the int containing the size of the queue
+	cudaSafeCall( cudaFree(d_queue_size) );
+
+	// Cleanup the temporary memory use to store the queue
+	cudaSafeCall( cudaFree(d_queue) );
+
+	queueSize = h_compact_queue_size;
+
+	return d_queue_fit;
+}
+
+
+template unsigned int imreconstructIntCaller<unsigned char>(unsigned char*, const unsigned char*, const int, const int,
+		const int, cudaStream_t,unsigned char*h_markerFistPass );
+
+template int *imreconstructIntCallerBuildQueue<unsigned char>(unsigned char*, const unsigned char*, const int, const int, const int, int&, int, cudaStream_t);
+
 }}

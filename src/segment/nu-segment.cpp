@@ -29,12 +29,13 @@ using namespace cv;
 
 
 int main (int argc, char **argv){
+  char hostname[256];
+	gethostname(hostname, 255);
 #ifdef WITH_MPI
     MPI::Init(argc, argv);
     int size = MPI::COMM_WORLD.Get_size();
     int rank = MPI::COMM_WORLD.Get_rank();
-    char hostname[256];
-	gethostname(hostname, 255);
+  
     
     printf( " MPI enabled: %s rank %d \n", hostname, rank);
 #else

@@ -15,10 +15,16 @@
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
 
+using namespace cv;
+
+using namespace cv::gpu;
+using namespace std;
+
+extern "C" int listComputation(void *d_Data, int dataElements, unsigned char *seeds, unsigned char *image, int ncols, int nrows);
+
 
 namespace nscale {
 
-using namespace cv;
 
 
 template <typename T>
@@ -39,6 +45,170 @@ inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 template
 inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, float* iPtr, float* oPtr, const float&);
+
+
+template <typename T>
+Mat imreconstructGeorge(const Mat& seeds, const Mat& image, int connectivity) {
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+
+
+	Mat output(seeds.size() + Size(2,2), seeds.type());
+	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat input(image.size() + Size(2,2), image.type());
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+
+	T pval, preval;
+	int xminus, xplus, yminus, yplus;
+	int maxx = output.cols - 1;
+	int maxy = output.rows - 1;
+	std::queue<int> xQ;
+	std::queue<int> xQc;
+	std::queue<int> yQ;
+	std::queue<int> yQc;
+
+	bool shouldAdd;
+	T* oPtr;
+	T* oPtrMinus;
+	T* oPtrPlus;
+	T* iPtr;
+	T* iPtrPlus;
+	T* iPtrMinus;
+
+	uint64_t t1 = cciutils::ClockGetTime();
+
+	// raster scan
+	for (int y = 1; y < maxy; ++y) {
+
+		oPtr = output.ptr<T>(y);
+		oPtrMinus = output.ptr<T>(y-1);
+		iPtr = input.ptr<T>(y);
+
+		preval = oPtr[0];
+		for (int x = 1; x < maxx; ++x) {
+			xminus = x-1;
+			xplus = x+1;
+			pval = oPtr[x];
+
+			// walk through the neighbor pixels, left and up (N+(p)) only
+			pval = max(pval, max(preval, oPtrMinus[x]));
+
+			if (connectivity == 8) {
+				pval = max(pval, max(oPtrMinus[xplus], oPtrMinus[xminus]));
+			}
+			preval = min(pval, iPtr[x]);
+			oPtr[x] = preval;
+		}
+	}
+
+	// anti-raster scan
+	int count = 0;
+	for (int y = maxy-1; y > 0; --y) {
+		oPtr = output.ptr<T>(y);
+		oPtrPlus = output.ptr<T>(y+1);
+		oPtrMinus = output.ptr<T>(y-1);
+		iPtr = input.ptr<T>(y);
+		iPtrPlus = input.ptr<T>(y+1);
+
+		preval = oPtr[maxx];
+		for (int x = maxx-1; x > 0; --x) {
+			xminus = x-1;
+			xplus = x+1;
+
+			pval = oPtr[x];
+
+			// walk through the neighbor pixels, right and down (N-(p)) only
+			pval = max(pval, max(preval, oPtrPlus[x]));
+
+			if (connectivity == 8) {
+				pval = max(pval, max(oPtrPlus[xplus], oPtrPlus[xminus]));
+			}
+
+			preval = min(pval, iPtr[x]);
+			oPtr[x] = preval;
+
+			// capture the seeds
+			// walk through the neighbor pixels, right and down (N-(p)) only
+			pval = oPtr[x];
+
+			if ((oPtr[xplus] < min(pval, iPtr[xplus])) ||
+					(oPtrPlus[x] < min(pval, iPtrPlus[x]))) {
+				xQ.push(x);
+				xQc.push(x);
+				yQ.push(y);
+				yQc.push(y);
+				++count;
+				continue;
+			}
+
+			if (connectivity == 8) {
+				if ((oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) ||
+						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus]))) {
+					xQ.push(x);
+					yQ.push(y);
+					++count;
+					continue;
+				}
+			}
+		}
+	}
+
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries."<< std::endl;
+
+	// "copy " pixels that are being modified to an array
+	int *queueInt = (int *)malloc(sizeof(int) * xQ.size());
+	for(int i = 0; i < xQ.size(); i++){
+		int yQcFront = yQc.front();
+		int xQxFront = xQc.front();
+
+		queueInt[i] = yQcFront * output.cols + xQxFront;
+		xQc.pop();
+		yQc.pop();
+	}
+
+
+
+	GpuMat markerI = createContinuous(output.size(), CV_32S);
+
+	Mat outputI(seeds.size() + Size(2,2), CV_32S);
+	output.convertTo(outputI, CV_32S );
+//	ConvertScale(output, outputI);
+	markerI.upload(outputI);
+
+
+//	imwrite("test/out-recon4-george-raster.ppm", output);
+
+//	marker.upload(output);
+
+
+//	Stream stream.enqueueCopy(output, marker);
+//	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
+
+	GpuMat mask = createContinuous(input.size(), image.type());
+//	stream.enqueueCopy(input, mask);
+	mask.upload(input);
+
+	t1 = cciutils::ClockGetTime();
+	listComputation(queueInt, xQ.size(), markerI.data, mask.data, output.cols, output.rows);
+	t2 = cciutils::ClockGetTime();
+
+	std::cout << "	listTime = "<< t2-t1 << "ms."<< std::endl;
+
+	Mat out1(markerI);
+
+	Mat outputC(seeds.size() + Size(2,2), seeds.type());
+	out1.convertTo(outputC, seeds.type());
+
+
+	uint64_t t3 = cciutils::ClockGetTime();
+	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
+
+
+	return outputC(Range(1, maxy), Range(1, maxx));
+//	return output(Range(1, maxy), Range(1, maxx));
+
+}
 
 
 /** slightly optimized serial implementation,
@@ -224,6 +394,8 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	return output(Range(1, maxy), Range(1, maxx));
 
 }
+
+
 
 inline void propagateUchar(int *irev, int *ifwd,
 		int& x, int offset, uchar* iPtr, uchar* oPtr, uchar& pval) {
@@ -994,6 +1166,7 @@ Mat_<uchar> localMinima(const Mat& image, int connectivity) {
 
 
 
+template Mat imreconstructGeorge<uchar>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<uchar>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
 
