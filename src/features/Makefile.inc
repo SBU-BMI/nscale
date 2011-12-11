@@ -11,8 +11,8 @@ EXAMPLES_DIR=./examples
 
 NVCC=nvcc
 #NVCC_FLAGS=-Xcompiler -fPIC "-arch=sm_11" 
-NVCC_FLAGS=-m64 "-arch=sm_11" 
+NVCC_FLAGS=-m64 -Xcompiler -fPIC "-arch=sm_20" 
 NVCC_INCLUDE=-I../NVIDIA\ GPU\ Computing\ SDK/C/common/inc/ -I/usr/local/cuda/include
-CUDA_LIBS= -L/usr/local/cuda/lib -lcudart
+CUDA_LIBS= -L/usr/local/cuda/lib64 -lcudart
 
 EXEC_ENGINE_LIBS=${CUDA_LIBS}
