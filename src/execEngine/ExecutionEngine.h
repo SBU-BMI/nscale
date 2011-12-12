@@ -21,7 +21,7 @@ private:
 	ThreadPool *threadPool;
 	bool state; // waiting to execute; executing; done;
 
-	Task* getTask(int procType=Constant::CPU);
+	Task* getTask(int procType=ExecEngineConstants::CPU);
 
 public:
 	ExecutionEngine(int cpuThreads, int gpuThreads, int queueType=FCFS_QUEUE);

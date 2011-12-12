@@ -12,10 +12,10 @@ int main(){
 
 	for(int i = 0; i < 20; i++){
 		Task *auxTask = new Task();
-		auxTask->setSpeedup(Constant::GPU, 1.0);
+		auxTask->setSpeedup(ExecEngineConstants::GPU, 1.0);
 		execEngine.insertTask(auxTask);
 		auxTask = new Task();
-		auxTask->setSpeedup(Constant::GPU, 20.0);
+		auxTask->setSpeedup(ExecEngineConstants::GPU, 20.0);
 		execEngine.insertTask(auxTask);
 	}
 

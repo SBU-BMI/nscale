@@ -32,7 +32,7 @@ public:
 
 	// These methods are implemented in subclasses according to the type of queue chosen
 	virtual bool insertTask(Task* task);
-	virtual Task* getTask(int procType=Constant::CPU);
+	virtual Task* getTask(int procType=ExecEngineConstants::CPU);
 
 	// Unlock threads that may be waiting at the getTask function
 	void releaseThreads(int numThreads);
@@ -45,7 +45,7 @@ private:
 
 public:
 	bool insertTask(Task* task);
-	Task* getTask(int procType=Constant::CPU);
+	Task* getTask(int procType=ExecEngineConstants::CPU);
 };
 
 class TasksQueuePriority: public TasksQueue {
@@ -54,7 +54,7 @@ private:
 
 public:
 	bool insertTask(Task* task);
-	Task* getTask(int procType=Constant::CPU);
+	Task* getTask(int procType=ExecEngineConstants::CPU);
 
 };
 

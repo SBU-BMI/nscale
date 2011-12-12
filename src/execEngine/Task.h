@@ -8,21 +8,21 @@
 #ifndef TASK_H_
 #define TASK_H_
 
-#include "Constants.h"
+#include "ExecEngineConstants.h"
 #include <unistd.h>
 
 using namespace std;
 
 class Task {
-	float speedups[Constant::NUM_PROC_TYPES];
+	float speedups[ExecEngineConstants::NUM_PROC_TYPES];
 
 public:
 	Task();
 	virtual ~Task();
-	void setSpeedup(int procType=Constant::GPU, float speedup=1.0);
-	float getSpeedup(int procType=Constant::GPU);
+	void setSpeedup(int procType=ExecEngineConstants::GPU, float speedup=1.0);
+	float getSpeedup(int procType=ExecEngineConstants::GPU);
 
-	virtual bool run(int procType=Constant::GPU);
+	virtual bool run(int procType=ExecEngineConstants::GPU);
 
 };
 

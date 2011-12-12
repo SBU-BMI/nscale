@@ -15,13 +15,13 @@ int main(){
 
 	for(int i = 0; i < 20; i++){
 		Task *auxTask = new Task();
-		auxTask->setSpeedup(Constant::GPU, 1.0);
+		auxTask->setSpeedup(ExecEngineConstants::GPU, 1.0);
 		tasksQueue.insertTask(auxTask);
 	}
 
 	for(int i = 0; i < 20; i++){
 		Task *auxTask = new Task();
-		auxTask->setSpeedup(Constant::GPU, 6.0);
+		auxTask->setSpeedup(ExecEngineConstants::GPU, 6.0);
 		tasksQueue.insertTask(auxTask);
 	}
 

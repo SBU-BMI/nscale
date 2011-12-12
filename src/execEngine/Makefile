@@ -1,8 +1,8 @@
-include ../Makefile.inc
+include Makefile.inc
 
 EXEC_ENGINE_OBJS=Task.o TasksQueue.o ExecutionEngine.o ThreadPool.o warmUp.o
 
-SUBDIRS=tests examples/featureExtraction/
+SUBDIRS=tests #examples/featureExtraction/
 
 all: libexecengine.so subdirs
 
