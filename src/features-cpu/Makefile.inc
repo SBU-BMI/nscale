@@ -7,7 +7,7 @@ OBJS=Contour.o Blob.o RegionalMorphologyAnalysis.o DrawAuxiliar.o Operators.o
 OPENCV_INCLUDE=-I/usr/local/include/opencv/
 OPENCV_LIBS=-lopencv_core -lopencv_highgui -lopencv_imgproc
 #OPENCV_LIBS_GPU=${OPENCV_LIBS} -lopencv_gpu
-EXAMPLES_DIR=./examples
+EXAMPLES_DIR=examples
 
 NVCC=nvcc
 #NVCC_FLAGS=-Xcompiler -fPIC "-arch=sm_11" 

@@ -6,9 +6,9 @@ CXXFLAGS=-fPIC  -fopenmp -O3 #-g #-O3 #-g -msse4.2 -fopenmp
 RM=/bin/rm -rf
 
 CUDA_CV_INCLUDE =-I${HOME}/apps/OpenCV-2.3.0/modules/gpu/src -I${HOME}/apps/OpenCV-2.3.0/modules/gpu/src/cuda -I/usr/local/include -I/usr/local/include/opencv2/gpu
-CXXFLAGS	+= `pkg-config opencv --cflags` -I../features -DPRINT_CONTOUR_TEXT
+CXXFLAGS	+= `pkg-config opencv --cflags` -I../ -DPRINT_CONTOUR_TEXT
 CXXFLAGS	+= ${CUDA_CV_INCLUDE} 
-LDFLAGS		+= `pkg-config opencv --libs` -L../features/execEngine -lexecengine
+LDFLAGS		+= `pkg-config opencv --libs` -L../execEngine  -lexecengine
 LDFLAGS		+= -lopencv_gpu
 
 

@@ -279,7 +279,7 @@ int Operators::calcNumElementsFromHistogram(CvHistogram *hist, int numBins)
 {
 	int numElements  = 0;
 	for(int i = 0; i < numBins; i++){
-		numElements += (float)cvQueryHistValue_1D(hist, i);
+		numElements += (int)cvQueryHistValue_1D(hist, i);
 	}
 	return numElements;
 }

@@ -10,9 +10,11 @@
 
 #include "cv.h"
 #include "opencv2/gpu/gpu.hpp"
+#include "utils.h"
 
 using namespace cv;
 using namespace cv::gpu;
+using namespace std;
 
 namespace nscale {
 
@@ -22,6 +24,7 @@ public:
 
 	template <typename T>
 	static ::cv::Mat invert(const ::cv::Mat& img);
+	void ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB=true);
 };
 
 namespace gpu {

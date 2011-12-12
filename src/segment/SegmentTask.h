@@ -34,7 +34,7 @@ public:
 	SegmentTask(const std::string& in, std::string& out, int mcode, cciutils::SimpleCSVLogger *log=NULL, int stg= -1);
 	virtual ~SegmentTask();
 
-	bool run(int procType=Constant::CPU);
+	bool run(int procType=ExecEngineConstants::CPU);
 };
 
 }
