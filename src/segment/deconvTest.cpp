@@ -78,6 +78,19 @@ int main(int argc, char** argv) {
 	Mat c_E(g_E);
 
 	Mat gray = nscale::PixelOperations::bgr2gray(image);
+
+
+	GpuMat g_gray = nscale::gpu::PixelOperations::bgr2gray(g_image, stream);
+
+	Mat gray_gpu(g_gray);
+
+	if(countNonZero(gray != gray_gpu) ){
+		printf("Error: grayscale from CPU and GPU differ by %d pixels!\n", countNonZero(gray != gray_gpu));
+		exit(1);
+	}else{
+		cout <<"Success: Grayscale Images computed by CPU and GPU are the same!" <<endl;
+	}
+
 //	imwrite("image_gray.ppm", gray);
 //	cout << "Writing images"<<endl;
 //	imwrite("gpu_E.ppm", c_E);

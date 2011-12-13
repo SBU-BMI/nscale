@@ -32,7 +32,7 @@ GpuMat PixelOperations::threshold(const GpuMat& img, T lower, T upper, Stream& s
 void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){ throw_nogpu();};
 void PixelOperations::convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream){ throw_nogpu();};
 void PixelOperations::ColorDeconv( GpuMat& image, const Mat& M, const Mat& b, GpuMat& H, GpuMat& E, Stream& stream, bool BGR2RGB){ throw_nogpu();};
-GpuMat PixelOperations::bgr2gray(const GpuMat& img){ throw_nogpu();};
+GpuMat PixelOperations::bgr2gray(const GpuMat& img, Stream& stream){ throw_nogpu();};
 #else
 
 void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){

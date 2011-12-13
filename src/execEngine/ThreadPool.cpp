@@ -11,7 +11,7 @@
 
 
 // GPU functions called to initialize device.
-void warmUp(int device);
+//void warmUp(int device);
 
 void *callThread(void *arg){
 	ThreadPool *tp = (ThreadPool *)((threadData*) arg)->execEnginePtr;
@@ -21,7 +21,7 @@ void *callThread(void *arg){
 	// If threads is managing GPU, than init adequate device
 	if(procType == 2){
 		printf("WarnUP: GPU id = %d\n", tid);
-		warmUp(tid);
+//		warmUp(tid);
 		int cpuId=tid;
 
 #ifdef	LINUX
