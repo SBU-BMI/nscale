@@ -77,10 +77,16 @@ int main(int argc, char** argv) {
 	Mat c_H(g_H);
 	Mat c_E(g_E);
 
+	long t3 = cciutils::ClockGetTime();
 	Mat gray = nscale::PixelOperations::bgr2gray(image);
+	long t4 = cciutils::ClockGetTime();
 
 
 	GpuMat g_gray = nscale::gpu::PixelOperations::bgr2gray(g_image, stream);
+	stream.waitForCompletion();
+	long t5 = cciutils::ClockGetTime();
+	cout << "	GrayCPU="<< t4-t3<<endl;
+	cout << "	GrayGPU="<< t5-t4<<endl;
 
 	Mat gray_gpu(g_gray);
 

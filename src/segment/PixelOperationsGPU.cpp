@@ -147,7 +147,7 @@ GpuMat PixelOperations::bgr2gray(const GpuMat& img, Stream& stream){
 	GpuMat gray = GpuMat(img.size(), CV_8UC1);
 
 	bgr2grayCaller(img.rows, img.cols, img, gray , StreamAccessor::getStream(stream));
-
+	return gray;
 };
 
 
