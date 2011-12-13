@@ -22,7 +22,7 @@ GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}
 
 all: libsegment.so ${EXECENG_SRCO} nu-segment.exe nu-segmentTest.exe nu-segmentExecEngine.exe nu-segmentChunk.exe
 
-tests: all nu-segmentChunkTest.exe imreconTest.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe
+tests: all nu-segmentChunkTest.exe imreconTest.exe localMaximaTest.exe miscTest.exe imfillTest.exe bwareaopenTest.exe deconvTest.exe
 
 #cuda/global_queueu.o:
 #	$(NVCC) $(NVCC_FLAGS) $(NVCC_INCLUDE) ${CUDA_CV_INCLUDE} -o cuda/global_queueu.o -c cuda/global_queueu.cu

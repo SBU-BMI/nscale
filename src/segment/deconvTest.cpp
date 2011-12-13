@@ -76,6 +76,9 @@ int main(int argc, char** argv) {
 
 	Mat c_H(g_H);
 	Mat c_E(g_E);
+
+	Mat gray = nscale::PixelOperations::bgr2gray(image);
+//	imwrite("image_gray.ppm", gray);
 //	cout << "Writing images"<<endl;
 //	imwrite("gpu_E.ppm", c_E);
 //	imwrite("E.ppm", E);

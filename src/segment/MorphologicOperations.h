@@ -21,8 +21,8 @@ namespace nscale {
 template <typename T>
 cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
-template <typename T>
-cv::Mat imreconstructGeorge(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
+//template <typename T>
+//cv::Mat imreconstructGeorge(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
 // downhill version...
 cv::Mat imreconstructUChar(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
@@ -80,9 +80,6 @@ cv::gpu::GpuMat imreconstructQueue(const cv::gpu::GpuMat& seeds, const cv::gpu::
 
 template <typename T>
 vector<cv::gpu::GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
-
-template <typename T>
-vector<cv::gpu::GpuMat> imreconstructQueueThroughput2(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
 
 template <typename T>
 cv::gpu::GpuMat imreconstruct(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream) {

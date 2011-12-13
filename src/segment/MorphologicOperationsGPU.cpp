@@ -23,21 +23,19 @@
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
 #include "cuda/imrecon_queue_int_kernel.cuh"
-
-#endif
-
-using namespace std;
-
 extern "C" int listComputation(void *d_Data, int dataElements, unsigned char *seeds, unsigned char *image, int ncols, int nrows);
 extern "C" int morphRecon(int *d_input_list, int dataElements, int *d_seeds, unsigned char *d_image, int ncols, int nrows);
 extern "C" int morphReconVector(int nImages, int **h_InputListPtr, int* h_ListSize, int **h_Seeds, unsigned char **h_images, int* ncols, int* nrows, int connectivity);
 
+#endif
+
+using namespace std;
+using namespace cv;
+using namespace cv::gpu;
+
 namespace nscale {
 
 namespace gpu {
-
-using namespace cv;
-using namespace cv::gpu;
 
 
 template <typename T>
@@ -62,15 +60,16 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 template <typename T>
 GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu();}
 template <typename T>
+vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {throw_nogpu();};
+template <typename T>
 GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
-// Operates on BINARY IMAGES ONLY
+//// Operates on BINARY IMAGES ONLY
 template <typename T>
 GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) { throw_nogpu();}
 template <typename T>
 GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {throw_nogpu();}
 template <typename T>
 GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu();}
-template <typename T>
 #else
 
 /** slightly optimized serial implementation,
@@ -104,9 +103,9 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 
 	stream.waitForCompletion();
 	if (std::numeric_limits<T>::is_integer) {
-	    iter = imreconstructIntCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream), markerFirstPass.data);
+	    iter = imreconstructIntCaller<unsigned char>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream), markerFirstPass.data);
 	} else {
-		iter = imreconstructFloatCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+		iter = imreconstructFloatCaller<float>((float*)marker.data, (float*)mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
 	}
 	stream.waitForCompletion();
 	mask.release();
@@ -917,9 +916,9 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 
 #endif
 
-//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstructQueue<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template vector<GpuMat> imreconstructQueueThroughput<unsigned char>(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);

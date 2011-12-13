@@ -37,7 +37,35 @@ Mat PixelOperations::invert(const Mat& img) {
 
 }
 
-void ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB){
+
+Mat PixelOperations::bgr2gray(const ::cv::Mat& img){
+	int imageChannels = img.channels();
+	assert(imageChannels == 3);
+	assert(img.type() == CV_8UC3);
+
+	Mat gray = Mat(img.size(), CV_8UC1);
+
+	// Same constants as used by Matlab
+	double r_const = 0.298936021293776;
+	double g_const = 0.587043074451121;
+	double b_const = 0.114020904255103;
+
+	int nr = img.rows, nc = img.cols;
+
+	for(int i=0; i<nr; i++){
+		const uchar* data_in = img.ptr<uchar>(i);
+		uchar* data_out = gray.ptr<uchar>(i);
+		for(int j=0; j<nc; j++){
+			uchar b = data_in[j * imageChannels];
+			uchar g = data_in[j * imageChannels + 1];
+			uchar r = data_in[j * imageChannels + 2];
+			double grayPixelValue = r_const * (double)r + g_const * (double)g + b_const * (double)b;
+			data_out[j] = cciutils::double2uchar(grayPixelValue);
+		}
+	}
+	return gray;
+}
+void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB){
 
 	long t1 = cciutils::ClockGetTime();
 	//initialize normalized stain deconvolution matrix
