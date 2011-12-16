@@ -15,26 +15,26 @@ int main(){
 	TasksQueueFCFS tasksQueue;
 
 	Task *auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 2.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 2.0);
 	tasksQueue.insertTask(auxTask);
 
 	auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 5.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 5.0);
 	tasksQueue.insertTask(auxTask);
 
 	auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 4.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 4.0);
 	tasksQueue.insertTask(auxTask);
 
 	auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 3.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 3.0);
 	tasksQueue.insertTask(auxTask);
 	tasksQueue.releaseThreads(1);
 
 	auxTask=NULL;
 	do{
 
-		auxTask = tasksQueue.getTask(Constant::CPU);
+		auxTask = tasksQueue.getTask(ExecEngineConstants::CPU);
 		if(auxTask != NULL){
 			printf("Task speedup = %f\n", auxTask->getSpeedup());
 			delete auxTask;
@@ -46,26 +46,26 @@ int main(){
 	TasksQueuePriority tasksQueueP;
 
 	auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 2.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 2.0);
 	tasksQueueP.insertTask(auxTask);
 
 	auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 5.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 5.0);
 	tasksQueueP.insertTask(auxTask);
 
 	auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 4.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 4.0);
 	tasksQueueP.insertTask(auxTask);
 
 	auxTask = new Task();
-	auxTask->setSpeedup(Constant::GPU, 3.0);
+	auxTask->setSpeedup(ExecEngineConstants::GPU, 3.0);
 	tasksQueueP.insertTask(auxTask);
 	tasksQueueP.releaseThreads(1);
 
 	auxTask=NULL;
 	do{
 
-		auxTask = tasksQueueP.getTask(Constant::CPU);
+		auxTask = tasksQueueP.getTask(ExecEngineConstants::CPU);
 		if(auxTask != NULL){
 			printf("Task speedup = %f\n", auxTask->getSpeedup());
 			delete auxTask;

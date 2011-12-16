@@ -1,4 +1,4 @@
-include ../../Makefile.inc
+include ../Makefile.inc
 
 EXEC_ENGINE_OBJS=../Task.o ../TasksQueue.o ../ThreadPool.o ../ExecutionEngine.o  ../warmUp.o
 

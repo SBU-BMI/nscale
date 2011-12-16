@@ -10,12 +10,12 @@
 // Assuming n > 0
 int Operators::rndint(float n)//round float to the nearest integer
 {	
-	int ret = floor(n);
+	int ret = (int)floor(n);
 	float t;
 	t=n-floor(n);
 	if (t>=0.5)    
 	{
-		ret = floor(n) + 1;
+		ret = (int)floor(n) + 1;
 	}
 	return ret;
 }
@@ -279,7 +279,7 @@ int Operators::calcNumElementsFromHistogram(CvHistogram *hist, int numBins)
 {
 	int numElements  = 0;
 	for(int i = 0; i < numBins; i++){
-		numElements += (float)cvQueryHistValue_1D(hist, i);
+		numElements += (int)cvQueryHistValue_1D(hist, i);
 	}
 	return numElements;
 }

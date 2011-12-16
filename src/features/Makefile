@@ -1,10 +1,9 @@
 
 include Makefile.inc
 
-EXEC_ENGINE_DIR=execEngine
 EXAMPLES_DIR=examples
 
-SUBDIRS	= $(EXEC_ENGINE_DIR) $(EXAMPLES_DIR) cuda
+SUBDIRS	= $(EXAMPLES_DIR) cuda
 
 all: libfeatures.so subdirs
 

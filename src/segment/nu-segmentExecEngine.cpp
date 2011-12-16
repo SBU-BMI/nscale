@@ -112,7 +112,7 @@ int main (int argc, char **argv){
 //    	std::cout << outfile << std::endl;
 
 		nscale::SegmentTask *tf = new nscale::SegmentTask(filenames[i], outfile, modecode);
-		tf->setSpeedup(Constant::CPU, 1.0);
+		tf->setSpeedup(ExecEngineConstants::CPU, 1.0);
 		execEngine.insertTask(tf);
 
 

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <queue>
 #include <iostream>
+#include <list>
 #include <limits>
 #include "highgui.h"
 
@@ -22,32 +23,64 @@
 #include "cuda/imreconstruct_float_kernel.cuh"
 #include "cuda/imreconstruct_binary_kernel.cuh"
 #include "cuda/imrecon_queue_int_kernel.cuh"
+extern "C" int listComputation(void *d_Data, int dataElements, unsigned char *seeds, unsigned char *image, int ncols, int nrows);
+extern "C" int morphRecon(int *d_input_list, int dataElements, int *d_seeds, unsigned char *d_image, int ncols, int nrows);
+extern "C" int morphReconVector(int nImages, int **h_InputListPtr, int* h_ListSize, int **h_Seeds, unsigned char **h_images, int* ncols, int* nrows, int connectivity);
 
 #endif
+
+using namespace std;
+using namespace cv;
+using namespace cv::gpu;
 
 namespace nscale {
 
 namespace gpu {
 
-using namespace cv;
-using namespace cv::gpu;
+
+template <typename T>
+inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
+		int x, int y, T* iPtr, T* oPtr, const T& pval) {
+	T qval = oPtr[x];
+	T ival = iPtr[x];
+	if ((qval < pval) && (ival != qval)) {
+		oPtr[x] = min(pval, ival);
+		xQ.push(x);
+		yQ.push(y);
+	}
+}
+
+
+
 
 #if !defined (HAVE_CUDA)
 
 template <typename T>
 GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
 template <typename T>
+GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu();}
+template <typename T>
+vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {throw_nogpu();};
+template <typename T>
 GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
-// Operates on BINARY IMAGES ONLY
+//// Operates on BINARY IMAGES ONLY
 template <typename T>
 GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) { throw_nogpu();}
 template <typename T>
 GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {throw_nogpu();}
 template <typename T>
 GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu();}
-
 #else
 
+/** slightly optimized serial implementation,
+ from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
+
+ this is the fast hybrid grayscale reconstruction
+
+ connectivity is either 4 or 8, default 4.
+
+ this is slightly optimized by avoiding conditional where possible.
+ */
 /**
  * based on implementation from Pavlo
  */
@@ -58,17 +91,9 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
 	CV_Assert(image.type() == CV_32FC1 || image.type() == CV_8UC1);
 
-//	Mat c_seeds;
-//	seeds.download(c_seeds);
-//	Mat c_image;
-//	image.download(c_image);
-//	Mat c_output = ::nscale::imreconstruct<T>(c_seeds, c_image, connectivity);
-//
-//	GpuMat output(c_output);
-//	return output;
-
     // allocate results
 	GpuMat marker = createContinuous(seeds.size(), seeds.type());
+	GpuMat markerFirstPass = createContinuous(seeds.size(), seeds.type());
 	stream.enqueueCopy(seeds, marker);
 //	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
 
@@ -78,17 +103,279 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 
 	stream.waitForCompletion();
 	if (std::numeric_limits<T>::is_integer) {
-	    iter = imreconstructIntCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+	    iter = imreconstructIntCaller<unsigned char>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream), markerFirstPass.data);
 	} else {
-		iter = imreconstructFloatCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+		iter = imreconstructFloatCaller<float>((float*)marker.data, (float*)mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
 	}
-    stream.waitForCompletion();
-    mask.release();
-    // get the result out
-    return marker;
+	stream.waitForCompletion();
+	mask.release();
+	// get the result out
+	return marker;
 }
 
 
+void gold_imreconstructIntCallerBuildQueue(GpuMat& marker, GpuMat mask, int *d_queuePixels, int queueSize){
+// CPU gold initQueue
+	// structure that will hold pixels candidate to propagation calculated by the GPU 
+	list<int> gpu_stl_list;
+
+	// this list will hold, hopefully, the same set of pixels as the gpu_list, which are calculated
+	// bellow in this function for validation purposes 
+	list<int> cpu_stl_list;
+	
+	// Create memory space to store list of propagation candidate pixels 	
+	int *queueCPU = (int *) malloc(sizeof(int) * queueSize);
+
+	// Copy pixels from the GPU to the host memory
+	cudaMemcpy(queueCPU, d_queuePixels, sizeof(int) * queueSize, cudaMemcpyDeviceToHost);
+
+	// Initializes the gpu list of pixels with data copied from GPU
+	for(int i = 0; i < queueSize; i++){
+		gpu_stl_list.push_back(queueCPU[i]);
+	}
+
+	// Sort elements to guarantee the same ordering of the CPU list
+	gpu_stl_list.sort();
+
+	// release array used to copy data from GPU
+	free(queueCPU);
+
+	// Download intermediary results calculated by the GPU (marker) in order to 
+	// perform calculate pixels that are candidate to the propagation phase
+	Mat markerCPUAfter(marker);
+	Mat maskCPUAfter(mask);
+
+	// Gold CPU code that finds propagation candidate pixels, and build a list with them to compare to the GPU results.	
+	for (int y = 0; y < marker.rows-1; y++) {
+		unsigned char* yrowMarkerPtr = markerCPUAfter.ptr<unsigned char>(y);
+		unsigned char* yplusrowMarkerPtr = markerCPUAfter.ptr<unsigned char>(y+1);
+
+		unsigned char* yrowMaskPtr = maskCPUAfter.ptr<unsigned char>(y);
+		unsigned char* yplusrowMaskPtr = maskCPUAfter.ptr<unsigned char>(y+1);
+
+		for (int x = 0; x < marker.cols - 1; x++) {
+			unsigned char pval = yrowMarkerPtr[x];
+			
+			// right neighbor
+			unsigned char rMarker = yrowMarkerPtr[x+1];
+			unsigned char rMask = yrowMaskPtr[x+1];
+
+			if( (rMarker < min(pval, rMask)) ){
+				cpu_stl_list.push_back((y*marker.cols + x));
+				continue;
+			}
+			// down neighbor
+			unsigned char dMarker = yplusrowMarkerPtr[x];
+			unsigned char dMask = yplusrowMaskPtr[x];
+
+			if( (dMarker < min(pval, dMask)) ){
+				cpu_stl_list.push_back((y*marker.cols + x));
+			}
+		}
+	}
+	// End identification of pixels.
+
+	// Sort list to guarantee the same order as GPU code. I guees
+	cpu_stl_list.sort();
+
+	cout << "	Queue size = "<< cpu_stl_list.size()<<endl;
+	
+	// Compare CPU and GPU lists 
+	if(cpu_stl_list.size() == gpu_stl_list.size()){
+		// Are equal?
+		if(!std::equal(cpu_stl_list.begin(), cpu_stl_list.end(), gpu_stl_list.begin())){
+			cout << "	Error: content of CPU and GPU lists are different!" <<endl;
+			exit(1);
+		}else{
+			cout << "	CPU list equals to list built by GPU. Well done." <<endl;
+		}
+	}else{
+		cout << "	Sizes of lists are different! CPU list size = "<< cpu_stl_list.size() << " GPU list size = "<< gpu_stl_list.size()<<endl;
+		exit(1);
+	}
+	// write intermediary results to disk for further visual inspection purposes only.
+	imwrite("test/out-first-pass-gpu.pbm", markerCPUAfter);
+}
+
+template <typename T>
+vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {
+	cout << "Throughput 2"<<endl;
+	uint64_t t11 = cciutils::ClockGetTime();
+	assert(seeds.size() == image.size());
+
+	vector<GpuMat> maskVector(seeds.size());
+
+	for(int i = 0; i < seeds.size(); i++){
+		CV_Assert(image[i].channels() == 1);
+		CV_Assert(seeds[i].channels() == 1);
+		CV_Assert(seeds[i].type() == CV_8UC1);
+		CV_Assert(image[i].type() == CV_8UC1);
+
+		maskVector[i] = createContinuous(image[i].size(), image[i].type());
+		stream.enqueueCopy(image[i], maskVector[i]);
+	}
+
+	vector<GpuMat> markerVector(seeds.size());
+	for(int i = 0; i < seeds.size(); i++){
+		// allocate results data. Which is a copy of seeds and voids the user data from being modified
+		markerVector[i] = createContinuous(seeds[i].size(), seeds[i].type());
+
+		// Copy seeds to marker
+		stream.enqueueCopy(seeds[i], markerVector[i]);
+	}
+
+	// Yep. Wait til copies are complete
+	stream.waitForCompletion();
+
+	uint64_t endUpload = cciutils::ClockGetTime();
+//	cout << "	Init+upload = "<< endUpload-t11 <<endl;
+
+	int *queuePixelsGPUSizeVector = (int*)malloc(sizeof(int) * seeds.size());
+	int **queuePixelsGPUVector = (int **)malloc(sizeof(int*) * seeds.size());
+
+	for(int i = 0; i < seeds.size();i++){
+
+		int queuePixelsGPUSize;
+		int *g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<T>(markerVector[i].data, maskVector[i].data, markerVector[i].cols, markerVector[i].rows, connectivity, queuePixelsGPUSize, nItFirstPass, StreamAccessor::getStream(stream));
+
+		queuePixelsGPUSizeVector[i] = queuePixelsGPUSize;
+		queuePixelsGPUVector[i] = g_queuePixelsGPU;
+//		printf("	Queue[%d]Ptr = %p size = %d\n", i, queuePixelsGPUVector[i], queuePixelsGPUSizeVector[i]);
+	}
+	uint64_t imreconBuildEnd = cciutils::ClockGetTime(); 
+	cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
+	// Gold function implemented on CPU to validate calculate of pixels candidate to propagation in next step
+/////	gold_imreconstructIntCallerBuildQueue(marker, mask1, g_queuePixelsGPU, queuePixelsGPUSize);
+
+
+	stream.waitForCompletion();
+	vector<GpuMat> markerIntVector(seeds.size());
+	for(int i = 0; i < seeds.size();i++){
+		// Create an int version of the input marker
+		markerIntVector[i] = createContinuous(seeds[i].size(), CV_32S);
+	
+		// Perform appropriate conversion from uchar to int
+		markerVector[i].convertTo(markerIntVector[i], CV_32S);
+
+	}
+	uint64_t t31 = cciutils::ClockGetTime();
+
+	int **markerIntPtr = (int **)malloc(sizeof(int*) * seeds.size());
+	unsigned char **maskUcharPtr = (unsigned char **)malloc(sizeof(unsigned char*) * seeds.size());
+	int *cols = (int*)malloc(sizeof(int) * seeds.size());
+	int *rows = (int*)malloc(sizeof(int) * seeds.size());
+
+	// prepare arrays with information that are used inside the queue propagation kernel
+	for(int i = 0; i < seeds.size();i++){
+		markerIntPtr[i] = (int*)markerIntVector[i].data;
+		maskUcharPtr[i] = maskVector[i].data;
+		cols[i] = maskVector[i].cols;
+		rows[i] = maskVector[i].rows;
+	}
+
+	// apply morphological reconstruction using the Queue based algorithm
+	morphReconVector(seeds.size(), queuePixelsGPUVector, queuePixelsGPUSizeVector, markerIntPtr, maskUcharPtr, cols, rows, connectivity);
+	uint64_t t41 = cciutils::ClockGetTime();
+	cout << "	queue time = "<< t41-t31<<endl;
+
+	for(int i = 0; i < seeds.size(); i++){
+		::nscale::gpu::PixelOperations::convertIntToChar(markerIntVector[i], markerVector[i], stream);
+	}
+
+	for(int i = 0; i < seeds.size(); i++){
+		maskVector[i].release();
+		markerIntVector[i].release();
+	}
+
+	free(queuePixelsGPUSizeVector);
+	free(queuePixelsGPUVector);
+	free(markerIntPtr);
+	free(maskUcharPtr);
+	free(cols);
+	free(rows);
+
+	return markerVector;
+}
+
+
+template <typename T>
+GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) {
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+	CV_Assert(seeds.type() == CV_8UC1);
+	CV_Assert(image.type() == CV_8UC1);
+
+	uint64_t t11 = cciutils::ClockGetTime();
+
+	GpuMat mask1;
+
+//	if(!image.isContinuous()){
+		mask1 = createContinuous(image.size(), image.type());
+		stream.enqueueCopy(image, mask1);
+//	}else{
+//		mask1 = image;
+//	}
+
+	// allocate results data. Which is a copy of seeds and voids the user data from being modified
+	GpuMat marker = createContinuous(seeds.size(), seeds.type());
+
+	// Copy seeds to marker
+	stream.enqueueCopy(seeds, marker);
+///	std::cout << " is seeds continuous? " << (seeds.isContinuous() ? "YES" : "NO") << std::endl;
+///
+///	// TODO: this is unecessary, unless input data is not continuous
+///	GpuMat mask1 = createContinuous(image.size(), image.type());
+///	stream.enqueueCopy(image, mask1);
+//	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
+
+	// Yep. Wait til copies are complete
+	stream.waitForCompletion();
+
+	uint64_t endUpload = cciutils::ClockGetTime();
+//	cout << "	Init+upload = "<< endUpload-t11 <<endl;
+
+	// Will be used to store size of pixels candidate to propagation
+	int queuePixelsGPUSize;
+	int numIterationsFirstPass = 10;
+	// Perform first pass (parallell raster and anti-raster) as Pavlo's code does
+	int *g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<T>(marker.data, mask1.data, marker.cols, marker.rows, connectivity, queuePixelsGPUSize, numIterationsFirstPass, StreamAccessor::getStream(stream));
+	uint64_t imreconBuildEnd = cciutils::ClockGetTime(); 
+	cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
+	// Gold function implemente on CPU to validate calculate of pixels candidate to propagation in next step
+//	gold_imreconstructIntCallerBuildQueue(marker, mask1, g_queuePixelsGPU, queuePixelsGPUSize);
+
+	// Create an int version of the input marker
+	GpuMat g_markerInt_1 = createContinuous(seeds.size(), CV_32S);
+
+	// Perform appropriate convertion from uchar to int
+	marker.convertTo(g_markerInt_1, CV_32S);
+	
+	uint64_t t31 = cciutils::ClockGetTime();
+	cout << "	ConvertToInt = "<< t31-imreconBuildEnd<<endl;
+	// apply morphological reconstruction using the Queue based algorithm
+	morphRecon(g_queuePixelsGPU, queuePixelsGPUSize, (int*)g_markerInt_1.data, mask1.data, mask1.cols, mask1.rows);
+
+
+	uint64_t t41 = cciutils::ClockGetTime();
+//	cout << "	queue time = "<< t41-t31<<endl;
+//	cout << "End morphRecon. time = " << t41-t11 <<endl;
+	// This is char matrix is used to save the uchar version of the result. 
+	// It is computed from the int version of the result (g_makerInt).
+//	GpuMat g_markerChar_1 = createContinuous(seeds.size(), CV_8UC1);
+
+	::nscale::gpu::PixelOperations::convertIntToChar(g_markerInt_1, marker, stream);
+
+//	if(!image.isContinuous()){
+		mask1.release();
+//	}
+	uint64_t t21 = cciutils::ClockGetTime();
+
+	g_markerInt_1.release();
+	std::cout << "    total time = " << t21-t11 << "ms for. ConvertToChar = "<< t21-t41 << std::endl;
+
+
+	return marker;
+}
 
 /**
  * based on implementation from Pavlo
@@ -166,9 +453,9 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 
 	stream.waitForCompletion();
 
-    iter = imreconstructBinaryCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
-    stream.waitForCompletion();
-    mask.release();
+  	iter = imreconstructBinaryCaller<T>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+	stream.waitForCompletion();
+	mask.release();
 
 	return marker;
 
@@ -629,10 +916,12 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 
 #endif
 
-//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-//template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstructQueue<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template vector<GpuMat> imreconstructQueueThroughput<unsigned char>(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
 template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);

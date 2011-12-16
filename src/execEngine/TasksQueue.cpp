@@ -62,7 +62,7 @@ bool TasksQueuePriority::insertTask(Task *task)
 {
 	pthread_mutex_lock(&queueLock);
 
-	float taskSpeedup = task->getSpeedup(Constant::GPU);
+	float taskSpeedup = task->getSpeedup(ExecEngineConstants::GPU);
 	tasksQueue.insert(pair<float,Task*>(taskSpeedup, task));
 
 	pthread_mutex_unlock(&queueLock);
@@ -80,7 +80,7 @@ Task *TasksQueuePriority::getTask(int procType)
 	if(tasksQueue.size() > 0){
 		multimap<float, Task*>::iterator it;
 
-		if(procType == Constant::GPU){
+		if(procType == ExecEngineConstants::GPU){
 			it = tasksQueue.end();
 			it--;
 			retTask = (*it).second;

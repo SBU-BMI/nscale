@@ -19,6 +19,13 @@ const int DEVICE_CPU = 0;
 const int DEVICE_MCORE = 1;
 const int DEVICE_GPU = 2;
 
+//convert double to unsigned char
+inline unsigned char double2uchar(double d){
+	double truncate = std::min( std::max(d,(double)0.0), (double)255.0);
+	double pt;
+	double c = modf(truncate, &pt)>=.5?ceil(truncate):floor(truncate);
+	return (unsigned char)c;
+}
 
 inline uint64_t ClockGetTime()
 {

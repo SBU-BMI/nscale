@@ -15,4 +15,4 @@ NVCC_FLAGS=-m64 -Xcompiler -fPIC "-arch=sm_20"
 NVCC_INCLUDE=-I../NVIDIA\ GPU\ Computing\ SDK/C/common/inc/ -I/usr/local/cuda/include
 CUDA_LIBS= -L/usr/local/cuda/lib64 -lcudart
 
-EXEC_ENGINE_LIBS=${CUDA_LIBS}
+#EXEC_ENGINE_LIBS=${CUDA_LIBS}

@@ -10,7 +10,7 @@
 
 Task::Task()
 {
-	for(int i = 0; i < Constant::NUM_PROC_TYPES; i++){
+	for(int i = 0; i < ExecEngineConstants::NUM_PROC_TYPES; i++){
 		speedups[i] = 1.0;
 	}
 }
