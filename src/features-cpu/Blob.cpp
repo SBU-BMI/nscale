@@ -8,7 +8,7 @@
 #include "Blob.h"
 
 
-Blob::Blob(CvSeq* first_contour, CvSize originalImageSize, CvPoint offsetOriginalImage ) {
+Blob::Blob(CvSeq* first_contour, CvSize originalImageSize, CvPoint offsetOriginalImage, IplImage *inputMask, CvRect *bb ) {
 
 	self_storage = cvCreateMemStorage();
 
@@ -17,7 +17,7 @@ Blob::Blob(CvSeq* first_contour, CvSize originalImageSize, CvPoint offsetOrigina
 	offsetInImage.y = offsetOriginalImage.y;
 
 	if(first_contour != NULL){
-		external_contour = new Contour(first_contour);
+		external_contour = new Contour(first_contour, bb);
 	}
 
 	this->originalImageSize = originalImageSize;
@@ -35,7 +35,7 @@ Blob::Blob(CvSeq* first_contour, CvSize originalImageSize, CvPoint offsetOrigina
 			internal_contours.push_back(contour);
 		}
 	}
-	mask = NULL;
+	mask = inputMask;
 	ROISubImage = NULL;
 	intensity_hist = NULL;
 	grad_hist = NULL;
@@ -380,8 +380,8 @@ float Blob::getEllipticity()
 CvRect Blob::getNonInclinedBoundingBox()
 {
 	CvRect bb = this->external_contour->getNonInclinedBoundingBox();
-//	bb.x += offsetInImage.x;
-//	bb.y += offsetInImage.y;
+	bb.x += offsetInImage.x;
+	bb.y += offsetInImage.y;
 	return bb;
 }
 
@@ -524,10 +524,10 @@ IplImage *Blob::getCytoplasmMask(CvSize tileSize, int delta, CvPoint &offset)
 		// pixels the original nucleus bounding box increases in X and Y.
 
 		// Calculate changes in X for the new bounding box: cytoplasmLeftMove 
-		int cytoplasmLeftMove = bounding_box.x - cytoplasmRect.x;
+		int cytoplasmLeftMove = bounding_box.x - cytoplasmRect.x + offsetInImage.x;
 	
 		// Calculate changes in Y for the new bounding box: cytoplasmLeftMove 
-		int cytoplasmUpMove = bounding_box.y - cytoplasmRect.y;
+		int cytoplasmUpMove = bounding_box.y - cytoplasmRect.y + offsetInImage.y;
 
 		// Update the offset with values calculated before
 		CvPoint auxOffsetLocalCytoplasmMask;
@@ -618,6 +618,8 @@ IplImage *Blob::getCytoplasmMask(CvSize tileSize, int delta, CvPoint &offset)
 
 IplImage *Blob::getMask()
 {
+	// Bounding box has the position of the contour in the input image. It is already corrected due to shifts caused
+	// by padding the input image.
 	CvRect bounding_box = this->getNonInclinedBoundingBox();
 
 
@@ -633,10 +635,12 @@ IplImage *Blob::getMask()
 
 		// The offset of the location of these contours in the original image to the location in
 		// the mask that has the same dimensions as the bounding box
+		// Thus, from the bounding box location, I should subtract the bounding box location from the contours shift to 
+		// get draw the contour in the current mask (0,0) axis.
 		CvPoint offset;
-		offset.x = -bounding_box.x;
-		offset.y = -bounding_box.y;
-
+		offset.x = -bounding_box.x + offsetInImage.x;
+		offset.y = -bounding_box.y + offsetInImage.y;
+	
 		// First draw the external contour
 		cvDrawContours( mask, this->external_contour->getCl(), CV_RGB(255,255,255), CV_RGB(255,255,255),0, CV_FILLED, 8, offset );
 
@@ -976,8 +980,8 @@ void Blob::calcGradientHistogram(IplImage *img)
 
 
 //		CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
-		blob_bounding_box.x += offsetInImage.x;
-		blob_bounding_box.y += offsetInImage.y;
+//		blob_bounding_box.x += offsetInImage.x;
+//		blob_bounding_box.y += offsetInImage.y;
 
 		IplImage *ROISubImage = cvCreateImageHeader(cvSize(blob_bounding_box.width, blob_bounding_box.height), img->depth, img->nChannels);
 		ROISubImage->origin = img->origin;
@@ -1521,8 +1525,8 @@ IplImage *Blob::getROISubImage(IplImage *img)
 {
 	if(ROISubImage == NULL){
 		CvRect blob_bounding_box = this->getNonInclinedBoundingBox();
-		blob_bounding_box.x += offsetInImage.x;
-		blob_bounding_box.y += offsetInImage.y;
+//		blob_bounding_box.x += offsetInImage.x;
+//		blob_bounding_box.y += offsetInImage.y;
 
 		ROISubImage = cvCreateImageHeader(cvSize(blob_bounding_box.width, blob_bounding_box.height), img->depth, img->nChannels);
 		ROISubImage->origin = img->origin;
@@ -1563,8 +1567,8 @@ void Blob::setMaskInUserDataRegion(char *data)
 	// The offset of the location of these contours in the original image to the location in
 	// the mask that has the same dimensions as the bounding box
 	CvPoint offset;
-	offset.x = -bounding_box.x;
-	offset.y = -bounding_box.y;
+	offset.x = -bounding_box.x + offsetInImage.x;
+	offset.y = -bounding_box.y + offsetInImage.y;
 
 	// First draw the external contour
 	cvDrawContours( mask, external_contour->getCl(), CV_RGB(255,255,255), CV_RGB(1,1,1),0, CV_FILLED, 8, offset );

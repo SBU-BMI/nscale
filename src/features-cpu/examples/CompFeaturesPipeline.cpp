@@ -42,9 +42,10 @@ int main (int argc, char **argv){
 
 	/////////////// Compute nuclei based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-	// 	0)Area; 1)Perimeter; 2)Eccentricity; 3)Circularity/Compacteness; 4)MajorAxis; 5)MinorAxis; 6)ExtentRatio; 7)MeanIntensity
-	//	8)MaxIntensity; 9)MinIntensity; 10)StdIntensity; 11)EntropyIntensity; 12)EnergyIntensity; 13)SkewnessIntensity;
-	//	14)KurtosisIntensity; 15)MeanGrad; 16)StdGrad; 17)EntropyGrad; 18)EnergyGrad; 19)SkewnessGrad; 20)KurtosisGrad; 21)CannyArea; 22)MeanCanny
+	// 	0) bb.x; 1) bb.y; 2) bb.width; 3) bb.height; 4) centroid.x; 5) centroid.y; 6)Area; 7)Perimeter; 8)Eccentricity; 
+	//	9) Circularity/Compacteness; 10)MajorAxis; 11)MinorAxis; 12)ExtentRatio; 13)MeanIntensity; 14)MaxIntensity; 15)MinIntensity; 
+	//	16) StdIntensity; 17)EntropyIntensity; 18)EnergyIntensity; 19)SkewnessIntensity; 20)KurtosisIntensity; 21)MeanGrad; 
+	//	22)StdGrad; 23)EntropyGrad; 24)EnergyGrad; 25)SkewnessGrad; 26)KurtosisGrad; 27)CannyArea; 28)MeanCanny
 	regional->doNucleiPipelineFeatures(nucleiFeatures, originalImage);
 
 #ifdef	PRINT_FEATURES

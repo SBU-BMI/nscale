@@ -67,10 +67,10 @@ int main (int argc, char **argv){
 
 	/////////////// Compute nuclei based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-	// 	0)BoundingBox (BB) X; 1) BB.y; 2) BB.width; 3) BB.height; 4) Centroid.x; 5) Centroid.y) 7)Area; 8)Perimeter; 9)Eccentricity; 
-	//	10)Circularity/Compacteness; 11)MajorAxis; 12)MinorAxis; 13)ExtentRatio; 14)MeanIntensity 15)MaxIntensity; 16)MinIntensity; 
-	//	17)StdIntensity; 18)EntropyIntensity; 19)EnergyIntensity; 20)SkewnessIntensity;	21)KurtosisIntensity; 22)MeanGrad; 23)StdGrad; 
-	//	24)EntropyGrad; 25)EnergyGrad; 26)SkewnessGrad; 27)KurtosisGrad; 28)CannyArea; 29)MeanCanny
+	// 	0)BoundingBox (BB) X; 1) BB.y; 2) BB.width; 3) BB.height; 4) Centroid.x; 5) Centroid.y) 6)Area; 7)Perimeter; 8)Eccentricity; 
+	//	9)Circularity/Compacteness; 10)MajorAxis; 11)MinorAxis; 12)ExtentRatio; 13)MeanIntensity 14)MaxIntensity; 15)MinIntensity; 
+	//	16)StdIntensity; 17)EntropyIntensity; 18)EnergyIntensity; 19)SkewnessIntensity;	20)KurtosisIntensity; 21)MeanGrad; 22)StdGrad; 
+	//	23)EntropyGrad; 24)EnergyGrad; 25)SkewnessGrad; 26)KurtosisGrad; 27)CannyArea; 28)MeanCanny
 	regional->doNucleiPipelineFeatures(nucleiFeatures, grayscale);
 
 #ifdef	PRINT_FEATURES

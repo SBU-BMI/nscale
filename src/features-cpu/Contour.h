@@ -81,7 +81,7 @@ public:
 	  Constructor that receives a list of points defining the Contour,
 	  and correctly initialize its properties/variables.
 	 */
-	Contour(CvSeq *c_l);
+	Contour(CvSeq *c_l, CvRect *bb=NULL);
 
 	//! A simple class destructor that takes care of deallocate used data structures
 	virtual ~Contour();
