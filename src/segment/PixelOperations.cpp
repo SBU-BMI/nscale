@@ -47,6 +47,7 @@ Mat PixelOperations::mod(const Mat& img, T mod) {
 	bitwise_and(img, Scalar(mod - (T)1), result);
 
 	return result;
+}
 
 Mat PixelOperations::bgr2gray(const ::cv::Mat& img){
 	int imageChannels = img.channels();
