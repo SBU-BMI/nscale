@@ -42,16 +42,13 @@ public:
 
 	template <typename T>
 	static ::cv::gpu::GpuMat threshold(const ::cv::gpu::GpuMat& img, T lower, T upper, ::cv::gpu::Stream& stream);
-<<<<<<< HEAD
 
 	template <typename T>
 	static ::cv::gpu::GpuMat mod(const ::cv::gpu::GpuMat& img, T mod, ::cv::gpu::Stream& stream);
-=======
 	static void convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream);
 	static void convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream);
 	static void ColorDeconv( GpuMat& image, const Mat& M, const Mat& b, GpuMat& H, GpuMat& E, Stream& stream, bool BGR2RGB=true);
 	static GpuMat bgr2gray(const GpuMat& img, Stream& stream);
->>>>>>> 44ee712be5a854c479743eb367a09c589810597a
 };
 
 }
