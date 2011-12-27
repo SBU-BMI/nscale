@@ -642,9 +642,7 @@ __global__ void haralickFeaturesPerBlob_kernel(int *coocMatrix, int nBlobs, floa
 
 	const int k=1; // distance from pixels when calculating cooc. matrix. We're only doing it for distance=1;
 
-#pragma unroll 8
 	for(int i = 0; i < COOC_SIZE; i++){
-#pragma unroll 8
 		for(int j = 0; j < COOC_SIZE; j++){
 			float ij = i - j;
 			float entryIJProbability = (float)coocMatrix[memoryBaseIndex + i * COOC_SIZE + j]/(float)sumCoocMatrix;

@@ -112,7 +112,7 @@ protected:
 	friend class DrawAuxiliar;
 	friend class RegionalMorphologyAnalysis;
 public:
-	Blob(CvSeq* c, CvSize originalImageSize, CvPoint offsetInImage );
+	Blob(CvSeq* c, CvSize originalImageSize, CvPoint offsetInImage, IplImage *inputMask = NULL, CvRect *bb = NULL );
 
 	virtual ~Blob();
 

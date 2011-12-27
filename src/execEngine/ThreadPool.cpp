@@ -11,7 +11,7 @@
 
 
 // GPU functions called to initialize device.
-void warmUp(int device);
+//void warmUp(int device);
 
 void *callThread(void *arg){
 	ThreadPool *tp = (ThreadPool *)((threadData*) arg)->execEnginePtr;
@@ -21,7 +21,7 @@ void *callThread(void *arg){
 	// If threads is managing GPU, than init adequate device
 	if(procType == 2){
 		printf("WarnUP: GPU id = %d\n", tid);
-		warmUp(tid);
+//		warmUp(tid);
 		int cpuId=tid;
 
 #ifdef	LINUX
@@ -98,7 +98,7 @@ bool ThreadPool::createThreadPool(int cpuThreads, int *cpuThreadsCoreMapping, in
 		for (int i = 0; i < cpuThreads; i++ ){
 			threadData *arg = (threadData *) malloc(sizeof(threadData));
 			arg->tid = i;
-			arg->procType = Constant::CPU;
+			arg->procType = ExecEngineConstants::CPU;
 			arg->execEnginePtr = this;
 			int ret = pthread_create(&(CPUWorkerThreads[arg->tid]), NULL, callThread, (void *)arg);
 			if (ret){
@@ -118,7 +118,7 @@ bool ThreadPool::createThreadPool(int cpuThreads, int *cpuThreadsCoreMapping, in
 		for (int i = 0; i < gpuThreads; i++ ){
 			threadData *arg = (threadData *) malloc(sizeof(threadData));
 			arg->tid = i;
-			arg->procType = Constant::GPU;
+			arg->procType = ExecEngineConstants::GPU;
 			arg->execEnginePtr = this;
 			int ret = pthread_create(&(GPUWorkerThreads[arg->tid]), NULL, callThread, (void *)arg);
 			if (ret){
@@ -186,7 +186,7 @@ void ThreadPool::processTasks(int procType, int tid)
 	// Id used by the thread to access the array of tasks being processed
 	int threadGlobalId = tid;
 
-	if(procType == Constant::CPU){
+	if(procType == ExecEngineConstants::CPU){
 		threadGlobalId += this->numGPUThreads; 
 	}
 

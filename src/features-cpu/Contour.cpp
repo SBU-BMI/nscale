@@ -11,7 +11,7 @@
 Contour::Contour() {
 }
 
-Contour::Contour(CvSeq *c_l_param)
+Contour::Contour(CvSeq *c_l_param, CvRect *bb)
 {
 	// Initialize memory block used to store Contour structs
 	self_storage = cvCreateMemStorage();
@@ -37,6 +37,13 @@ Contour::Contour(CvSeq *c_l_param)
 	this->m_bounding_box.width = -1;
 	this->convexHull = NULL;
 	this->m_moments.m00 = -1.0;
+
+	if(bb!=NULL){
+		m_bounding_box.x = bb->x;
+		m_bounding_box.y = bb->y;
+		m_bounding_box.width = 	bb->width;
+		m_bounding_box.height = bb->height;
+	}
 }
 
 Contour::~Contour() {

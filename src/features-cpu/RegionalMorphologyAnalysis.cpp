@@ -200,8 +200,12 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 	CvMemStorage* storage = cvCreateMemStorage();
 	CvSeq* first_contour = NULL;
 
-	IplImage *tempMask = cvCreateImage(cvGetSize(originalImage), IPL_DEPTH_8U, 1);
-	cvCopy(originalImageMask, tempMask);
+//	IplImage *tempMask = cvCreateImage(cvGetSize(originalImage), IPL_DEPTH_8U, 1);
+//	cvCopy(originalImageMask, tempMask);
+
+	IplImage *tempMask = cvCreateImage(cvSize(originalImage->width+2, originalImage->height+2), IPL_DEPTH_8U, 1);
+	cvCopyMakeBorder(originalImageMask, tempMask, cvPoint(1,1), IPL_BORDER_CONSTANT, cvScalarAll(0) );
+//	cvSaveImage("mask-border.tif", tempMask);
 
 	int Nc = cvFindContours(
 		tempMask,
@@ -218,8 +222,8 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 	for(CvSeq* c= first_contour; c!= NULL; c=c->h_next){
 
 		CvPoint offsetInImage;
-		offsetInImage.x = 0;
-		offsetInImage.y = 0;
+		offsetInImage.x = -1;
+		offsetInImage.y = -1;
 
 
 		// create a blob with the current component and store it in the region
@@ -259,9 +263,16 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 	// Calculate cytoplasm mask, and create a blob describing each cytoplasm
 	if(initCytoplasm){
 		for(int i = 0; i < internal_blobs.size(); i++){
+//			if(i == 0){
+//				IplImage *blobMask = internal_blobs[i]->getMask();
+//				cvSaveImage("blob1.tif", blobMask);
+//			}
 			CvPoint offsetCyto;
 			IplImage *cytoplasmMask = internal_blobs[i]->getCytoplasmMask(cvGetSize(originalImageMask), 8, offsetCyto);
 			// Should be fine til here
+//			if(i == 0){
+//				cvSaveImage("cyto1-0.tif", cytoplasmMask);
+//			}
 
 			// Create padding around cytoplasm mask to avoid find contours to be truncated by the image bounds
 			IplImage *tempMaskCytoplasm = cvCreateImage(cvSize(cytoplasmMask->width+2, cytoplasmMask->height+2), IPL_DEPTH_8U, 1);
@@ -280,8 +291,8 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 			// change offset of the contours to be found in tempMaskCytoplams, because the mask is one pixel shift in X and Y
 			// in this image, when compare to its original mask (cytoplasmMask). Thus, any contours found will also have X,Y values
 			// increased by 1,1 when compared to the input image.
-			offsetCyto.x-=1;
-			offsetCyto.y-=1;
+//			offsetCyto.x-=1;
+//			offsetCyto.y-=1;
 
 			// Run find contours in the temp padded image.
 			int Nc = cvFindContours(
@@ -292,19 +303,45 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 					CV_RETR_TREE,
 					CV_CHAIN_APPROX_NONE
 					);
-
-			if(first_contour->h_next != NULL){
-				cout << "Warnning: Cytoplasm is being defined through more than one blob!" <<endl;
-
-			}
-
+//
+//			if(first_contour->h_next != NULL){
+//				cout << "Warnning: Cytoplasm is being defined through more than one blob!" <<endl;
+//				cvSaveImage("cyto-warnning.tif", cytoplasmMask);
+//				IplImage *blobMask = internal_blobs[i]->getMask();
+//				cvSaveImage("blob-warnning.tif", blobMask);
+//
+//			}
+			CvRect *bb = new CvRect();
+			bb->x = 0;
+			bb->y = 0;
+			bb->width = cytoplasmMask->width;
+			bb->height = cytoplasmMask->height;
+			
 			// create blob representing the cytoplams we just calculated
-			Blob *cytoBlob = new Blob(first_contour, cvGetSize(originalImageMask), offsetCyto);
+			Blob *cytoBlob = new Blob(first_contour, cvGetSize(originalImageMask), offsetCyto, cytoplasmMask, bb);
 			this->cytoplasm_blobs.push_back(cytoBlob);
 
+//			if(first_contour->h_next != NULL){
+//			//	cout << "Warnning: Cytoplasm is being defined through more than one blob!" <<endl;
+//			//	cvSaveImage("cyto-warnning.tif", cytoplasmMask);
+//			//	IplImage *blobMask = internal_blobs[i]->getMask();
+//			//	cvSaveImage("blob-warnning.tif", blobMask);
+//				cout << "bb->x="<< bb->x << " bb->y="<<bb->y<< " bb->width="<<bb->width<<" bb->height="<<bb->height<<endl;
+//				IplImage* cytoMask = cytoBlob->getMask();
+//
+//				cvSaveImage("cyto-II-warnning.tif", cytoMask);
+//
+//			}
+
+			delete bb;
 			// Release images used to calc. cytoplasm
-			cvReleaseImage(&cytoplasmMask);
+	//		cvReleaseImage(&cytoplasmMask);
 			cvReleaseImage(&tempMaskCytoplasm);
+//			if(i == 0){
+//				IplImage* cytoMask = cytoBlob->getMask();
+//
+//				cvSaveImage("cyto1.tif", cytoMask);
+//			}
 
 			//		IplImage* cytoMask = cytoBlob->getMask();
 			//		cvSaveImage("cytoplasmMask.tif", cytoplasmMask);
@@ -327,12 +364,12 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 // Assuming n > 0
 int rndint(float n)//round float to the nearest integer
 {	
-	int ret = floor(n);
+	int ret = (int)floor(n);
 	float t;
 	t=n-floor(n);
 	if (t>=0.5)    
 	{
-		ret = floor(n) + 1;
+		ret = (int)floor(n) + 1;
 	}
 	return ret;
 }
