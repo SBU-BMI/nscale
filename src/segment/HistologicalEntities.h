@@ -39,9 +39,6 @@ public:
 	static int plFindNucleusCandidates(const cv::Mat& img, cv::Mat& seg_norbc, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);  // S1
 	static int plSeparateNuclei(const cv::Mat& img, const cv::Mat& seg_open, cv::Mat& seg_nonoverlap, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1); // A4
 
-
-
-
 };
 
 

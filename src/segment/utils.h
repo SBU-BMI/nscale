@@ -139,6 +139,7 @@ namespace cv {
 using ::cv::Exception;
 using ::cv::error;
 
+// legacy...
 inline void imwriteRaw(const char *prefix, const ::cv::Mat& img) {
 	// write the raw image
 	char * filename = new char[128];
@@ -156,6 +157,8 @@ inline void imwriteRaw(const char *prefix, const ::cv::Mat& img) {
 	fclose(fid);
 
 }
+
+
 
 
 }

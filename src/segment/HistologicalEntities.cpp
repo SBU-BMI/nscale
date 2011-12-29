@@ -12,6 +12,7 @@
 #include "highgui.h"
 #include "float.h"
 #include "utils.h"
+#include "CVImageIOUtils.h"
 
 namespace nscale {
 
@@ -585,14 +586,6 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	return ::nscale::HistologicalEntities::SUCCESS;
 
 }
-
-
-static cv::Mat getNonRBCMask(const std::vector<cv::Mat>& bgr, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1); // A3
-static cv::Mat getCandidateNuclei(const cv::Mat& red, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);  // A1
-static cv::Mat filterCandidateNuclei(const cv::Mat& candidates, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);  // A2
-static cv::Mat removeRBC(const cv::Mat& candidates, cv::Mat& rbc, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);
-static cv::Mat separateNuclei(const cv::Mat& candidates, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);  // A4
-static std::vector<cv::Rect> labelSeparatedNuclei(const cv::Mat& candidates, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);
 
 
 }
