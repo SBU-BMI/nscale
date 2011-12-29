@@ -16,6 +16,8 @@
 #include "precomp.hpp"
 #include "NeighborOperations.h"
 
+#define HAVE_CUDA
+
 namespace nscale {
 
 using namespace cv;
@@ -30,6 +32,11 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream) { throw_nogpu(); }
 int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger *logger, int stage) { throw_nogpu(); }
 int HistologicalEntities::segmentNuclei(const std::string& input, const std::string& output, cciutils::SimpleCSVLogger *logger, int stage) { throw_nogpu(); }
+
+
+// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
+int plFindNucleusCandidates(const cv::gpu::GpuMat& img, cv::gpu::GpuMat& nuclei, cciutils::SimpleCSVLogger *logger, int stage) { throw_nogpu(); }  // S1
+int plSeparateNuclei(const cv::gpu::GpuMat& img, const cv::gpu::GpuMat& seg_open, cv::gpu::GpuMat& seg_nonoverlap, cciutils::SimpleCSVLogger *logger, int stage) { throw_nogpu(); }// A4
 
 
 
@@ -102,6 +109,16 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 }
 
 GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream) {
+	/*
+	* this part to decide if the tile is background or foreground
+	THR = 0.9;
+    grayI = rgb2gray(I);
+    area_bg = length(find(I(:,:,1)>=220&I(:,:,2)>=220&I(:,:,3)>=220));
+    ratio = area_bg/numel(grayI);
+    if ratio >= THR
+        return;
+    end
+	 */
 
 	GpuMat b1, g1, r1;
 	GpuMat g_bg(g_bgr[0].size(), CV_8U);
@@ -136,45 +153,16 @@ int HistologicalEntities::segmentNuclei(const std::string& in, const std::string
 }
 
 
-
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger *logger, int stage) {
-	// image in BGR format
-	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
-
-
-//	Mat img2(Size(1024,1024), img.type());
-//	resize(img, img2, Size(1024,1024));
-//	namedWindow("orig image", CV_WINDOW_AUTOSIZE);
-//	imshow("orig image", img2);
-
-	/*
-	* this part to decide if the tile is background or foreground
-	THR = 0.9;
-    grayI = rgb2gray(I);
-    area_bg = length(find(I(:,:,1)>=220&I(:,:,2)>=220&I(:,:,3)>=220));
-    ratio = area_bg/numel(grayI);
-    if ratio >= THR
-        return;
-    end
-	 */
-	if (logger) logger->logStart("start");
-	if (stage == 0) {
-			output = img;
-			return ::nscale::HistologicalEntities::SUCCESS;
-		}
-
-	GpuMat g_img;
-	Stream stream;
-	stream.enqueueUpload(img, g_img);
-	stream.waitForCompletion();
-	if (logger) logger->logTimeElapsedSinceLastLog("uploaded image");
+// S1
+int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_norbc,
+		Stream& stream, Mat& output, cciutils::SimpleCSVLogger *logger, int stage) {
 
 	std::vector<GpuMat> g_bgr;
 	split(g_img, g_bgr, stream);
 	stream.waitForCompletion();
 	if (logger) logger->logTimeElapsedSinceLastLog("toRGB");
 
-	GpuMat g_bg = getBackground(g_bgr, stream);
+	GpuMat g_bg = ::nscale::gpu::HistologicalEntities::getBackground(g_bgr, stream);
 	stream.waitForCompletion();
 	if (stage == 1) {
 		Mat temp(g_bg.size(), g_bg.type());
@@ -192,7 +180,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	int bgArea = countNonZero(g_bg);
 	g_bg.release();
 
-	float ratio = (float)bgArea / (float)(img.size().area());
+	float ratio = (float)bgArea / (float)(g_img.size().area());
 	//std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
 	if (logger) logger->log("backgroundRatio", ratio);
 	if (ratio >= 0.99) {
@@ -243,6 +231,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	g_bgr[0].release();
 	g_bgr[1].release();
 	g_bgr[2].release();
+
+
 
 //	Mat rbc(g_rbc.size(), g_rbc.type());
 //	stream.enqueueDownload(g_rbc, rbc);
@@ -431,7 +421,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	//return ::nscale::HistologicalEntities::segmentNucleiStage2(img, diffIm, bw1, rbc, output, logger, stage);
 
 	//	// TODO: change back
-//	return nscale::HistologicalEntities::SUCCESS;
+//	return ::nscale::HistologicalEntities::SUCCESS;
 /*
  *     %CHANGE
     [L] = bwlabel(bw1, 8);
@@ -449,14 +439,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
     end
  *
  */
-	bw1 = nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8);
+	bw1 = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8);
 	if (stage == 8) {
 		output = bw1;
 		g_diffIm.release();
 		g_bw1.release();
 	g_rbc.release();
 
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 	if (countNonZero(bw1) == 0) {
 		if (logger) logger->logTimeElapsedSinceLastLog("areaThreshold1");
@@ -464,7 +454,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		g_bw1.release();
 			g_rbc.release();
 
-		return nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
+		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
 //	imwrite("test/out-nucleicandidatessized.ppm", bw1);
 	stream.enqueueUpload(bw1, g_bw1);
@@ -472,7 +462,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	if (logger) logger->logTimeElapsedSinceLastLog("areaThreshold1");
 //	if (stage == 9) {
 //		output = bw1;
-//		return nscale::HistologicalEntities::SUCCESS;
+//		return ::nscale::HistologicalEntities::SUCCESS;
 //	}
 
 	unsigned char G2 = 45;
@@ -487,7 +477,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		output = temp;
 		g_bw1.release();
 		g_bw2.release();
-			g_rbc.release();
+		g_rbc.release();
 
 		return ::nscale::HistologicalEntities::SUCCESS;
 	}
@@ -501,7 +491,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 *
 	 */
 
-	GpuMat g_seg_norbc2 = nscale::gpu::bwselect<unsigned char>(g_bw2, g_bw1, 8, stream);
+	GpuMat g_seg_norbc2 = ::nscale::gpu::bwselect<unsigned char>(g_bw2, g_bw1, 8, stream);
 	stream.waitForCompletion();
 	g_bw1.release();
 	g_bw2.release();
@@ -511,12 +501,12 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		stream.waitForCompletion();
 		output = temp;
 		g_seg_norbc2.release();
-			g_rbc.release();
+		g_rbc.release();
 
 		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 
-	GpuMat g_seg_norbc(g_seg_norbc2.size(), g_seg_norbc2.type());
+	g_seg_norbc = ::cv::gpu::createContinuous(g_seg_norbc2.size(), g_seg_norbc2.type());
 	bitwise_not(g_rbc, g_seg_norbc, g_seg_norbc2, stream);
 	stream.waitForCompletion();
 	g_rbc.release();
@@ -528,64 +518,19 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 		output = temp;
 		g_seg_norbc.release();
 
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 //	imwrite("test/out-nucleicandidatesnorbc.ppm", seg_norbc);
 	if (logger) logger->logTimeElapsedSinceLastLog("blobsGt45");
 
-	GpuMat g_seg_nohole = nscale::gpu::imfillHoles<unsigned char>(g_seg_norbc, true, 4, stream);
-	stream.waitForCompletion();
-	g_seg_norbc.release();
-	if (logger) logger->logTimeElapsedSinceLastLog("fillHoles2");
-	if (stage == 12) {
-		Mat temp(g_seg_nohole.size(), g_seg_nohole.type());
-		stream.enqueueDownload(g_seg_nohole, temp);
-		stream.waitForCompletion();
-		output = temp;
-		g_seg_nohole.release();
-		return nscale::HistologicalEntities::SUCCESS;
-	}
+	return ::nscale::HistologicalEntities::CONTINUE;
+}
+
+// A4
+int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, GpuMat& g_seg_nonoverlap, Stream& stream,
+		Mat& output, cciutils::SimpleCSVLogger *logger, int stage) {
 
 	
-	// a 3x3 mat with a cross
-	unsigned char disk3raw[9] = {
-			0, 1, 0,
-			1, 1, 1, 
-			0, 1, 0};
-	std::vector<unsigned char> disk3vec(disk3raw, disk3raw+9);
-	Mat disk3(disk3vec);
-	// can't use morphologyEx.  the erode phase is not creating a border even though the method signature makes it appear that way.
-	// because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
-	//	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(1,1)); //, Point(-1, -1), 1, BORDER_REFLECT);
-	disk3 = disk3.reshape(1, 3);
-//	imwrite("test/out-rcopen-strel.pbm", disk19);
-	// filter doesnot check borders.  so need to create border.
-	GpuMat g_t_seg_nohole;
-	stream.enqueueMemSet(g_t_seg_nohole, Scalar(0));
-	copyMakeBorder(g_seg_nohole, g_t_seg_nohole, 1,1,1,1, Scalar(std::numeric_limits<unsigned char>::max()), stream);
-	GpuMat g_t_seg_erode(g_t_seg_nohole.size(), g_t_seg_nohole.type());
-	erode(g_t_seg_nohole, g_t_seg_erode, disk3, Point(-1,-1), 1, stream);
-	GpuMat g_seg_erode = g_t_seg_erode(Rect(1, 1, g_seg_nohole.cols, g_seg_nohole.rows));
-	GpuMat g_t_seg_erode2;
-	stream.enqueueMemSet(g_t_seg_erode2, Scalar(0));
-	copyMakeBorder(g_seg_erode, g_t_seg_erode2, 1,1,1,1, Scalar(std::numeric_limits<unsigned char>::min()), stream);
-	GpuMat g_t_seg_open(g_t_seg_erode2.size(), g_t_seg_erode2.type());
-	erode(g_t_seg_erode2, g_t_seg_open, disk3, Point(-1,-1), 1, stream);
-	GpuMat g_seg_open = g_t_seg_open(Rect(1, 1, g_seg_nohole.cols, g_seg_nohole.rows));
-	stream.waitForCompletion();
-	g_t_seg_open.release();
-	g_t_seg_erode2.release();
-	g_seg_erode.release();
-	g_t_seg_erode.release();
-	g_t_seg_nohole.release();
-	g_seg_nohole.release();
-
-//	imwrite("test/out-nucleicandidatesopened.ppm", seg_open);
-	if (logger) logger->logTimeElapsedSinceLastLog("openBlobs");
-	if (stage == 13) {
-// TODO:		output = seg_open;
-		return nscale::HistologicalEntities::SUCCESS;
-	}
 
 	/*
 	 *
@@ -597,11 +542,11 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	stream.waitForCompletion();
 	g_seg_open.release();
 	
-	Mat seg_big_t = nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8);
+	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8);
 	if (logger) logger->logTimeElapsedSinceLastLog("30To1000");
 	if (stage == 14) {
 		output = seg_big_t;
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 	
 	GpuMat g_seg_big_t(seg_big_t.size(), seg_big_t.type());
@@ -609,6 +554,19 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	stream.waitForCompletion();
 	seg_big_t.release();
 	
+	// a 3x3 mat with a cross
+	unsigned char disk3raw[9] = {
+			0, 1, 0,
+			1, 1, 1,
+			0, 1, 0};
+	std::vector<unsigned char> disk3vec(disk3raw, disk3raw+9);
+	Mat disk3(disk3vec);
+	// can't use morphologyEx.  the erode phase is not creating a border even though the method signature makes it appear that way.
+	// because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
+	//	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(1,1)); //, Point(-1, -1), 1, BORDER_REFLECT);
+	disk3 = disk3.reshape(1, 3);
+
+
 	GpuMat g_seg_big(g_seg_big_t.size(), g_seg_big_t.type());
 	stream.enqueueMemSet(g_seg_big, Scalar(0));
 	dilate(g_seg_big_t, g_seg_big, disk3, Point(-1, -1), 1, stream);
@@ -616,7 +574,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	g_seg_big_t.release();
 	if (stage == 15) {
 // TODO		output = seg_big;
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 //	imwrite("test/out-nucleicandidatesbig.ppm", seg_big);
 	if (logger) logger->logTimeElapsedSinceLastLog("dilate");
@@ -657,17 +615,17 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	minMaxLoc(g_dist, &mmin, &mmax);
 	if (stage == 16) {
 //TODO		output = dist * (std::numeric_limits<uchar>::max() / mmax);
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 
 	// invert and shift (make sure it's still positive)
 	//dist = (mmax + 1.0) - dist;
-	GpuMat g_distneg = nscale::gpu::PixelOperations::invert<float>(g_dist, stream);
+	GpuMat g_distneg = ::nscale::gpu::PixelOperations::invert<float>(g_dist, stream);
 	stream.waitForCompletion();
 	g_dist.release();
 	//	if (stage == 18) {
 //			output = dist * (std::numeric_limits<uchar>::max() / mmax);
-//			return nscale::HistologicalEntities::SUCCESS;
+//			return ::nscale::HistologicalEntities::SUCCESS;
 //		}
 
 //	cciutils::cv::imwriteRaw("test/out-dist", dist);
@@ -688,12 +646,12 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 //			output = Mat::zeros(output.size(), output.type());
 //			output2.copyTo(output, seg_big);
 //			output = output * (std::numeric_limits<uchar>::max() / mmax);
-			return nscale::HistologicalEntities::SUCCESS;
+			return ::nscale::HistologicalEntities::SUCCESS;
 		}
 
 
 	// then do imhmin. (prevents small regions inside bigger regions)
-	GpuMat g_distance2 = nscale::gpu::imhmin<float>(g_distance, 1.0f, 8, stream);
+	GpuMat g_distance2 = ::nscale::gpu::imhmin<float>(g_distance, 1.0f, 8, stream);
 	stream.waitForCompletion();
 	g_distance.release();
 	if (logger) logger->logTimeElapsedSinceLastLog("imhmin");
@@ -702,7 +660,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 //			output = Mat::zeros(output.size(), output.type());
 //			output2.copyTo(output, seg_big);
 //			output = output * (std::numeric_limits<uchar>::max() / mmax);
-			return nscale::HistologicalEntities::SUCCESS;
+			return ::nscale::HistologicalEntities::SUCCESS;
 		}
 
 //cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
@@ -716,23 +674,23 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	 */
 
 	GpuMat g_dummy;
-	GpuMat g_watermask_t = nscale::gpu::watershedDW(g_dummy, g_distance2, 8, stream);
-	GpuMat g_watermask = nscale::gpu::NeighborOperations::border(g_watermask_t, 0, stream);
+	GpuMat g_watermask_t = ::nscale::gpu::watershedDW(g_dummy, g_distance2, 8, stream);
+	GpuMat g_watermask = ::nscale::gpu::NeighborOperations::border(g_watermask_t, 0, stream);
 	stream.waitForCompletion();
 	g_dummy.release();
 	g_distance2.release();
 	g_watermask_t.release();
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
-	//Mat watermask = nscale::watershed2(nuclei, distance2, 8);
+	//Mat watermask = ::nscale::watershed2(nuclei, distance2, 8);
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 	if (logger) logger->logTimeElapsedSinceLastLog("watershed");
 	if (stage == 20) {
 //	TODO		output = watermask;
-			return nscale::HistologicalEntities::SUCCESS;
+			return ::nscale::HistologicalEntities::SUCCESS;
 		}
 
-	GpuMat g_seg_nonoverlap(g_seg_big.size(), g_seg_big.type());
+	g_seg_nonoverlap = ::cv::gpu::createContinuous(g_seg_big.size(), g_seg_big.type());
 	stream.enqueueMemSet(g_seg_nonoverlap, Scalar(0));
 //	seg_big.copyTo(seg_nonoverlap, (watermask >= 0));
 	GpuMat g_wmask = PixelOperations::threshold<int>(g_watermask, 1, std::numeric_limits<int>::max(), stream);
@@ -740,12 +698,102 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	stream.waitForCompletion();
 	g_wmask.release();
 	g_watermask.release();
-	
+	g_seg_big.release();
+
 	// erode a bit
 	if (logger) logger->logTimeElapsedSinceLastLog("water to mask");
 	if (stage == 21) {
 // TODO		output = seg_nonoverlap;
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
+	}
+
+	return ::nscale::HistologicalEntities::CONTINUE;
+}
+
+
+
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::SimpleCSVLogger *logger, int stage) {
+	// image in BGR format
+	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
+
+
+	if (logger) logger->logStart("start");
+	if (stage == 0) {
+			output = img;
+			return ::nscale::HistologicalEntities::SUCCESS;
+		}
+
+
+	GpuMat g_img;
+	Stream stream;
+	stream.enqueueUpload(img, g_img);
+	stream.waitForCompletion();
+	if (logger) logger->logTimeElapsedSinceLastLog("uploaded image");
+	GpuMat g_seg_norbc;
+	int findCandidateResult = ::nscale::gpu::HistologicalEntities::plFindNucleusCandidates(g_img, g_seg_norbc, stream, output, logger, stage);
+	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
+		return findCandidateResult;
+	}
+
+	GpuMat g_seg_nohole = ::nscale::gpu::imfillHoles<unsigned char>(g_seg_norbc, true, 4, stream);
+	stream.waitForCompletion();
+	g_seg_norbc.release();
+	if (logger) logger->logTimeElapsedSinceLastLog("fillHoles2");
+	if (stage == 12) {
+		Mat temp(g_seg_nohole.size(), g_seg_nohole.type());
+		stream.enqueueDownload(g_seg_nohole, temp);
+		stream.waitForCompletion();
+		output = temp;
+		g_seg_nohole.release();
+		return ::nscale::HistologicalEntities::SUCCESS;
+	}
+
+
+	// a 3x3 mat with a cross
+	unsigned char disk3raw[9] = {
+			0, 1, 0,
+			1, 1, 1,
+			0, 1, 0};
+	std::vector<unsigned char> disk3vec(disk3raw, disk3raw+9);
+	Mat disk3(disk3vec);
+	// can't use morphologyEx.  the erode phase is not creating a border even though the method signature makes it appear that way.
+	// because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
+	//	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(1,1)); //, Point(-1, -1), 1, BORDER_REFLECT);
+	disk3 = disk3.reshape(1, 3);
+//	imwrite("test/out-rcopen-strel.pbm", disk19);
+	// filter doesnot check borders.  so need to create border.
+	GpuMat g_t_seg_nohole;
+	stream.enqueueMemSet(g_t_seg_nohole, Scalar(0));
+	copyMakeBorder(g_seg_nohole, g_t_seg_nohole, 1,1,1,1, Scalar(std::numeric_limits<unsigned char>::max()), stream);
+	GpuMat g_t_seg_erode(g_t_seg_nohole.size(), g_t_seg_nohole.type());
+	erode(g_t_seg_nohole, g_t_seg_erode, disk3, Point(-1,-1), 1, stream);
+	GpuMat g_seg_erode = g_t_seg_erode(Rect(1, 1, g_seg_nohole.cols, g_seg_nohole.rows));
+	GpuMat g_t_seg_erode2;
+	stream.enqueueMemSet(g_t_seg_erode2, Scalar(0));
+	copyMakeBorder(g_seg_erode, g_t_seg_erode2, 1,1,1,1, Scalar(std::numeric_limits<unsigned char>::min()), stream);
+	GpuMat g_t_seg_open(g_t_seg_erode2.size(), g_t_seg_erode2.type());
+	erode(g_t_seg_erode2, g_t_seg_open, disk3, Point(-1,-1), 1, stream);
+	GpuMat g_seg_open = g_t_seg_open(Rect(1, 1, g_seg_nohole.cols, g_seg_nohole.rows));
+	stream.waitForCompletion();
+	g_t_seg_open.release();
+	g_t_seg_erode2.release();
+	g_seg_erode.release();
+	g_t_seg_erode.release();
+	g_t_seg_nohole.release();
+	g_seg_nohole.release();
+
+//	imwrite("test/out-nucleicandidatesopened.ppm", seg_open);
+	if (logger) logger->logTimeElapsedSinceLastLog("openBlobs");
+	if (stage == 13) {
+// TODO:		output = seg_open;
+		return ::nscale::HistologicalEntities::SUCCESS;
+	}
+
+
+	GpuMat g_seg_nonoverlap;
+	int sepResult = ::nscale::gpu::HistologicalEntities::plSeparateNuclei(g_img, g_seg_open, g_seg_nonoverlap, stream, output, logger, stage);
+	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
+		return sepResult;
 	}
 
 	// erode by 1
@@ -760,12 +808,11 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	g_seg_nonoverlap.release();
 	g_t_nonoverlap.release();
 	g_twm.release();
-	g_seg_big.release();
 //	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
 	if (logger) logger->logTimeElapsedSinceLastLog("watershed erode");
 	if (stage == 22) {
 // TODO		output = seg_nonoverlap;
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 
 
@@ -789,15 +836,15 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	stream.waitForCompletion();
 	g_seg_nonoverlap2.release();
 
-	Mat seg = nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4);
+	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4);
 
 	if (logger) logger->logTimeElapsedSinceLastLog("20To1000");
 	if (countNonZero(seg) == 0) {
-		return nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
+		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
 	if (stage == 23) {
 		output = seg;
-		return nscale::HistologicalEntities::SUCCESS;
+		return ::nscale::HistologicalEntities::SUCCESS;
 	}
 //	imwrite("test/out-seg.ppm", seg);
 	
@@ -829,7 +876,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 
 //	if (logger) logger->endSession();
 
-	return nscale::HistologicalEntities::SUCCESS;
+	return ::nscale::HistologicalEntities::SUCCESS;
 
 	
 	

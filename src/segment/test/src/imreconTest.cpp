@@ -47,6 +47,7 @@ int main (int argc, char **argv){
 	Mat marker2(Size(256,256), CV_8U);
 	marker2.ptr<uchar>(112)[93] = 255;
 */
+	gpu::setDevice(2);
 
 	Mat marker = imread("test/in-imrecon-gray-marker.pgm", -1);
 	Mat mask = imread("test/in-imrecon-gray-mask.pgm", -1);

@@ -41,12 +41,10 @@ GpuMat NeighborOperations::border(const GpuMat& img, T background, Stream& strea
 	copyMakeBorder(img, input, 1, 1, 1, 1, Scalar(background), stream);
 	stream.waitForCompletion();
 
-	printf("here\n");
     GpuMat result = createContinuous(input.size(), input.type());
 
     borderCaller<T>(input.rows, input.cols, input, result, background, StreamAccessor::getStream(stream));
     stream.waitForCompletion();
-	printf("here\n");
 
     input.release();
 

@@ -86,7 +86,7 @@
 <inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1213160927" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 </tool>
 <tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp.89002226" name="GCC C++ Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp.832914106">
-<option id="gnu.cpp.compiler.option.include.paths.82315103" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<option id="gnu.cpp.compiler.option.include.paths.82315103" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 <listOptionValue builtIn="false" value="/home/tcpan/PhD/path/ext/hdf5-1.8.7-linux-x86_64-shared/include"/>
 <listOptionValue builtIn="false" value="/usr/include/mpich2"/>
 <listOptionValue builtIn="false" value="/usr/local/cuda/include"/>
@@ -98,7 +98,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="test/src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="tasks|test/src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>

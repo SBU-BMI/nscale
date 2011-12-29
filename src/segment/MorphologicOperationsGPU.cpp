@@ -105,7 +105,7 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 
     // allocate results
 	GpuMat marker = createContinuous(seeds.size(), seeds.type());
-	GpuMat markerFirstPass = createContinuous(seeds.size(), seeds.type());
+//	GpuMat markerFirstPass = createContinuous(seeds.size(), seeds.type());
 	stream.enqueueCopy(seeds, marker);
 //	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
 
@@ -115,9 +115,10 @@ GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity,
 
 	stream.waitForCompletion();
 	if (std::numeric_limits<T>::is_integer) {
-	    iter = imreconstructIntCaller<unsigned char>(marker.data, mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream), markerFirstPass.data);
+	    iter = imreconstructIntCaller<T>((T*)marker.data, (T*)mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+	    //, markerFirstPass.data);
 	} else {
-		iter = imreconstructFloatCaller<float>((float*)marker.data, (float*)mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
+		iter = imreconstructFloatCaller<T>((T*)marker.data, (T*)mask.data, seeds.cols, seeds.rows, connectivity, StreamAccessor::getStream(stream));
 	}
 	stream.waitForCompletion();
 	mask.release();

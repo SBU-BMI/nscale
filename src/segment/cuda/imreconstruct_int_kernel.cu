@@ -589,7 +589,9 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 // connectivity:  if 8 conn, need to have border.
 template <typename T>
 unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy,
-		const int connectivity, cudaStream_t stream, unsigned char*h_markerFistPass) {
+		const int connectivity, cudaStream_t stream) {
+	//, unsigned char*h_markerFistPass) {
+
 
 	// here because we are not using streams inside.
 	//		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
@@ -625,7 +627,7 @@ unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict_
 	if (conn8) {
 		while ( (*h_change) && (iter < 100000) )  // repeat until stability
 		{
-			t1 = ClockGetTime();
+//			t1 = ClockGetTime();
 			iter++;
 			*h_change = false;
 			init_change<<< 1, 1, 0, stream>>>( d_change );
@@ -651,19 +653,19 @@ unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict_
 			cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 			//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
-			t2 = ClockGetTime();
-
-			if (iter == 1) {
-		
-				cudaSafeCall( cudaMemcpy( h_markerFistPass, marker, sizeof(unsigned char) * sx * sy, cudaMemcpyDeviceToHost ) );
-				printf("first pass 8conn == scan, %lu ms\n", t2-t1);
-			}
+//			t2 = ClockGetTime();
+//
+//			if (iter == 1) {
+//
+//				cudaSafeCall( cudaMemcpy( h_markerFistPass, marker, sizeof(unsigned char) * sx * sy, cudaMemcpyDeviceToHost ) );
+//				printf("first pass 8conn == scan, %lu ms\n", t2-t1);
+//			}
 
 		}
 	} else {
 		while ( (*h_change) && (iter < 100000) )  // repeat until stability
 		{
-			t1 = ClockGetTime();
+//			t1 = ClockGetTime();
 
 			iter++;
 			*h_change = false;
@@ -690,12 +692,12 @@ unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict_
 			cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 			//				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
-			t2 = ClockGetTime();
-			if (iter == 1) {
-				//cudaSafeCall( cudaMemcpy( h_markerFistPass, marker, sizeof(unsigned char) * sx * sy, cudaMemcpyDeviceToDevice ) );
-				printf("first pass 4conn == scan, %lu ms\n", t2-t1);
-//				break;
-			}
+//			t2 = ClockGetTime();
+//			if (iter == 1) {
+//				//cudaSafeCall( cudaMemcpy( h_markerFistPass, marker, sizeof(unsigned char) * sx * sy, cudaMemcpyDeviceToDevice ) );
+//				printf("first pass 4conn == scan, %lu ms\n", t2-t1);
+////				break;
+//			}
 
 
 		}
@@ -956,7 +958,8 @@ template <typename T> int *imreconstructIntCallerBuildQueue(T* __restrict__ mark
 
 
 template unsigned int imreconstructIntCaller<unsigned char>(unsigned char*, const unsigned char*, const int, const int,
-		const int, cudaStream_t,unsigned char*h_markerFistPass );
+		const int, cudaStream_t);
+//,unsigned char*h_markerFistPass );
 
 template int *imreconstructIntCallerBuildQueue<unsigned char>(unsigned char*, const unsigned char*, const int, const int, const int, int&, int, cudaStream_t);
 

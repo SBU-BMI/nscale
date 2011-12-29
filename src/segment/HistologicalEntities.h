@@ -32,9 +32,15 @@ public:
 	static const int NO_CANDIDATES_LEFT = 3;
 	static const int INVALID_IMAGE = -1;
 	static const int SUCCESS = 0;
+	static const int CONTINUE = 4;
 
-	// shared code between cpu and gpu.
-//	static int segmentNucleiStage2(const cv::Mat& img, const cv::Mat& diffIm, const cv::Mat& bw11, const cv::Mat& rbc, cv::Mat& output, cciutils::SimpleCSVLogger *logger, int stage);
+
+	// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
+	static int plFindNucleusCandidates(const cv::Mat& img, cv::Mat& seg_norbc, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);  // S1
+	static int plSeparateNuclei(const cv::Mat& img, const cv::Mat& seg_open, cv::Mat& seg_nonoverlap, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1); // A4
+
+
+
 
 };
 
@@ -49,6 +55,11 @@ public:
 
 	static int segmentNuclei(const cv::Mat& img, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);
 	static int segmentNuclei(const std::string& input, const std::string& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);
+
+	// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
+	static int plFindNucleusCandidates(cv::gpu::GpuMat& g_img, cv::gpu::GpuMat& g_seg_norbc, cv::gpu::Stream& stream, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1);  // S1
+	static int plSeparateNuclei(cv::gpu::GpuMat& g_img, cv::gpu::GpuMat& g_seg_open, cv::gpu::GpuMat& g_seg_nonoverlap, cv::gpu::Stream& stream, cv::Mat& output, cciutils::SimpleCSVLogger *logger = NULL, int stage=-1); // A4
+
 };
 
 }
