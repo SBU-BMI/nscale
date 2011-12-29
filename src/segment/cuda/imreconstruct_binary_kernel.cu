@@ -676,7 +676,7 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		} else {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
 			{
-				t1 = ClockGetTimeb();
+//				t1 = ClockGetTimeb();
 				iter++;
 				*h_change = false;
 				init_change<<< 1, 1, 0, stream>>>( d_change );
@@ -702,10 +702,10 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
 //				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
-				t2 = ClockGetTimeb();
-				if (iter == 1) {
-					printf("first pass 4conn binary == scan, %lu ms\n", t2-t1);
-				}
+//				t2 = ClockGetTimeb();
+//				if (iter == 1) {
+//					printf("first pass 4conn binary == scan, %lu ms\n", t2-t1);
+//				}
 
 			}
 		}
