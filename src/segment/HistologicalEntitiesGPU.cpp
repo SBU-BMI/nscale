@@ -15,8 +15,10 @@
 #include "opencv2/gpu/gpu.hpp"
 #include "precomp.hpp"
 #include "NeighborOperations.h"
+#include "CVImageIOUtils.h"
 
-#define HAVE_CUDA
+
+//#define HAVE_CUDA
 
 namespace nscale {
 
