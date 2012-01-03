@@ -29,8 +29,11 @@ public:
 	void setSpeedup(int procType=ExecEngineConstants::GPU, float speedup=1.0);
 	float getSpeedup(int procType=ExecEngineConstants::GPU);
 
+
+	int insertTask(Task *task);
 	void *getGPUTempData(int tid);
 
+	// Interface implemented by the end user
 	virtual bool run(int procType=ExecEngineConstants::GPU, int tid=0);
 
 };

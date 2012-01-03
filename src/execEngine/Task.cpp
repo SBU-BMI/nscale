@@ -31,14 +31,21 @@ void *Task::getGPUTempData(int tid){
 void Task::setSpeedup(int procType, float speedup)
 {
 	speedups[procType-1] = speedup;
-
 }
 
 float Task::getSpeedup(int procType)
 {
 	return speedups[procType-1];
 }
-
+int Task::insertTask(Task *task){
+	int retValue=0;
+	if(task != NULL && curExecEngine != NULL){
+		curExecEngine->insertTask(task);
+	}else{
+		printf("Failed to insert a new task\n");
+		retValue=1;
+	}
+}
 bool Task::run(int procType, int tid)
 {
 //	printf("EI Task::run ");
