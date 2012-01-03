@@ -33,6 +33,7 @@ public:
 	static const int INVALID_IMAGE = -1;
 	static const int SUCCESS = 0;
 	static const int CONTINUE = 4;
+	static const int RUNTIME_FAILED = -2;
 
 
 	// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.

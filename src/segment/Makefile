@@ -41,7 +41,7 @@ clean:
 %.o: %.cu
 	$(NVCC) $(NVCC_FLAGS) $(NVCC_INCLUDE) ${CUDA_CV_INCLUDE} -o $@ -c $<
 	
-%.exe:  %.o ${EXECENG_SRCO}
+%.exe:  %.o ${EXECENG_SRCO} libsegment.so
 	$(CXX) $(CXXFLAGS) -L. -lsegment -I. $(LDFLAGS) -o $@ ${EXECENG_SRCO} $< 
 
 	

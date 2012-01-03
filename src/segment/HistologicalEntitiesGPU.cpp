@@ -765,16 +765,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 //	imwrite("test/out-rcopen-strel.pbm", disk19);
 	// filter doesnot check borders.  so need to create border.
 	GpuMat g_t_seg_nohole;
-	stream.enqueueMemSet(g_t_seg_nohole, Scalar(0));
 	copyMakeBorder(g_seg_nohole, g_t_seg_nohole, 1,1,1,1, Scalar(std::numeric_limits<unsigned char>::max()), stream);
 	GpuMat g_t_seg_erode(g_t_seg_nohole.size(), g_t_seg_nohole.type());
 	erode(g_t_seg_nohole, g_t_seg_erode, disk3, Point(-1,-1), 1, stream);
 	GpuMat g_seg_erode = g_t_seg_erode(Rect(1, 1, g_seg_nohole.cols, g_seg_nohole.rows));
 	GpuMat g_t_seg_erode2;
-	stream.enqueueMemSet(g_t_seg_erode2, Scalar(0));
 	copyMakeBorder(g_seg_erode, g_t_seg_erode2, 1,1,1,1, Scalar(std::numeric_limits<unsigned char>::min()), stream);
 	GpuMat g_t_seg_open(g_t_seg_erode2.size(), g_t_seg_erode2.type());
-	erode(g_t_seg_erode2, g_t_seg_open, disk3, Point(-1,-1), 1, stream);
+	dilate(g_t_seg_erode2, g_t_seg_open, disk3, Point(-1,-1), 1, stream);
 	GpuMat g_seg_open = g_t_seg_open(Rect(1, 1, g_seg_nohole.cols, g_seg_nohole.rows));
 	stream.waitForCompletion();
 	g_t_seg_open.release();
@@ -799,7 +797,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cciutils::S
 	}
 
 	// erode by 1
-	GpuMat g_twm(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
+	GpuMat g_twm;
 	copyMakeBorder(g_seg_nonoverlap, g_twm, 1, 1, 1, 1, Scalar(std::numeric_limits<unsigned char>::max()), stream);
 	GpuMat g_t_nonoverlap(g_twm.size(), g_twm.type());
 	stream.enqueueMemSet(g_t_nonoverlap, Scalar(0));
