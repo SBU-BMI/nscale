@@ -10,17 +10,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sched.h>
+#include <vector>
 #include <pthread.h>
 #include <semaphore.h>
 #include <sys/time.h>
-#include <sys/signal.h>
-#include <signal.h>
 
-//#include "Constants.h"
+#include "ExecEngineConstants.h"
 #include "TasksQueue.h"
 
-#include <vector>
+class TasksQueue;
 
 struct threadData{
 	int tid;
@@ -37,12 +35,11 @@ private:
 	pthread_t *CPUWorkerThreads;
 	pthread_t *GPUWorkerThreads;
 
+	int gpuTempDataSize;
+	vector<void *>gpuTempData;
+
 	int numGPUThreads;
 	int numCPUThreads;
-
-	// It has number of entries equal to number of CPU+GPU threads, and the task been 
-	// executed will be in the entry that corresponds to each thread
-	vector<Task *> curProcTasks;
 
 	// This mutex is used to prevent the worker threads from initialized after
 	// their creation, but only when initExecution function is called.
@@ -56,20 +53,18 @@ private:
 	struct timeval firstToFinishTime;
 	struct timeval lastToFinishTime;
 
-	// performs the tasks replication
-	void taskReplicationAction(int procType);
-
 public:
 	ThreadPool(TasksQueue *tasksQueues);
 	virtual ~ThreadPool();
 
 	// Create threads and assign them to appropriate devices
-	bool createThreadPool(int cpuThreads=1, int *cpuThreadsCoreMapping=NULL, int gpuThreads=0, int *gpuThreadsCoreMapping=NULL);
+	bool createThreadPool(int cpuThreads=1, int *cpuThreadsCoreMapping=NULL, int gpuThreads=0, int *gpuThreadsCoreMapping=NULL, int gpuTempDataSize=0);
 
 	// Startup computation, so far, even if thread pool was created, the threads are awaiting for the
 	// execution to be initialized. Make sure the thread poll was created before calling init execution.
 	void initExecution();
 
+	void *getGPUTempData(int tid);
 	// main computation loop, where threads are kept busy computing tasks
 	void processTasks(int procType, int tid);
 

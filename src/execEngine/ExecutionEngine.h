@@ -11,8 +11,11 @@
 #include "ThreadPool.h"
 #include "TasksQueue.h"
 
-#define FCFS_QUEUE	1
-#define PRIORITY_QUEUE	2
+//#define FCFS_QUEUE	1
+//#define PRIORITY_QUEUE	2
+class Task;
+class TasksQueue;
+class ThreadPool;
 
 class ExecutionEngine {
 
@@ -24,10 +27,12 @@ private:
 	Task* getTask(int procType=ExecEngineConstants::CPU);
 
 public:
-	ExecutionEngine(int cpuThreads, int gpuThreads, int queueType=FCFS_QUEUE);
+	ExecutionEngine(int cpuThreads, int gpuThreads, int queueType=ExecEngineConstants::FCFS_QUEUE, int gpuTempDataSize=0);
 	virtual ~ExecutionEngine();
 
 	bool insertTask(Task* task);
+
+	void *getGPUTempData(int tid);
 
 	// Execution engine will start computation of tasks
 	void startupExecution();
@@ -37,6 +42,7 @@ public:
 	// This is a blocking call.
 	void endExecution();
 
+	void waitUntilMinQueuedTask(int number_queued_tasks);
 };
 
 #endif /* EXECUTIONENGINE_H_ */

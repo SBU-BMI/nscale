@@ -7,11 +7,12 @@
 
 #include "ThreadPool.h"
 #include <sched.h>
-#include <string.h>
 
 
 // GPU functions called to initialize device.
 //void warmUp(int device);
+//void *cudaMemAllocWrapper(int dataSize);
+//void cudaFreeMemWrapper(void *data_ptr);
 
 void *callThread(void *arg){
 	ThreadPool *tp = (ThreadPool *)((threadData*) arg)->execEnginePtr;
@@ -22,20 +23,35 @@ void *callThread(void *arg){
 	if(procType == 2){
 		printf("WarnUP: GPU id = %d\n", tid);
 //		warmUp(tid);
+
 		int cpuId=tid;
 
-#ifdef	LINUX
-		if(tid==2){
-			cpuId = 11;
-		}
-		cpu_set_t cpu_info;
-		CPU_ZERO(&cpu_info);
-		CPU_SET(cpuId, &cpu_info);
+////		cpu_set_t cpu_info;
+////		CPU_ZERO(&cpu_info);
+////		if(tid==2){
+////			cpuId=11;
+////		}
+////		CPU_SET(cpuId, &cpu_info);
+////
+////
+////		if (sched_setaffinity(0, sizeof(cpu_set_t), &cpu_info) == -1) {
+////			printf("Error: sched_getaffinity\n");
+////		}
 
-		if (sched_setaffinity(0, sizeof(cpu_set_t), &cpu_info) == -1) {
-			printf("Error: sched_getaffinity\n");
-		}
-#endif
+	}else{
+		int cpuId=tid+2;
+
+////		cpu_set_t cpu_info;
+////		CPU_ZERO(&cpu_info);
+////		CPU_SET(cpuId, &cpu_info);
+////
+////
+////		if (sched_setaffinity(0, sizeof(cpu_set_t), &cpu_info) == -1) {
+////			printf("Error: sched_getaffinity\n");
+////		}
+
+
+
 	}
 
 	tp->processTasks(procType, tid);
@@ -58,7 +74,7 @@ ThreadPool::ThreadPool(TasksQueue *tasksQueue) {
 
 	numGPUThreads = 0;
 	numCPUThreads = 0;
-
+	gpuTempDataSize = 0;
 	firstToFinish=true;
 }
 
@@ -85,10 +101,14 @@ ThreadPool::~ThreadPool() {
 
 }
 
-bool ThreadPool::createThreadPool(int cpuThreads, int *cpuThreadsCoreMapping, int gpuThreads, int *gpuThreadsCoreMapping)
+void * ThreadPool::getGPUTempData(int tid){
+	return this->gpuTempData[tid];
+}
+
+bool ThreadPool::createThreadPool(int cpuThreads, int *cpuThreadsCoreMapping, int gpuThreads, int *gpuThreadsCoreMapping, int gpuTempDataSize)
 {
-	//TODO: assign threads to processors.....
-	// Initialize mutexes used to control the status of the worker threads
+
+	this->gpuTempDataSize = gpuTempDataSize;
 
 	// Create CPU threads.
 	if(cpuThreads > 0){
@@ -125,13 +145,11 @@ bool ThreadPool::createThreadPool(int cpuThreads, int *cpuThreadsCoreMapping, in
 				printf("ERROR: Return code from pthread_create() is %d\n", ret);
 				exit(-1);
 			}
+			gpuTempData.push_back(NULL);
 			// wait untill thead is created
 			pthread_mutex_lock(&createdThreads);
 
 		}
-	}
-	for(int i = 0; i < cpuThreads + gpuThreads; i++){
-		curProcTasks.push_back(NULL);
 	}
 
 	return true;
@@ -143,33 +161,6 @@ void ThreadPool::initExecution()
 	pthread_mutex_unlock(&initExecutionMutex);
 }
 
-void sighand(int signo)
-{
-	printf("Thread got signal. Leaving\n");
-	pthread_exit(NULL); 
-}
-
-void ThreadPool::taskReplicationAction(int procType){
-	struct sigaction        actions;
-
-	printf("Enter Testcase\n" );
-
-	printf("Set up the alarm handler for the process\n");
-	memset(&actions, 0, sizeof(actions));
-	sigemptyset(&actions.sa_mask);
-	actions.sa_flags = 0;
-	actions.sa_handler = sighand;
-
-	for(int i=0; i<this->numCPUThreads; ++i) {
-		// this threads still processing.
-		if(curProcTasks[this->numGPUThreads+i] !=NULL){
-			// kill CPU thread and process the task
- 			int rc = pthread_kill(CPUWorkerThreads[i], SIGALRM);
-			printf("Kill CPU thread id = %d\n", i);
-		}
-	}
-
-}
 
 void ThreadPool::processTasks(int procType, int tid)
 {
@@ -177,48 +168,44 @@ void ThreadPool::processTasks(int procType, int tid)
 	//sem_post(&createdThreads);
 	pthread_mutex_unlock(&createdThreads);
 
+//	if(ExecEngineConstants::GPU == procType && gpuTempDataSize >0){
+//		printf("GPU tid=%d allocDataSize=%d\n", tid, gpuTempDataSize);
+//		gpuTempData[tid] = cudaMemAllocWrapper(gpuTempDataSize);
+//	}
+
 	printf("procType:%d  tid:%d waiting init of execution\n", procType, tid);
 	pthread_mutex_lock(&initExecutionMutex);
 	pthread_mutex_unlock(&initExecutionMutex);
 
 	Task *curTask = NULL;
-	
-	// Id used by the thread to access the array of tasks being processed
-	int threadGlobalId = tid;
-
-	if(procType == ExecEngineConstants::CPU){
-		threadGlobalId += this->numGPUThreads; 
-	}
-
-	printf("Begin: procType:%d  tid:%d globalId=%d\n", procType, tid, threadGlobalId);
+// ProcessTime example
+struct timeval startTime;
+struct timeval endTime;
 
 	while(true){
 
 		curTask = this->tasksQueue->getTask(procType);
 		if(curTask == NULL){
 			printf("procType:%d  tid:%d Task NULL\n", procType, tid);
-#ifdef	TASK_REPLICATION
-			if(procType == Constant::GPU){
-				taskReplicationAction(procType);
-			}
-			sleep(10);
-#endif
 			break;
 		}
-		
-		curProcTasks[threadGlobalId] = curTask;
+	gettimeofday(&startTime, NULL);
 
-		curTask->run(procType);
+		curTask->run(procType, tid);
 
-		curProcTasks[threadGlobalId] = NULL;
-
-		printf("procType:%d  tid:%d Task speedup = %f\n", procType, tid, curTask->getSpeedup());
+		gettimeofday(&endTime, NULL);
+		// calculate time in microseconds
+		double tS = startTime.tv_sec*1000000 + (startTime.tv_usec);
+		double tE = endTime.tv_sec*1000000  + (endTime.tv_usec);
+		printf("procType:%d  tid:%d Task speedup = %f procTime = %f\n", procType, tid, curTask->getSpeedup(), (tE-tS)/1000000);
 		delete curTask;
 
 	}
 
 	printf("Leaving procType:%d  tid:%d\n", procType, tid);
-
+//	if(ExecEngineConstants::GPU == procType && gpuTempDataSize >0){
+//		cudaFreeMemWrapper(gpuTempData[tid]);
+//	}
 	// I don't care about controling concurrent access here. Whether two threads 
 	// enter this if, their resulting gettimeofday will be very similar if not the same.
 	if(firstToFinish){

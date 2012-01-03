@@ -10,6 +10,9 @@ public:
 	static const int CPU=1;
 	static const int GPU=2;
 
+	//! Scheduling policies
+	static const int FCFS_QUEUE=1;
+	static const int PRIORITY_QUEUE=2;
 };
 
 #endif
