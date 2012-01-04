@@ -20,7 +20,7 @@ public:
 	B2Task(const ::cv::Mat& image, const ::cv::Mat& input, const std::string& ofn);
 	virtual ~B2Task();
 
-	bool run(int procType=ExecEngineConstants::CPU);
+	virtual bool run(int procType=ExecEngineConstants::GPU, int tid=0);
 
 private:
 

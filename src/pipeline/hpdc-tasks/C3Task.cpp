@@ -18,16 +18,19 @@ C3Task::C3Task(RegionalMorphologyAnalysis *reg, const ::cv::Mat& image, std::vec
 	regional = reg;
 	nucleiFeatures = features;
 	next = NULL;
+
+	setSpeedup(ExecEngineConstants::GPU, 5);
+
 }
 
 
 C3Task::~C3Task() {
-	if (next != NULL) delete next;
+//	if (next != NULL) delete next;
 }
 
 // does not keep data in GPU memory yet.  no appropriate flag to show that data is on GPU, so that execEngine can try to reuse.
 // just the color deconvolution, then begin invocation of the feature computations.
-bool C3Task::run(int procType) {
+bool C3Task::run(int procType, int tid) {
 	// begin work
 	IplImage image(img);
 

@@ -21,7 +21,7 @@ public:
 	C3Task(RegionalMorphologyAnalysis *reg, const ::cv::Mat& image, std::vector<std::vector<float> >& features);
 	virtual ~C3Task();
 
-	bool run(int procType=ExecEngineConstants::CPU);
+	virtual bool run(int procType=ExecEngineConstants::GPU, int tid=0);
 
 private:
 

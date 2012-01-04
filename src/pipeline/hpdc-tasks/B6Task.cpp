@@ -20,15 +20,17 @@ B6Task::B6Task(const ::cv::Mat& image, const ::cv::Mat& in, const std::string& o
 	next = NULL;
 	outfilename = ofn;
 
+	setSpeedup(ExecEngineConstants::GPU, 1);
+
 }
 
 
 B6Task::~B6Task() {
-	if (next != NULL) delete next;
+//	if (next != NULL) delete next;
 }
 
 // does not keep data in GPU memory yet.  no appropriate flag to show that data is on GPU, so that execEngine can try to reuse.
-bool B6Task::run(int procType) {
+bool B6Task::run(int procType, int tid) {
 	// begin work
 	printf("B6\n");
 
@@ -47,7 +49,10 @@ bool B6Task::run(int procType) {
 	// now create the next task
 		next = new C1Task(img, output);
 	// and invoke it (temporary until hook up the exec engine).
-		next->run(procType);
+		if (insertTask(next) != 0) {
+			printf("unable to insert task\n");
+			return false;
+		}
 	}	
       return true;
 

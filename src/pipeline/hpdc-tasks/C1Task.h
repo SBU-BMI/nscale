@@ -19,14 +19,14 @@ public:
 	C1Task(const ::cv::Mat& image, const ::cv::Mat& input);
 	virtual ~C1Task();
 
-	bool run(int procType=ExecEngineConstants::CPU);
+	virtual bool run(int procType=ExecEngineConstants::GPU, int tid=0);
 
 private:
 
 	::cv::Mat img;
 	::cv::Mat input;
 	::cv::Mat gray, H, E;
-	Task *next;
+	Task *next1, *next2, *next3, *next4;
 };
 
 }

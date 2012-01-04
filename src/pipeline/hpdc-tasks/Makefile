@@ -3,7 +3,7 @@ include Makefile.inc
 #include Makefile.keeneland.inc
 
 ## BEGIN MPI SETTINGS - comment out to disable MPI. overrides Makefile.inc for certain settings such as CXX
-include ../Makefile-mpi.inc
+#include ../Makefile-mpi.inc
 #include Makefile-mpi.keeneland.inc
 ## END MPI SETTINGS
 
@@ -16,20 +16,19 @@ include ../Makefile-cuda.inc
 TASK_SRC = S1Task.cpp B1Task.cpp B2Task.cpp A4Task.cpp B3Task.cpp B4Task.cpp B5Task.cpp B6Task.cpp C1Task.cpp C2Task.cpp C3Task.cpp
 TASK_O = ${TASK_SRC:.cpp=.o}
 
-libhpdctasks.so: ${TASK_O}
-	$(CXX) ${CXX_FLAGS} $(LDFLAGS) -shared -o libhpdctasks.so ${TASK_O}
-
 all: nu-segtasks-mpi-bot.exe
 
 clean:
 	$(RM) *.o *.exe *.so
 	
-%.o: %.cpp 
+%.o: %.cpp %.h
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
 
-%.o: %.c 
+%.o: %.c %.h
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
 
-%.exe: %.o libhpdctasks.so
+libhpdctasks.so: ${TASK_O}
+	$(CXX) ${CXX_FLAGS} $(LDFLAGS) -shared -o libhpdctasks.so ${TASK_O}
+
+%.exe: %.o libhpdctasks.so 
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -L. -lhpdctasks -I. -o $@ $< 
-

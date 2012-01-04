@@ -19,7 +19,7 @@ public:
 	A4Task(const ::cv::Mat& image, const ::cv::Mat& input, const std::string& ofn);
 	virtual ~A4Task();
 
-	bool run(int procType=ExecEngineConstants::CPU);
+	virtual bool run(int procType=ExecEngineConstants::GPU, int tid=0);
 
 private:
 

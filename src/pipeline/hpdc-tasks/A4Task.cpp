@@ -19,25 +19,30 @@ A4Task::A4Task(const ::cv::Mat& image, const ::cv::Mat& in, const std::string& o
 	output.create(img.size(), CV_8U);
 	next = NULL;
 	outfilename = ofn;
+
+	setSpeedup(ExecEngineConstants::GPU, 2);
 }
 
 A4Task::~A4Task() {
-	if (next != NULL) delete next;
+//	if (next != NULL) delete next;
 	output.release();
 }
 
 // does not keep data in GPU memory yet.  no appropriate flag to show that data is on GPU, so that execEngine can try to reuse.
-bool A4Task::run(int procType) {
+bool A4Task::run(int procType, int tid) {
 	// begin work
 	::cv::Mat temp(img.size(), CV_8U);  // temporary until the code could be fixed.
 	int result;	
 
 	printf("A4\n");
 
+#if !defined (HAVE_CUDA)
+	procType = ExecEngineconstants::CPU;
+#endif
+
 
 	if (procType == ExecEngineConstants::GPU) {  // GPU
 
-#if defined (HAVE_CUDA)
 		::cv::gpu::Stream stream;
 
 		::cv::gpu::GpuMat g_img = ::cv::gpu::createContinuous(img.size(), img.type());
@@ -55,10 +60,6 @@ bool A4Task::run(int procType) {
 		g_img.release();
 		g_input.release();
 		g_output.release();
-#else
-		result = ::nscale::HistologicalEntities::RUNTIME_FAILED;
-		CV_Error(CV_GpuNotSupported, "The library is compiled without GPU support");
-#endif
 
 	} else if (procType == ExecEngineConstants::CPU) { // CPU
 		result = ::nscale::HistologicalEntities::plSeparateNuclei(img, input, output, temp, NULL, -1);
@@ -75,9 +76,12 @@ bool A4Task::run(int procType) {
 	// now create the next task
 		next = new B3Task(img, output, outfilename);
 	// and invoke it (temporary until hook up the exec engine).
-		next->run(procType);
+		if (insertTask(next) != 0) {
+			printf("unable to insert task\n");
+			return false;
+		}
 	}	
-      return true;
+    return true;
 
 }
 

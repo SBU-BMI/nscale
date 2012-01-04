@@ -19,7 +19,7 @@ public:
 	S1Task(const ::cv::Mat& image, const std::string& ofn);
 	virtual ~S1Task();
 
-	bool run(int procType=ExecEngineConstants::CPU);
+	virtual bool run(int procType=ExecEngineConstants::GPU, int tid=0);
 
 private:
 

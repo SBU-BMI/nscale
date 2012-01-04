@@ -18,23 +18,30 @@ S1Task::S1Task(const ::cv::Mat& image, const std::string& ofn) {
 	output.create(img.size(), CV_8U);
 	next = NULL;
 	outfilename = ofn;
+
+	setSpeedup(ExecEngineConstants::GPU, 2);
+
 }
 
 S1Task::~S1Task() {
-	if (next != NULL) delete next;
+//	if (next != NULL) delete next;
 	output.release();
 }
 
 // does not keep data in GPU memory yet.  no appropriate flag to show that data is on GPU, so that execEngine can try to reuse.
-bool S1Task::run(int procType) {
+bool S1Task::run(int procType, int tid) {
 	// begin work
 	::cv::Mat temp(img.size(), CV_8U);  // temporary until the code could be fixed.
 	int result;	
 
 	printf("S1\n");
 
+#if !defined (HAVE_CUDA)
+	procType = ExecEngineconstants::CPU;
+#endif
+
+
 	if (procType == ExecEngineConstants::GPU) {// GPU
-#if defined (HAVE_GPU)
 
 		::cv::gpu::Stream stream;
 		::cv::gpu::GpuMat g_img = ::cv::gpu::createContinuous(img.size(), img.type());
@@ -48,10 +55,6 @@ bool S1Task::run(int procType) {
 
 		g_img.release();
 		g_output.release();
-#else
-		result = ::nscale::HistologicalEntities::RUNTIME_FAILED;
-		CV_Error(CV_GpuNotSupported, "The library is compiled without GPU support");
-#endif
 
 	} else if (procType == ExecEngineConstants::CPU) { // CPU
 		result = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, output, temp, NULL, -1);
@@ -66,10 +69,21 @@ bool S1Task::run(int procType) {
 	if (result == ::nscale::HistologicalEntities::CONTINUE) {
 	// now create the next task
 	// and invoke it (temporary until hook up the exec engine).
+
+		printf("inserting B1\n");
 		next = new B1Task(img, output, outfilename);
+		if (next == NULL) {
+			printf("ERROR:  did not create B1 correctly\n");
+		}
 
+//		int x = insertTask(next);
+//		printf("insert task: %d\n", x);
+//		if (x != 0) {
+//			return false;
+//		}
 
-		next->run(procType);
+		this->curExecEngine->insertTask(next);
+		printf("inserted B1\n");
 	}
 
 	

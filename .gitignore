@@ -21,3 +21,4 @@ src/segment/test/Stages
 *.fatbin.c
 *.cudafe?.*
 *.hash
+cuda_profile_*.log

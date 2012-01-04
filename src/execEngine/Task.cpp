@@ -45,6 +45,7 @@ int Task::insertTask(Task *task){
 		printf("Failed to insert a new task\n");
 		retValue=1;
 	}
+	return retValue;
 }
 bool Task::run(int procType, int tid)
 {

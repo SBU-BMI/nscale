@@ -9,7 +9,6 @@ CUDA_CV_INCLUDE =-I/opt/local/src/OpenCV-2.3.0/modules/gpu/src -I/opt/local/src/
 CXXFLAGS	+= -I/opt/local/include -I/opt/local/include/opencv -I. -I../features
 CXXFLAGS	+= ${CUDA_CV_INCLUDE} 
 LDFLAGS		+= -L/opt/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_flann 
-#-L../features/execEngine -lexecengine
 LDFLAGS		+= -lopencv_gpu
 
 

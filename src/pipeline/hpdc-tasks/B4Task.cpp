@@ -20,16 +20,19 @@ B4Task::B4Task(const ::cv::Mat& image, const ::cv::Mat& in, const std::string& o
 	next = NULL;
 	outfilename = ofn;
 
+	setSpeedup(ExecEngineConstants::GPU, 1);
+
+
 }
 
 
 B4Task::~B4Task() {
-	if (next != NULL) delete next;
+//	if (next != NULL) delete next;
 	output.release();
 }
 
 // does not keep data in GPU memory yet.  no appropriate flag to show that data is on GPU, so that execEngine can try to reuse.
-bool B4Task::run(int procType) {
+bool B4Task::run(int procType, int tid) {
 	// begin work
 	int result = ::nscale::HistologicalEntities::CONTINUE;
 
@@ -51,7 +54,10 @@ bool B4Task::run(int procType) {
 	// now create the next task
 		next = new B5Task(img, output, outfilename);
 	// and invoke it (temporary until hook up the exec engine).
-		next->run(procType);
+		if (insertTask(next) != 0) {
+			printf("unable to insert task\n");
+			return false;
+		}
 	}	
       return true;
 

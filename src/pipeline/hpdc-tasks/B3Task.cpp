@@ -19,24 +19,29 @@ B3Task::B3Task(const ::cv::Mat& image, const ::cv::Mat& in, const std::string& o
 	output.create(img.size(), CV_8U);
 	next = NULL;
 	outfilename = ofn;
+
+	setSpeedup(ExecEngineConstants::GPU, 4);
+
 }
 
 
 B3Task::~B3Task() {
-	if (next != NULL) delete next;
+//	if (next != NULL) delete next;
 	output.release();
 }
 
 // does not keep data in GPU memory yet.  no appropriate flag to show that data is on GPU, so that execEngine can try to reuse.
-bool B3Task::run(int procType) {
+bool B3Task::run(int procType, int tid) {
 	// begin work
 	int result;	
 
 	printf("B3\n");
 
+#if !defined (HAVE_CUDA)
+	procType = ExecEngineconstants::CPU;
+#endif
 
 	if (procType == ExecEngineConstants::GPU) {  // GPU
-#if defined (HAVE_CUDA)
 
 ::cv::gpu::Stream stream;
 		::cv::gpu::GpuMat g_input = ::cv::gpu::createContinuous(input.size(), input.type());
@@ -83,10 +88,6 @@ stream.waitForCompletion();
 
 
 		result = ::nscale::HistologicalEntities::CONTINUE;
-#else
-		result = ::nscale::HistologicalEntities::RUNTIME_FAILED;
-		CV_Error(CV_GpuNotSupported, "The library is compiled without GPU support");
-#endif
 	} else { // error
 		printf("ERROR: invalid proc type");
 		result = ::nscale::HistologicalEntities::RUNTIME_FAILED;
@@ -99,7 +100,10 @@ stream.waitForCompletion();
 	// now create the next task
 		next = new B4Task(img, output, outfilename);
 	// and invoke it (temporary until hook up the exec engine).
-		next->run(procType);
+		if (insertTask(next) != 0) {
+			printf("unable to insert task\n");
+			return false;
+		}
 	}	
       return true;
 
