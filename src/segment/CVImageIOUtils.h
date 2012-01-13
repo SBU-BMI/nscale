@@ -82,7 +82,7 @@ public:
 
 		std::string filename = getFileName(stage, RAW);
 		FILE* fid = fopen(filename.c_str(), "wb");
-		const uchar* imgPtr;
+		const unsigned char* imgPtr;
 		int elSize = intermediate.elemSize();
 		for (int j = 0; j < intermediate.rows; ++j) {
 			imgPtr = intermediate.ptr(j);
