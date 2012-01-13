@@ -30,6 +30,8 @@ extern "C" int listComputation(void *d_Data, int dataElements, unsigned char *se
 extern "C" int morphRecon(int *d_input_list, int dataElements, int *d_seeds, unsigned char *d_image, int ncols, int nrows);
 extern "C" int morphReconVector(int nImages, int **h_InputListPtr, int* h_ListSize, int **h_Seeds, unsigned char **h_images, int* ncols, int* nrows, int connectivity);
 
+extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Seed, unsigned char *g_Image, int h_ncols, int h_nrows, int connectivity);
+
 #endif
 
 using namespace std;
@@ -64,6 +66,7 @@ template <typename T>
 GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu();}
 template <typename T>
 vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {throw_nogpu();};
+GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream) {throw_nogpu();};
 template <typename T>
 GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
 //// Operates on BINARY IMAGES ONLY
@@ -208,6 +211,60 @@ void gold_imreconstructIntCallerBuildQueue(GpuMat& marker, GpuMat mask, int *d_q
 	}
 	// write intermediary results to disk for further visual inspection purposes only.
 	imwrite("test/out-first-pass-gpu.pbm", markerCPUAfter);
+}
+
+template <typename T>
+GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream) {
+	cout << "Throughput 2"<<endl;
+	uint64_t t11 = cciutils::ClockGetTime();
+	CV_Assert(seeds.size() == image.size());
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+	CV_Assert(seeds.type() == CV_8UC1);
+	CV_Assert(image.type() == CV_8UC1);
+
+	// Copy mask to GPU
+	GpuMat g_mask = createContinuous(image.size(), image.type());
+	stream.enqueueCopy(image, g_mask);
+
+	// Copy marker to GPU
+	GpuMat g_marker =  createContinuous(seeds.size(), seeds.type());
+	stream.enqueueCopy(seeds, g_marker);
+
+	// Wait til copies are complete
+	stream.waitForCompletion();
+
+	uint64_t endUpload = cciutils::ClockGetTime();
+	cout << "	Init+upload = "<< endUpload-t11 <<endl;
+
+	int queuePixelsGPUSize;
+	// Perform Raster and Anti-Raster passes and build queue used in the queue-based computation phase
+	int *g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<T>(g_marker.data, g_mask.data, g_mask.cols, g_mask.rows, connectivity, queuePixelsGPUSize, nItFirstPass, StreamAccessor::getStream(stream));
+
+	uint64_t imreconBuildEnd = cciutils::ClockGetTime(); 
+	cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
+
+// Gold function implemented on CPU to validate calculate of pixels candidate to propagation in next step
+/////	gold_imreconstructIntCallerBuildQueue(marker, mask1, g_queuePixelsGPU, queuePixelsGPUSize);
+
+	stream.waitForCompletion();
+
+	GpuMat g_markerInt = createContinuous(seeds.size(), CV_32S);
+	g_marker.convertTo(g_markerInt, CV_32S);
+
+	uint64_t t31 = cciutils::ClockGetTime();
+
+	// apply morphological reconstruction using the Queue based algorithm
+	morphReconSpeedup(g_queuePixelsGPU, queuePixelsGPUSize, (int*)g_markerInt.data, g_mask.data, g_mask.cols, g_mask.rows, connectivity);
+	uint64_t t41 = cciutils::ClockGetTime();
+	cout << "	queue time = "<< t41-t31<<endl;
+
+	::nscale::gpu::PixelOperations::convertIntToChar(g_markerInt, g_marker, stream);
+
+	g_mask.release();
+	g_markerInt.release();
+
+	return g_marker;
 }
 
 template <typename T>
@@ -994,6 +1051,7 @@ template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&)
 template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstructQueue<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template vector<GpuMat> imreconstructQueueThroughput<unsigned char>(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
+template GpuMat imreconstructQueueSpeedup<unsigned char>(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream);
 template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);

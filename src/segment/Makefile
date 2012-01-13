@@ -1,7 +1,7 @@
 include Makefile.inc
 ## uncomment below for keeneland.
 #include Makefile.keeneland.inc
-include Makefile-mpi.inc
+#include Makefile-mpi.inc
 
 ## BEGIN CUDA SETTINGS - comment out to disable CUDA
 include Makefile-cuda.inc
@@ -19,7 +19,7 @@ GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}
 
 all: libsegment.so nu-segment.exe nu-segment-mpi-bot.exe nu-segmentChunk.exe
 
-tests: all test/src/nu-segmentChunkTest.exe test/src/imreconTest.exe test/src/localMaximaTest.exe test/src/miscTest.exe test/src/imfillTest.exe test/src/bwareaopenTest.exe test/src/nu-segmentTest.exe test/src/nu-segmentProfile.exe
+tests: all test/src/nu-segmentChunkTest.exe test/src/imreconTest.exe test/src/localMaximaTest.exe test/src/miscTest.exe test/src/imfillTest.exe test/src/bwareaopenTest.exe test/src/nu-segmentTest.exe test/src/nu-segmentProfile.exe test/src/imreconExperiments.exe
 
 gputests: tests test/src/watershedTest.exe test/src/imreconChunkTest.exe test/src/imreconOptimizeProfiler.exe test/src/queueTest.exe
 
