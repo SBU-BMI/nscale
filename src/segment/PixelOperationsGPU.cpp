@@ -10,6 +10,9 @@
 
 #include "precomp.hpp"
 
+//#define HAVE_CUDA
+
+
 #if defined (HAVE_CUDA)
 #include "cuda/pixel-ops.cuh"
 #endif
@@ -28,9 +31,13 @@ namespace gpu {
 template <typename T>
 GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) { throw_nogpu(); }
 template <typename T>
-GpuMat PixelOperations::threshold(const GpuMat& img, T lower, T upper, Stream& stream) { throw_nogpu(); }
+GpuMat PixelOperations::threshold(const GpuMat& img, T lower, bool lower_inclusive, T upper, bool up_inclusive, Stream& stream) { throw_nogpu(); }
+template <typename T>
+GpuMat PixelOperations::divide(const GpuMat& num, const GpuMat& den, Stream& stream) { throw_nogpu(); }
 template <typename T>
 GpuMat PixelOperations::mod(const GpuMat& img, T mod, Stream& stream) { throw_nogpu(); }
+template <typename T>
+GpuMat PixelOperations::mask(const GpuMat& input, const GpuMat& mask, T background, Stream& stream) { throw_nogpu(); }
 
 void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){ throw_nogpu();};
 void PixelOperations::convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream){ throw_nogpu();};
@@ -116,8 +123,8 @@ void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, 
 	cout << "	After first loop = "<< t1loop - t2 <<endl;
 
 	GpuMat g_cn = GpuMat(nr, nc, CV_64FC2);
-	int dn_channels = g_dn.channels();
-	int cn_channels = g_cn.channels();
+//	int dn_channels = g_dn.channels();
+//	int cn_channels = g_cn.channels();
 
 	GpuMat g_Q;
 	stream.enqueueUpload( Q, g_Q);
@@ -185,16 +192,46 @@ GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) {
 
 
 template <typename T>
-GpuMat PixelOperations::threshold(const GpuMat& img, T lower, T upper, Stream& stream) {
+GpuMat PixelOperations::threshold(const GpuMat& img, T lower, bool lower_inclusive, T upper, bool up_inclusive,  Stream& stream) {
 	// write the raw image
 	CV_Assert(img.channels() == 1);
 
     const Size size = img.size();
-    const int depth = img.depth();
+//    const int depth = img.depth();
 
     GpuMat result(size, CV_8UC1);
 
-    thresholdCaller<T>(size.height, size.width, img, result, lower, upper, StreamAccessor::getStream(stream));
+    thresholdCaller<T>(size.height, size.width, img, result, lower, lower_inclusive, upper, up_inclusive, StreamAccessor::getStream(stream));
+
+    return result;
+}
+
+
+template <typename T>
+GpuMat PixelOperations::divide(const GpuMat& num, const GpuMat& den, Stream& stream) {
+	CV_Assert(num.cols == den.cols && num.rows == den.rows);
+	CV_Assert(num.channels() == den.channels());
+
+//    const int channels = num.channels();
+
+    GpuMat result(num.size(), num.type());
+
+    divideCaller<T>(num.rows, num.cols, num, den, result, StreamAccessor::getStream(stream));
+
+    return result;
+}
+
+template <typename T>
+GpuMat PixelOperations::mask(const GpuMat& input, const GpuMat& mask, T background, Stream& stream) {
+	CV_Assert(input.cols == mask.cols && input.rows == mask.rows);
+	CV_Assert(mask.channels() == 1);
+	
+
+//    const int channels = input.channels();
+
+    GpuMat result(input.size(), input.type());
+
+    maskCaller<T>(input.rows, input.cols, input, mask, result, background, StreamAccessor::getStream(stream));
 
     return result;
 }
@@ -216,9 +253,13 @@ GpuMat PixelOperations::mod(const GpuMat& img, T mod, Stream& stream) {
 
 template GpuMat PixelOperations::invert<unsigned char>(const GpuMat&, Stream&);
 template GpuMat PixelOperations::invert<float>(const GpuMat&, Stream&);
-template GpuMat PixelOperations::threshold<float>(const GpuMat&, float, float, Stream&);
-template GpuMat PixelOperations::threshold<unsigned char>(const GpuMat&, unsigned char, unsigned char, Stream&);
-template GpuMat PixelOperations::threshold<int>(const GpuMat&, int, int, Stream&);
+template GpuMat PixelOperations::threshold<float>(const GpuMat&, float, bool, float, bool, Stream&);
+template GpuMat PixelOperations::threshold<double>(const GpuMat&, double, bool, double, bool, Stream&);
+template GpuMat PixelOperations::threshold<unsigned char>(const GpuMat&, unsigned char, bool, unsigned char, bool, Stream&);
+template GpuMat PixelOperations::threshold<int>(const GpuMat&, int, bool, int, bool, Stream&);
+template GpuMat PixelOperations::divide<double>(const GpuMat&, const GpuMat&,  Stream&);
+template GpuMat PixelOperations::mask<unsigned char>(const GpuMat&, const GpuMat&, unsigned char background, Stream&);
+
 
 template GpuMat PixelOperations::mod<unsigned char>(const GpuMat&, unsigned char, Stream&);
 template GpuMat PixelOperations::mod<int>(const GpuMat&, int, Stream&);

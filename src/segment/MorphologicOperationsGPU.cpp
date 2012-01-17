@@ -17,7 +17,7 @@
 #include "PixelOperations.h"
 #include "precomp.hpp"
 
-//#define HAVE_CUDA
+#define HAVE_CUDA
 
 #if defined (HAVE_CUDA)
 #include "cuda/imreconstruct_int_kernel.cuh"
@@ -81,6 +81,13 @@ GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivit
 // input should have foreground > 0, and 0 for background
 template <typename T>
 GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) { throw_nogpu(); }
+template <typename T>
+GpuMat morphOpen(const GpuMat& image, const Mat& kernel, Stream& stream) {throw_nogpu(); }
+template <typename T>
+GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) {throw_nogpu(); }
+template <typename T>
+GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {throw_nogpu(); }
+
 
 #else
 
@@ -213,12 +220,12 @@ void gold_imreconstructIntCallerBuildQueue(GpuMat& marker, GpuMat mask, int *d_q
 template <typename T>
 vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {
 	cout << "Throughput 2"<<endl;
-	uint64_t t11 = cciutils::ClockGetTime();
+//	uint64_t t11 = cciutils::ClockGetTime();
 	assert(seeds.size() == image.size());
 
 	vector<GpuMat> maskVector(seeds.size());
 
-	for(int i = 0; i < seeds.size(); i++){
+	for(unsigned int i = 0; i < seeds.size(); i++){
 		CV_Assert(image[i].channels() == 1);
 		CV_Assert(seeds[i].channels() == 1);
 		CV_Assert(seeds[i].type() == CV_8UC1);
@@ -229,7 +236,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 	}
 
 	vector<GpuMat> markerVector(seeds.size());
-	for(int i = 0; i < seeds.size(); i++){
+	for(unsigned int i = 0; i < seeds.size(); i++){
 		// allocate results data. Which is a copy of seeds and voids the user data from being modified
 		markerVector[i] = createContinuous(seeds[i].size(), seeds[i].type());
 
@@ -246,7 +253,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 	int *queuePixelsGPUSizeVector = (int*)malloc(sizeof(int) * seeds.size());
 	int **queuePixelsGPUVector = (int **)malloc(sizeof(int*) * seeds.size());
 
-	for(int i = 0; i < seeds.size();i++){
+	for(unsigned int i = 0; i < seeds.size();i++){
 
 		int queuePixelsGPUSize;
 		int *g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<T>(markerVector[i].data, maskVector[i].data, markerVector[i].cols, markerVector[i].rows, connectivity, queuePixelsGPUSize, nItFirstPass, StreamAccessor::getStream(stream));
@@ -263,7 +270,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 
 	stream.waitForCompletion();
 	vector<GpuMat> markerIntVector(seeds.size());
-	for(int i = 0; i < seeds.size();i++){
+	for(unsigned int i = 0; i < seeds.size();i++){
 		// Create an int version of the input marker
 		markerIntVector[i] = createContinuous(seeds[i].size(), CV_32S);
 	
@@ -279,7 +286,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 	int *rows = (int*)malloc(sizeof(int) * seeds.size());
 
 	// prepare arrays with information that are used inside the queue propagation kernel
-	for(int i = 0; i < seeds.size();i++){
+	for(unsigned int i = 0; i < seeds.size();i++){
 		markerIntPtr[i] = (int*)markerIntVector[i].data;
 		maskUcharPtr[i] = maskVector[i].data;
 		cols[i] = maskVector[i].cols;
@@ -291,11 +298,11 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 	uint64_t t41 = cciutils::ClockGetTime();
 	cout << "	queue time = "<< t41-t31<<endl;
 
-	for(int i = 0; i < seeds.size(); i++){
+	for(unsigned int i = 0; i < seeds.size(); i++){
 		::nscale::gpu::PixelOperations::convertIntToChar(markerIntVector[i], markerVector[i], stream);
 	}
 
-	for(int i = 0; i < seeds.size(); i++){
+	for(unsigned int i = 0; i < seeds.size(); i++){
 		maskVector[i].release();
 		markerIntVector[i].release();
 	}
@@ -433,7 +440,9 @@ GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity
 	mask.release();
 
 	Rect roi = Rect(2, 2, image.cols, image.rows);
-	GpuMat output(marker, roi);
+	GpuMat output(image.size(), marker.type());
+	stream.enqueueCopy(marker(roi), output);
+	stream.waitForCompletion();
 	marker.release();
 
     return output;
@@ -544,7 +553,6 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 
 	T mn = cciutils::min<T>();
 	T mx = std::numeric_limits<T>::max();
-	Rect roi = Rect(1, 1, image.cols, image.rows);
 
 	// copy the input and pad with -inf.
 	GpuMat mask2;
@@ -563,13 +571,13 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 	marker2.release();
 	mask2.release();
 
-	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cciutils::ClockGetTime();
 	GpuMat output2;
 	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
 	else output2 = imreconstruct<T>(marker, mask, connectivity, stream);
 //	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
 	stream.waitForCompletion();
-	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cciutils::ClockGetTime();
 //	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 	stream.waitForCompletion();
 	marker.release();
@@ -578,7 +586,11 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 	GpuMat output3 = nscale::gpu::PixelOperations::invert<T>(output2, stream);
 	stream.waitForCompletion();
 	output2.release();
-	GpuMat output(output3, roi);
+
+	Rect roi = Rect(1, 1, image.cols, image.rows);
+	GpuMat output(image.size(), output3.type());
+	stream.enqueueCopy(output3(roi), output);
+	stream.waitForCompletion();
 	output3.release();
 
 	return output;
@@ -605,9 +617,13 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 
 	// since binary, seeds already have the same values as binary images
 	// at the selected places.  If not, the marker will be forced to 0 by imrecon.
+//	GpuMat mask(binaryImage.size(), binaryImage.type());
+//	bitwise_and(binaryImage, binaryImage, mask, seeds, stream);
+	unsigned char bg = 0;
+	GpuMat mask1 = ::nscale::gpu::PixelOperations::mask(binaryImage, seeds, bg, stream);
 
 //	GpuMat marker = imreconstruct2<T>(seeds, binaryImage, connectivity, stream);
-	return imreconstructBinary<T>(seeds, binaryImage, connectivity, stream);
+	return imreconstructBinary<T>(mask1, binaryImage, connectivity, stream);
 
 	// no need to and between marker and binaryImage - since marker is always <= binary image
 }
@@ -786,7 +802,6 @@ GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) {
 	stream.waitForCompletion();
 	GpuMat marker(mask.size(), mask.type());
 	subtract(mask, Scalar(h), marker);
-	int iter;
 	GpuMat recon = nscale::gpu::imreconstruct<T>(marker, mask, connectivity, stream);
 	GpuMat output = nscale::gpu::PixelOperations::invert<T>(recon,stream);
 	stream.waitForCompletion();
@@ -846,7 +861,11 @@ GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivit
     input.release();
     seeds.release();
 
-	return labels(Rect(1,1, image.cols, image.rows));
+    GpuMat output(image.size(), labels.type());
+    stream.enqueueCopy(labels(Rect(1,1, image.cols, image.rows)), output);
+    stream.waitForCompletion();
+    labels.release();
+    return output;
 }
 
 // input should have foreground > 0, and 0 for background
@@ -880,7 +899,11 @@ GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivit
     stream.waitForCompletion();
     input.release();
 
-	return labels(Rect(1,1, image.cols, image.rows));
+    GpuMat output(image.size(), labels.type());
+    stream.enqueueCopy(labels(Rect(1,1, image.cols, image.rows)), output);
+    stream.waitForCompletion();
+    labels.release();
+    return output;
 }
 
 
@@ -971,6 +994,146 @@ GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivit
 //}
 
 
+// this is different for CPU and GPU.  CPU uses the whole range.  GPU uses only the inside.
+// also GPU seems to leave a 1 pixel wide column and row on the right and bottom side that is not processed.
+// hence the bw+1
+// also, morphologyEx does not work correctly for open.  it still generates a border.
+template <typename T>
+GpuMat morphOpen(const GpuMat& image, const Mat& kernel, Stream& stream) {
+//	CV_Assert(kernel.cols == kernel.rows );
+//	CV_Assert(kernel.cols > 1);
+//	CV_Assert((kernel.cols % 2) == 1 );
+//
+//	int bw = (kernel.cols - 1) / 2;
+//
+//
+//	GpuMat t_img;
+//	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::max()), stream);
+//	// this is same for CPU and GPU
+//
+////	if (bw > 1) {
+////		::cv::Mat output(t_img.size(), t_img.type());
+////		t_img.download(output);
+////		imwrite("test-input-gpu.ppm", output);
+////	}
+//	GpuMat t_erode(t_img.size(), t_img.type());
+//	erode(t_img, t_erode, kernel, Point(-1,-1), 1, stream);
+////	if (bw > 1) {
+////		::cv::Mat output(t_erode.size(), t_erode.type());
+////		t_erode.download(output);
+////		imwrite("test-erode-gpu.ppm", output);
+////	}
+//	Rect roi = Rect(bw, bw, image.cols, image.rows);
+//    GpuMat g_erode(image.size(), t_erode.type());
+//    stream.enqueueCopy(t_erode(roi), g_erode);
+//    stream.waitForCompletion();
+//    t_erode.release();
+//
+//	GpuMat t_erode2;
+//	copyMakeBorder(g_erode, t_erode2, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::min()), stream);
+////	if (bw > 1) {
+////		::cv::Mat output(t_erode2.size(), t_erode2.type());
+////		t_erode2.download(output);
+////		imwrite("test-input2-gpu.ppm", output);
+////	}
+//	GpuMat t_open(t_erode2.size(), t_erode2.type());
+//	dilate(t_erode2, t_open, kernel, Point(-1,-1), 1, stream);
+////	if (bw > 1) {
+////		::cv::Mat output(t_open.size(), t_open.type());
+////		t_open.download(output);
+////		imwrite("test-open-gpu.ppm", output);
+////	}
+//	GpuMat g_open(image.size(), t_open.type());
+//    stream.enqueueCopy(t_open(roi), g_open);
+//    stream.waitForCompletion();
+//    t_open.release();
+//
+//	t_erode2.release();
+//	g_erode.release();
+//	t_img.release();
+//
+//	return g_open;
+
+	GpuMat erode = ::nscale::gpu::morphErode<T>(image, kernel, stream);
+	GpuMat open = ::nscale::gpu::morphDilate<T>(erode, kernel, stream);
+	erode.release();
+	return open;
+}
+
+
+template <typename T>
+GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) {
+	CV_Assert(kernel.cols == kernel.rows );
+	CV_Assert(kernel.cols > 1);
+	CV_Assert((kernel.cols % 2) == 1 );
+
+	int bw = (kernel.cols - 1) / 2;
+
+	GpuMat t_img;
+	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::max()), stream);
+	// this is same for CPU and GPU
+
+//	if (bw > 1) {
+//		::cv::Mat output(t_img.size(), t_img.type());
+//		t_img.download(output);
+//		imwrite("test-input-gpu.ppm", output);
+//	}
+	GpuMat t_erode(t_img.size(), t_img.type());
+	erode(t_img, t_erode, kernel, Point(-1,-1), 1, stream);
+//	if (bw > 1) {
+//		::cv::Mat output(t_erode.size(), t_erode.type());
+//		t_erode.download(output);
+//		imwrite("test-erode-gpu.ppm", output);
+//	}
+	Rect roi = Rect(bw, bw, image.cols, image.rows);
+    GpuMat g_erode(image.size(), t_erode.type());
+    stream.enqueueCopy(t_erode(roi), g_erode);
+    stream.waitForCompletion();
+    t_erode.release();
+
+	t_img.release();
+
+	return g_erode;
+
+}
+template <typename T>
+GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {
+	CV_Assert(kernel.cols == kernel.rows );
+	CV_Assert(kernel.cols > 1);
+	CV_Assert((kernel.cols % 2) == 1 );
+
+	int bw = (kernel.cols - 1) / 2;
+
+
+	GpuMat t_img;
+	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::min()), stream);
+	// this is same for CPU and GPU
+
+//	if (bw > 1) {
+//		::cv::Mat output(t_img.size(), t_img.type());
+//		t_img.download(output);
+//		imwrite("test-input2-gpu.ppm", output);
+//	}
+	GpuMat t_dilate(t_img.size(), t_img.type());
+	dilate(t_img, t_dilate, kernel, Point(-1,-1), 1, stream);
+//	if (bw > 1) {
+//		::cv::Mat output(t_open.size(), t_open.type());
+//		t_open.download(output);
+//		imwrite("test-open-gpu.ppm", output);
+//	}
+	Rect roi = Rect(bw, bw, image.cols, image.rows);
+	GpuMat g_dilate(image.size(), t_dilate.type());
+    stream.enqueueCopy(t_dilate(roi), g_dilate);
+    stream.waitForCompletion();
+    t_dilate.release();
+
+	t_img.release();
+
+
+	return g_dilate;
+}
+
+
 
 
 //template Mat imfill<uchar>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
@@ -1004,6 +1167,9 @@ template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int,
 
 template GpuMat imhmin(const GpuMat& image, unsigned char h, int connectivity, Stream&);
 template GpuMat imhmin(const GpuMat& image, float h, int connectivity, Stream&);
+template GpuMat morphOpen<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
+template GpuMat morphErode<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
+template GpuMat morphDilate<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
 
 }
 

@@ -123,10 +123,37 @@ int main (int argc, char **argv){
 	imwrite("test/out-bwselected.pbm", bwselected);
 
 	t1 = cciutils::ClockGetTime();
-	bwselected = nscale::bwselect<uchar>(imfillinput, imfillseeds, 4);
+	Mat bwselected2 = nscale::bwselect<uchar>(imfillinput, imfillseeds, 4);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwselect4 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-bwselected4.pbm", bwselected);
+	imwrite("test/out-bwselected4.pbm", bwselected2);
+
+	GpuMat g_imfillinput(imfillinput.size(), imfillinput.type());
+	Stream stream;
+	stream.enqueueUpload(imfillinput, g_imfillinput);
+	GpuMat g_imfillseeds(imfillseeds.size(), imfillseeds.type());
+	stream.enqueueUpload(imfillseeds, g_imfillseeds);
+	stream.waitForCompletion();
+	t1 = cciutils::ClockGetTime();
+	GpuMat g_bwselected = nscale::gpu::bwselect<uchar>(g_imfillinput, g_imfillseeds, 8, stream);
+	stream.waitForCompletion();
+	t2 = cciutils::ClockGetTime();
+	std::cout << "bwselect gpu took " << t2-t1 << "ms" << std::endl;
+	Mat bwselected3(g_bwselected.size(), g_bwselected.type());
+	stream.enqueueDownload(g_bwselected, bwselected3);
+	stream.waitForCompletion();
+	imwrite("test/out-bwselected-gpu.pbm", bwselected3);
+
+	t1 = cciutils::ClockGetTime();
+	GpuMat g_bwselected2 = nscale::gpu::bwselect<uchar>(g_imfillinput, g_imfillseeds, 4, stream);
+	stream.waitForCompletion();
+	t2 = cciutils::ClockGetTime();
+	std::cout << "bwselect4 gpu took " << t2-t1 << "ms" << std::endl;
+	Mat bwselected4(g_bwselected2.size(), g_bwselected2.type());
+	stream.enqueueDownload(g_bwselected2, bwselected4);
+	stream.waitForCompletion();
+	imwrite("test/out-bwselected4-gpu.pbm", bwselected4);
+
 
 
 

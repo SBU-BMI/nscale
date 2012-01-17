@@ -66,6 +66,10 @@ cv::Mat_<uchar> localMaxima(const cv::Mat& image, int connectivity);
 template <typename T>
 cv::Mat_<uchar> localMinima(const cv::Mat& image, int connectivity);
 
+template <typename T>
+cv::Mat morphOpen(const cv::Mat& image, const cv::Mat& kernel);
+
+
 
 namespace gpu {
 // GPU versions of the same functions.
@@ -144,6 +148,13 @@ cv::gpu::GpuMat watershedDW(const cv::gpu::GpuMat& origImage, const cv::gpu::Gpu
 //template <typename T>
 //cv::Mat_<uchar> localMinima(const cv::Mat& image, int connectivity);
 
+
+template <typename T>
+cv::gpu::GpuMat morphOpen(const cv::gpu::GpuMat& image, const cv::Mat& kernel, cv::gpu::Stream& stream);
+template <typename T>
+cv::gpu::GpuMat morphErode(const cv::gpu::GpuMat& image, const cv::Mat& kernel, cv::gpu::Stream& stream);
+template <typename T>
+cv::gpu::GpuMat morphDilate(const cv::gpu::GpuMat& image, const cv::Mat& kernel, cv::gpu::Stream& stream);
 
 }
 

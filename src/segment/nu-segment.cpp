@@ -6,8 +6,8 @@
  */
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
-#include "highgui.h"
 #include <iostream>
+#include <stdio.h>
 #include <vector>
 #include <string>
 #include "HistologicalEntities.h"
@@ -15,84 +15,62 @@
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>
-#include <stdio.h>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#ifdef WITH_MPI
-#include <mpi.h>
-#endif
 
 using namespace cv;
 
 
-int main (int argc, char **argv){
-  char hostname[256];
-	gethostname(hostname, 255);
-#ifdef WITH_MPI
-    MPI::Init(argc, argv);
-    int size = MPI::COMM_WORLD.Get_size();
-    int rank = MPI::COMM_WORLD.Get_rank();
-  
-    
-    printf( " MPI enabled: %s rank %d \n", hostname, rank);
-#else
-    int size = 1;
-    int rank = 0;
-    printf( " MPI disabled\n");
+// COMMENT OUT WHEN COMPILE for editing purpose only.
+//#define WITH_MPI
+
+
+#if defined (WITH_MPI)
+#include <mpi.h>
+#endif
+#if defined (_OPENMP)
+#include <omp.h>
 #endif
 
-    // relevant to head node only
-    std::vector<std::string> filenames;
-	std::vector<std::string> seg_output;
-	std::vector<std::string> bounds_output;
-	char *inputBufAll, *maskBufAll, *boundsBufAll;
-	inputBufAll=NULL;
-	maskBufAll=NULL;
-	boundsBufAll=NULL;
-	int dataCount;
 
-	// relevant to all nodes
-	int modecode = 0;
-	uint64_t t1 = 0, t2 = 0, t3 = 0, t4 = 0;
-	std::string fin, fmask, fbound;
-	unsigned int perNodeCount=0, maxLenInput=0, maxLenMask=0, maxLenBounds=0;
-	char *inputBuf, *maskBuf, *boundsBuf;
-	inputBuf=NULL;
-	maskBuf=NULL;
-	boundsBuf=NULL;
 
+
+int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir);
+void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
+		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
+void compute(const char *input, const char *mask, const char *output, const int modecode);
+
+int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
 		return -1;
 	}
-	std::string imagename(argv[1]);
-	std::string outDir(argv[2]);
+	imageName.assign(argv[1]);
+	outDir.assign(argv[2]);
 	const char* mode = argc > 4 ? argv[4] : "cpu";
+
+	int threadCount;
+	if (argc > 5) threadCount = atoi(argv[5]);
+	else threadCount = 1;
+
+#if defined (WITH_MPI)
+	threadCount = 1;
+#endif
+
+	printf("number of threads: %d\n", threadCount);
+
+#if defined (_OPENMP)
+	omp_set_num_threads(threadCount);
+#endif
 
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
 		// get core count
 
-#ifdef _OPENMP
-		if (argc > 5) {
-//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? (omp_get_max_threads() > 1 ? omp_get_max_threads() : atoi(argv[5])) : atoi(argv[5]));
-			omp_set_num_threads(atoi(argv[5]));
-			printf("number of threads used = %d requested %d\n", omp_get_num_threads(), atoi(argv[5]));
-		}
-#endif
+
 	} else if (strcasecmp(mode, "mcore") == 0) {
 		modecode = cciutils::DEVICE_MCORE;
 		// get core count
-#ifdef _OPENMP
-		if (argc > 5) {
-//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? (omp_get_max_threads() > 1 ? omp_get_max_threads() : atoi(argv[5])) : atoi(argv[5]));
-			omp_set_num_threads(atoi(argv[5]));
-			printf("number of threads used = %d requested %d\n", omp_get_num_threads(), atoi(argv[5]));
-		}
-#endif
+
+
 	} else if (strcasecmp(mode, "gpu") == 0) {
 		modecode = cciutils::DEVICE_GPU;
 		// get device count
@@ -101,227 +79,443 @@ int main (int argc, char **argv){
 			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
 			return -2;
 		}
-		if (argc > 5) {
-			gpu::setDevice(atoi(argv[5]));
+#if defined (_OPENMP)
+	omp_set_num_threads(1);
+#endif
+		if (argc > 6) {
+			gpu::setDevice(atoi(argv[6]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
 		return -1;
 	}
-
-	if (rank == 0) {
-		// check to see if it's a directory or a file
-		std::string suffix;
-		suffix.assign(".tif");
-
-		FileUtils futils(suffix);
-		futils.traverseDirectoryRecursive(imagename, filenames);
-		std::string dirname;
-		if (filenames.size() == 1) {
-			dirname = imagename.substr(0, imagename.find_last_of("/\\"));
-		} else {
-			dirname = imagename;
-		}
-
-
-		std::string temp, tempdir;
-		for (unsigned int i = 0; i < filenames.size(); ++i) {
-			maxLenInput = maxLenInput > filenames[i].length() ? maxLenInput : filenames[i].length();
-				// generate the output file name
-			temp = futils.replaceExt(filenames[i], ".tif", ".mask.pbm");
-			temp = futils.replaceDir(temp, dirname, outDir);
-			tempdir = temp.substr(0, temp.find_last_of("/\\"));
-			futils.mkdirs(tempdir);
-			seg_output.push_back(temp);
-			maxLenMask = maxLenMask > temp.length() ? maxLenMask : temp.length();
-			// generate the bounds output file name
-			temp = futils.replaceExt(filenames[i], ".tif", ".bounds.csv");
-			temp = futils.replaceDir(temp, dirname, outDir);
-			tempdir = temp.substr(0, temp.find_last_of("/\\"));
-			futils.mkdirs(tempdir);
-			bounds_output.push_back(temp);
-			maxLenBounds = maxLenBounds > temp.length() ? maxLenBounds : temp.length();
-		}
-		dataCount= filenames.size();
-	}
-
-#ifdef WITH_MPI
-	if (rank == 0) {
-		perNodeCount = filenames.size() / size + (filenames.size() % size == 0 ? 0 : 1);
-
-		printf("headnode %s: rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", hostname, rank, perNodeCount, maxLenMask, maxLenInput);
-
-		// allocate the sendbuffer
-		inputBufAll= (char*)malloc(perNodeCount * size * maxLenInput * sizeof(char));
-		maskBufAll= (char*)malloc(perNodeCount * size * maxLenMask * sizeof(char));
-		boundsBufAll= (char*)malloc(perNodeCount * size * maxLenBounds * sizeof(char));
-		memset(inputBufAll, 0, perNodeCount * size * maxLenInput);
-		memset(maskBufAll, 0, perNodeCount * size * maxLenMask);
-		memset(boundsBufAll, 0, perNodeCount * size * maxLenBounds);
-
-		// copy data into the buffers
-		for (unsigned int i = 0; i < filenames.size(); ++i) {
-			strncpy(inputBufAll + i * maxLenInput, filenames[i].c_str(), maxLenInput);
-			strncpy(maskBufAll + i * maxLenMask, seg_output[i].c_str(), maxLenMask);
-			strncpy(boundsBufAll + i * maxLenBounds, bounds_output[i].c_str(), maxLenBounds);
-
-		}
-	}
-//	printf("rank: %d\n ", rank);
-	MPI::COMM_WORLD.Barrier();
-
-	MPI::COMM_WORLD.Bcast(&perNodeCount, 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast(&maxLenInput, 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast(&maxLenMask, 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast(&maxLenBounds, 1, MPI::INT, 0);
-
-
-//	printf("rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
-
-	// allocate the receive buffer
-	inputBuf = (char*)malloc(perNodeCount * maxLenInput * sizeof(char));
-	maskBuf = (char*)malloc(perNodeCount * maxLenMask * sizeof(char));
-	boundsBuf = (char*)malloc(perNodeCount * maxLenBounds * sizeof(char));
-
-	// scatter
-	MPI::COMM_WORLD.Scatter(inputBufAll, perNodeCount * maxLenInput, MPI::CHAR,
-		inputBuf, perNodeCount * maxLenInput, MPI::CHAR,
-		0);
-
-	MPI::COMM_WORLD.Scatter(maskBufAll, perNodeCount * maxLenMask, MPI::CHAR,
-		maskBuf, perNodeCount * maxLenMask, MPI::CHAR,
-		0);
-
-	MPI::COMM_WORLD.Scatter(boundsBufAll, perNodeCount * maxLenBounds, MPI::CHAR,
-		boundsBuf, perNodeCount * maxLenBounds, MPI::CHAR,
-		0);
-
-#endif
-
-	if (rank == 0) {
-		t3 = cciutils::ClockGetTime();
-	} // end if (rank == 0)
-
-
-#ifdef WITH_MPI
-#pragma omp parallel for shared(perNodeCount, inputBuf, maskBuf, boundsBuf, maxLenInput, maxLenMask, maxLenBounds, modecode, rank) private(fin, fmask, fbound, t1, t2)
-    for (unsigned int i = 0; i < perNodeCount; ++i) {
-		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
-		fmask = std::string(maskBuf + i * maxLenMask, maxLenMask);
-		fbound = std::string(boundsBuf + i * maxLenBounds, maxLenBounds);
-#else
-#pragma omp parallel for shared(filenames, seg_output, bounds_output, modecode, rank) private(fin, fmask, fbound, t1, t2)
-    for (unsigned int i = 0; i < dataCount; ++i) {
-		fin = filenames[i];
-		fmask = seg_output[i];
-		fbound = bounds_output[i];
-//		printf("in seq seg loop with rank %d, loop %d\n", rank, i);
-#endif
-
-#ifdef _OPENMP
-    	int tid = omp_get_thread_num();
-#else
-		int tid = 0;
-#endif
-
-//  	std::cout << outfile << std::endl;
-
-		t1 = cciutils::ClockGetTime();
-
-		int status;
-
-		switch (modecode) {
-		case cciutils::DEVICE_CPU :
-		case cciutils::DEVICE_MCORE :
-			status = nscale::HistologicalEntities::segmentNuclei(fin, fmask);
-			break;
-		case cciutils::DEVICE_GPU :
-			status = nscale::gpu::HistologicalEntities::segmentNuclei(fin, fmask);
-			break;
-		default :
-			break;
-		}
-
-		if (status != nscale::HistologicalEntities::SUCCESS) {
-#ifdef WITH_MPI
-			memset(maskBuf + i * maxLenMask, 0, maxLenMask);
-#else
-			seg_output[i] = std::string("");
-#endif
-		}
-		t2 = cciutils::ClockGetTime();
-		printf("%s %d::%d: segment %lu us, in %s\n", hostname, rank, tid, t2-t1, fin.c_str());
-//		std::cout << rank <<"::" << tid << ":" << t2-t1 << " us, in " << fin << ", out " << fmask << std::endl;
-
-
-#ifdef PRINT_CONTOUR_TEXT
-#pragma omp critical
-		{  // added critical section on 10/19.s
-		Mat output = imread(fmask, 0);
-		if (output.data > 0) {
-			// for Lee and Jun to test the contour correctness.
-			Mat temp = Mat::zeros(output.size() + Size(2,2), output.type());
-			copyMakeBorder(output, temp, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-
-			std::vector<std::vector<Point> > contours;
-			std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
-
-			// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-			findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
-			//TODO: TEMP std::cout << "num contours = " << contours.size() << std::endl;
-
-			std::ofstream fid(fbound.c_str());
-			int counter = 0;
-			if (contours.size() > 0) {
-				// iterate over all top level contours (all siblings, draw with own label color
-				for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
-					// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-					fid << idx << ": ";
-					for (int ptc = 0; ptc < contours[idx].size(); ++ptc) {
-						fid << contours[idx][ptc].x << "," << contours[idx][ptc].y << "; ";
-					}
-					fid << std::endl;
-				}
-				++counter;
-			}
-			fid.close();
-		}
-		}
-#endif
-
-
-    }
-
-#ifdef WITH_MPI
-    MPI::COMM_WORLD.Barrier();
-#endif
-    if (rank == 0)  {
-    	t4 = cciutils::ClockGetTime();
-		printf("**** Segment took %lu us\n", t4-t3);
-	//	std::cout << "**** Segment took " << t4-t3 << " us" << std::endl;
-
-		t3 = cciutils::ClockGetTime();
-    }
-
-#ifdef WITH_MPI
-    if (rank == 0) {
-		free(inputBufAll);
-		free(maskBufAll);
-		free(boundsBufAll);
-    }
-
-	free(inputBuf);
-	free(maskBuf);
-	free(boundsBuf);
-
-	MPI::Finalize();
-#endif
-
-
-//	waitKey();
 
 	return 0;
 }
 
 
+void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
+		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output) {
+
+	// check to see if it's a directory or a file
+	std::string suffix;
+	suffix.assign(".tif");
+
+	FileUtils futils(suffix);
+	futils.traverseDirectoryRecursive(imageName, filenames);
+	std::string dirname;
+	if (filenames.size() == 1) {
+		dirname = imageName.substr(0, imageName.find_last_of("/\\"));
+	} else {
+		dirname = imageName;
+	}
+
+
+	std::string temp, tempdir;
+	for (unsigned int i = 0; i < filenames.size(); ++i) {
+			// generate the output file name
+		temp = futils.replaceExt(filenames[i], ".tif", ".mask.pbm");
+		temp = futils.replaceDir(temp, dirname, outDir);
+		tempdir = temp.substr(0, temp.find_last_of("/\\"));
+		futils.mkdirs(tempdir);
+		seg_output.push_back(temp);
+		// generate the bounds output file name
+		temp = futils.replaceExt(filenames[i], ".tif", ".bounds.csv");
+		temp = futils.replaceDir(temp, dirname, outDir);
+		tempdir = temp.substr(0, temp.find_last_of("/\\"));
+		futils.mkdirs(tempdir);
+		bounds_output.push_back(temp);
+	}
+
+}
+
+
+
+
+void compute(const char *input, const char *mask, const char *output, const int modecode) {
+	// compute
+
+	int status;
+
+	switch (modecode) {
+	case cciutils::DEVICE_CPU :
+	case cciutils::DEVICE_MCORE :
+		status = nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask));
+		break;
+	case cciutils::DEVICE_GPU :
+		status = nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask));
+		break;
+	default :
+		break;
+	}
+
+#ifdef PRINT_CONTOUR_TEXT
+	Mat out = imread(mask, 0);
+	if (out.data > 0) {
+		// for Lee and Jun to test the contour correctness.
+		Mat temp = Mat::zeros(out.size() + Size(2,2), out.type());
+		copyMakeBorder(out, temp, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+
+		std::vector<std::vector<Point> > contours;
+		std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
+
+		// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
+		findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
+		//TODO: TEMP std::cout << "num contours = " << contours.size() << std::endl;
+
+		std::ofstream fid(output);
+		int counter = 0;
+		if (contours.size() > 0) {
+			// iterate over all top level contours (all siblings, draw with own label color
+			for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
+				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
+				fid << idx << ": ";
+				for (unsigned int ptc = 0; ptc < contours[idx].size(); ++ptc) {
+					fid << contours[idx][ptc].x << "," << contours[idx][ptc].y << "; ";
+				}
+				fid << std::endl;
+			}
+			++counter;
+		}
+		fid.close();
+	}
+#endif
+
+}
+
+
+
+#if defined (WITH_MPI)
+MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
+MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode);
+
+
+// initialize MPI
+MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname) {
+    MPI::Init(argc, argv);
+
+    char * temp = new char[256];
+    gethostname(temp, 255);
+    hostname.assign(temp);
+    delete [] temp;
+
+    size = MPI::COMM_WORLD.Get_size();
+    rank = MPI::COMM_WORLD.Get_rank();
+
+    return MPI::COMM_WORLD;
+}
+
+// not necessary to create a new comm object
+MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid) {
+	// get old group
+	MPI::Group world_group = comm_world.Get_group();
+	// create new group from old group
+	int worker_size = comm_world.Get_size() - 1;
+	int *workers = new int[worker_size];
+	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
+		if (id == managerid) ++id;  // skip the manager id
+		workers[i] = id;
+	}
+	MPI::Group worker_group = world_group.Incl(worker_size, workers);
+	delete [] workers;
+	return comm_world.Create(worker_group);
+}
+
+static const char MANAGER_READY = 10;
+static const char MANAGER_FINISHED = 12;
+static const char MANAGER_ERROR = -11;
+static const char WORKER_READY = 20;
+static const char WORKER_PROCESSING = 21;
+static const char WORKER_ERROR = -21;
+static const int TAG_CONTROL = 0;
+static const int TAG_DATA = 1;
+static const int TAG_METADATA = 2;
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir) {
+	// first get the list of files to process
+   	std::vector<std::string> filenames;
+	std::vector<std::string> seg_output;
+	std::vector<std::string> bounds_output;
+	uint64_t t1, t0;
+
+	t0 = cciutils::ClockGetTime();
+	getFiles(maskName, outDir, filenames, seg_output, bounds_output);
+
+	t1 = cciutils::ClockGetTime();
+	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
+	comm_world.Barrier();
+
+	// now start the loop to listen for messages
+	int curr = 0;
+	int total = filenames.size();
+	MPI::Status status;
+	int worker_id;
+	char ready;
+	char *input;
+	char *mask;
+	char *output;
+	int inputlen;
+	int masklen;
+	int outputlen;
+	while (curr < total) {
+		usleep(1000);
+
+		if (comm_world.Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, status)) {
+/* where is it coming from */
+			worker_id=status.Get_source();
+			comm_world.Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//			printf("manager received request from worker %d\n",worker_id);
+			if (worker_id == manager_rank) continue;
+
+			if(ready == WORKER_READY) {
+				// tell worker that manager is ready
+				comm_world.Send(&MANAGER_READY, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//				printf("manager signal transfer\n");
+/* send real data */
+				inputlen = filenames[curr].size() + 1;  // add one to create the zero-terminated string
+				masklen = seg_output[curr].size() + 1;
+				outputlen = bounds_output[curr].size() + 1;
+				input = new char[inputlen];
+				memset(input, 0, sizeof(char) * inputlen);
+				strncpy(input, filenames[curr].c_str(), inputlen);
+				mask = new char[masklen];
+				memset(mask, 0, sizeof(char) * masklen);
+				strncpy(mask, seg_output[curr].c_str(), masklen);
+				output = new char[outputlen];
+				memset(output, 0, sizeof(char) * outputlen);
+				strncpy(output, bounds_output[curr].c_str(), outputlen);
+
+				comm_world.Send(&inputlen, 1, MPI::INT, worker_id, TAG_METADATA);
+				comm_world.Send(&masklen, 1, MPI::INT, worker_id, TAG_METADATA);
+				comm_world.Send(&outputlen, 1, MPI::INT, worker_id, TAG_METADATA);
+
+				// now send the actual string data
+				comm_world.Send(input, inputlen, MPI::CHAR, worker_id, TAG_DATA);
+				comm_world.Send(mask, masklen, MPI::CHAR, worker_id, TAG_DATA);
+				comm_world.Send(output, outputlen, MPI::CHAR, worker_id, TAG_DATA);
+				curr++;
+
+				delete [] input;
+				delete [] mask;
+				delete [] output;
+
+			}
+
+			if (curr % 100 == 1) {
+				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
+			}
+
+		}
+	}
+/* tell everyone to quit */
+	int active_workers = worker_size;
+	while (active_workers > 0) {
+		usleep(1000);
+
+		if (comm_world.Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, status)) {
+		/* where is it coming from */
+			worker_id=status.Get_source();
+			comm_world.Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//			printf("manager received request from worker %d\n",worker_id);
+			if (worker_id == manager_rank) continue;
+
+			if(ready == WORKER_READY) {
+				comm_world.Send(&MANAGER_FINISHED, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//				printf("manager signal finished\n");
+				--active_workers;
+			}
+		}
+	}
+
+}
+
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode) {
+	char flag = MANAGER_READY;
+	int inputSize;
+	int outputSize;
+	int maskSize;
+	char *input;
+	char *output;
+	char *mask;
+
+	comm_world.Barrier();
+	uint64_t t0, t1;
+	printf("worker %d ready\n", rank);
+
+	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
+		t0 = cciutils::ClockGetTime();
+
+		// tell the manager - ready
+		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
+//		printf("worker %d signal ready\n", rank);
+		// get the manager status
+		comm_world.Recv(&flag, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
+//		printf("worker %d received manager status %d\n", rank, flag);
+
+		if (flag == MANAGER_READY) {
+			// get data from manager
+			comm_world.Recv(&inputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
+			comm_world.Recv(&maskSize, 1, MPI::INT, manager_rank, TAG_METADATA);
+			comm_world.Recv(&outputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
+
+			// allocate the buffers
+			input = new char[inputSize];
+			mask = new char[maskSize];
+			output = new char[outputSize];
+			memset(input, 0, inputSize * sizeof(char));
+			memset(mask, 0, maskSize * sizeof(char));
+			memset(output, 0, outputSize * sizeof(char));
+
+			// get the file names
+			comm_world.Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA);
+			comm_world.Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA);
+			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
+
+			t1 = cciutils::ClockGetTime();
+//			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
+
+
+			compute(input, mask, output, cciutils::DEVICE_CPU);
+			// now do some work
+
+			t1 = cciutils::ClockGetTime();
+			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
+
+			// clean up
+			delete [] input;
+			delete [] mask;
+			delete [] output;
+
+		}
+	}
+}
+
+int main (int argc, char **argv){
+
+	printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
+
+	// parse the input
+	int modecode;
+	std::string imageName, outDir, hostname;
+	int status = parseInput(argc, argv, modecode, imageName, outDir);
+	if (status != 0) return status;
+
+	// set up mpi
+	int rank, size, worker_size, manager_rank;
+	MPI::Intracomm comm_world = init_mpi(argc, argv, size, rank, hostname);
+
+	if (size == 1) {
+		printf("ERROR:  this program can only be run with 2 or more MPI nodes.  The head node does not process data\n");
+		return -4;
+	}
+
+	if (modecode == cciutils::DEVICE_GPU) {
+		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
+		return -4;
+	}
+
+	// initialize the worker comm object
+	worker_size = size - 1;
+	manager_rank = size - 1;
+
+	// NOT NEEDED
+	//MPI::Intracomm comm_worker = init_workers(MPI::COMM_WORLD, manager_rank);
+	//int worker_rank = comm_worker.Get_rank();
+
+
+	uint64_t t1 = 0, t2 = 0;
+	t1 = cciutils::ClockGetTime();
+
+	// decide based on rank of worker which way to process
+	if (rank == manager_rank) {
+		// manager thread
+		manager_process(comm_world, manager_rank, worker_size, imageName, outDir);
+		t2 = cciutils::ClockGetTime();
+		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
+
+	} else {
+		// worker bees
+		worker_process(comm_world, manager_rank, rank, modecode);
+		t2 = cciutils::ClockGetTime();
+		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
+
+	}
+	comm_world.Barrier();
+	MPI::Finalize();
+	exit(0);
+
+}
+
+
+#else
+
+    int main (int argc, char **argv){
+    	printf("NOT compiled with MPI.  Using OPENMP if CPU, or GPU (multiple streams)\n");
+
+    	// parse the input
+    	int modecode;
+    	std::string imageName, outDir, hostname;
+    	int status = parseInput(argc, argv, modecode, imageName, outDir);
+    	if (status != 0) return status;
+
+    	uint64_t t0 = 0, t1 = 0, t2 = 0;
+    	t1 = cciutils::ClockGetTime();
+
+    	// first get the list of files to process
+       	std::vector<std::string> filenames;
+    	std::vector<std::string> seg_output;
+    	std::vector<std::string> bounds_output;
+
+    	t0 = cciutils::ClockGetTime();
+    	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
+
+    	t1 = cciutils::ClockGetTime();
+    	printf("file read took %lu us\n", t1 - t0);
+
+    	int total = filenames.size();
+    	int i = 0;
+
+    	// openmp bag of task
+//#define _OPENMP
+#if defined (_OPENMP)
+
+    	if (omp_get_max_threads() == 1) {
+        	printf("1 omp thread\n");
+        	while (i < total) {
+        		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode);
+        		++i;
+        	}
+
+    	} else {
+        	printf("omp %d\n", omp_get_max_threads());
+
+#pragma omp parallel
+    	{
+#pragma omp single private(i)
+    		{
+    			while (i < total) {
+    				int ti = i;
+#pragma omp task private(ti) shared(filenames, seg_output, bounds_output, modecode) untied
+    				{
+    					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode);
+    				}
+    				++i;
+    			}
+    		}
+    	}
+    	}
+#else
+    	printf("not omp\n");
+    	while (i < total) {
+    		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode);
+    		++i;
+    	}
+#endif
+		t2 = cciutils::ClockGetTime();
+		printf("FINISHED in %lu us\n", t2 - t1);
+
+    	return 0;
+    }
+#endif

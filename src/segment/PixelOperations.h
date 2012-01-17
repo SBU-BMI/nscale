@@ -41,7 +41,11 @@ public:
 	static ::cv::gpu::GpuMat invert(const ::cv::gpu::GpuMat& img, ::cv::gpu::Stream& stream);
 
 	template <typename T>
-	static ::cv::gpu::GpuMat threshold(const ::cv::gpu::GpuMat& img, T lower, T upper, ::cv::gpu::Stream& stream);
+	static ::cv::gpu::GpuMat threshold(const ::cv::gpu::GpuMat& img, T lower, bool lower_inclusive, T upper, bool up_inclusive, ::cv::gpu::Stream& stream);
+	template <typename T>
+	static ::cv::gpu::GpuMat divide(const ::cv::gpu::GpuMat& num, const ::cv::gpu::GpuMat& den, ::cv::gpu::Stream& stream);
+	template <typename T>
+	static ::cv::gpu::GpuMat mask(const ::cv::gpu::GpuMat& input, const ::cv::gpu::GpuMat& mask, T background, ::cv::gpu::Stream& stream);
 
 	template <typename T>
 	static ::cv::gpu::GpuMat mod(const ::cv::gpu::GpuMat& img, T mod, ::cv::gpu::Stream& stream);

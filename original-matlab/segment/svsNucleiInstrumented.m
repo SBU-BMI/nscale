@@ -9,8 +9,8 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
             'normal.3/normal.3.ndpi-0000028672-0000012288',...
             };
         impath='/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/';
-        resultpath='/home/tcpan/PhD/path/Data/seg-gpu-tests/';
-        validationpath='/home/tcpan/PhD/path/Data/seg-gpu-tests/';
+        resultpath='/home/tcpan/PhD/path/Data/seg-validate-cpu/';
+        validationpath='/home/tcpan/PhD/path/Data/seg-validate-cpu/';
         fileext = '.tif';
 
         for i = 1:length(image)
@@ -113,6 +113,7 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
     f = [];
 
     logfid = fopen(logfile, 'a');
+    fprintf(1, 'processing %s\n', filename);
 
     tic;
     r = color_img( :, :, 1);
@@ -135,6 +136,28 @@ function [f,L] = segNucleiMorphMeanshiftInstrumented(color_img, validationpath, 
     else
         rbc = zeros(size(imR2G));
     end
+    
+%     imR2B = double(r)./(double(b)+eps);
+%     bw3 = imR2B > 1;
+%         fid = fopen([validationpath, filename, '-', sprintf('%d',101), '.64FC1.raw'], 'r');
+%     cv_imR2G = fread(fid, [4096,4096], '*float64');
+%     cv_imR2G = double(cv_imR2G');
+%     fclose(fid);
+%     fprintf(1, 'matlab vs cv.  imR2G %d\n', length(find(imR2G ~= cv_imR2G))); 
+%             fid = fopen([validationpath, filename, '-', sprintf('%d',102), '.64FC1.raw'], 'r');
+%     cv_imR2B = fread(fid, [4096,4096], '*float64');
+%     cv_imR2B = double(cv_imR2B');
+%     fclose(fid);
+%     fprintf(1, 'matlab vs cv.  imR2B %d\n', length(find(imR2B ~= cv_imR2B))); 
+% 
+%        cv_bw11 = imread([validationpath, filename, '-', sprintf('%d',107), '.mask.pbm']) > 0;
+%     fprintf(1, 'matlab vs cv.  bw11 %d\n', length(find(bw1 ~= cv_bw11))); 
+%        cv_bw22 = imread([validationpath, filename, '-', sprintf('%d',108), '.mask.pbm']) > 0;
+%     fprintf(1, 'matlab vs cv.  bw22 %d\n', length(find(bw2 ~= cv_bw22))); 
+%        cv_bw33 = imread([validationpath, filename, '-', sprintf('%d',109), '.mask.pbm']) > 0;
+%     fprintf(1, 'matlab vs cv.  bw33 %d\n', length(find(bw3 ~= cv_bw33))); 
+
+    
     t = toc;
     fprintf(logfid, '%s, RBC, %d\n', filename, t);
 
@@ -275,15 +298,6 @@ fprintf(logfid, '%s, dilate, %d\n', filename, t);
     fprintf(1, 'matlab vs cv.  candidate big %d\n', length(find(seg_big ~= cv_seg_big)));
     
     
-%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-dist_4096_x_4096.raw', 'r');
-%     cv_distance = fread(fid, [4096,4096], '*float32');
-%     cv_distance = single(cv_distance');
-%     fclose(fid);
-     cv_distance = imread([validationpath, filename, '-', sprintf('%d',16), '.mask.pbm']);
-     t = bwdist(~seg_big);  % distance to nearest non-zero
-     t = uint8(255.0/(max(max(t))) * t);
-     fprintf(1, 'matlab vs cv.  distance transform %d\n', length(find(t ~= cv_distance)));
-    %figure; imshow(abs(cv_distance - distance) * 60.0);
 tic;    
     distance = -bwdist(~seg_big);
     mn = min(min(distance));
@@ -291,15 +305,20 @@ tic;
 t=toc;
 fprintf(logfid, '%s, distTransform, %d\n', filename, t);
 
-%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distance_4096_x_4096.raw', 'r');
-%     cv_distance = fread(fid, [4096,4096], '*float32');
-%     cv_distance = single(cv_distance');
-%     fclose(fid);
-%     t_distance = distance;
-%     t_distance(find(t_distance == -inf)) = 0;
-%     t_cv_distance = cv_distance;
-%     t_cv_distance(find(t_cv_distance < -1e38)) = 0;
-%     fprintf(1, 'matlab vs cv.  distance background set %d\n', max(max(abs(t_distance - t_cv_distance) > eps)));
+    fid = fopen([validationpath, filename, '-', sprintf('%d',16), '.32FC1.raw'], 'r');
+    cv_distance = fread(fid, [4096,4096], '*float32');
+    cv_distance = single(cv_distance');
+    fclose(fid);
+%     t = bwdist(~seg_big);  % distance to nearest non-zero
+%     t = uint8(255.0/(max(max(t))) * t);
+%     fprintf(1, 'matlab vs cv.  distance transform %d\n', length(find(distance ~= cv_distance)));
+    %figure; imshow(abs(cv_distance - distance) * 60.0);
+
+    t_distance = distance;
+    t_distance(find(t_distance == -inf)) = 0;
+    t_cv_distance = -cv_distance;
+%    t_cv_distance(find(t_cv_distance > -3.4e38)) = 0;
+    fprintf(1, 'matlab vs cv.  distance background set %d\n', length(find(abs(t_distance - t_cv_distance) >= eps('single'))));
 %     cv_distance = imread([validationpath, filename, '-', sprintf('%d',18), '.mask.pbm']);
 %     t = distance;  % distance to nearest non-zero
 %     t = t - mn + 1.0;
@@ -308,25 +327,31 @@ fprintf(logfid, '%s, distTransform, %d\n', filename, t);
 %     fprintf(1, 'matlab vs cv.  distance transform with -inf %d\n', length(find(t ~= cv_distance)));
     %figure; imshow(abs(t_cv_distance- t_distance) * 60);
 tic;
-    distance2 = imhmin(distance, 1);
+%distance2 = imhmin(distance, 1);
+%MatLAB imhmin uses imcomplement internally.  for floating point images,
+%the images are expected to be between 0 and 1. (for signed integer
+%imcomplement does max - x, which is greater than max)
+% use my own version here
+    t = -distance;
+    distance2 = -imreconstruct(imsubtract(t, 1), t, 8); 
 t=toc;
 fprintf(logfid, '%s, imhmin, %d\n', filename, t);
 
-%     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-distanceimhmin_4096_x_4096.raw', 'r');
-%     cv_distance2 = fread(fid, [4096,4096], '*float32');
-%     cv_distance2 = single(cv_distance2');
-%     fclose(fid);
-%     t_distance2 = distance2;
-%     t_distance2(find(t_distance2 == -inf)) = 0;
-%     t_cv_distance2 = cv_distance2;
-%     t_cv_distance2(find(t_cv_distance2 < -1e38)) = 0;
-%     fprintf(1, 'matlab vs cv.  distance imhmin %d\n', max(max(abs(t_distance2 - t_cv_distance2) > eps)));
-      cv_distance2 = imread([validationpath, filename, '-', sprintf('%d',18), '.mask.pbm']);
-     t = distance2;  % distance to nearest non-zero
-     t = t - mn + 1.0;
-     t(~seg_big) = 0;
-     t = uint8(255.0/(max(max(t))) * t);
-     fprintf(1, 'matlab vs cv.  imhmin %d\n', length(find(t ~= cv_distance2)));
+    fid = fopen([validationpath, filename, '-', sprintf('%d',18), '.32FC1.raw'], 'r');
+    cv_distance2 = fread(fid, [4096,4096], '*float32');
+    cv_distance2 = single(cv_distance2');
+    fclose(fid);
+    t_distance2 = distance2;
+    t_distance2(find(t_distance2 == -inf)) = 0;
+    t_cv_distance2 = cv_distance2;
+    t_cv_distance2(find(t_cv_distance2 < -3e38)) = 0;
+%    fprintf(1, 'matlab vs cv.  distance imhmin %d\n', max(max(abs(t_distance2 - t_cv_distance2) > eps('single'))));
+    fprintf(1, 'matlab vs cv.  distance imhmin %d\n', length(find(abs(t_distance2 - t_cv_distance2) > eps('single'))));
+%      t = distance2;  % distance to nearest non-zero
+%      t = t - mn + 1.0;
+%      t(~seg_big) = 0;
+%      t = uint8(255.0/(max(max(t))) * t);
+%     fprintf(1, 'matlab vs cv.  imhmin %d\n', length(find(t ~= cv_distance2)));
     %figure; imshow(abs(t_cv_distance2- t_distance2) * 60);
     
     
@@ -403,7 +428,8 @@ fprintf(logfid, '%s, fillHolesLast, %d\n', filename, t);
 %     figure; imshow(result);
 %     figure; imshow(tolabel ~= (distance2 > -inf));
 %     
-    cv_tolabel = imread([validationpath, filename, '-', sprintf('%d',25), '.mask.pbm']) > 0;
+%    cv_tolabel = imread([validationpath, filename, '-', sprintf('%d',25), '.mask.pbm']) > 0;
+    cv_tolabel = imread([validationpath, filename, '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  nuclei pixel difference %d\n', length(find(tolabel ~= cv_tolabel)));
 %    figure; imshow(tolabel ~= cv_tolabel);
 

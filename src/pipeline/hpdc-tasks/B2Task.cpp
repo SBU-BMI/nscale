@@ -63,25 +63,8 @@ bool B2Task::run(int procType, int tid) {
         disk3 = disk3.reshape(1, 3);
 //      imwrite("test/out-rcopen-strel.pbm", disk19);
         // filter doesnot check borders.  so need to create border.
-        ::cv::gpu::GpuMat g_t_seg_nohole;
-        copyMakeBorder(g_input, g_t_seg_nohole, 1,1,1,1, ::cv::Scalar(std::numeric_limits<unsigned char>::max()), stream);
-        ::cv::gpu::GpuMat g_t_seg_erode(g_t_seg_nohole.size(), g_t_seg_nohole.type());
-        erode(g_t_seg_nohole, g_t_seg_erode, disk3, ::cv::Point(-1,-1), 1, stream);
-        ::cv::gpu::GpuMat g_seg_erode = g_t_seg_erode(::cv::Rect(1, 1, g_input.cols, g_input.rows));
-        ::cv::gpu::GpuMat g_t_seg_erode2;
-        copyMakeBorder(g_seg_erode, g_t_seg_erode2, 1,1,1,1, ::cv::Scalar(std::numeric_limits<unsigned char>::min()), stream);
-        ::cv::gpu::GpuMat g_t_seg_open(g_t_seg_erode2.size(), g_t_seg_erode2.type());
-        dilate(g_t_seg_erode2, g_t_seg_open, disk3, ::cv::Point(-1,-1), 1, stream);
-        ::cv::gpu::GpuMat g_output = g_t_seg_open(::cv::Rect(1, 1, g_input.cols, g_input.rows));
-        stream.waitForCompletion();
-        g_t_seg_open.release();
-        g_t_seg_erode2.release();
-        g_seg_erode.release();
-        g_t_seg_erode.release();
-        g_t_seg_nohole.release();
+        ::cv::gpu::GpuMat g_output = ::nscale::gpu::morphOpen<unsigned char>(g_input, disk3, stream);
 
-
-	
 		result = ::nscale::HistologicalEntities::CONTINUE;
 		stream.enqueueDownload(g_output, output);
 		stream.waitForCompletion();
@@ -95,21 +78,8 @@ bool B2Task::run(int procType, int tid) {
         // can't use morphologyEx.  the erode phase is not creating a border even though the method signature makes it appear that way.
         // because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
         //      morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, ::cv::Point(1,1)); //, ::cv::Point(-1, -1), 1, ::cv::BORDER_REFLECT);
-        ::cv::Mat t_seg_nohole;
-        copyMakeBorder(input, t_seg_nohole, 1, 1, 1, 1, ::cv::BORDER_CONSTANT, std::numeric_limits<uchar>::max());
-        ::cv::Mat t_seg_erode = ::cv::Mat::zeros(t_seg_nohole.size(), t_seg_nohole.type());
-        erode(t_seg_nohole, t_seg_erode, disk3);
-        ::cv::Mat seg_erode = t_seg_erode(::cv::Rect(1, 1, input.cols, input.rows));
-        ::cv::Mat t_seg_erode2;
-        copyMakeBorder(seg_erode,t_seg_erode2, 1, 1, 1, 1, ::cv::BORDER_CONSTANT, std::numeric_limits<uchar>::min());
-        ::cv::Mat t_seg_open = ::cv::Mat::zeros(t_seg_erode2.size(), t_seg_erode2.type());
-        dilate(t_seg_erode2, t_seg_open, disk3);
-        output = t_seg_open(::cv::Rect(1,1,input.cols, input.rows));
-        t_seg_open.release();
-        t_seg_erode2.release();
-        seg_erode.release();
-        t_seg_erode.release();
-        t_seg_nohole.release();
+        output = ::nscale::morphOpen<unsigned char>(seg_nohole, disk3);
+
 		result = ::nscale::HistologicalEntities::CONTINUE;
 	} else { // error
 		printf("ERROR: invalid proc type");

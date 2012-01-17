@@ -58,15 +58,7 @@ bool B3Task::run(int procType, int tid) {
         std::vector<unsigned char> disk3vec(disk3raw, disk3raw+9);
         ::cv::Mat disk3(disk3vec);
 
-        ::cv::gpu::GpuMat g_twm;
-        copyMakeBorder(g_input, g_twm, 1, 1, 1, 1, ::cv::Scalar(std::numeric_limits<unsigned char>::max()), stream);
-        ::cv::gpu::GpuMat g_t_nonoverlap(g_twm.size(), g_twm.type());
-        stream.enqueueMemSet(g_t_nonoverlap, ::cv::Scalar(0));
-        erode(g_twm, g_t_nonoverlap, disk3, ::cv::Point(-1, -1), 1, stream);
-stream.waitForCompletion();
-        ::cv::gpu::GpuMat g_output = g_t_nonoverlap(::cv::Rect(1,1,g_input.cols, g_input.rows));
-        g_t_nonoverlap.release();
-        g_twm.release();
+        ::cv::gpu::GpuMat g_output = ::nscale::gpu::morphErode<unsigned char>(g_input, disk3, stream);
 	
 		result = ::nscale::HistologicalEntities::CONTINUE;
 		stream.enqueueDownload(g_output, output);

@@ -234,7 +234,6 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	int maxy = output.rows - 1;
 	std::queue<int> xQ;
 	std::queue<int> yQ;
-	bool shouldAdd;
 	T* oPtr;
 	T* oPtrMinus;
 	T* oPtrPlus;
@@ -242,7 +241,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	T* iPtrPlus;
 	T* iPtrMinus;
 
-	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cciutils::ClockGetTime();
 
 	// raster scan
 	for (int y = 1; y < maxy; ++y) {
@@ -318,11 +317,11 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 		}
 	}
 
-	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cciutils::ClockGetTime();
 //	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries."<< std::endl;
 
 	// now process the queue.
-	T qval, ival;
+//	T qval, ival;
 	int x, y;
 	count = 0;
 	while (!(xQ.empty())) {
@@ -384,7 +383,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	}
 
 
-	uint64_t t3 = cciutils::ClockGetTime();
+//	uint64_t t3 = cciutils::ClockGetTime();
 //	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 
 
@@ -428,7 +427,8 @@ Mat imreconstructUChar(const Mat& seeds, const Mat& image, int connectivity) {
 	int width = input.cols;
 	int height = input.rows;
 
-	  int ix,iy,ox,oy,offset, currentP;
+	  //int ix,iy,ox,oy;
+	  int offset, currentP;
 	  int currentQ;  // current value in downhill
 	  int pixPerImg=width*height;
 	  uchar val, maxVal = 0;
@@ -587,7 +587,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 	T* iPtrPlus;
 	T* iPtrMinus;
 
-	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cciutils::ClockGetTime();
 
 	int count = 0;
 	// contour pixel determination.  if any neighbor of a 1 pixel is 0, and the image is 1, then boundary
@@ -634,12 +634,12 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 		}
 	}
 
-	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cciutils::ClockGetTime();
 	//std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queued "<< std::endl;
 
 
 	// now process the queue.
-	T qval;
+//	T qval;
 	T outval = std::numeric_limits<T>::max();
 	int x, y;
 	count = 0;
@@ -700,7 +700,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 
 	}
 
-	uint64_t t3 = cciutils::ClockGetTime();
+//	uint64_t t3 = cciutils::ClockGetTime();
 	//std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queued" << std::endl;
 
 	return output(Range(1, maxy), Range(1, maxx));
@@ -781,7 +781,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 	// now do the work...
 	mask = nscale::PixelOperations::invert<T>(mask);
 
-	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
 	if (binary) {
 //		imwrite("test/in-fillholes-bin-marker.pgm", marker);
@@ -792,7 +792,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 //		imwrite("test/in-fillholes-gray-mask.pgm", mask);
 		output = imreconstruct<T>(marker, mask, connectivity);
 	}
-	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cciutils::ClockGetTime();
 	//TODO: TEMP std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 
 	output = nscale::PixelOperations::invert<T>(output);
@@ -858,13 +858,13 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
 
 	if (contours.size() > 0) {
 		int color = 1;
-		uint64_t t1 = cciutils::ClockGetTime();
+//		uint64_t t1 = cciutils::ClockGetTime();
 		// iterate over all top level contours (all siblings, draw with own label color
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 			drawContours( output, contours, idx, Scalar(color), lineThickness, connectivity, hierarchy );
 		}
-		uint64_t t2 = cciutils::ClockGetTime();
+//		uint64_t t2 = cciutils::ClockGetTime();
 		//TODO: TEMP std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
 	}
 	return output(Rect(1,1,binaryImage.cols, binaryImage.rows));
@@ -1161,6 +1161,42 @@ Mat_<uchar> localMinima(const Mat& image, int connectivity) {
 }
 
 
+template <typename T>
+Mat morphOpen(const Mat& image, const Mat& kernel) {
+	CV_Assert(kernel.rows == kernel.cols);
+	CV_Assert(kernel.rows > 1);
+	CV_Assert((kernel.rows % 2) == 1);
+
+	int bw = (kernel.rows - 1) / 2;
+
+	// can't use morphologyEx.  the erode phase is not creating a border even though the method signature makes it appear that way.
+	// because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
+	//	morphologyEx(image, seg_open, CV_MOP_OPEN, disk3, Point(1,1)); //, Point(-1, -1), 1, BORDER_REFLECT);
+	Mat t_image;
+
+	copyMakeBorder(image, t_image, bw, bw, bw, bw, BORDER_CONSTANT, std::numeric_limits<unsigned char>::max());
+//	if (bw > 1)	imwrite("test-input-cpu.ppm", t_image);
+	Mat t_erode = Mat::zeros(t_image.size(), t_image.type());
+	erode(t_image, t_erode, kernel);
+//	if (bw > 1) imwrite("test-erode-cpu.ppm", t_erode);
+
+	Mat erode_roi = t_erode(Rect(bw, bw, image.cols, image.rows));
+	Mat t_erode2;
+	copyMakeBorder(erode_roi,t_erode2, bw, bw, bw, bw, BORDER_CONSTANT, std::numeric_limits<unsigned char>::min());
+//	if (bw > 1)	imwrite("test-input2-cpu.ppm", t_erode2);
+	Mat t_open = Mat::zeros(t_erode2.size(), t_erode2.type());
+	dilate(t_erode2, t_open, kernel);
+//	if (bw > 1) imwrite("test-open-cpu.ppm", t_open);
+	Mat open = t_open(Rect(bw, bw,image.cols, image.rows));
+
+	t_open.release();
+	t_erode2.release();
+	erode_roi.release();
+	t_erode.release();
+
+	return open;
+}
+
 
 
 //template Mat imreconstructGeorge<uchar>(const Mat& seeds, const Mat& image, int connectivity);
@@ -1181,6 +1217,7 @@ template Mat_<uchar> localMaxima<float>(const Mat& image, int connectivity);
 template Mat_<uchar> localMinima<float>(const Mat& image, int connectivity);
 template Mat_<uchar> localMaxima<uchar>(const Mat& image, int connectivity);
 template Mat_<uchar> localMinima<uchar>(const Mat& image, int connectivity);
+template Mat morphOpen<unsigned char>(const Mat& image, const Mat& kernel);
 
 }
 

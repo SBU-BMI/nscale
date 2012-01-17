@@ -19,7 +19,15 @@ void invertFloatCaller(int rows, int cols, int cn, const cv::gpu::PtrStep_<T> im
 
 template <typename T>
 void thresholdCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1,
- cv::gpu::PtrStep_<unsigned char> result, T lower, T upper, cudaStream_t stream);
+ cv::gpu::PtrStep_<unsigned char> result, T lower, bool lower_inclusive, T upper, bool up_inclusive, cudaStream_t stream);
+
+template <typename T>
+void divideCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1, const cv::gpu::PtrStep_<T> img2,
+ cv::gpu::PtrStep_<T> result, cudaStream_t stream);
+
+template <typename T>
+void maskCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1, const cv::gpu::PtrStep_<T> img2,
+ cv::gpu::PtrStep_<T> result, T background, cudaStream_t stream);
  
 template <typename T>
 void modCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1,

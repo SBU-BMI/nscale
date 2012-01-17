@@ -241,7 +241,7 @@ template void invertFloatCaller<float>(int, int, int, const PtrStep_<float>, Ptr
 
 
 template <typename T>
-__global__ void thresholdKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep_<unsigned char> result, T lower, T upper)
+__global__ void thresholdKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep_<unsigned char> result, T lower, bool lower_inclusive, T upper, bool up_inclusive)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -249,25 +249,94 @@ __global__ void thresholdKernel(int rows, int cols, const PtrStep_<T> img1, PtrS
     if (y < rows && x < cols)
     {
     	T p = img1.ptr(y)[x];
-        result.ptr(y)[x] = (p < lower || p >= upper) ? 0 : 255;
+    	bool pb = (p > lower) && (p < upper);
+    	if (lower_inclusive) pb = pb || (p == lower);
+    	if (up_inclusive) pb = pb || (p == upper);
+    	result.ptr(y)[x] = pb ? 255 : 0;
     }
 }
 
 template <typename T>
 void thresholdCaller(int rows, int cols, const PtrStep_<T> img1,
- PtrStep_<unsigned char> result, T lower, T upper, cudaStream_t stream)
+ PtrStep_<unsigned char> result, T lower, bool lower_inclusive, T upper, bool up_inclusive, cudaStream_t stream)
 {
     dim3 threads(16, 16);
     dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
 
-    thresholdKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, lower, upper);
+    thresholdKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, lower, lower_inclusive, upper, up_inclusive);
     cudaSafeCall( cudaGetLastError() );
 
     if (stream == 0)
         cudaSafeCall(cudaDeviceSynchronize());
 }
 
+template void thresholdCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char, bool, unsigned char, bool, cudaStream_t);
+template void thresholdCaller<double>(int, int, const PtrStep_<double>, PtrStep_<unsigned char>, double, bool, double, bool, cudaStream_t);
+template void thresholdCaller<float>(int, int, const PtrStep_<float>, PtrStep_<unsigned char>, float, bool, float, bool, cudaStream_t);
+template void thresholdCaller<int>(int, int, const PtrStep_<int>, PtrStep_<unsigned char>, int, bool, int, bool, cudaStream_t);
 
+
+
+template <typename T>
+__global__ void divideKernel(int rows, int cols, const PtrStep_<T> img1, const PtrStep_<T> img2, PtrStep_<T> result)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (y < rows && x < cols)
+    {
+    	T p = img1.ptr(y)[x];
+    	T q = img2.ptr(y)[x];
+        result.ptr(y)[x] = p / q;
+    }
+}
+
+template <typename T>
+void divideCaller(int rows, int cols, const PtrStep_<T> img1,
+		const PtrStep_<T> img2, PtrStep_<T> result, cudaStream_t stream)
+{
+    dim3 threads(16, 16);
+    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+
+    divideKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, img2, result);
+    cudaSafeCall( cudaGetLastError() );
+
+    if (stream == 0)
+        cudaSafeCall(cudaDeviceSynchronize());
+}
+
+template void divideCaller<double>(int, int, const PtrStep_<double>, const PtrStep_<double>, PtrStep_<double>, cudaStream_t);
+
+
+template <typename T>
+__global__ void maskKernel(int rows, int cols, const PtrStep_<T> img1, const PtrStep_<T> img2, PtrStep_<T> result, T background)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (y < rows && x < cols)
+    {
+    	T p = img1.ptr(y)[x];
+    	T q = img2.ptr(y)[x];
+        result.ptr(y)[x] = (q > 0) ? p : background;
+    }
+}
+
+template <typename T>
+void maskCaller(int rows, int cols, const PtrStep_<T> img1,
+		const PtrStep_<T> img2, PtrStep_<T> result, T background, cudaStream_t stream)
+{
+    dim3 threads(16, 16);
+    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+
+    maskKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, img2, result, background);
+    cudaSafeCall( cudaGetLastError() );
+
+    if (stream == 0)
+        cudaSafeCall(cudaDeviceSynchronize());
+}
+
+template void maskCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char background, cudaStream_t);
 
 
 __global__ void intToCharKernel(int rows, int cols, int *input, unsigned char *result)
@@ -322,12 +391,6 @@ void convertIntToCharAndRemoveBorder(int rows, int cols, int top, int bottom, in
     if (stream == 0)
         cudaSafeCall(cudaDeviceSynchronize());
 }
-
-
-template void thresholdCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char, unsigned char, cudaStream_t);
-
-template void thresholdCaller<float>(int, int, const PtrStep_<float>, PtrStep_<unsigned char>, float, float, cudaStream_t);
-template void thresholdCaller<int>(int, int, const PtrStep_<int>, PtrStep_<unsigned char>, int, int, cudaStream_t);
 
 
 

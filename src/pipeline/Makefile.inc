@@ -1,5 +1,10 @@
 CXX=/usr/bin/g++-4.4 
-CXXFLAGS=-fPIC -pg -g -fopenmp -O3 #-g -msse4.2 -O3
+CXXFLAGS=-fPIC -pg -g -O3 #-g -msse4.2 -O3
+
+
+#OpenMP
+CXXFLAGS += -fopenmp
+
 #CXX=icpc
 #CXXFLAGS=-g -fast -openmp -msse4.2
 

@@ -19,7 +19,7 @@
 
 
 using namespace cv;
-
+/*
 Mat computeGroundtruth(const Mat & img, cciutils::SimpleCSVLogger& logger, const int & modecode) {
 	Mat out3(img.size(), CV_8U);
 	int status;
@@ -27,10 +27,10 @@ Mat computeGroundtruth(const Mat & img, cciutils::SimpleCSVLogger& logger, const
 	case cciutils::DEVICE_CPU :
 	case cciutils::DEVICE_MCORE :
 
-		status = nscale::HistologicalEntities::segmentNuclei(img, out3, &logger);
+		status = nscale::HistologicalEntities::segmentNuclei(img, out3, &logger, 25);
 		break;
 	case cciutils::DEVICE_GPU :
-		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, out3, &logger);
+		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, out3, &logger, 25);
 		break;
 	default :
 		break;
@@ -270,34 +270,20 @@ Mat renderGrid(const std::vector<Mat> & chunks, const int & b, const Mat & groun
     addWeighted(groundtruth, 0.5, gridtruth, 1.0, 0., gridtruth);
     return gridtruth;
 }
-
-int main (int argc, char **argv){
-	bool timingOnly = true;
-/*	// allow walk through of the directory
-	const char* impath = argc > 1 ? argv[1];
-	// get the files - from http://ubuntuforums.org/showthread.php?t=1409202
-	vector<string> files();
-	Dir *dir;
-	struct dirent *dp;
-	if ((dir = std::opendir(impath.c_str())) == NULL) {
-		std::cout << "ERROR(" << errno << ") opening" << impath << std::endl;
-		return errno;
-	}
-	while ((dp = readdir(dir)) != NULL) {
-		files.push_back(string(dp->d_name));
-		if ()
-	}
-	closedir(dir);
-
-
-	// set the output path
-	const char* resultpath = argc > 2 ? argv[2];
 */
+int main (int argc, char **argv){
+
+	printf("TODO: his code needs to be updated so that the chunks can be stitched together appropriately\n");
+	return -1;
+
+/*
+	bool timingOnly = true;
+
 	if (argc < 8) {
 		std::cout << "Usage:  " << argv[0] << " image_filename " << "run-id minw minb maxb minstage maxstage [cpu | mcore | gpu [id]]" << std::endl;
 		return -1;
 	}
-	const char* imagename = argv[1];
+	string imagename(argv[1]);
 	const char* runid = argv[2];
 	int minw = atoi(argv[3]);
 	int minb = atoi(argv[4]);
@@ -491,6 +477,7 @@ int main (int argc, char **argv){
 //	waitKey();
     }
 	return 0;
+	*/
 }
 
 

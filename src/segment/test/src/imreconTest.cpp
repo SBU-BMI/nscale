@@ -162,12 +162,12 @@ int main (int argc, char **argv){
 
 	g_marker.release();
 	g_mask.release();
-////
-////
-////	stream.enqueueUpload(markerb, g_marker);
-////	stream.enqueueUpload(maskb, g_mask);
-////	stream.waitForCompletion();
-////	std::cout << "finished uploading" << std::endl;
+
+
+//	stream.enqueueUpload(markerb, g_marker);
+//	stream.enqueueUpload(maskb, g_mask);
+//	stream.waitForCompletion();
+//	std::cout << "finished uploading" << std::endl;
 
 
 //	t1 = cciutils::ClockGetTime();
