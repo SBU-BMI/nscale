@@ -28,7 +28,7 @@ int main (int argc, char **argv){
 		printf("Usage: ./imreconTest <numImages> <numFirstPasses> <connectivity(4,8)> <marker> <mask>");
 		exit(1);
 	}
-
+	gpu::setDevice(0);
 	// Used to get store timestamp and calc. exec. times
 	uint64_t t1, t2;
 
@@ -58,8 +58,8 @@ int main (int argc, char **argv){
 
 	// When this value is higher than 1, the input image is "replicated" and the actually image use is 
 	// increased (Zoom in) by the factor chosen 
-	int zoomFactor = 4;
-
+	int zoomFactor = 1;
+	cout << "Zoom = "<< zoomFactor<<endl;
 
 	cout << "Marker.type = "<< marker.type() << " cols="<< marker.cols << " rows="<< marker.rows <<endl;
 
@@ -92,31 +92,51 @@ int main (int argc, char **argv){
 	stream.enqueueUpload(mask, g_mask);
 	stream.waitForCompletion();
 	std::cout << "finished uploading" << std::endl;
-//		int connectivity = 4;
+////	//	int connectivity = 4;
 		for(int numPasses=1; numPasses < numFirstPasses; numPasses+=1){
+			Mat recon2;
 			// 4 connectivity
 			t1 = cciutils::ClockGetTime();
-			g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, connectivity, numPasses,stream);
+			g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, connectivity, numPasses,stream, 
+32);
+//			g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, connectivity, numPasses,stream);
 			stream.waitForCompletion();
 			t2 = cciutils::ClockGetTime();
-
-			cout << "gpu queue_recon"<< connectivity<< " passes "<< numPasses<<" took " << t2-t1<< " ms"<<endl;
+			g_recon.download(recon2);
+			imwrite("test/out-gpu-queueu.ppm", recon2);
+			recon2.release();
+			cout << "gpu queue_recon"<< connectivity<< " passes "<< numPasses <<" took " << t2-t1<< " ms"<<endl;
+			cout << "gpu queue_recon"<< connectivity<< " passes "<< numFirstPasses<<" took " << t2-t1<< " ms"<<endl;
 			g_recon.release();
 		}
+//		int maxBlocks=48;
+//		for(int numBlocks=1; numBlocks < maxBlocks; numBlocks+=1){
+//			// 4 connectivity
+//			t1 = cciutils::ClockGetTime();
+//
+//			g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, connectivity, numFirstPasses,stream,numBlocks);
+//			stream.waitForCompletion();
+//			t2 = cciutils::ClockGetTime();
+//			cout << "gpu queue_recon"<< connectivity<< " nBlocks "<< numBlocks<<" took " << t2-t1<< " ms"<<endl;
+//			g_recon.release();
+//		}
+//
+//
 
-		t1 = cciutils::ClockGetTime();
-		g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, connectivity, stream);
-		stream.waitForCompletion();
-		t2 = cciutils::ClockGetTime();
-		std::cout << "gpu recon"<< connectivity <<" took " << t2-t1 << " ms" << std::endl;
-		g_recon.release();
+//		cout << "Connectivity="<<connectivity<<endl;
+//		t1 = cciutils::ClockGetTime();
+//		g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, connectivity, stream);
+//		stream.waitForCompletion();
+//		t2 = cciutils::ClockGetTime();
+//		std::cout << "gpu recon"<< connectivity <<" took " << t2-t1 << " ms" << std::endl;
+//		g_recon.release();
 
-		t1 = cciutils::ClockGetTime();
-		recon = nscale::imreconstruct<uchar>(marker, mask, connectivity);
-		t2 = cciutils::ClockGetTime();
-		std::cout << "recon"<< connectivity <<" took " << t2-t1 << "ms" << std::endl;
-		imwrite("test/out-recon8.ppm", recon);
-		recon.release();
+//		t1 = cciutils::ClockGetTime();
+//		recon = nscale::imreconstruct<uchar>(marker, mask, connectivity);
+//		t2 = cciutils::ClockGetTime();
+//		std::cout << "recon"<< connectivity <<" took " << t2-t1 << "ms" << std::endl;
+//		imwrite("test/out-recon8.ppm", recon);
+//		recon.release();
 
 
 	g_marker.release();

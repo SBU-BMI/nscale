@@ -82,7 +82,7 @@ template <typename T>
 vector<cv::gpu::GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
 
 template <typename T>
-cv::gpu::GpuMat imreconstructQueueSpeedup(GpuMat& seeds, GpuMat& image, int connectivity, int nItFirstPass, Stream& stream);
+cv::gpu::GpuMat imreconstructQueueSpeedup(GpuMat& seeds, GpuMat& image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks=14);
 
 template <typename T>
 cv::gpu::GpuMat imreconstruct(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream) {

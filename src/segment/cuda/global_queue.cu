@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_NUM_BLOCKS	30
+#define MAX_NUM_BLOCKS	70
 //#include "global_sync.cu"
 
 #define WARP_SIZE 	32
-#define NUM_THREADS	256
+#define NUM_THREADS	512
 #define NUM_WARPS (NUM_THREADS / WARP_SIZE)
-#define LOG_NUM_THREADS 8
+#define LOG_NUM_THREADS 9
 #define LOG_NUM_WARPS (LOG_NUM_THREADS - 5)
 
 #define SCAN_STRIDE (WARP_SIZE + WARP_SIZE / 2 + 1)
@@ -23,9 +23,12 @@ __device__ volatile int *outQueuePtr2[MAX_NUM_BLOCKS];
 
 __device__ volatile int *curInQueue[MAX_NUM_BLOCKS];
 __device__ volatile int *curOutQueue[MAX_NUM_BLOCKS];
+__device__ volatile int execution_code;
+
 
 // This variables are used for debugging purposes only
 __device__ volatile int totalInserts[MAX_NUM_BLOCKS];
+
 
 // Utils...
 // http://www.moderngpu.com/intro/scan.html
@@ -136,14 +139,22 @@ __device__ int queueElement(int *elements){
 //	}
 
 	for(int i = 0; i < elements[0]; i++){
-		curOutQueue[blockIdx.x][queue_index+i] = elements[i+1];
-		if(queue_index+i > outQueueMaxSize[blockIdx.x])
-			printf("List out of bounds\n");
+		// If the queue storage has been exceed, than set the execution code to 1. 
+		// This will force a second round in the morphological reconstructio.	
+		if(queue_index+i >= outQueueMaxSize[blockIdx.x]){
+//			printf("List out of bounds\n");
+			execution_code=1;
+		}else{
+			curOutQueue[blockIdx.x][queue_index+i] = elements[i+1];
+		}
 	}
 
 	// thread 0 updates head of the queue
 	if(threadIdx.x == 0){
 		outQueueHead[blockIdx.x]+=exclusiveScan[NUM_THREADS-1]+writeAddr[NUM_THREADS-1];
+		if(outQueueHead[blockIdx.x] >= outQueueMaxSize[blockIdx.x]){
+			outQueueHead[blockIdx.x] = outQueueMaxSize[blockIdx.x];
+		}
 //		printf("Inserting = %d - outQueueHead = %d\n", exclusiveScan[NUM_THREADS-1]+writeAddr[NUM_THREADS-1], outQueueHead[blockIdx.x]);
 	}
 #else
@@ -332,6 +343,8 @@ __global__ void initQueueId(int *inQueueData, int dataElements, int *outQueueDat
 
 		// Head of the in queue
 		inQueueHead[qId] = 0;
+
+		execution_code=0;
 	}
 }
 
@@ -912,28 +925,37 @@ __global__ void morphReconKernelSpeedup(int* d_Result, int *d_Seeds, unsigned ch
 			}
 
 		}
+//		queueElement(retWork);
 		queueElement(localQueue[tid]);
 
 	}while(workUnit != -2);
 
 	d_Result[blockIdx.x]=totalInserts[blockIdx.x];
+	if(execution_code!=0){
+		d_Result[gridDim.x]=1;
+	}
+
 }
 
 
 
-extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Seed, unsigned char *g_Image, int h_ncols, int h_nrows, int connectivity){
+extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Seed, unsigned char *g_Image, int h_ncols, int h_nrows, int connectivity, int nBlocks, float queue_increase_factor){
 // seeds contais the maker and it is also the output image
 	int nImages = 1;
 	// TODO: change blockNum to nBlocks
 //	int nBlocks = nImages;
 	int *d_Result;
-	int nBlocks = 16;
+	int *d_return_code;
 
+//	float queue_increase_factor = 1.1;
+
+//	int nBlocks = 28;
+//	printf("nBlocks=%d\n",nBlocks);
 	// alloc space to save output elements in the queue for each block
 	int **h_OutQueuePtr = (int **)malloc(sizeof(int*) * nBlocks);
 
 	// at this moment I should partition the INPUT queue
-	printf("List size = %d\n", h_ListSize);
+//	printf("List size = %d\n", h_ListSize);
 	int tempNblocks = nBlocks;
 
 	int subListsInit[tempNblocks];
@@ -953,18 +975,18 @@ extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Se
 	// TODO: free data
 	int *blockSubLists[tempNblocks];
 	for(int i = 0; i < tempNblocks; i++){
-		cudaMalloc((void **)&blockSubLists[i], sizeof(int)*(subListsSize[i]+1000) * 2);
+		cudaMalloc((void **)&blockSubLists[i], sizeof(int)*(subListsSize[i]) * queue_increase_factor);
 		cudaMemcpy(blockSubLists[i], &g_InputListPtr[subListsInit[i]], subListsSize[i] * sizeof(int), cudaMemcpyDeviceToDevice);
 	}
 
 
 // End adding code
 
-	printf("h_listSize = %d subListsSize[0]=%d\n", h_ListSize, subListsSize[0]);
+//	printf("h_listSize = %d subListsSize[0]=%d\n", h_ListSize, subListsSize[0]);
 //	cout << "h_listSize = "<< h_ListSize<< " subListsSize[0]="<< subListsSize[0] <<endl;
 	
 	for(int i = 0; i < tempNblocks;i++){
-		cudaMalloc((void **)&h_OutQueuePtr[i], sizeof(int) * (subListsSize[i]+1000) * 2);
+		cudaMalloc((void **)&h_OutQueuePtr[i], sizeof(int) * (subListsSize[i]) * queue_increase_factor);
 	}
 	
 	// Init queue for each image. yes, this may not be the most efficient way, but the code is far easier to read. 
@@ -973,12 +995,12 @@ extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Se
 //	for(int i = 0; i < nBlocks;i++)
 //		initQueueId<<<1, 1>>>(h_InputListPtr[i], h_ListSize[i], h_OutQueuePtr[i], (h_ListSize[i]+1000) *2, i);
 	for(int i = 0; i < nBlocks;i++)
-		initQueueId<<<1, 1>>>(blockSubLists[i], subListsSize[i], h_OutQueuePtr[i], (subListsSize[i]+1000) *2, i);
+		initQueueId<<<1, 1>>>(blockSubLists[i], subListsSize[i], h_OutQueuePtr[i], (subListsSize[i]) *queue_increase_factor, i);
 //		initQueueId<<<1, 1>>>(g_InputListPtr, h_ListSize, h_OutQueuePtr[i], (h_ListSize+1000) *2, i);
 
 	// This is used by each block to store the number of queue operations performed
-	cudaMalloc((void **)&d_Result, sizeof(int)*nBlocks) ;
-	cudaMemset((void *)d_Result, 0, sizeof(int)*nBlocks);
+	cudaMalloc((void **)&d_Result, sizeof(int)*(nBlocks+1)) ;
+	cudaMemset((void *)d_Result, 0, sizeof(int)*(nBlocks+1));
 
 
 //	printf("Run computation kernel!\n");
@@ -990,13 +1012,14 @@ extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Se
 		printf("Error after morphRecon = %s\n", error);
 	}
 
-	int *h_Result = (int *) malloc(sizeof(int) * nBlocks);
-	cudaMemcpy(h_Result, d_Result, sizeof(int) * nBlocks, cudaMemcpyDeviceToHost);
+	int *h_Result = (int *) malloc(sizeof(int) * (nBlocks+1));
+	cudaMemcpy(h_Result, d_Result, sizeof(int) * (nBlocks+1), cudaMemcpyDeviceToHost);
 
-	int resutRet = h_Result[0];
-	for(int i = 0; i < nBlocks; i++){
-		printf("	block# %d, #entries=%d\n", i, h_Result[i]);
-	}
+	int resutRet = h_Result[nBlocks];
+//	for(int i = 0; i < nBlocks; i++){
+//		printf("	block# %d, #entries=%d\n", i, h_Result[i]);
+//	}
+//	printf("	Exec. Error code = %d\n", h_Result[nBlocks]);
 	free(h_Result);
 
 	cudaFree(d_Result);
