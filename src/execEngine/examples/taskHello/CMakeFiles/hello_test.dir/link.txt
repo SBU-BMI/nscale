@@ -1,1 +1,0 @@
-/usr/bin/c++       CMakeFiles/hello_test.dir/TaskSleep.cpp.o CMakeFiles/hello_test.dir/Hello.cpp.o  -o hello_test -rdynamic -L/home/gteodor/temp/nscale/src/execEngine ../../libexecengine.so -lpthread -Wl,-rpath,/home/gteodor/temp/nscale/src/execEngine 
