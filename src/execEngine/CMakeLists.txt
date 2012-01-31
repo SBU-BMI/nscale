@@ -11,7 +11,7 @@ set(ExecEngine_VERSION_MINOR 1)
 set(libsrcs Task.cpp TasksQueue.cpp ExecutionEngine.cpp ThreadPool.cpp)
 
 # Find threads package which is linked to the execution engine library
-find_package( Threads )
+find_package( Threads REQUIRED )
 
 # Add rule to generate execution engine, as a shared library (.so)
 add_library("${libname}" SHARED ${libsrcs})
