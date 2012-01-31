@@ -18,7 +18,7 @@ public:
 
 	virtual ~TaskSleep();
 
-	bool run(int procType=Constant::CPU);
+	bool run(int procType=ExecEngineConstants::CPU);
 };
 
 #endif /* TASKSLEEP_H_ */
