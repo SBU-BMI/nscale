@@ -1,6 +1,5 @@
 // adaptation of Pavel's imreconstruction code for openCV
 
-#include "internal_shared.hpp"
 #include "change_kernel.cuh"
 #include <sys/time.h>
 
@@ -20,9 +19,6 @@ long ClockGetTimeb()
 	return (ts.tv_sec*1000000 + (ts.tv_usec))/1000LL;
 //    return (uint64_t)ts.tv_sec * 1000000LL + (uint64_t)ts.tv_nsec / 1000LL;
 }
-
-
-using namespace cv::gpu;
 
 
 namespace nscale { namespace gpu {
@@ -611,8 +607,8 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		const int connectivity, cudaStream_t stream) {
 
 		// here because we are not using streams inside.
-//		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-//		else cudaSafeCall( cudaStreamSynchronize(stream));
+//		if (stream == 0) cudaDeviceSynchronize();
+//		else  cudaStreamSynchronize(stream);
 
 
 //		printf("entering imrecon binary caller with conn=%d\n", connectivity);
@@ -622,15 +618,15 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 
 		dim3 threadsx( X_THREADS, Y_THREADS );
 		dim3 threadsx2( Y_THREADS );
-		dim3 blocksx( divUp(sy, threadsx.y) );
+		dim3 blocksx( (sy + threadsx.y - 1) / threadsx.y );
 		dim3 threadsy( MAX_THREADS );
-		dim3 blocksy( divUp(sx, threadsy.x) );
+		dim3 blocksy( (sx + threadsy.x - 1) / threadsy.x );
 
 		// stability detection
 		unsigned int iter = 0;
 		bool *h_change, *d_change;
 		h_change = (bool*) malloc( sizeof(bool) );
-		cudaSafeCall( cudaMalloc( (void**) &d_change, sizeof(bool) ) );
+		 cudaMalloc( (void**) &d_change, sizeof(bool) ) ;
 		
 		*h_change = true;
 //		printf("completed setup for imrecon binary caller \n");
@@ -659,11 +655,11 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 				// zpetny pruchod pres osu Y
 				bRec1DBackward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
-				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-				else cudaSafeCall( cudaStreamSynchronize(stream));
+				if (stream == 0) cudaDeviceSynchronize();
+				else  cudaStreamSynchronize(stream);
 //				printf("%d sync \n", iter);
 
-				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
+				 cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) ;
 //				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
 //				t2 = ClockGetTimeb();
@@ -695,11 +691,11 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 				// zpetny pruchod pres osu Y
 				bRec1DBackward_Y_dilation<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy, d_change );
 
-				if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-				else cudaSafeCall( cudaStreamSynchronize(stream));
+				if (stream == 0) cudaDeviceSynchronize();
+				else  cudaStreamSynchronize(stream);
 //				printf("%d sync \n", iter);
 
-				cudaSafeCall( cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) );
+				 cudaMemcpy( h_change, d_change, sizeof(bool), cudaMemcpyDeviceToHost ) ;
 //				printf("%d read flag : value %s\n", iter, (*h_change ? "true" : "false"));
 
 //				t2 = ClockGetTimeb();
@@ -710,11 +706,11 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 			}
 		}
 
-		cudaSafeCall( cudaFree(d_change) );
+		 cudaFree(d_change) ;
 		free(h_change);
 
 //		printf("Number of iterations: %d\n", iter);
-		cudaSafeCall( cudaGetLastError());
+		 cudaGetLastError();
 
 		return iter;
 	}

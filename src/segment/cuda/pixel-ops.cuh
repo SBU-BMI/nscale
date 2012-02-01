@@ -1,7 +1,7 @@
 /*
  * kernel for utility functions
   */
-#include "internal_shared.hpp"
+#include "opencv2/gpu/devmem2d.hpp"
 
 
 namespace nscale { 
@@ -26,7 +26,7 @@ void divideCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1, const cv:
  cv::gpu::PtrStep_<T> result, cudaStream_t stream);
 
 template <typename T>
-void maskCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1, const cv::gpu::PtrStep_<T> img2,
+void maskCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1, const cv::gpu::PtrStep_<unsigned char> img2,
  cv::gpu::PtrStep_<T> result, T background, cudaStream_t stream);
  
 template <typename T>

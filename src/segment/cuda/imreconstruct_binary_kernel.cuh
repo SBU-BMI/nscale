@@ -1,7 +1,7 @@
 /*
  * kernel codes for the reconstruction by dilation (reconstruction_by_dilation_kernel)
   */
-#include "internal_shared.hpp"
+
 
 namespace nscale { namespace gpu {
 

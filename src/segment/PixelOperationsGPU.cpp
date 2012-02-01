@@ -8,12 +8,12 @@
 #include "PixelOperations.h"
 #include <limits>
 
-#include "precomp.hpp"
 
 //#define HAVE_CUDA
 
 
 #if defined (HAVE_CUDA)
+#include "opencv2/gpu/stream_accessor.hpp"
 #include "cuda/pixel-ops.cuh"
 #endif
 
@@ -259,6 +259,7 @@ template GpuMat PixelOperations::threshold<unsigned char>(const GpuMat&, unsigne
 template GpuMat PixelOperations::threshold<int>(const GpuMat&, int, bool, int, bool, Stream&);
 template GpuMat PixelOperations::divide<double>(const GpuMat&, const GpuMat&,  Stream&);
 template GpuMat PixelOperations::mask<unsigned char>(const GpuMat&, const GpuMat&, unsigned char background, Stream&);
+template GpuMat PixelOperations::mask<int>(const GpuMat&, const GpuMat&, int background, Stream&);
 
 
 template GpuMat PixelOperations::mod<unsigned char>(const GpuMat&, unsigned char, Stream&);

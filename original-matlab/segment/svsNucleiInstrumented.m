@@ -9,8 +9,8 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
             'normal.3/normal.3.ndpi-0000028672-0000012288',...
             };
         impath='/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/';
-        resultpath='/home/tcpan/PhD/path/Data/seg-validate-cpu/';
-        validationpath='/home/tcpan/PhD/path/Data/seg-validate-cpu/';
+        resultpath='/home/tcpan/PhD/path/Data/seg-validate-gpu/';
+        validationpath='/home/tcpan/PhD/path/Data/seg-validate-gpu/';
         fileext = '.tif';
 
         for i = 1:length(image)
@@ -364,6 +364,15 @@ tic;
     watermask = watershed(distance2);
 t=toc;
 fprintf(logfid, '%s, watershed, %d\n', filename, t);
+    fid = fopen([validationpath, filename, '-', sprintf('%d',120), '.32SC1.raw'], 'r');
+    cv_wmask1 = fread(fid, [4096,4096], '*int32');
+    cv_wmask1 = int32(cv_wmask1');
+    fclose(fid);
+    
+    fid = fopen([validationpath, filename, '-', sprintf('%d',121), '.32SC1.raw'], 'r');
+    cv_wmask2 = fread(fid, [4096,4096], '*int32');
+    cv_wmask2 = int32(cv_wmask2');
+    fclose(fid);
 
 
 %     fid = fopen('/home/tcpan/PhD/path/src/nscale/src/segment/test/out-watershed_4096_x_4096.raw', 'r');

@@ -13,7 +13,7 @@ int main(int argc, char **argv){
 
 	for(int i =0; i < NUM_TASKS; i++){
 		TaskSleep *ts = new TaskSleep();
-		ts->setSpeedup(Constant::GPU, 2.0);
+		ts->setSpeedup(ExecEngineConstants::GPU, 2.0);
 		execEngine.insertTask(ts);
 
 	}

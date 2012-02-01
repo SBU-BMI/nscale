@@ -5,7 +5,7 @@ CXXFLAGS=-fPIC -pg -O3 # -g -msse4.2 -fopenmp
 
 RM=/bin/rm -rf
 
-CUDA_CV_INCLUDE =-I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/OpenCV-2.3.0/modules/gpu/src -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/OpenCV-2.3.0/modules/gpu/src/cuda -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include/opencv2/gpu
+CUDA_CV_INCLUDE =-I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include/opencv2/gpu
 
 CXXFLAGS	+= -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include -I/sw/keeneland/opencv/2.3.0/centos5.5_gnu4.4.0/include/opencv -I. -I../features
 

@@ -8,9 +8,9 @@
 #include "NeighborOperations.h"
 #include <limits>
 
-#include "precomp.hpp"
 
 #if defined (HAVE_CUDA)
+#include "opencv2/gpu/stream_accessor.hpp"
 #include "cuda/neighbor-ops.cuh"
 #endif
 

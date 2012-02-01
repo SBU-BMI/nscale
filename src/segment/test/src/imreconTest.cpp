@@ -47,7 +47,7 @@ int main (int argc, char **argv){
 	Mat marker2(Size(256,256), CV_8U);
 	marker2.ptr<uchar>(112)[93] = 255;
 */
-	gpu::setDevice(2);
+//	gpu::setDevice(1);
 
 	Mat marker = imread("test/in-imrecon-gray-marker.pgm", -1);
 	Mat mask = imread("test/in-imrecon-gray-mask.pgm", -1);
@@ -158,16 +158,42 @@ int main (int argc, char **argv){
 	std::cout << "gpu recon4 took " << t2-t1 << "ms" << std::endl;
 	g_recon.download(recon);
 	imwrite("test/out-recon4-gpu.ppm", recon);
-	g_recon.release();
-
-	g_marker.release();
-	g_mask.release();
 
 
 //	stream.enqueueUpload(markerb, g_marker);
 //	stream.enqueueUpload(maskb, g_mask);
 //	stream.waitForCompletion();
 //	std::cout << "finished uploading" << std::endl;
+	g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, 4, numFirstPass,stream);
+	stream.waitForCompletion();
+	t2 = cciutils::ClockGetTime();
+
+	cout << "imreconstructQueueSpeedupTime = "<< t2-t1<<endl;
+
+	g_recon.release();
+
+	g_marker.release();
+	g_mask.release();
+
+
+////
+////	t1 = cciutils::ClockGetTime();
+////	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
+////	stream.waitForCompletion();
+////	t2 = cciutils::ClockGetTime();
+////	std::cout << "gpu recon4 took " << t2-t1 << "ms" << std::endl;
+////	g_recon.download(recon);
+////	imwrite("test/out-recon4-gpu.ppm", recon);
+////	g_recon.release();
+////
+////	g_marker.release();
+////	g_mask.release();
+////
+////
+////	stream.enqueueUpload(markerb, g_marker);
+////	stream.enqueueUpload(maskb, g_mask);
+////	stream.waitForCompletion();
+////	std::cout << "finished uploading" << std::endl;
 
 
 //	t1 = cciutils::ClockGetTime();
@@ -197,11 +223,11 @@ int main (int argc, char **argv){
 ///	imwrite("test/out-recon4-george.ppm", recon);
 ///
 
-//	t1 = cciutils::ClockGetTime();
-//	recon = nscale::imreconstruct<uchar>(marker, mask, 8);
-//	t2 = cciutils::ClockGetTime();
-//	std::cout << "recon8 took " << t2-t1 << "ms" << std::endl;
-//	imwrite("test/out-recon8.ppm", recon);
+	t1 = cciutils::ClockGetTime();
+	recon = nscale::imreconstruct<uchar>(marker, mask, 8);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "recon8 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-recon8.ppm", recon);
 
 //	t1 = cciutils::ClockGetTime();
 //	recon = nscale::imreconstruct<uchar>(marker, mask, 4);

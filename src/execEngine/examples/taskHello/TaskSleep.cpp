@@ -16,9 +16,7 @@ TaskSleep::~TaskSleep() {
 bool TaskSleep::run(int procType)
 {
 	if(procType == 1){
-		while(true){
-			sleep(1);
-		}
+		sleep(5);
 	}else{
 
 		sleep(1);

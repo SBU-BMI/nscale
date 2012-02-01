@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <vector>
 #include <string>
-#include "HistologicalEntities.h"
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>

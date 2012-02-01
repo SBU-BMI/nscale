@@ -2,8 +2,6 @@
  * initialization of the change flag
  */
 
-#include "internal_shared.hpp"
-
 namespace nscale { namespace gpu {
 
 

@@ -1,7 +1,7 @@
 /*
  * kernel for utility functions
   */
-#include "internal_shared.hpp"
+#include <opencv2/gpu/devmem2d.hpp>
 
 namespace nscale { 
 namespace gpu {

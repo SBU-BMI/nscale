@@ -200,9 +200,12 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("open19");
 	if (iresHandler) iresHandler->saveIntermediate(rc_open, 3);
 
-
-//	imwrite("test/in-imrecon-gray-marker.pgm", rc_open);
-//	imwrite("test/in-imrecon-gray-mask.pgm", rc);
+// TODO... COMMENT THIS
+	imwrite("test/in-imrecon-gray-marker.pgm", rc_open);
+	imwrite("test/in-imrecon-gray-mask.pgm", rc);
+// TODO... COMMENT
+	cout << "COOMMMMENNNT the EXIT... COMMENT THE EXIT BELLOW..." <<endl;
+	exit(0);
 	Mat rc_recon = ::nscale::imreconstruct<uchar>(rc_open, rc, 8);
 	if (iresHandler) iresHandler->saveIntermediate(rc_recon, 4);
 

@@ -19,7 +19,7 @@ GPU_LIB_SRCO = ${CUDA_SRC:.cu=.o} ${GPU_SRC:.cpp=.o}
 
 all: libsegment.so nu-segment.exe
 
-tests: all test/src/nu-segmentChunkTest.exe test/src/imreconTest.exe test/src/localMaximaTest.exe test/src/miscTest.exe test/src/imfillTest.exe test/src/bwareaopenTest.exe test/src/nu-segmentTest.exe
+tests: all test/src/nu-segmentChunkTest.exe test/src/imreconTest.exe test/src/localMaximaTest.exe test/src/miscTest.exe test/src/imfillTest.exe test/src/bwareaopenTest.exe test/src/nu-segmentTest.exe test/src/imreconExperiments.exe
 
 gputests: tests test/src/watershedTest.exe test/src/imreconChunkTest.exe test/src/imreconOptimizeProfiler.exe test/src/queueTest.exe
 

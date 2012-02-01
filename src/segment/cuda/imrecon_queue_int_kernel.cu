@@ -1,7 +1,5 @@
 // adaptation of Pavel's imreconstruction code for openCV
 
-#include "internal_shared.hpp"
-#include "opencv2/gpu/device/vecmath.hpp"
 #include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/zip_iterator.h>
@@ -22,8 +20,8 @@
 
 #define WARP_SIZE 32
 
-using namespace cv::gpu;
-using namespace cv::gpu::device;
+//using namespace cv::gpu;
+//using namespace cv::gpu::device;
 
 
 namespace nscale { namespace gpu {
@@ -663,9 +661,9 @@ struct GreaterThanConst : public thrust::unary_function<T,bool>
 		// setup execution parameters
 
 		dim3 threadsx( XX_THREADS, XY_THREADS );
-		dim3 blocksx( divUp(sy, threadsx.y) );
+		dim3 blocksx( (sy + threadsx.y - 1) / threadsx.y );
 		dim3 threadsy( MAX_THREADS );
-		dim3 blocksy( divUp(sx, threadsy.x) );
+		dim3 blocksy( (sx + threadsy.x - 1) / threadsy.x );
 
 		// stability detection
 
@@ -693,8 +691,8 @@ struct GreaterThanConst : public thrust::unary_function<T,bool>
 			iRec1DBackward_Y_dilation_8<<< blocksy, threadsy, 0, stream >>> ( marker, mask, sx, sy);
 		}
 
-		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-		else cudaSafeCall( cudaStreamSynchronize(stream));
+		if (stream == 0) cudaDeviceSynchronize();
+		else  cudaStreamSynchronize(stream);
 //				printf("%d sync \n", iter);
 
 
@@ -880,9 +878,9 @@ struct GreaterThanConst : public thrust::unary_function<T,bool>
 		}
 
 
-		if (stream == 0) cudaSafeCall(cudaDeviceSynchronize());
-		else cudaSafeCall( cudaStreamSynchronize(stream));
-		cudaSafeCall( cudaGetLastError());
+		if (stream == 0) cudaDeviceSynchronize();
+		else cudaStreamSynchronize(stream);
+		 cudaGetLastError();
 
 		printf("iterations: %d, total: %d\n", iterations, total);
 		return total;

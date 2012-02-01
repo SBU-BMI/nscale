@@ -1,9 +1,6 @@
 // adaptation of Pavel's imreconstruction code for openCV
 
 #include "neighbor-ops.cuh"
-#include <limits>
-#include "internal_shared.hpp"
-
 
 
 namespace nscale {
@@ -45,13 +42,13 @@ void borderCaller(int rows, int cols, const PtrStep_<T> img1,
  PtrStep_<T> result, T background, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols + threads.x -1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     borderKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, background);
-    cudaSafeCall( cudaGetLastError() );
+    cudaGetLastError();
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
 template void borderCaller<int>(int, int, const PtrStep_<int>, PtrStep_<int>, int, cudaStream_t);

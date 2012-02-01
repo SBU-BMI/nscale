@@ -2,7 +2,6 @@
 
 #include "pixel-ops.cuh"
 #include <limits>
-#include "internal_shared.hpp"
 
 
 
@@ -47,7 +46,7 @@ __global__ void invertKernelInt(int rows, int cols, const PtrStep_<T> img1, PtrS
         result.ptr(y)[x] = ~img1.ptr(y)[x] + 1;
     }
 }
-__global__ void convLoop1Kernel(int rows, int cols, const PtrStep_<uchar> img1, PtrStep_<double> result)
+__global__ void convLoop1Kernel(int rows, int cols, const PtrStep_<unsigned char> img1, PtrStep_<double> result)
 {
 	__shared__ double precomp[256];
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -69,53 +68,53 @@ void invertUIntCaller(int rows, int cols, int cn, const PtrStep_<T> img1,
  PtrStep_<T> result, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols * cn, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols * cn + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     invertKernelUInt<<<grid, threads, 0, stream>>>(rows, cols * cn, img1, result, std::numeric_limits<T>::max());
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 template <typename T>
 void invertIntCaller(int rows, int cols, int cn, const PtrStep_<T> img1,
  PtrStep_<T> result, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols * cn, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols * cn + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     invertKernelInt<<<grid, threads, 0, stream>>>(rows, cols * cn, img1, result);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 template <typename T>
 void invertFloatCaller(int rows, int cols, int cn, const PtrStep_<T> img1,
  PtrStep_<T> result, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols * cn, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols * cn + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     invertKernelFloat<<<grid, threads, 0, stream>>>(rows, cols * cn, img1, result);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
-void convLoop1(int rows, int cols, int cn, const PtrStep_<uchar> img1,
+void convLoop1(int rows, int cols, int cn, const PtrStep_<unsigned char> img1,
  	PtrStep_<double> result, cudaStream_t stream)
 {
    	dim3 threads(16, 16);
-	dim3 grid(divUp(cols * cn, threads.x), divUp(rows, threads.y));
+	dim3 grid((cols * cn + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
 	convLoop1Kernel<<<grid, threads, 0, stream>>>(rows, cols * cn, img1, result);
 
-	cudaSafeCall( cudaGetLastError() );
+	 cudaGetLastError() ;
 
 	if (stream == 0)
-        	cudaSafeCall(cudaDeviceSynchronize());
+        	cudaDeviceSynchronize();
 }
 
 
@@ -149,14 +148,14 @@ void convLoop2(int rows, int cols, int cn_channels, const PtrStep_<double> g_cn,
  	int dn_channels, PtrStep_<double> g_dn, PtrStep_<double> g_Q, int Q_rows, bool BGR2RGB, cudaStream_t stream)
 {
    	dim3 threads(16, 16);
-	dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+	dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
 	convLoop2Kernel<<<grid, threads, 0, stream>>>(rows, cols, cn_channels, g_cn, dn_channels, g_dn, g_Q, Q_rows, BGR2RGB);
 
-	cudaSafeCall( cudaGetLastError() );
+	 cudaGetLastError() ;
 
 	if (stream == 0)
-        	cudaSafeCall(cudaDeviceSynchronize());
+        	cudaDeviceSynchronize();
 }
 
 __device__ unsigned char double2char(double d){
@@ -168,7 +167,7 @@ __device__ unsigned char double2char(double d){
 
 
 __global__ void convLoop3Kernel(int rows, int cols, int cn_channels, const PtrStep_<double> g_cn,
- 	PtrStep_<uchar> g_E, PtrStep_<uchar> g_H)
+ 	PtrStep_<unsigned char> g_E, PtrStep_<unsigned char> g_H)
 {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -186,21 +185,21 @@ __global__ void convLoop3Kernel(int rows, int cols, int cn_channels, const PtrSt
 }
 
 void convLoop3(int rows, int cols, int cn_channels, const PtrStep_<double> g_cn,
- 	PtrStep_<uchar> g_E, PtrStep_<uchar> g_H, cudaStream_t stream)
+ 	PtrStep_<unsigned char> g_E, PtrStep_<unsigned char> g_H, cudaStream_t stream)
 {
    	dim3 threads(16, 16);
-	dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+	dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
 	convLoop3Kernel<<<grid, threads, 0, stream>>>(rows, cols, cn_channels, g_cn, g_E, g_H);
 
-	cudaSafeCall( cudaGetLastError() );
+	 cudaGetLastError() ;
 
 	if (stream == 0)
-        	cudaSafeCall(cudaDeviceSynchronize());
+        	cudaDeviceSynchronize();
 }
 
-__global__ void bgr2grayKernel(int rows, int cols, const PtrStep_<uchar> img,
- 	PtrStep_<uchar> result)
+__global__ void bgr2grayKernel(int rows, int cols, const PtrStep_<unsigned char> img,
+ 	PtrStep_<unsigned char> result)
 {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -212,9 +211,9 @@ __global__ void bgr2grayKernel(int rows, int cols, const PtrStep_<uchar> img,
 
 	if (y < rows && x < cols)
 	{
-		uchar b = img.ptr(y)[ x * 3];
-		uchar g = img.ptr(y)[ x * 3 + 1];
-		uchar r = img.ptr(y)[ x * 3 + 2];
+		unsigned char b = img.ptr(y)[ x * 3];
+		unsigned char g = img.ptr(y)[ x * 3 + 1];
+		unsigned char r = img.ptr(y)[ x * 3 + 2];
 		double grayPixelValue =  r_const * (double)r + g_const * (double)g + b_const * (double)b;
 		result.ptr(y)[x] = double2char(grayPixelValue);
 	}
@@ -223,14 +222,14 @@ void bgr2grayCaller(int rows, int cols, const cv::gpu::PtrStep_<unsigned char> i
 	cv::gpu::PtrStep_<unsigned char> result, cudaStream_t stream)
 {
 	dim3 threads(16, 16);
-	dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+	dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
 	bgr2grayKernel<<<grid, threads, 0, stream>>>(rows, cols, img, result);
 
-	cudaSafeCall( cudaGetLastError() );
+	 cudaGetLastError();
 
 	if (stream == 0)
-        	cudaSafeCall(cudaDeviceSynchronize());
+        	cudaDeviceSynchronize();
 
 }
 
@@ -261,13 +260,13 @@ void thresholdCaller(int rows, int cols, const PtrStep_<T> img1,
  PtrStep_<unsigned char> result, T lower, bool lower_inclusive, T upper, bool up_inclusive, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     thresholdKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, lower, lower_inclusive, upper, up_inclusive);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
 template void thresholdCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char, bool, unsigned char, bool, cudaStream_t);
@@ -296,20 +295,20 @@ void divideCaller(int rows, int cols, const PtrStep_<T> img1,
 		const PtrStep_<T> img2, PtrStep_<T> result, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     divideKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, img2, result);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
 template void divideCaller<double>(int, int, const PtrStep_<double>, const PtrStep_<double>, PtrStep_<double>, cudaStream_t);
 
 
 template <typename T>
-__global__ void maskKernel(int rows, int cols, const PtrStep_<T> img1, const PtrStep_<T> img2, PtrStep_<T> result, T background)
+__global__ void maskKernel(int rows, int cols, const PtrStep_<T> img1, const PtrStep_<unsigned char> img2, PtrStep_<T> result, T background)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -317,26 +316,27 @@ __global__ void maskKernel(int rows, int cols, const PtrStep_<T> img1, const Ptr
     if (y < rows && x < cols)
     {
     	T p = img1.ptr(y)[x];
-    	T q = img2.ptr(y)[x];
+    	unsigned char q = img2.ptr(y)[x];
         result.ptr(y)[x] = (q > 0) ? p : background;
     }
 }
 
 template <typename T>
 void maskCaller(int rows, int cols, const PtrStep_<T> img1,
-		const PtrStep_<T> img2, PtrStep_<T> result, T background, cudaStream_t stream)
+		const PtrStep_<unsigned char> img2, PtrStep_<T> result, T background, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     maskKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, img2, result, background);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
 template void maskCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char background, cudaStream_t);
+template void maskCaller<int>(int, int, const PtrStep_<int>, const PtrStep_<unsigned char>, PtrStep_<int>, int background, cudaStream_t);
 
 
 __global__ void intToCharKernel(int rows, int cols, int *input, unsigned char *result)
@@ -355,13 +355,13 @@ __global__ void intToCharKernel(int rows, int cols, int *input, unsigned char *r
 void convertIntToChar(int rows, int cols, int *input, unsigned char *result, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     intToCharKernel<<<grid, threads, 0, stream>>>(rows, cols, input, result);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
 __global__ void intToCharBorderKernel(int rows, int cols, int top, int bottom, int left, int right, int *input, unsigned char *result)
@@ -383,13 +383,13 @@ __global__ void intToCharBorderKernel(int rows, int cols, int top, int bottom, i
 void convertIntToCharAndRemoveBorder(int rows, int cols, int top, int bottom, int left, int right, int *input, unsigned char *result, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     intToCharBorderKernel<<<grid, threads, 0, stream>>>(rows, cols, top, bottom, left, right, input, result);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
 
@@ -413,13 +413,13 @@ void modCaller(int rows, int cols, const PtrStep_<T> img1,
  PtrStep_<T> result, T mod, cudaStream_t stream)
 {
     dim3 threads(16, 16);
-    dim3 grid(divUp(cols, threads.x), divUp(rows, threads.y));
+    dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
     modKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, mod);
-    cudaSafeCall( cudaGetLastError() );
+     cudaGetLastError() ;
 
     if (stream == 0)
-        cudaSafeCall(cudaDeviceSynchronize());
+        cudaDeviceSynchronize();
 }
 
 template void modCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char, cudaStream_t);
