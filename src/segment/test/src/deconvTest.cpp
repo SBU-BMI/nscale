@@ -4,8 +4,7 @@
  *  Created on: Dez 12, 2011
  *      Author: george
  */
-#include "cv.h"
-#include "highgui.h"
+#include "opencv2/opencv.hpp"
 #include <iostream>
 #include <dirent.h>
 #include <vector>
@@ -13,7 +12,6 @@
 #include <errno.h>
 #include <time.h>
 #include "PixelOperations.h"
-#include "MorphologicOperations.h"
 #include "utils.h"
 #include <stdio.h>
 

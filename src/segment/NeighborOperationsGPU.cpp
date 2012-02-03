@@ -7,6 +7,8 @@
 
 #include "NeighborOperations.h"
 #include <limits>
+#include "utils.h"
+#include "gpu_utils.h"
 
 
 #if defined (HAVE_CUDA)

@@ -7,6 +7,8 @@
 
 #include "PixelOperations.h"
 #include <limits>
+#include "utils.h"
+#include "gpu_utils.h"
 
 
 //#define HAVE_CUDA

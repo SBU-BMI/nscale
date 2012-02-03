@@ -6,7 +6,6 @@
  */
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
-#include "highgui.h"
 #include <iostream>
 #include <dirent.h>
 #include <vector>

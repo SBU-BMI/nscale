@@ -595,7 +595,7 @@ fRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 //		else  cudaStreamSynchronize(stream);
 
 
-		printf("entering imrecon float caller with conn=%d\n", connectivity);
+		//printf("entering imrecon float caller with conn=%d\n", connectivity);
 
 		// setup execution parameters
 		bool conn8 = (connectivity == 8);
@@ -613,7 +613,7 @@ fRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		 cudaMalloc( (void**) &d_change, sizeof(bool) ) ;
 		
 		*h_change = true;
-		printf("completed setup for imrecon float caller \n");
+		//printf("completed setup for imrecon float caller \n");
 
 		if (conn8) {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability
@@ -678,7 +678,7 @@ fRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		 cudaFree(d_change) ;
 		free(h_change);
 
-		printf("Number of iterations: %d\n", iter);
+		//printf("Number of iterations: %d\n", iter);
 		 cudaGetLastError();
 
 		return iter;

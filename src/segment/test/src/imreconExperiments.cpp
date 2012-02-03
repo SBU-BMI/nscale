@@ -3,8 +3,7 @@
  *  Created on: Jan 13, 2012
  *      Author: george
  */
-#include "cv.h"
-#include "highgui.h"
+#include "opencv2/opencv.hpp"
 #include <iostream>
 #include <dirent.h>
 #include <vector>

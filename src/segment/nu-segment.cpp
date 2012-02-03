@@ -26,6 +26,7 @@ using namespace cv;
 #if defined (WITH_MPI)
 #include <mpi.h>
 #endif
+
 #if defined (_OPENMP)
 #include <omp.h>
 #endif
@@ -485,6 +486,7 @@ int main (int argc, char **argv){
         	printf("1 omp thread\n");
         	while (i < total) {
         		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode);
+        		printf("processed %s\n", filenames[i].c_str());
         		++i;
         	}
 
@@ -497,19 +499,24 @@ int main (int argc, char **argv){
     		{
     			while (i < total) {
     				int ti = i;
-#pragma omp task private(ti) shared(filenames, seg_output, bounds_output, modecode) untied
+    				// has to use firstprivate - private does not work.
+#pragma omp task firstprivate(ti) shared(filenames, seg_output, bounds_output, modecode)
     				{
+//        				printf("t i: %d, %d \n", i, ti);
     					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode);
+    	        		printf("processed %s\n", filenames[ti].c_str());
     				}
-    				++i;
+    				i++;
     			}
     		}
+#pragma omp taskwait
     	}
     	}
 #else
     	printf("not omp\n");
     	while (i < total) {
     		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode);
+    		printf("processed %s\n", filenames[i].c_str());
     		++i;
     	}
 #endif

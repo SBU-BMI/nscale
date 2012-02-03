@@ -149,7 +149,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
         suffix.assign(".mask.pbm");
     	iwrite = new ::cciutils::cv::IntermediateResultWriter(prefix, suffix, stages);
 
-    	printf("creating a debugger\n");
+    	//printf("creating a debugger\n");
     }
 
 

@@ -8,7 +8,6 @@
 #ifndef HistologicalEntities_H_
 #define HistologicalEntities_H_
 
-#include "utils.h"
 #include "UtilsCVImageIO.h"
 #include "UtilsLogger.h"
 #include "opencv2/opencv.hpp"

@@ -8,9 +8,8 @@
 #ifndef PIXELOPERATIONS_H_
 #define PIXELOPERATIONS_H_
 
-#include "cv.h"
+#include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
-#include "utils.h"
 
 using namespace cv;
 using namespace cv::gpu;

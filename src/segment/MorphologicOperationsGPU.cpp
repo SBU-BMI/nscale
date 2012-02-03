@@ -12,6 +12,8 @@
 #include <limits>
 
 #include "utils.h"
+#include "gpu_utils.h"
+
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
 
@@ -65,6 +67,7 @@ template <typename T>
 GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu();}
 template <typename T>
 vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {throw_nogpu();};
+template <typename T>
 GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks) {throw_nogpu();};
 template <typename T>
 GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}

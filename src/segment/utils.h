@@ -8,10 +8,9 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include "cv.h"
-#include <fstream>
-#include <iostream>
+#include <limits>
 #include <sys/time.h>
+#include <math.h>
 
 namespace cciutils {
 
@@ -27,7 +26,7 @@ inline unsigned char double2uchar(double d){
 	return (unsigned char)c;
 }
 
-inline uint64_t ClockGetTime()
+inline long long ClockGetTime()
 {
 	struct timeval ts;
 	gettimeofday(&ts, NULL);
@@ -50,13 +49,6 @@ inline T min()
 template <typename T>
 inline bool sameSign(T a, T b) {
 	return ((a^b) >= 0);
-}
-
-namespace gpu {
-	// from openCV gpu precomp.h
-	static inline void throw_nogpu() { CV_Error(CV_GpuNotSupported, "The library is compiled without GPU support"); }
-    // from opencv gpu internal_shared.h
-	static inline int divUp(int total, int grain) { return (total + grain - 1) / grain; }
 }
 
 }

@@ -22,3 +22,6 @@ src/segment/test/Stages
 *.cudafe?.*
 *.hash
 cuda_profile_*.log
+*CMakeCache.txt
+*CMakeFiles
+*cmake_install.cmake

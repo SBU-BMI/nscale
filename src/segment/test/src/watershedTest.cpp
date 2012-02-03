@@ -4,7 +4,7 @@
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
-#include "cv.h"
+#include "opencv2/opencv.hpp"
 #include "highgui.h"
 #include <iostream>
 #include <dirent.h>
@@ -13,15 +13,13 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "PixelOperations.h"
 #include "NeighborOperations.h"
 
 #include "utils.h"
 #include <stdio.h>
 
 #include "opencv2/gpu/gpu.hpp"
-#include "precomp.hpp"
-
+#include "opencv2/gpu/stream_accessor.hpp"
 
 using namespace cv;
 using namespace cv::gpu;

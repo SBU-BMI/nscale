@@ -1,12 +1,12 @@
 include Makefile.inc
 ## uncomment below for keeneland.
 #include Makefile.keeneland.inc
-include Makefile-mpi.inc
+#include Makefile-mpi.inc
 
 ## BEGIN CUDA SETTINGS - comment out to disable CUDA
-include Makefile-cuda.inc
+#include Makefile-cuda.inc
 #include Makefile-cuda.keeneland.inc
-CUDA_SRC = cuda/global_queue.cu cuda/neighbor-ops.cu cuda/watershed-ca-korbes.cu cuda/watershed-dw-korbes.cu cuda/queue.cu cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
+#CUDA_SRC = cuda/global_queue.cu cuda/neighbor-ops.cu cuda/watershed-ca-korbes.cu cuda/watershed-dw-korbes.cu cuda/queue.cu cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
 ## END CUDA SETTINGS
 
 #LIB_SRCH = HistologicalEntities.h MorphologicOperations.h PixelOperations.h utils.h

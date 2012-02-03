@@ -9,16 +9,13 @@
 #include <iostream>
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
-#include "highgui.h"
-#include "float.h"
 #include "utils.h"
+#include "gpu_utils.h"
 #include "opencv2/gpu/gpu.hpp"
-#include "precomp.hpp"
 #include "NeighborOperations.h"
-#include "UtilsCVImageIO.h"
 
 
-#define HAVE_CUDA
+//#define HAVE_CUDA
 
 namespace nscale {
 
@@ -32,13 +29,13 @@ using namespace cv::gpu;
 
 
 #if !defined (HAVE_CUDA)
-GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,,
+GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,
 				::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,  cv::gpu::Stream *str = NULL,
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,  cv::gpu::Stream *str,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
-int HistologicalEntities::segmentNuclei(const std::string& input, const std::string& output,  cv::gpu::Stream *str = NULL,
+int HistologicalEntities::segmentNuclei(const std::string& input, const std::string& output,  cv::gpu::Stream *str,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 
 
@@ -88,9 +85,9 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 //	::cv::gpu::add(gd, Scalar(::std::numeric_limits<double>::epsilon()), stream);
 	stream.enqueueConvert(bgr[2], rd, newType);
 	stream.waitForCompletion();
-	iresHandler->saveIntermediate(rd, 103);
-	iresHandler->saveIntermediate(gd, 104);
-	iresHandler->saveIntermediate(bd, 105);
+	if (iresHandler) iresHandler->saveIntermediate(rd, 103);
+	if (iresHandler) iresHandler->saveIntermediate(gd, 104);
+	if (iresHandler) iresHandler->saveIntermediate(bd, 105);
 
 	GpuMat imR2G, imR2B;
 //	divide(rd, gd, imR2G, stream);
@@ -109,11 +106,11 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 	GpuMat bw1 = PixelOperations::threshold<double>(imR2G, T1, false, std::numeric_limits<double>::max(), true, stream);
 	GpuMat bw2 = PixelOperations::threshold<double>(imR2G, T2, false, std::numeric_limits<double>::max(), true, stream);
 	stream.waitForCompletion();
-	iresHandler->saveIntermediate(imR2G, 101);
-	iresHandler->saveIntermediate(imR2B, 102);
-	iresHandler->saveIntermediate(bw1, 107);
-	iresHandler->saveIntermediate(bw2, 108);
-	iresHandler->saveIntermediate(bw3, 109);
+	if (iresHandler) iresHandler->saveIntermediate(imR2G, 101);
+	if (iresHandler) iresHandler->saveIntermediate(imR2B, 102);
+	if (iresHandler) iresHandler->saveIntermediate(bw1, 107);
+	if (iresHandler) iresHandler->saveIntermediate(bw2, 108);
+	if (iresHandler) iresHandler->saveIntermediate(bw3, 109);
 
 	imR2G.release();
 	imR2B.release();
@@ -577,9 +574,22 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 
 	GpuMat g_dummy;
 	GpuMat g_watermask_t = ::nscale::gpu::watershedDW(g_dummy, g_distance2, 8, stream);
-	GpuMat g_watermask = ::nscale::gpu::NeighborOperations::border(g_watermask_t, 0, stream);
+	if (iresHandler) iresHandler->saveIntermediate(g_watermask_t, 120);
+	double mmin, mmax;
+	minMaxLoc(g_watermask_t, &mmin, &mmax);
+	//printf("watershed: min = %f, max = %f\n", mmin, mmax);
+	GpuMat g_dummy2(g_watermask_t.size(), g_watermask_t.type());
+	//printf("cv:  %d, %d, %d, %d, %d, %d, %d, watershed: type = %d, segbig type: %d\n", CV_8U, CV_8S, CV_16U, CV_16S, CV_32S, CV_32F, CV_64F, g_watermask_t.type(), g_seg_big.type());
+	//add(g_watermask_t, Scalar(1), g_dummy2, stream);
+	GpuMat g_dummy3 = ::nscale::gpu::PixelOperations::mask<int>(g_watermask_t, g_seg_big, 0, stream);
+	if (iresHandler) iresHandler->saveIntermediate(g_dummy3, 121);
+
+//	GpuMat g_watermask = g_dummy3;
+	GpuMat g_watermask = ::nscale::gpu::NeighborOperations::border(g_dummy3, 0, stream);
 	stream.waitForCompletion();
 	g_dummy.release();
+	g_dummy2.release();
+	g_dummy3.release();
 	g_distance2.release();
 	g_watermask_t.release();
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
@@ -591,10 +601,10 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 
 //	g_seg_nonoverlap.release();
 	g_seg_nonoverlap = ::cv::gpu::createContinuous(g_seg_big.size(), g_seg_big.type());
-	printf("g_seg_nonoverlap info: row %d col %d type %d,  CV_8U %d, data addr %lu, refcount %d \n", g_seg_nonoverlap.rows, g_seg_nonoverlap.cols, g_seg_nonoverlap.type(), CV_8U,g_seg_nonoverlap.data, *(g_seg_nonoverlap.refcount));
+	//printf("g_seg_nonoverlap info: row %d col %d type %d,  CV_8U %d, data addr %lu, refcount %d \n", g_seg_nonoverlap.rows, g_seg_nonoverlap.cols, g_seg_nonoverlap.type(), CV_8U,g_seg_nonoverlap.data, *(g_seg_nonoverlap.refcount));
 	stream.enqueueMemSet(g_seg_nonoverlap, Scalar(0));
 //	seg_big.copyTo(seg_nonoverlap, (watermask >= 0));
-	GpuMat g_wmask = ::nscale::gpu::PixelOperations::threshold<int>(g_watermask, 1, true, std::numeric_limits<int>::max(), true, stream);
+	GpuMat g_wmask = ::nscale::gpu::PixelOperations::threshold<int>(g_watermask, 0, false, std::numeric_limits<int>::max(), true, stream);
 
 //	stream.waitForCompletion();
 //if (true) {

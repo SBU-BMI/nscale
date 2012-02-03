@@ -2,7 +2,7 @@
 CXXFLAGS=-fPIC -pg -g #-O3 -msse4.2
 
 #OpenMP
-CXXFLAGS += -fopenmp
+#CXXFLAGS += -fopenmp
 
 
 CXX=/usr/bin/g++ 

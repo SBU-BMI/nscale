@@ -61,8 +61,8 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr,
 	Mat imR2G = rd / gd;
 	Mat imR2B = (rd / bd) > 1.0;
 
-	iresHandler->saveIntermediate(imR2G, 101);
-	iresHandler->saveIntermediate(imR2B, 102);
+	if (iresHandler) iresHandler->saveIntermediate(imR2G, 101);
+	if (iresHandler) iresHandler->saveIntermediate(imR2B, 102);
 
 
 	Mat bw1 = imR2G > T1;
@@ -200,12 +200,11 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("open19");
 	if (iresHandler) iresHandler->saveIntermediate(rc_open, 3);
 
-// TODO... COMMENT THIS
-	imwrite("test/in-imrecon-gray-marker.pgm", rc_open);
-	imwrite("test/in-imrecon-gray-mask.pgm", rc);
-// TODO... COMMENT
-	cout << "COOMMMMENNNT the EXIT... COMMENT THE EXIT BELLOW..." <<endl;
-	exit(0);
+// for generating test data 
+//	imwrite("test/in-imrecon-gray-marker.pgm", rc_open);
+//	imwrite("test/in-imrecon-gray-mask.pgm", rc);
+//	exit(0);
+// END for generating test data
 	Mat rc_recon = ::nscale::imreconstruct<uchar>(rc_open, rc, 8);
 	if (iresHandler) iresHandler->saveIntermediate(rc_recon, 4);
 

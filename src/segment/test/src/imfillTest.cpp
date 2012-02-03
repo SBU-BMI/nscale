@@ -4,8 +4,7 @@
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
-#include "cv.h"
-#include "highgui.h"
+#include "opencv2/opencv.hpp"
 #include <iostream>
 #include <dirent.h>
 #include <vector>
