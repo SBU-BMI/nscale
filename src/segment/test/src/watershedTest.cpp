@@ -5,7 +5,6 @@
  *      Author: tcpan
  */
 #include "opencv2/opencv.hpp"
-#include "highgui.h"
 #include <iostream>
 #include <dirent.h>
 #include <vector>
@@ -18,8 +17,11 @@
 #include "utils.h"
 #include <stdio.h>
 
+
+#if defined (HAVE_CUDA)
 #include "opencv2/gpu/gpu.hpp"
 #include "opencv2/gpu/stream_accessor.hpp"
+#endif
 
 using namespace cv;
 using namespace cv::gpu;
@@ -119,7 +121,7 @@ int main (int argc, char **argv){
 	watermask.release();
 
 
-
+#if defined (HAVE_CUDA)
 	// gpu version of watershed
 	//Stream stream;
 	GpuMat g_distance2, g_watermask, g_dummy;
@@ -218,6 +220,7 @@ std::cout << "gpu border detection took " << t2 - t1 << "ms" << std::endl;
 	g_dummy.release();
 	g_distance2.release();
 	watermask2.release();
+#endif
 
 	seg_big.release();
 	img.release();
