@@ -4,13 +4,13 @@
  *  Created on: Nov 30, 2011
  *      Author: tcpan
  */
+#include "stdio.h"
+#include <sys/time.h>
 
 #if defined (HAVE_CUDA)
 
 #include "cuda/queue.cuh"
-#include "stdio.h"
 
-#include <sys/time.h>
 
 
 
