@@ -5,6 +5,7 @@
  *      Author: tcpan
  */
 
+#if defined (HAVE_CUDA)
 
 #include "cuda/queue.cuh"
 #include "stdio.h"
@@ -124,3 +125,4 @@ int main (int argc, char **argv){
 	return 0;
 }
 
+#endif
