@@ -14,7 +14,7 @@ include Makefile.inc
 #CUDA_SRC = cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
 ## END CUDA SETTINGS
 
-all: nu-features.exe nu-features-summarize.exe nu-features-fix.exe nu-features-by-image.exe nu-features-sample.exe
+all: nu-features.exe nu-features-summarize.exe nu-features-file-upgrade.exe nu-features-by-image.exe nu-features-sample.exe
 
 clean:
 	$(RM) *.o *.exe
