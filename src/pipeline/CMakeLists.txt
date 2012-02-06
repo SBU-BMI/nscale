@@ -22,6 +22,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -L${Pipeline_SOURCE_DIR}/../segment")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -L${Pipeline_SOURCE_DIR}/../features-cpu")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${Pipeline_SOURCE_DIR}/../segment")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${Pipeline_SOURCE_DIR}/../features-cpu")
+# fix this properly later to correctly export and import other packages
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${Pipeline_SOURCE_DIR}/../../../textascale -L${Pipeline_SOURCE_DIR}/../../../textascale/nwkmeans/.libs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${Pipeline_SOURCE_DIR}/../../../textascale -L${Pipeline_SOURCE_DIR}/../../../textascale/nwkmeans/.libs")
 
 #### OpenCV
 find_package( OpenCV REQUIRED )
@@ -56,6 +60,18 @@ if (WITH_OPENMP)
 endif(WITH_OPENMP)
 
 
+# Source files used by Execution Engine
+set(libsrcs h5utils.cpp )
+
+set(libname pipeline)
+# Add rule to generate execution engine, as a shared library (.so)
+add_library("${libname}" SHARED ${libsrcs} )
+if(HDF5_FOUND)
+	target_link_libraries(${libname} ${HDF5_LIBRARIES})
+endif(HDF5_FOUND) 
+
+
+
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
 
@@ -68,6 +84,7 @@ foreach(program ${fprograms})
 	
 	target_link_libraries(${program} features)
 	target_link_libraries(${program} segment)
+	target_link_libraries(${program} pipeline)
 	if(MPI_FOUND)
   		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI") 
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
@@ -80,13 +97,15 @@ foreach(program ${fprograms})
 	
 endforeach(program)
 
-set(programs nu-features-by-image nu-features-file-upgrade nu-features-sample nu-features-summarize nu-features-kmeans)
+set(programs nu-features-by-image nu-features-file-upgrade nu-features-sample nu-features-summarize)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
 
 	# Link the executable to the Features Computation library
 		target_link_libraries(${program} segment)
+		target_link_libraries(${program} pipeline)
+		
 	
 	if(MPI_FOUND)
   		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI") 
@@ -99,5 +118,27 @@ foreach(program ${programs})
 	endif(HDF5_FOUND) 
 	
 endforeach(program)
+
+#set(kprograms nu-features-kmeans)
+#foreach(program ${kprograms})
+#	# Add an executable to be built from the files listed
+#	add_executable(${program} ${program}.cpp)
+#
+#	# Link the executable to the Features Computation library
+#		target_link_libraries(${program} segment)
+#		target_link_libraries(${program} pipeline)
+#		target_link_libraries(${program} kmeans)
+#	
+#	if(MPI_FOUND)
+#  		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI") 
+#  		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
+#		target_link_libraries(${program} ${MPI_LIBRARIES})
+#	endif(MPI_FOUND) 
+#
+#	if(HDF5_FOUND)
+#		target_link_libraries(${program} ${HDF5_LIBRARIES})
+#	endif(HDF5_FOUND) 
+#	
+#endforeach(program)
 
 

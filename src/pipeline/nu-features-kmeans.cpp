@@ -693,8 +693,8 @@ void writeClusters(int nu_count, int thresh, int k, float *initial_centers, int 
 		// open the file
 		file_id = H5Fopen(in.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT );
 
-		if (H5Lexists(file_id, NS_FEATURE_SET, H5P_DEFAULT) != TRUE ||
-			H5Lexists(file_id, NS_NU_INFO_SET, H5P_DEFAULT) != TRUE) {
+		if (H5Lexists(file_id, NS_FEATURE_SET, H5P_DEFAULT)  <=0 ||
+			H5Lexists(file_id, NS_NU_INFO_SET, H5P_DEFAULT)  <=0) {
 			hstatus = H5Fclose(file_id);
 			printf("ERROR: input features.h5 file %s is missing either features, or metadata, or both.\n", in.c_str());
 			continue;

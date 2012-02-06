@@ -14,6 +14,9 @@ include Makefile.inc
 #CUDA_SRC = cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
 ## END CUDA SETTINGS
 
+LIB_SRC = h5utils.cpp
+LIB_SRCO = ${LIB_SRC:.cpp=.o}
+
 all: nu-features.exe nu-features-summarize.exe nu-features-file-upgrade.exe nu-features-by-image.exe nu-features-sample.exe
 
 clean:
@@ -25,6 +28,6 @@ clean:
 %.o: %.c 
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $<
 
-%.exe:  %.o 
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< ../features-cpu/examples/BGR2GRAY.o ../features-cpu/examples/ColorDeconv_final.o
+%.exe:  %.o ${LIB_SRCO}
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< ${LIB_SRCO}
 
