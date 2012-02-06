@@ -1,5 +1,10 @@
 /*
- * test.cpp
+ * compute features.
+ *
+ * MPI only, using bag of tasks paradigm
+ *
+ * pattern adopted from http://inside.mines.edu/mio/tutorial/tricks/workerbee.c
+ *
  *
  *  Created on: Jun 28, 2011
  *      Author: tcpan
@@ -14,88 +19,67 @@
 #include "FileUtils.h"
 #include <dirent.h>
 #include "RegionalMorphologyAnalysis.h"
-#include "BGR2GRAY.h"
-#include "ColorDeconv_final.h"
+#include "PixelOperations.h"
 
 #include "hdf5.h"
 #include "hdf5_hl.h"
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+using namespace cv;
 
-#ifdef WITH_MPI
+// COMMENT OUT WHEN COMPILE for editing purpose only.
+//#define WITH_MPI
+
+#if defined (WITH_MPI)
 #include <mpi.h>
 #endif
 
-using namespace cv;
-
-
-
-
-
-int main (int argc, char **argv){
-
-#ifdef WITH_MPI
-    MPI::Init(argc, argv);
-    int size = MPI::COMM_WORLD.Get_size();
-    int rank = MPI::COMM_WORLD.Get_rank();
-    printf( " MPI enabled: rank %d \n", rank);
-#else
-    int size = 1;
-    int rank = 0;
-    printf( " MPI disabled\n");
+#if defined (_OPENMP)
+#include <omp.h>
 #endif
 
-    // relevant to head node only
-    std::vector<std::string> filenames;
-	std::vector<std::string> seg_output;
-	std::vector<std::string> features_output;
-	char *inputBufAll, *maskBufAll, *featuresBufAll;
-	inputBufAll=NULL;
-	maskBufAll=NULL;
-	featuresBufAll=NULL;
-	int dataCount;
 
-	// relevant to all nodes
-	int modecode = 0;
-	uint64_t t1 = 0, t2 = 0, t3 = 0, t4 = 0;
-	std::string fin, fmask, ffeatures;
-	unsigned int perNodeCount=0, maxLenInput=0, maxLenMask=0, maxLenFeatures=0;
-	char *inputBuf, *maskBuf, *featuresBuf;
-	inputBuf=NULL;
-	maskBuf=NULL;
-	featuresBuf=NULL;
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &imageDir, std::string &outdir);
+void getFiles(const std::string &maskName, const std::string &imgDir, const std::string &outDir, std::vector<std::string> &filenames,
+		std::vector<std::string> &seg_output, std::vector<std::string> &features_output);
+void compute(const char *input, const char *mask, const char *output);
+void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cytoplasmFeatures_G, vector<vector<float> >& cytoplasmFeatures_H, vector<vector<float> >& cytoplasmFeatures_E,
+		const char* input, const char* mask, const char* output);
 
-	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &imageDir, std::string &outdir) {
+	if (argc < 5) {
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir feature_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
 		return -1;
 	}
-	std::string maskname(argv[1]);
-	std::string outDir(argv[2]);
-	const char* mode = argc > 4 ? argv[4] : "cpu";
+	maskName.assign(argv[1]);
+	imageDir.assign(argv[2]);
+	outdir.assign(argv[3]);
+	const char* mode = argc > 5 ? argv[5] : "cpu";
+
+	int threadCount;
+	if (argc > 6) threadCount = atoi(argv[6]);
+	else threadCount = 1;
+
+#if defined (WITH_MPI)
+	threadCount = 1;
+#endif
+
+	printf("number of threads: %d\n", threadCount);
+
+#if defined (_OPENMP)
+	omp_set_num_threads(threadCount);
+#endif
 
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
 		// get core count
 
-#ifdef _OPENMP
-		if (argc > 5) {
-//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
-			omp_set_num_threads(atoi(argv[5]));
-			printf("number of threads used = %d\n", omp_get_num_threads());
-		}
-#endif
+
 	} else if (strcasecmp(mode, "mcore") == 0) {
 		modecode = cciutils::DEVICE_MCORE;
 		// get core count
-#ifdef _OPENMP
-		if (argc > 5) {
-//			omp_set_num_threads(atoi(argv[5]) > omp_get_max_threads() ? omp_get_max_threads() : atoi(argv[5]));
-			omp_set_num_threads(atoi(argv[5]));
-			printf("number of threads used = %d\n", omp_get_num_threads());
-		}
-#endif
+
+
 	} else if (strcasecmp(mode, "gpu") == 0) {
 		modecode = cciutils::DEVICE_GPU;
 		// get device count
@@ -104,380 +88,625 @@ int main (int argc, char **argv){
 			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
 			return -2;
 		}
-		if (argc > 5) {
-			gpu::setDevice(atoi(argv[5]));
+#if defined (_OPENMP)
+	omp_set_num_threads(1);
+#endif
+
+		if (argc > 7) {
+			gpu::setDevice(atoi(argv[7]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir feature_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
 		return -1;
 	}
 
-	if (rank == 0) {
-		// check to see if it's a directory or a file
-		std::string suffix;
-		suffix.assign(".mask.pbm");
+	return 0;
+}
 
-		FileUtils futils(suffix);
-		futils.traverseDirectoryRecursive(maskname, seg_output);
-		std::string dirname;
-		if (seg_output.size() == 1) {
-			dirname = maskname.substr(0, maskname.find_last_of("/\\"));
+
+void getFiles(const std::string &maskName, const std::string &imgDir, const std::string &outDir, std::vector<std::string> &filenames,
+		std::vector<std::string> &seg_output, std::vector<std::string> &features_output) {
+
+	// check to see if it's a directory or a file
+	std::string suffix;
+	suffix.assign(".mask.pbm");
+
+	FileUtils futils(suffix);
+	futils.traverseDirectoryRecursive(maskName, seg_output);
+	std::string dirname;
+	if (seg_output.size() == 1) {
+		dirname = maskName.substr(0, maskName.find_last_of("/\\"));
+	} else {
+		dirname = maskName;
+	}
+
+	std::string temp, temp2, tempdir;
+	FILE *file;
+	for (unsigned int i = 0; i < seg_output.size(); ++i) {
+			// generate the input file name
+		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".tif");
+		temp = futils.replaceDir(temp, dirname, imgDir);
+		temp2 = futils.replaceExt(seg_output[i], ".mask.pbm", ".tiff");
+		temp2 = futils.replaceDir(temp2, dirname, imgDir);
+		if ((file = fopen(temp.c_str(), "r"))) {
+			fclose(file);
+			filenames.push_back(temp);
+		} else if ((file = fopen(temp2.c_str(), "r"))) {
+			fclose(file);
+			filenames.push_back(temp2);
 		} else {
-			dirname = maskname;
-		}
-
-		std::string temp, temp2, tempdir;
-		FILE *file;
-		for (unsigned int i = 0; i < seg_output.size(); ++i) {
-			maxLenMask = maxLenMask > seg_output[i].length() ? maxLenMask : seg_output[i].length();
-				// generate the input file name
-			temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".tif");
-			temp = futils.replaceDir(temp, dirname, outDir);
-			temp2 = futils.replaceExt(seg_output[i], ".mask.pbm", ".tiff");
-			temp2 = futils.replaceDir(temp2, dirname, outDir);
-			if (file = fopen(temp.c_str(), "r")) {
-				fclose(file);
-				filenames.push_back(temp);
-				maxLenInput = maxLenInput > temp.length() ? maxLenInput : temp.length();
-			} else if (file = fopen(temp2.c_str(), "r")) {
-				fclose(file);
-				filenames.push_back(temp2);
-				maxLenInput = maxLenInput > temp2.length() ? maxLenInput : temp2.length();
-			} else {
-				// file does not exist.  continue;
-				continue;
-			}
-				
-			//filenames.push_back(temp);
-
-			// generate the output file name
-			temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
-			features_output.push_back(temp);
-			maxLenFeatures = maxLenFeatures > temp.length() ? maxLenFeatures : temp.length();
-		}
-		dataCount= seg_output.size();
-	}
-
-#ifdef WITH_MPI
-	if (rank == 0) {
-		printf("headnode: total count is %d, size is %d\n", seg_output.size(), size);
-
-		perNodeCount = seg_output.size() / size + (seg_output.size() % size == 0 ? 0 : 1);
-
-		printf("headnode: rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d %d \n", rank, perNodeCount, maxLenFeatures, maxLenInput, maxLenMask);
-
-		// allocate the sendbuffer
-		inputBufAll= (char*)malloc(perNodeCount * size * maxLenInput * sizeof(char));
-		maskBufAll= (char*)malloc(perNodeCount * size * maxLenMask * sizeof(char));
-		featuresBufAll= (char*)malloc(perNodeCount * size * maxLenFeatures * sizeof(char));
-		memset(inputBufAll, 0, perNodeCount * size * maxLenInput);
-		memset(maskBufAll, 0, perNodeCount * size * maxLenMask);
-		memset(featuresBufAll, 0, perNodeCount * size * maxLenFeatures);
-
-		// copy data into the buffers
-		for (unsigned int i = 0; i < seg_output.size(); ++i) {
-			strncpy(inputBufAll + i * maxLenInput, filenames[i].c_str(), maxLenInput);
-			strncpy(maskBufAll + i * maxLenMask, seg_output[i].c_str(), maxLenMask);
-			strncpy(featuresBufAll + i * maxLenFeatures, features_output[i].c_str(), maxLenFeatures);
-
-		}
-	}
-	//	printf("rank: %d\n ", rank);
-	MPI::COMM_WORLD.Barrier();
-
-	MPI::COMM_WORLD.Bcast(&perNodeCount, 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast(&maxLenInput, 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast(&maxLenMask, 1, MPI::INT, 0);
-	MPI::COMM_WORLD.Bcast(&maxLenFeatures, 1, MPI::INT, 0);
-
-
-//	printf("rank is %d here.  perNodeCount is %d, outputLen %d, inputLen %d \n", rank, perNodeCount, maxLenMask, maxLenInput);
-
-	// allocate the receive buffer
-	inputBuf = (char*)malloc(perNodeCount * maxLenInput * sizeof(char));
-	maskBuf = (char*)malloc(perNodeCount * maxLenMask * sizeof(char));
-	featuresBuf = (char*)malloc(perNodeCount * maxLenFeatures * sizeof(char));
-
-
-	// scatter
-	MPI::COMM_WORLD.Scatter(inputBufAll, perNodeCount * maxLenInput, MPI::CHAR,
-		inputBuf, perNodeCount * maxLenInput, MPI::CHAR,
-		0);
-
-	MPI::COMM_WORLD.Scatter(maskBufAll, perNodeCount * maxLenMask, MPI::CHAR,
-		maskBuf, perNodeCount * maxLenMask, MPI::CHAR,
-		0);
-
-	MPI::COMM_WORLD.Scatter(featuresBufAll, perNodeCount * maxLenFeatures, MPI::CHAR,
-		featuresBuf, perNodeCount * maxLenFeatures, MPI::CHAR,
-		0);
-
-	MPI::COMM_WORLD.Barrier();
-
-#endif
-	if (rank == 0)	t3 = cciutils::ClockGetTime();
-
-#ifdef WITH_MPI
-#pragma omp parallel for shared(perNodeCount, inputBuf, maskBuf, featuresBuf, maxLenInput, maxLenMask, maxLenFeatures, rank) private(fin, fmask, ffeatures, t1, t2)
-    for (unsigned int i = 0; i < perNodeCount; ++i) {
-		fmask = std::string(maskBuf + i * maxLenMask, maxLenMask);
-		fin = std::string(inputBuf + i * maxLenInput, maxLenInput);
-		ffeatures = std::string(featuresBuf + i * maxLenFeatures, maxLenFeatures);
-		printf("in MPI feature loop with rank %d, loop %d.  %s, %s, %s\n", rank, i, fin.c_str(), fmask.c_str(), ffeatures.c_str());
-
-#else
-#pragma omp parallel for shared(filenames, seg_output, features_output, rank) private(fin, fmask, ffeatures, t1, t2)
-    for (unsigned int i = 0; i < dataCount; ++i) {
-		fmask = seg_output[i];
-		fin = filenames[i];
-		ffeatures = features_output[i];
-#endif
-
-		t1 = cciutils::ClockGetTime();
-
-#ifdef _OPENMP
-    	int tid = omp_get_thread_num();
-#else
-		int tid = 0;
-#endif
-		printf("thread id: %d\n", tid);
-
-		// Load input images
-		IplImage *originalImageMask = cvLoadImage(fmask.c_str(), -1);
-		IplImage *originalImage = cvLoadImage(fin.c_str(), -1);
-
-		if (! originalImageMask) {
-			printf("can't read original image mask\n");
-			continue;
-		}
-		if (! originalImage) {
-			printf("can't read original image\n");
+			// file does not exist.  continue;
 			continue;
 		}
 
-		bool isNuclei = true;
+		// generate the output file name
+		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
+		temp = futils.replaceDir(temp, dirname, outDir);
+		features_output.push_back(temp);
+	}
 
-		// Convert color image to grayscale
-		IplImage *grayscale = bgr2gray(originalImage);
+
+}
+
+
+
+
+void compute(const char *input, const char *mask, const char *output) {
+	// Load input images
+	::cv::Mat maskMat = imread(mask, -1);
+	if (! maskMat.data) {
+		printf("can't read original image mask\n");
+		return;
+	}
+
+	::cv::Mat image = imread(input, -1);
+	if (! image.data) {
+		printf("can't read original image\n");
+		return;
+	}
+
+	IplImage originalImageMask(maskMat);
+
+	//bool isNuclei = true;
+
+	// Convert color image to grayscale
+	::cv::Mat grayMat = ::nscale::PixelOperations::bgr2gray(image);
 	//	cvSaveImage("newGrayScale.png", grayscale);
+	IplImage grayscale(grayMat);
 
-		// This is another option for inialize the features computation, where the path to the images are given as parameter
-    	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(originalImageMask, grayscale, true);
+	// This is another option for inialize the features computation, where the path to the images are given as parameter
+	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(&originalImageMask, &grayscale, true);
 
-    	// Create H and E images
-    	Mat image(originalImage);
+	// Create H and E images
+	//initialize H and E channels
+	Mat H = Mat::zeros(image.size(), CV_8UC1);
+	Mat E = Mat::zeros(image.size(), CV_8UC1);
+	Mat b = (Mat_<char>(1,3) << 1, 1, 0);
+	Mat M = (Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
 
-    	//initialize H and E channels
-    	Mat H = Mat::zeros(image.size(), CV_8UC1);
-    	Mat E = Mat::zeros(image.size(), CV_8UC1);
-    	Mat b = (Mat_<char>(1,3) << 1, 1, 0);
-    	Mat M = (Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
+	::nscale::PixelOperations::ColorDeconv(image, M, b, H, E);
 
-    	ColorDeconv(image, M, b, H, E);
-
-    	IplImage ipl_image_H(H);
-    	IplImage ipl_image_E(E);
-
-
-    	// This is another option for inialize the features computation, where the path to the images are given as parameter
-    //	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(argv[1], argv[2]);
-
-    	vector<vector<float> > nucleiFeatures;
-
-    	/////////////// Compute nuclei based features ////////////////////////
-    	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-    	// 	0)BoundingBox (BB) X; 1) BB.y; 2) BB.width; 3) BB.height; 4) Centroid.x; 5) Centroid.y) 7)Area; 8)Perimeter; 9)Eccentricity;
-    	//	10)Circularity/Compacteness; 11)MajorAxis; 12)MinorAxis; 13)ExtentRatio; 14)MeanIntensity 15)MaxIntensity; 16)MinIntensity;
-    	//	17)StdIntensity; 18)EntropyIntensity; 19)EnergyIntensity; 20)SkewnessIntensity;	21)KurtosisIntensity; 22)MeanGrad; 23)StdGrad;
-    	//	24)EntropyGrad; 25)EnergyGrad; 26)SkewnessGrad; 27)KurtosisGrad; 28)CannyArea; 29)MeanCanny
-    	regional->doNucleiPipelineFeatures(nucleiFeatures, grayscale);
-
-    	/////////////// Compute cytoplasm based features ////////////////////////
-    	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-    	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
-    	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
-    	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
-    	vector<vector<float> > cytoplasmFeatures_G;
-    	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_G, grayscale);
+	IplImage ipl_image_H(H);
+	IplImage ipl_image_E(E);
 
 
-    	/////////////// Compute cytoplasm based features ////////////////////////
-    	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-    	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
-    	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
-    	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
-    	vector<vector<float> > cytoplasmFeatures_H;
-    	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_H, &ipl_image_H);
+	// This is another option for inialize the features computation, where the path to the images are given as parameter
+	//	RegionalMorphologyAnalysis *regional = new RegionalMorphologyAnalysis(argv[1], argv[2]);
 
-    	/////////////// Compute cytoplasm based features ////////////////////////
-    	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
-    	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
-    	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
-    	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
-    	vector<vector<float> > cytoplasmFeatures_E;
-    	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_E, &ipl_image_E);
+	vector<vector<float> > nucleiFeatures;
 
+	/////////////// Compute nuclei based features ////////////////////////
+	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
+	// 	0)BoundingBox (BB) X; 1) BB.y; 2) BB.width; 3) BB.height; 4) Centroid.x; 5) Centroid.y) 7)Area; 8)Perimeter; 9)Eccentricity;
+	//	10)Circularity/Compacteness; 11)MajorAxis; 12)MinorAxis; 13)ExtentRatio; 14)MeanIntensity 15)MaxIntensity; 16)MinIntensity;
+	//	17)StdIntensity; 18)EntropyIntensity; 19)EnergyIntensity; 20)SkewnessIntensity;	21)KurtosisIntensity; 22)MeanGrad; 23)StdGrad;
+	//	24)EntropyGrad; 25)EnergyGrad; 26)SkewnessGrad; 27)KurtosisGrad; 28)CannyArea; 29)MeanCanny
+	regional->doNucleiPipelineFeatures(nucleiFeatures, &grayscale);
 
-		t2 = cciutils::ClockGetTime();
-//		printf("%d::%d: %d features %lu us, in %s, out %s\n", rank, tid, nucleiFeatures.size(), t2-t1, fin.c_str(), ffeatures.c_str());
-
-		delete regional;
-
-		cvReleaseImage(&originalImage);
-		cvReleaseImage(&originalImageMask);
-		cvReleaseImage(&grayscale);
-
-		H.release();
-		E.release();
-		M.release();
-		b.release();
-
-		t1 = cciutils::ClockGetTime();
-
-		// also calculate the mean and stdev
-
-		// create a single data field
-		if (nucleiFeatures.size() > 0) {
+	/////////////// Compute cytoplasm based features ////////////////////////
+	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
+	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
+	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
+	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
+	vector<vector<float> > cytoplasmFeatures_G;
+	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_G, &grayscale);
 
 
-			unsigned int recordSize = nucleiFeatures[0].size() + cytoplasmFeatures_G[0].size() + cytoplasmFeatures_H[0].size() + cytoplasmFeatures_E[0].size();
-			unsigned int featureSize;
-			float *data = new float[nucleiFeatures.size() * recordSize];
-			float *currData;
-			for(unsigned int i = 0; i < nucleiFeatures.size(); i++) {
+	/////////////// Compute cytoplasm based features ////////////////////////
+	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
+	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
+	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
+	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
+	vector<vector<float> > cytoplasmFeatures_H;
+	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_H, &ipl_image_H);
 
-//				printf("[%d] m ", i);
-				currData = data + i * recordSize;
-				featureSize = nucleiFeatures[0].size();
-				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < nucleiFeatures[i].size()) {
-						currData[j] = nucleiFeatures[i][j];
+	/////////////// Compute cytoplasm based features ////////////////////////
+	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
+	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
+	//	6)EnergyIntensity; 7)SkewnessIntensity; 8)KurtosisIntensity; 9)MeanGrad; 10)StdGrad; 11)EntropyGrad; 12)EnergyGrad;
+	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
+	vector<vector<float> > cytoplasmFeatures_E;
+	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_E, &ipl_image_E);
 
-	#ifdef	PRINT_FEATURES
-						printf("%f, ", currData[j]);
-	#endif
-					}
-				}
-//				printf("\n");
-//				printf("[%d] i ", i);
+	delete regional;
 
-				currData += featureSize;
-				featureSize = cytoplasmFeatures_G[0].size();
-				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < cytoplasmFeatures_G[i].size()) {
-						currData[j] = cytoplasmFeatures_G[i][j];
-	#ifdef	PRINT_FEATURES
-						printf("%f, ", currData[j]);
-	#endif
-					}
-				}
-//				printf("\n");
-//				printf("[%d] g ", i);
+	image.release();
+	maskMat.release();
+	grayMat.release();
 
-				currData += featureSize;
-				featureSize = cytoplasmFeatures_H[0].size();
-				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < cytoplasmFeatures_H[i].size()) {
-						currData[j] = cytoplasmFeatures_H[i][j];
-	#ifdef	PRINT_FEATURES
-						printf("%f, ", currData[j]);
-	#endif
-					}
-				}
-//				printf("\n");
-//				printf("[%d] h ", i);
+	H.release();
+	E.release();
+	M.release();
+	b.release();
 
-				currData += featureSize;
-				featureSize = cytoplasmFeatures_E[0].size();
-				for(unsigned int j = 0; j < featureSize; j++) {
-					if (j < cytoplasmFeatures_E[i].size()) {
-						currData[j] = cytoplasmFeatures_E[i][j];
-	#ifdef	PRINT_FEATURES
-						printf("%f, ", currData[j]);
-	#endif
-					}
-				}
-//				printf("\n");
 
+
+	saveData(nucleiFeatures, cytoplasmFeatures_G, cytoplasmFeatures_H, cytoplasmFeatures_E,
+			input, mask, output);
+	nucleiFeatures.clear();
+	cytoplasmFeatures_G.clear();
+	cytoplasmFeatures_H.clear();
+	cytoplasmFeatures_E.clear();
+
+}
+
+void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cytoplasmFeatures_G, vector<vector<float> >& cytoplasmFeatures_H, vector<vector<float> >& cytoplasmFeatures_E,
+		const char* input, const char* mask, const char* output) {
+	// create a single data field
+	if (nucleiFeatures.size() > 0) {
+
+		// first deal with the metadata
+		unsigned int metadataSize = 6;
+		float *metadata = new float[nucleiFeatures.size() * metadataSize];
+		float *currData;
+		for (unsigned int i = 0; i < nucleiFeatures.size(); i++) {
+			currData = metadata + i * metadataSize;
+			for (unsigned int j = 0; j < metadataSize; j++) {
+				currData[j] = nucleiFeatures[i][j];
+#ifdef	PRINT_FEATURES
+					printf("%f, ", currData[j]);
+#endif
 			}
+		}
 
-			// compute the average within the tile
+		unsigned int nuFeatureSize = nucleiFeatures[0].size() - 6;
+		unsigned int recordSize = nuFeatureSize + cytoplasmFeatures_G[0].size() + cytoplasmFeatures_H[0].size() + cytoplasmFeatures_E[0].size();
+		unsigned int featureSize;
+		float *data = new float[nucleiFeatures.size() * recordSize];
+		for(unsigned int i = 0; i < nucleiFeatures.size(); i++) {
+
+			currData = data + i * recordSize;
+			featureSize = nuFeatureSize;
+			for(unsigned int j = 0; j < featureSize; j++) {
+				if (j < nucleiFeatures[i].size() - 6) {
+					currData[j] = nucleiFeatures[i][j+6];
 
 #ifdef	PRINT_FEATURES
-			for (unsigned int i = 0; i < recordSize; i++) {
-				printf("%f, %f; ", sums[i], squareSums[i]);
+					printf("%f, ", currData[j]);
+#endif
+				}
 			}
-			printf("\n");
-#endif
 
+			currData += featureSize;
+			featureSize = cytoplasmFeatures_G[0].size();
+			for(unsigned int j = 0; j < featureSize; j++) {
+				if (j < cytoplasmFeatures_G[i].size()) {
+					currData[j] = cytoplasmFeatures_G[i][j];
+#ifdef	PRINT_FEATURES
+					printf("%f, ", currData[j]);
+#endif
+				}
+			}
+
+			currData += featureSize;
+			featureSize = cytoplasmFeatures_H[0].size();
+			for(unsigned int j = 0; j < featureSize; j++) {
+				if (j < cytoplasmFeatures_H[i].size()) {
+					currData[j] = cytoplasmFeatures_H[i][j];
+#ifdef	PRINT_FEATURES
+					printf("%f, ", currData[j]);
+#endif
+				}
+			}
+
+			currData += featureSize;
+			featureSize = cytoplasmFeatures_E[0].size();
+			for(unsigned int j = 0; j < featureSize; j++) {
+				if (j < cytoplasmFeatures_E[i].size()) {
+					currData[j] = cytoplasmFeatures_E[i][j];
+#ifdef	PRINT_FEATURES
+					printf("%f, ", currData[j]);
+#endif
+				}
+			}
+
+		} // end looping through all nuclei
+
+
+		hid_t file_id;
+		herr_t hstatus;
+
+		printf("writing out %s\n", output);
+
+#if defined (_OPENMP)
 #pragma omp critical
-			{
-			  hid_t file_id;
-			  herr_t hstatus;
+		{
+#endif
 
-			printf("writing out %s\n", ffeatures.c_str());		
-	
-			hsize_t dims[2];
-			file_id = H5Fcreate ( ffeatures.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
+		hsize_t dims[2];
+		file_id = H5Fcreate ( output, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
 
-			dims[0] = nucleiFeatures.size(); dims[1] = recordSize;
-			hstatus = H5LTmake_dataset ( file_id, "/data",
-					2, // rank
-					dims, // dims
-                                                H5T_NATIVE_FLOAT, data );
-                       hstatus = H5LTset_attribute_string ( file_id, "/data", "image_file", fin.c_str() );
+		dims[0] = nucleiFeatures.size(); dims[1] = recordSize;
+		hstatus = H5LTmake_dataset ( file_id, "/data",
+				2, // rank
+				dims, // dims
+				H5T_NATIVE_FLOAT, data );
 
-                       // attach the attributes
-                       H5Fclose ( file_id );
-                       }
+		dims[0] = nucleiFeatures.size(); dims[1] = metadataSize;
+		hstatus = H5LTmake_dataset ( file_id, "/metadata",
+				2, // rank
+				dims, // dims
+				H5T_NATIVE_FLOAT, metadata );
+		// attach the attributes
+		hstatus = H5LTset_attribute_string ( file_id, "/metadata", "image_tile", input );
+		hstatus = H5LTset_attribute_string ( file_id, "/metadata", "mask_tile", mask );
+		H5Fclose ( file_id );
 
-                       delete [] data;
-                       nucleiFeatures.clear();
-                       cytoplasmFeatures_G.clear();
- 			cytoplasmFeatures_H.clear();
-			cytoplasmFeatures_E.clear();
+#if defined (_OPENMP)
 		}
+#endif
+
+		// clear the data
+		delete [] data;
+		delete [] metadata;
+	}
+
+}
+
+
+
+#if defined (WITH_MPI)
+MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
+MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &imgDir, std::string &outDir);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank);
+
+
+// initialize MPI
+MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname) {
+    MPI::Init(argc, argv);
+
+    char * temp = new char[256];
+    gethostname(temp, 255);
+    hostname.assign(temp);
+    delete [] temp;
+
+    size = MPI::COMM_WORLD.Get_size();
+    rank = MPI::COMM_WORLD.Get_rank();
+
+    return MPI::COMM_WORLD;
+}
+
+// not necessary to create a new comm object
+MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid) {
+	// get old group
+	MPI::Group world_group = comm_world.Get_group();
+	// create new group from old group
+	int worker_size = comm_world.Get_size() - 1;
+	int *workers = new int[worker_size];
+	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
+		if (id == managerid) ++id;  // skip the manager id
+		workers[i] = id;
+	}
+	MPI::Group worker_group = world_group.Incl(worker_size, workers);
+	delete [] workers;
+	return comm_world.Create(worker_group);
+}
+
+static const char MANAGER_READY = 10;
+static const char MANAGER_FINISHED = 12;
+static const char MANAGER_ERROR = -11;
+static const char WORKER_READY = 20;
+static const char WORKER_PROCESSING = 21;
+static const char WORKER_ERROR = -21;
+static const int TAG_CONTROL = 0;
+static const int TAG_DATA = 1;
+static const int TAG_METADATA = 2;
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &imgDir, std::string &outDir) {
+	// first get the list of files to process
+   	std::vector<std::string> filenames;
+	std::vector<std::string> seg_output;
+	std::vector<std::string> features_output;
+	uint64_t t1, t0;
+
+	t0 = cciutils::ClockGetTime();
+	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output);
+
+	t1 = cciutils::ClockGetTime();
+	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
+	comm_world.Barrier();
+
+	// now start the loop to listen for messages
+	int curr = 0;
+	int total = filenames.size();
+	MPI::Status status;
+	int worker_id;
+	char ready;
+	char *input;
+	char *mask;
+	char *output;
+	int inputlen;
+	int masklen;
+	int outputlen;
+	while (curr < total) {
+		usleep(1000);
+
+		if (comm_world.Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, status)) {
+/* where is it coming from */
+			worker_id=status.Get_source();
+			comm_world.Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//			printf("manager received request from worker %d\n",worker_id);
+			if (worker_id == manager_rank) continue;
+
+			if(ready == WORKER_READY) {
+				// tell worker that manager is ready
+				comm_world.Send(&MANAGER_READY, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//				printf("manager signal transfer\n");
+/* send real data */
+				inputlen = filenames[curr].size() + 1;  // add one to create the zero-terminated string
+				masklen = seg_output[curr].size() + 1;
+				outputlen = features_output[curr].size() + 1;
+				input = new char[inputlen];
+				memset(input, 0, sizeof(char) * inputlen);
+				strncpy(input, filenames[curr].c_str(), inputlen);
+				mask = new char[masklen];
+				memset(mask, 0, sizeof(char) * masklen);
+				strncpy(mask, seg_output[curr].c_str(), masklen);
+				output = new char[outputlen];
+				memset(output, 0, sizeof(char) * outputlen);
+				strncpy(output, features_output[curr].c_str(), outputlen);
+
+				comm_world.Send(&inputlen, 1, MPI::INT, worker_id, TAG_METADATA);
+				comm_world.Send(&masklen, 1, MPI::INT, worker_id, TAG_METADATA);
+				comm_world.Send(&outputlen, 1, MPI::INT, worker_id, TAG_METADATA);
+
+				// now send the actual string data
+				comm_world.Send(input, inputlen, MPI::CHAR, worker_id, TAG_DATA);
+				comm_world.Send(mask, masklen, MPI::CHAR, worker_id, TAG_DATA);
+				comm_world.Send(output, outputlen, MPI::CHAR, worker_id, TAG_DATA);
+				curr++;
+
+				delete [] input;
+				delete [] mask;
+				delete [] output;
+
+			}
+
+			if (curr % 100 == 1) {
+				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
+			}
+
+		}
+	}
+/* tell everyone to quit */
+	int active_workers = worker_size;
+	while (active_workers > 0) {
+		usleep(1000);
+
+		if (comm_world.Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, status)) {
+		/* where is it coming from */
+			worker_id=status.Get_source();
+			comm_world.Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//			printf("manager received request from worker %d\n",worker_id);
+			if (worker_id == manager_rank) continue;
+
+			if(ready == WORKER_READY) {
+				comm_world.Send(&MANAGER_FINISHED, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+//				printf("manager signal finished\n");
+				--active_workers;
+			}
+		}
+	}
+}
+
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank) {
+	char flag = MANAGER_READY;
+	int inputSize;
+	int outputSize;
+	int maskSize;
+	char *input;
+	char *output;
+	char *mask;
+
+	comm_world.Barrier();
+	uint64_t t0, t1;
+	printf("worker %d ready\n", rank);
+
+	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
+		t0 = cciutils::ClockGetTime();
+
+		// tell the manager - ready
+		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
+//		printf("worker %d signal ready\n", rank);
+		// get the manager status
+		comm_world.Recv(&flag, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
+//		printf("worker %d received manager status %d\n", rank, flag);
+
+		if (flag == MANAGER_READY) {
+			// get data from manager
+			comm_world.Recv(&inputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
+			comm_world.Recv(&maskSize, 1, MPI::INT, manager_rank, TAG_METADATA);
+			comm_world.Recv(&outputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
+
+			// allocate the buffers
+			input = new char[inputSize];
+			mask = new char[maskSize];
+			output = new char[outputSize];
+			memset(input, 0, inputSize * sizeof(char));
+			memset(mask, 0, maskSize * sizeof(char));
+			memset(output, 0, outputSize * sizeof(char));
+
+			// get the file names
+			comm_world.Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA);
+			comm_world.Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA);
+			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
+
+			t0 = cciutils::ClockGetTime();
+//			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
+
+
+			// now do some work
+			compute(input, mask, output);
+
+			t1 = cciutils::ClockGetTime();
+//			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
+			printf("worker %d processed \"%s\" in %lu us\n", rank, mask, t1 - t0);
+
+			// clean up
+			delete [] input;
+			delete [] mask;
+			delete [] output;
+
+		}
+	}
+}
+
+
+int main (int argc, char **argv){
+
+	printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
+
+	// parse the input
+	int modecode;
+	std::string maskName, imgDir,  outDir;
+	int status = parseInput(argc, argv, modecode, maskName, imgDir, outDir);
+	if (status != 0) return status;
+
+	// set up mpi
+	int rank, size, worker_size, manager_rank;
+	std::string hostname;
+	MPI::Intracomm comm_world = init_mpi(argc, argv, size, rank, hostname);
+
+	if (size == 1) {
+		printf("ERROR:  this program can only be run with 2 or more MPI nodes.  The head node does not process data\n");
+		return -4;
+	}
+
+	if (modecode == cciutils::DEVICE_GPU) {
+		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
+		return -4;
+	}
+
+	// initialize the worker comm object
+	worker_size = size - 1;
+	manager_rank = size - 1;
+
+	// NOT NEEDED
+	//MPI::Intracomm comm_worker = init_workers(MPI::COMM_WORLD, manager_rank);
+	//int worker_rank = comm_worker.Get_rank();
+
+
+	uint64_t t1 = 0, t2 = 0;
+	t1 = cciutils::ClockGetTime();
+
+	// decide based on rank of worker which way to process
+	if (rank == manager_rank) {
+		// manager thread
+		manager_process(comm_world, manager_rank, worker_size, maskName, imgDir, outDir);
 		t2 = cciutils::ClockGetTime();
-//		printf("%d::%d: hdf5 %lu us, in %s, out %s\n", rank, tid, t2-t1, fin.c_str(), ffeatures.c_str());
+		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
+	} else {
+		// worker bees
+		worker_process(comm_world, manager_rank, rank);
+		t2 = cciutils::ClockGetTime();
+		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
 
-
-	//	std::cout << rank << "::" << tid << ":" << fin << std::endl;
-    }
-#ifdef WITH_MPI
-	MPI::COMM_WORLD.Barrier();
-#endif
-
-    if (rank == 0) {
-
-    	t4 = cciutils::ClockGetTime();
-		printf("**** Feature Extraction took %lu us \n", t4-t3);
-	//	std::cout << "**** Feature Extraction took " << t4-t3 << " us" << std::endl;
-
-    }
-
-
-
-#ifdef WITH_MPI
-    if (rank == 0) {
-		free(inputBufAll);
-		free(maskBufAll);
-		free(featuresBufAll);
-    }
-
-	free(inputBuf);
-	free(maskBuf);
-	free(featuresBuf);
-
-
+	}
+	comm_world.Barrier();
 	MPI::Finalize();
+	exit(0);
+
+}
+
+
+#else
+int main (int argc, char **argv){
+	printf("NOT compiled with MPI.  Using OPENMP if CPU, or GPU (multiple streams)\n");
+
+	// parse the input
+	int modecode;
+	std::string maskName, imgDir,  outDir;
+	int status = parseInput(argc, argv, modecode, maskName, imgDir, outDir);
+	if (status != 0) return status;
+
+	uint64_t t0 = 0, t1 = 0, t2 = 0;
+	t1 = cciutils::ClockGetTime();
+
+	// first get the list of files to process
+   	std::vector<std::string> filenames;
+	std::vector<std::string> seg_output;
+	std::vector<std::string> features_output;
+
+	t0 = cciutils::ClockGetTime();
+	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output);
+
+	printf("file read took %lu us\n", t1 - t0);
+
+	int total = filenames.size();
+	int i = 0;
+
+	// openmp bag of task
+//#define _OPENMP
+#if defined (_OPENMP)
+
+	if (omp_get_max_threads() == 1) {
+    	printf("1 omp thread\n");
+    	while (i < total) {
+			// now do some work
+			compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str());
+    		printf("processed %s\n", filenames[i].c_str());
+    		++i;
+    	}
+
+	} else {
+    	printf("omp %d\n", omp_get_max_threads());
+
+#pragma omp parallel
+	{
+#pragma omp single private(i)
+		{
+			while (i < total) {
+				int ti = i;
+				// has to use firstprivate - private does not work.
+#pragma omp task firstprivate(ti) shared(filenames, seg_output, features_output)
+				{
+//        				printf("t i: %d, %d \n", i, ti);
+					compute(filenames[ti].c_str(), seg_output[ti].c_str(), features_output[ti].c_str());
+	        		printf("processed %s\n", filenames[ti].c_str());
+				}
+				i++;
+			}
+		}
+#pragma omp taskwait
+	}
+	}
+#else
+	printf("not omp\n");
+	while (i < total) {
+		compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str());
+		printf("processed %s\n", filenames[i].c_str());
+		++i;
+	}
 #endif
-
-
-//	waitKey();
+	t2 = cciutils::ClockGetTime();
+	printf("FINISHED in %lu us\n", t2 - t1);
 
 	return 0;
 }
+
+#endif
+
 
 

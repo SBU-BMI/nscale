@@ -374,11 +374,11 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			comm_world.Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA);
 			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
-			t1 = cciutils::ClockGetTime();
+			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
 
-			compute(input, mask, output, cciutils::DEVICE_CPU);
+			compute(input, mask, output, modecode);
 			// now do some work
 
 			t1 = cciutils::ClockGetTime();

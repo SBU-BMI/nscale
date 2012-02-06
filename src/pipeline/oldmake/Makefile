@@ -3,7 +3,7 @@ include Makefile.inc
 #include Makefile.keeneland.inc
 
 ## BEGIN MPI SETTINGS - comment out to disable MPI. overrides Makefile.inc for certain settings such as CXX
-include Makefile-mpi.inc
+#include Makefile-mpi.inc
 #include Makefile-mpi.keeneland.inc
 ## END MPI SETTINGS
 
@@ -14,7 +14,7 @@ include Makefile-mpi.inc
 #CUDA_SRC = cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu
 ## END CUDA SETTINGS
 
-all: nu-features.exe nu-features-summarize.exe nu-features-mpi-bot.exe nu-features-fix-mpi-bot.exe nu-features-summarize-mpi-bot.exe
+all: nu-features.exe nu-features-summarize.exe nu-features-fix.exe nu-features-by-image.exe nu-features-sample.exe
 
 clean:
 	$(RM) *.o *.exe

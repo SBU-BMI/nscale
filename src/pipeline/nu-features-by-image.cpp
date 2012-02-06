@@ -12,11 +12,9 @@
 #include "FileUtils.h"
 #include <dirent.h>
 #include <sstream>
-#include "opencv2/gpu/gpu.hpp"
 #include "hdf5.h"
 #include "hdf5_hl.h"
-
-using namespace cv;
+#include <string.h>
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.
 //#define WITH_MPI
@@ -51,18 +49,18 @@ int parseInput(int argc, char **argv, int &modecode, std::string &inputName) {
 	} else if (strcasecmp(mode, "mcore") == 0) {
 		modecode = cciutils::DEVICE_MCORE;
 		// get core count
-	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
-		// get device count
-		int numGPU = gpu::getCudaEnabledDeviceCount();
-		if (numGPU < 1) {
-			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
-			return -2;
-		}
-		if (argc > 5) {
-			gpu::setDevice(atoi(argv[5]));
-		}
-		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
+//	} else if (strcasecmp(mode, "gpu") == 0) {
+//		modecode = cciutils::DEVICE_GPU;
+//		// get device count
+//		int numGPU = gpu::getCudaEnabledDeviceCount();
+//		if (numGPU < 1) {
+//			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
+//			return -2;
+//		}
+//		if (argc > 5) {
+//			gpu::setDevice(atoi(argv[5]));
+//		}
+//		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
 		std::cout << "Usage:  " << argv[0] << " <feature_filename | feature_dir> " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
@@ -166,7 +164,7 @@ int main (int argc, char **argv){
 	}
 	comm_world.Barrier();
 	MPI::Finalize();
-	exit(0);
+	return 0;
 
 }
 

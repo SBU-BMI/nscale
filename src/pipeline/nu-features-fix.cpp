@@ -5,7 +5,7 @@
  *
  * pattern adopted from http://inside.mines.edu/mio/tutorial/tricks/workerbee.c
  *
- * this function is used to subsample the features.
+ * this function is used to change the data organization in a previously run dataset.
  *
  *  Created on: Jun 28, 2011
  *      Author: tcpan
@@ -26,36 +26,28 @@
 using namespace cv;
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.
-#define WITH_MPI
+//#define WITH_MPI
 
 #ifdef WITH_MPI
 #include <mpi.h>
 
 MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
-int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outDir, bool& random, float& ratio);
-void getFiles(const std::string &maskName, const std::string &outDir, std::vector<std::string> &filenames, std::vector<std::string> &features_output);
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, const std::string &maskName, const std::string &outDir);
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const bool& random, const float& ratio);
-void compute(const char *input, const char *output, const bool& random, const float& ratio);
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName);
+void getFiles(const std::string &maskName, std::vector<std::string> &filenames);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank);
+void compute(const char *input);
 
 
 
-int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outDir, bool& random, float& ratio) {
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> outdir <reg|rand> ratio run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 	maskName.assign(argv[1]);
-	outDir.assign(argv[2]);
-	if (strcasecmp(argv[3], "reg") == 0) {
-		random = false;
-	} else {
-		random = true;
-	}
-	ratio = atof(argv[4]);
-
-	const char* mode = argc > 6 ? argv[6] : "cpu";
+	const char* mode = argc > 3 ? argv[3] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
@@ -72,12 +64,12 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
 			return -2;
 		}
-		if (argc > 7) {
-			gpu::setDevice(atoi(argv[7]));
+		if (argc > 4) {
+			gpu::setDevice(atoi(argv[4]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> outdir <regular|random> ratio run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 
@@ -85,7 +77,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 }
 
 
-void getFiles(const std::string &maskName, const std::string &outDir, std::vector<std::string> &filenames, std::vector<std::string> &features_output) {
+void getFiles(const std::string &maskName, std::vector<std::string> &filenames) {
 
 	// check to see if it's a directory or a file
 	std::string suffix;
@@ -100,15 +92,9 @@ void getFiles(const std::string &maskName, const std::string &outDir, std::vecto
 		dirname = maskName;
 	}
 
-	std::string temp;
-	for (unsigned int i = 0; i < filenames.size(); ++i) {
-			// generate the input file name
-
-		// generate the output file name
-		temp = futils.replaceExt(filenames[i], ".h5", ".sampled.h5");
-		temp = futils.replaceDir(temp, dirname, outDir);
-		features_output.push_back(temp);
-	}
+//	for (int i = 0; i < filenames.size(); i++) {
+//		std::cout << "filename: " << filenames[i] << std::endl;
+//	}
 }
 
 
@@ -147,10 +133,8 @@ MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid) {
 int main (int argc, char **argv){
 	// parse the input
 	int modecode;
-	bool random;
-	float ratio;
-	std::string maskName, outDir;
-	int status = parseInput(argc, argv, modecode, maskName, outDir, random, ratio);
+	std::string maskName;
+	int status = parseInput(argc, argv, modecode, maskName);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -178,13 +162,13 @@ int main (int argc, char **argv){
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
-		manager_process(comm_world, manager_rank, worker_size, maskName, outDir);
+		manager_process(comm_world, manager_rank, worker_size, maskName);
 		t2 = cciutils::ClockGetTime();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 	} else {
 		// worker bees
-		worker_process(comm_world, manager_rank, rank, random, ratio);
+		worker_process(comm_world, manager_rank, rank);
 		t2 = cciutils::ClockGetTime();
 		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
 
@@ -204,15 +188,14 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, const std::string &maskName, const std::string &outDir) {
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName) {
 	// first get the list of files to process
    	std::vector<std::string> filenames;
-   	std::vector<std::string> feature_output;
 	uint64_t t1, t0;
 
 	t0 = cciutils::ClockGetTime();
 
-	getFiles(maskName, outDir, filenames, features_output);
+	getFiles(maskName, filenames);
 
 	t1 = cciutils::ClockGetTime();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
@@ -227,8 +210,6 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	char ready;
 	char *input;
 	int inputlen;
-	char *output;
-	int outputlen;
 	while (curr < total) {
 		if (comm_world.Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, status)) {
 /* where is it coming from */
@@ -247,21 +228,13 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 				memset(input, 0, sizeof(char) * inputlen);
 				strncpy(input, filenames[curr].c_str(), inputlen);
 
-				outputlen = filenames[curr].size() + 1;  // add one to create the zero-terminated string
-				output = new char[outputlen];
-				memset(output, 0, sizeof(char) * outputlen);
-				strncpy(output, filenames[curr].c_str(), outputlen);
-
 				comm_world.Send(&inputlen, 1, MPI::INT, worker_id, TAG_METADATA);
-				comm_world.Send(&outputlen, 1, MPI::INT, worker_id, TAG_METADATA);
 
 				// now send the actual string data
 				comm_world.Send(input, inputlen, MPI::CHAR, worker_id, TAG_DATA);
-				comm_world.Send(output, outputlen, MPI::CHAR, worker_id, TAG_DATA);
 				curr++;
 
 				delete [] input;
-				delete [] output;
 
 			}
 
@@ -289,12 +262,10 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	}
 }
 
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const bool& random, const float& ratio) {
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	char *input;
-	int outputSize;
-	char *output;
 
 	comm_world.Barrier();
 	uint64_t t0, t1;
@@ -313,23 +284,19 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 		if (flag == MANAGER_READY) {
 			// get data from manager
 			comm_world.Recv(&inputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
-			comm_world.Recv(&outputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
 
 			// allocate the buffers
 			input = new char[inputSize];
 			memset(input, 0, inputSize * sizeof(char));
-			output = new char[outputSize];
-			memset(output, 0, outputSize * sizeof(char));
 
 			// get the file names
 			comm_world.Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA);
-			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
 			t1 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
 			// now do some work
-			compute(input, output, random, ratio);
+			compute(input);
 
 			t1 = cciutils::ClockGetTime();
 		//	printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
@@ -345,15 +312,21 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 
 
-void compute(const char *input, const char *output, const bool& random, const float& ratio) {
+void compute(const char *input) {
 
 	// first read the data
 	// open the file
 	hsize_t ldims[2];
 	hid_t file_id = H5Fopen(input, H5F_ACC_RDONLY, H5P_DEFAULT );
 
-	if (H5Lexists(file_id, "/data", H5P_DEFAULT)) {
-		H5Fclose( file_id );
+
+
+	herr_t hstatus = H5LTget_dataset_info ( file_id, "/data", ldims, NULL, NULL );
+	unsigned int n_rows = ldims[0];
+	unsigned int n_cols = ldims[1];
+
+	if (n_cols != 80) {
+		H5Fclose(file_id);
 		return;
 	}
 	if (H5Lexists(file_id, "/metadata", H5P_DEFAULT)) {
@@ -361,26 +334,18 @@ void compute(const char *input, const char *output, const bool& random, const fl
 		return;
 	}
 
-	herr_t hstatus = H5LTget_dataset_info ( file_id, "/data", ldims, NULL, NULL );
-	unsigned int n_rows = ldims[0];
-	unsigned int n_cols = ldims[1];
+
 	float *data = new float[n_rows * n_cols];
 	H5LTread_dataset (file_id, "/data", H5T_NATIVE_FLOAT, data);
 
-    hstatus = H5LTget_dataset_info ( file_id, "/metadata", ldims, NULL, NULL );
-	unsigned int n_metacols = ldims[1];
-	float *metadata = new float[n_rows * n_metacols];
-	H5LTread_dataset (file_id, "/metadata", H5T_NATIVE_FLOAT, metadata);
+	char *imgfilename = new char[256];  memset(imgfilename, 0, sizeof(char) * 256);
+	char *mskfilename = new char[256];	memset(mskfilename, 0, sizeof(char) * 256);
 
-	// TODO
-	// also need to read the element to file mapping
-	// and the list of source tiles.
-
-
-	char *imgname = new char[256];  memset(imgfilename, 0, sizeof(char) * 256);
-
-	if (H5Aexists_by_name(file_id, "/data", "image_name", H5P_DEFAULT)) {
-		hstatus = H5LTget_attribute_string(file_id, "/data", "image_name", imgfilename);
+	if (H5Aexists_by_name(file_id, "/data", "image_file", H5P_DEFAULT)) {
+		hstatus = H5LTget_attribute_string(file_id, "/data", "image_file", imgfilename);
+	}
+	if (H5Aexists_by_name(file_id, "/data", "mask_file", H5P_DEFAULT)) {
+		hstatus = H5LTget_attribute_string(file_id, "/data", "mask_file", mskfilename);
 	}
 
 	H5Fclose ( file_id );
@@ -390,7 +355,7 @@ void compute(const char *input, const char *output, const bool& random, const fl
 
 	// partition the data
 	unsigned int featureSize = n_cols - 6;
-	float *newmetadata = new float[n_rows * 6];
+	float *metadata = new float[n_rows * 6];
 	float *newdata = new float[n_rows * featureSize];
 	for (int i = 0; i < n_rows; ++i) {
 		memcpy(metadata + i * 6, data + i * n_cols, sizeof(float) * 6);
@@ -408,8 +373,6 @@ void compute(const char *input, const char *output, const bool& random, const fl
 			2, // rank
 			dims, // dims
 			H5T_NATIVE_FLOAT, newdata );
-	hstatus = H5LTset_attribute_string ( file_id, "/data", "image_tile", imgfilename );
-	hstatus = H5LTset_attribute_string ( file_id, "/data", "mask_tile", mskfilename );
 
 	dims[0] = n_rows; dims[1] = 6;
 	hstatus = H5LTmake_dataset ( file_id, "/metadata",
@@ -417,16 +380,15 @@ void compute(const char *input, const char *output, const bool& random, const fl
 			dims, // dims
 			H5T_NATIVE_FLOAT, metadata );
 	// attach the attributes
-	hstatus = H5LTset_attribute_string ( file_id, "/metadata", "image_name", imgfilename );
-	hstatus = H5LTset_attribute_string ( file_id, "/metadata", "unsampled_feature_file",  );
+	hstatus = H5LTset_attribute_string ( file_id, "/metadata", "image_tile", imgfilename );
+	hstatus = H5LTset_attribute_string ( file_id, "/metadata", "mask_tile", mskfilename );
 	H5Fclose ( file_id );
 
 
 	// clear the data
 	delete [] data;
-	delete [] metadata;
 	delete [] newdata;
-	delete [] newmetadata;
+	delete [] metadata;
 	delete [] imgfilename;
 	delete [] mskfilename;
 }
