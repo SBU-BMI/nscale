@@ -24,8 +24,11 @@ class FileUtils
         virtual ~FileUtils();
 
         void traverseDirectoryRecursive(const string& directory, vector<string> & fullList);
+        void getFilesInDirectory(const string& directory, vector<string> &fileList);
+        void getDirectoriesInDirectory(const string& directory, vector<string> &dirList);
 
         string getDir(string& filename);
+        string getFile(string& filename);
         string getRelativePath(string& filename, const string& dir);
         string replaceDir(string& filename, const string& oldDir, const string& newDir);
         string replaceExt(string& filename, const string& oldExt, const string& newExt);

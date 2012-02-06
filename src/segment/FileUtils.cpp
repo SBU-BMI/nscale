@@ -39,6 +39,11 @@ string FileUtils::getDir(string& filename) {
 	if (pos > 0) return filename.substr(0, pos);
 	else return string("");
 }
+string FileUtils::getFile(string& filename) {
+	int pos = filename.rfind('/');
+	if (pos >= 0) return filename.substr(pos + 1);
+	else return filename;
+}
 
 string FileUtils::getRelativePath(string& filename, const string& dir) {
 	int pos = filename.find(dir);
@@ -108,6 +113,91 @@ void FileUtils::traverseDirectoryRecursive(const string & directory, vector<stri
         	}
 		}
     }
+}
+
+void FileUtils::getFilesInDirectory(const string & directory, vector<string> & fileList)
+{
+
+	DIR *dir, *dir2;
+    struct dirent *ent;
+    string s;
+
+
+	// open the name to see if it's a directory
+	if ((dir=opendir(directory.c_str())) != NULL)
+	{
+		while((ent=readdir(dir)) != NULL) // loop until the directory is traveled thru
+		{
+			// push directory or filename to the list
+			stringstream fullname;
+
+			if (strcmp(ent->d_name, ".") &&
+					strcmp(ent->d_name, "..")) {
+				fullname << directory << "/" << ent->d_name;
+				s = fullname.str();
+
+				// now check to see if it's a directory.
+				if ((dir2=opendir(s.c_str())) == NULL) {
+					if (ext.empty() || s.rfind(ext) != std::string::npos) {
+						fileList.push_back(s);
+						//printf("TESTING: %s\n", s.c_str());
+					}
+
+				} else {
+					// entry is a directory, so don't keep it
+					closedir(dir2);
+				}
+
+			}
+		}
+		// close up
+		closedir(dir);
+	} else {
+		// a file.  don't touch the file list
+		return;
+	}
+}
+
+void FileUtils::getDirectoriesInDirectory(const string & directory, vector<string> & dirList)
+{
+
+	DIR *dir, *dir2;
+    struct dirent *ent;
+    string s;
+
+
+	// open the name to see if it's a directory
+	if ((dir=opendir(directory.c_str())) != NULL)
+	{
+		while((ent=readdir(dir)) != NULL) // loop until the directory is traveled thru
+		{
+			// push directory or filename to the list
+			stringstream fullname;
+
+			if (strcmp(ent->d_name, ".") &&
+					strcmp(ent->d_name, "..")) {
+				fullname << directory << "/" << ent->d_name;
+				s = fullname.str();
+
+				//printf("here:  found %s\n", s.c_str());
+
+				// now check to see if it's a directory.
+				if ((dir2=opendir(s.c_str())) != NULL) {
+					dirList.push_back(s);
+					//printf("TESTING: %s\n", s.c_str());
+					// entry is a directory, so keep it
+					closedir(dir2);
+				}
+
+			}
+		}
+		// close up
+		closedir(dir);
+	} else {
+		// a file.  don't touch the file list
+		return;
+	}
+
 }
 
 bool FileUtils::mkdirs(const string & d)
