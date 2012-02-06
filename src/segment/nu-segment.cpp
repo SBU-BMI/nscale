@@ -382,7 +382,8 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			// now do some work
 
 			t1 = cciutils::ClockGetTime();
-			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
+//			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
+			printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
 			delete [] input;
