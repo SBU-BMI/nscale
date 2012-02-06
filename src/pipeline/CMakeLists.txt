@@ -78,7 +78,7 @@ foreach(program ${fprograms})
 	
 endforeach(program)
 
-set(programs nu-features-by-image nu-features-fix nu-features-sample nu-features-summarize)
+set(programs nu-features-by-image nu-features-file-upgrade nu-features-sample nu-features-summarize nu-features-kmeans)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)

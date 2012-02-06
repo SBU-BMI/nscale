@@ -1,27 +1,32 @@
 /*
- * compute features.
+ * aggreate features.
  *
  * MPI only, using bag of tasks paradigm
  *
  * pattern adopted from http://inside.mines.edu/mio/tutorial/tricks/workerbee.c
  *
- * this function is used to subsample the features.
+ * this function is used to down sample the files.
+ *
+ * also calculates local mean and stdev.
  *
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
-#include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include <iostream>
 #include <stdio.h>
 #include <vector>
 #include <string>
+#include <math.h>
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>
 
 #include "hdf5.h"
 #include "hdf5_hl.h"
+
+#include "datatypes.h"
+#include "h5utils.h"
 
 using namespace cv;
 
@@ -33,29 +38,27 @@ using namespace cv;
 
 MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
-int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outDir, bool& random, float& ratio);
-void getFiles(const std::string &maskName, const std::string &outDir, std::vector<std::string> &filenames, std::vector<std::string> &features_output);
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, const std::string &maskName, const std::string &outDir);
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const bool& random, const float& ratio);
-void compute(const char *input, const char *output, const bool& random, const float& ratio);
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outdir, float &ratio);
+void getFiles(const std::string &maskName, const std::string &outDir, std::vector<std::string> &filenames,
+		std::vector<std::string> &output);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outdir);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const float ratio);
+void compute(const char *input, const char *output, const float ratio);
 
 
 
-int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outDir, bool& random, float& ratio) {
-	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> outdir <reg|rand> ratio run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outdir, float &ratio) {
+	if (argc < 5) {
+		std::cout << "Usage:  " << argv[0] << " indir outdir ratio run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 	maskName.assign(argv[1]);
-	outDir.assign(argv[2]);
-	if (strcasecmp(argv[3], "reg") == 0) {
-		random = false;
-	} else {
-		random = true;
-	}
-	ratio = atof(argv[4]);
+	outdir.assign(argv[2]);
+	ratio = atof(argv[3]);
+	FileUtils futils;
+	futils.mkdirs(outdir);
 
-	const char* mode = argc > 6 ? argv[6] : "cpu";
+	const char* mode = argc > 5 ? argv[5] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
@@ -72,20 +75,19 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
 			return -2;
 		}
-		if (argc > 7) {
-			gpu::setDevice(atoi(argv[7]));
+		if (argc > 6) {
+			gpu::setDevice(atoi(argv[6]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> outdir <regular|random> ratio run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " indir outdir ratio run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 
 	return 0;
 }
-
-
-void getFiles(const std::string &maskName, const std::string &outDir, std::vector<std::string> &filenames, std::vector<std::string> &features_output) {
+void getFiles(const std::string &maskName, const std::string &outDir, std::vector<std::string> &filenames,
+		std::vector<std::string> &output) {
 
 	// check to see if it's a directory or a file
 	std::string suffix;
@@ -100,14 +102,14 @@ void getFiles(const std::string &maskName, const std::string &outDir, std::vecto
 		dirname = maskName;
 	}
 
-	std::string temp;
+	std::string temp, tempdir;
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the input file name
-
-		// generate the output file name
-		temp = futils.replaceExt(filenames[i], ".h5", ".sampled.h5");
+		temp = futils.replaceExt(filenames[i], ".features.h5", ".sampled.features.h5");
 		temp = futils.replaceDir(temp, dirname, outDir);
-		features_output.push_back(temp);
+		tempdir = temp.substr(0, temp.find_last_of("/\\"));
+		futils.mkdirs(tempdir);
+		output.push_back(temp);
 	}
 }
 
@@ -147,10 +149,9 @@ MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid) {
 int main (int argc, char **argv){
 	// parse the input
 	int modecode;
-	bool random;
+	std::string maskName, outdir;
 	float ratio;
-	std::string maskName, outDir;
-	int status = parseInput(argc, argv, modecode, maskName, outDir, random, ratio);
+	int status = parseInput(argc, argv, modecode, maskName, outdir, ratio);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -178,13 +179,13 @@ int main (int argc, char **argv){
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
-		manager_process(comm_world, manager_rank, worker_size, maskName, outDir);
+		manager_process(comm_world, manager_rank, worker_size, maskName, outdir);
 		t2 = cciutils::ClockGetTime();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 	} else {
 		// worker bees
-		worker_process(comm_world, manager_rank, rank, random, ratio);
+		worker_process(comm_world, manager_rank, rank, ratio);
 		t2 = cciutils::ClockGetTime();
 		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
 
@@ -204,15 +205,14 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, const std::string &maskName, const std::string &outDir) {
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outdir) {
 	// first get the list of files to process
-   	std::vector<std::string> filenames;
-   	std::vector<std::string> features_output;
+   	std::vector<std::string> filenames, outputs;
 	uint64_t t1, t0;
 
 	t0 = cciutils::ClockGetTime();
 
-	getFiles(maskName, outDir, filenames, features_output);
+	getFiles(maskName, outdir, filenames, outputs);
 
 	t1 = cciutils::ClockGetTime();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
@@ -247,10 +247,10 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 				memset(input, 0, sizeof(char) * inputlen);
 				strncpy(input, filenames[curr].c_str(), inputlen);
 
-				outputlen = features_output[curr].size() + 1;  // add one to create the zero-terminated string
+				outputlen = outputs[curr].size() + 1;  // add one to create the zero-terminated string
 				output = new char[outputlen];
 				memset(output, 0, sizeof(char) * outputlen);
-				strncpy(output, features_output[curr].c_str(), outputlen);
+				strncpy(output, outputs[curr].c_str(), outputlen);
 
 				comm_world.Send(&inputlen, 1, MPI::INT, worker_id, TAG_METADATA);
 				comm_world.Send(&outputlen, 1, MPI::INT, worker_id, TAG_METADATA);
@@ -289,7 +289,7 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	}
 }
 
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const bool& random, const float& ratio) {
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, float ratio) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	char *input;
@@ -326,16 +326,17 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
 			t1 = cciutils::ClockGetTime();
-//			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
+			//printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
 			// now do some work
-			compute(input, output, random, ratio);
+			compute(input, output, ratio);
 
 			t1 = cciutils::ClockGetTime();
 		//	printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
 			delete [] input;
+			delete [] output;
 
 		}
 	}
@@ -345,90 +346,273 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 
 
-void compute(const char *input, const char *output, const bool& random, const float& ratio) {
+void compute(const char *input, const char *output, float ratio) {
 
-	// first read the data
-	// open the file
-	hsize_t ldims[2];
+	// first get the list of filenames
+	herr_t hstatus;
+	
+	// open the files
+	hsize_t ldims[2], newdims[2], maxdims[2], chunk[2];
+	hid_t filetype, memtype;
+	hid_t dset, space;
 	hid_t file_id = H5Fopen(input, H5F_ACC_RDONLY, H5P_DEFAULT );
-
-	if (H5Lexists(file_id, "/data", H5P_DEFAULT)) {
-		H5Fclose( file_id );
+	hid_t out_file_id = H5Fcreate(output, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	int n_cols, n_rows;
+	//
+	// first copy the features
+	//
+	if (H5Lexists(file_id, NS_FEATURE_SET, H5P_DEFAULT) != TRUE) {
+		printf("FEATURE DOES NOT EXIST. SKIPPING %s\n", input);
+		hstatus = H5Fclose(out_file_id);
+		hstatus = H5Fclose(file_id);
 		return;
 	}
-	if (H5Lexists(file_id, "/metadata", H5P_DEFAULT)) {
-		H5Fclose( file_id );
-		return;
-	}
 
-	herr_t hstatus = H5LTget_dataset_info ( file_id, "/data", ldims, NULL, NULL );
-	unsigned int n_rows = ldims[0];
-	unsigned int n_cols = ldims[1];
+	hstatus = H5LTget_dataset_info ( file_id, NS_FEATURE_SET, ldims, NULL, NULL );
+	n_rows = ldims[0];
+	n_cols = ldims[1];
+
+
+	// sampling
+	int num_selected =(int)ceil((float)(n_rows) * ratio);
+	int selected[num_selected];
+	memset(selected, 0, sizeof(int) * num_selected);
+	float temp = 0.;
+	for (int i = 0, id=0; i < n_rows && id < num_selected; ++i) {
+		temp += ratio;
+		if (temp >= 1.0) {
+			temp -= 1.0;
+			selected[id] = i;
+			++id;
+		}
+	}
+//	for (int i = 0; i < num_selected; ++i) {
+//		printf("%d, ", selected[i]);
+//	}
+//	printf("\n");
+
+
+	// now read
 	float *data = new float[n_rows * n_cols];
-	H5LTread_dataset (file_id, "/data", H5T_NATIVE_FLOAT, data);
+	H5LTread_dataset (file_id, NS_FEATURE_SET, H5T_NATIVE_FLOAT, data);
 
-    hstatus = H5LTget_dataset_info ( file_id, "/metadata", ldims, NULL, NULL );
-	unsigned int n_metacols = ldims[1];
-	float *metadata = new float[n_rows * n_metacols];
-	H5LTread_dataset (file_id, "/metadata", H5T_NATIVE_FLOAT, metadata);
+	// create feature dataset as extensible.
+	maxdims[0] = H5S_UNLIMITED;
+	maxdims[1] = n_cols;
+	chunk[0] = 100;
+	chunk[1] = n_cols;
+	createExtensibleDataset(out_file_id, 2, maxdims, chunk, H5T_IEEE_F32LE, NS_FEATURE_SET);
 
-	// TODO
-	// also need to read the element to file mapping
-	// and the list of source tiles.
-
-
-	char *imgname = new char[256];  memset(imgfilename, 0, sizeof(char) * 256);
-
-	if (H5Aexists_by_name(file_id, "/data", "image_name", H5P_DEFAULT)) {
-		hstatus = H5LTget_attribute_string(file_id, "/data", "image_name", imgfilename);
+	// do the selection
+	float *data2 = new float[num_selected * n_cols];
+	for (int i = 0; i < num_selected; ++i) {
+		memcpy(data2 + i * n_cols, data + selected[i] * n_cols, sizeof(float) * n_cols);
 	}
+	newdims[0] = num_selected;
+	newdims[1] = n_cols;
 
-	H5Fclose ( file_id );
-
-	//printf("image file name [%s].\n", imgfilename);
-	//printf("mask file name [%s].\n", mskfilename);
-
-	// partition the data
-	unsigned int featureSize = n_cols - 6;
-	float *newmetadata = new float[n_rows * 6];
-	float *newdata = new float[n_rows * featureSize];
-	for (int i = 0; i < n_rows; ++i) {
-		memcpy(metadata + i * 6, data + i * n_cols, sizeof(float) * 6);
-		memcpy(newdata + i * featureSize, data + i * n_cols + 6, sizeof(float) * featureSize);
-	}
-
-	// overwrite the original file
-	//printf("writing out %s\n", input);
-
-	hsize_t dims[2];
-	file_id = H5Fcreate ( input, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
-
-	dims[0] = n_rows; dims[1] = featureSize;
-	hstatus = H5LTmake_dataset ( file_id, "/data",
-			2, // rank
-			dims, // dims
-			H5T_NATIVE_FLOAT, newdata );
-	hstatus = H5LTset_attribute_string ( file_id, "/data", "image_tile", imgfilename );
-	hstatus = H5LTset_attribute_string ( file_id, "/data", "mask_tile", mskfilename );
-
-	dims[0] = n_rows; dims[1] = 6;
-	hstatus = H5LTmake_dataset ( file_id, "/metadata",
-			2, // rank
-			dims, // dims
-			H5T_NATIVE_FLOAT, metadata );
-	// attach the attributes
-	hstatus = H5LTset_attribute_string ( file_id, "/metadata", "image_name", imgfilename );
-	hstatus = H5LTset_attribute_string ( file_id, "/metadata", "unsampled_feature_file",  );
-	H5Fclose ( file_id );
-
-
-	// clear the data
+	// write to new file
+	extendAndWrite(out_file_id, NS_FEATURE_SET, 2, newdims, H5T_NATIVE_FLOAT, data2, true);
 	delete [] data;
-	delete [] metadata;
-	delete [] newdata;
-	delete [] newmetadata;
-	delete [] imgfilename;
-	delete [] mskfilename;
+
+	//
+	// also compute the tile's partial sums
+	//
+	nu_sum_t imagesums;
+	imagesums.nu_count = num_selected;
+	for (unsigned int j = 0; j < n_cols; j++) {
+		// initialize
+		imagesums.nu_sum[j] = 0.;
+		imagesums.nu_sum_square[j] = 0.;
+		imagesums.bad_values[j] = 0;
+	}
+	float *currdata = data2;
+	double t;
+	for (unsigned int k = 0; k < num_selected; k++) {
+		currdata = data2 + k*n_cols;
+		for (unsigned int j = 0; j < n_cols; j++) {
+			t = (double)currdata[j];
+			if (isnan(t)) {
+				//printf("NaN in %s, row %d, col %d\n", in.c_str(), k, j);
+				++imagesums.bad_values[j];
+				continue;
+			}
+			if (isinf(t)) {
+				//printf("inf in %s, row %d, col %d\n", in.c_str(), k, j);
+				++imagesums.bad_values[j];
+				continue;
+			}
+			imagesums.nu_sum[j] += t;
+			imagesums.nu_sum_square[j] += (t * t);
+		}
+	}
+	// calculate the sums and mean/stdev.
+	// write the partial sums to the file, as attribute on the sum table.
+	hstatus = H5LTset_attribute_double(out_file_id, NS_FEATURE_SET, NS_SUM_ATTR, imagesums.nu_sum, n_cols);
+	hstatus = H5LTset_attribute_double(out_file_id, NS_FEATURE_SET, NS_SUM_SQUARE_ATTR, imagesums.nu_sum_square, n_cols);
+	hstatus = H5LTset_attribute_uint(out_file_id, NS_FEATURE_SET, NS_NUM_BAD_VALUES_ATTR, imagesums.bad_values, n_cols);
+
+	// compute the mean, std, etc for this file.
+	for (int i = 0; i < n_cols; i++) {
+		if (isnan(imagesums.nu_sum[i]) ) printf("sum is not a number %d\n", i);
+		if (isnan(imagesums.nu_sum_square[i]) ) printf("sum square is not a number %d\n", i);
+		if (isinf(imagesums.nu_sum[i]) ) printf("sum is infinite %d\n", i);
+		if (isinf(imagesums.nu_sum_square[i]) ) printf("sum square is infinite %d\n", i);
+		imagesums.nu_sum[i] /= (double)(imagesums.nu_count - imagesums.bad_values[i]);  // mean
+		imagesums.nu_sum_square[i] /= (double)(imagesums.nu_count - imagesums.bad_values[i]);  // average square sum
+		imagesums.nu_sum_square[i] -= imagesums.nu_sum[i] * imagesums.nu_sum[i]; // - square average
+		imagesums.nu_sum_square[i] = sqrt(imagesums.nu_sum_square[i]);
+	}
+	// write the mean and stdev to file as attributes
+	hstatus = H5LTset_attribute_double(out_file_id, NS_FEATURE_SET, NS_MEAN_ATTR, imagesums.nu_sum, n_cols);
+	hstatus = H5LTset_attribute_double(out_file_id, NS_FEATURE_SET, NS_STDEV_ATTR, imagesums.nu_sum_square, n_cols);
+
+
+	delete [] data2;
+
+
+
+	// check for dataset presence.
+	if (H5Lexists(file_id, NS_TILE_INFO_SET, H5P_DEFAULT) == TRUE) {
+		// if tile_info is present, then we are looking at image features.
+
+		// now copy the feature's attributes;
+		// just the original mean and stdev...  unfortunately, we don't have these for the tile images.
+		double mean[n_cols];
+		if (H5Aexists_by_name(file_id, NS_FEATURE_SET, NS_MEAN_ATTR, H5P_DEFAULT)) {
+			// read the version attribute.
+			hstatus = H5LTget_attribute_double(file_id, NS_FEATURE_SET, NS_MEAN_ATTR, mean);
+			hstatus = H5LTset_attribute_double( out_file_id, NS_FEATURE_SET, NS_FULL_MEAN_ATTR, mean, n_cols);
+		}
+		double stdev[n_cols];
+		if (H5Aexists_by_name(file_id, NS_FEATURE_SET, NS_STDEV_ATTR, H5P_DEFAULT)) {
+			// read the version attribute.
+			hstatus = H5LTget_attribute_double( file_id, NS_FEATURE_SET, NS_STDEV_ATTR, stdev);
+			hstatus = H5LTset_attribute_double( out_file_id, NS_FEATURE_SET, NS_FULL_STDEV_ATTR, stdev, n_cols);
+		}
+
+
+		//
+		// next sample the nu-info
+		//
+
+
+		// create the tile info types
+		filetype = createNuInfoFiletype();
+		maxdims[0] = H5S_UNLIMITED;
+		chunk[0] = 100;
+		createExtensibleDataset(out_file_id, 1, maxdims, chunk, filetype, NS_NU_INFO_SET);
+		hstatus = H5Tclose(filetype);
+
+		// load the tile info into memory
+		dset = H5Dopen(file_id, NS_NU_INFO_SET, H5P_DEFAULT);
+		space = H5Dget_space(dset);
+		memtype = createNuInfoMemtype();
+		int ndims = H5Sget_simple_extent_dims(space, ldims, NULL);
+		nu_info_t *nuinfo = (nu_info_t *)malloc(ldims[0] * sizeof(nu_info_t));
+		hstatus = H5Dread(dset, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, nuinfo);
+
+		nu_info_t *nuinfo2 = (nu_info_t *)malloc(num_selected * sizeof(nu_info_t));
+		for (int i = 0; i < num_selected; ++i) {
+			memcpy(nuinfo2 + i, nuinfo + selected[i], sizeof(nu_info_t));
+		}
+		newdims[0] = num_selected;
+
+		// now write out to other dataset
+		extendAndWrite(out_file_id, NS_NU_INFO_SET, 1, newdims, memtype, nuinfo, true);
+		free(nuinfo2);
+		free(nuinfo);
+
+		hstatus = H5Tclose(memtype);
+		hstatus = H5Dclose(dset);
+		hstatus = H5Sclose(space);
+
+		//
+		// copy tile info
+		//
+
+		// create the tile info types
+		filetype = createTileInfoFiletype();
+		maxdims[0] = H5S_UNLIMITED;
+		chunk[0] = 4;
+		createExtensibleDataset(out_file_id, 1, maxdims, chunk, filetype, NS_TILE_INFO_SET);
+		hstatus = H5Tclose(filetype);
+
+
+		// load the tile info into memory
+		dset = H5Dopen(file_id, NS_TILE_INFO_SET, H5P_DEFAULT);
+		space = H5Dget_space(dset);
+		memtype = createTileInfoMemtype();
+		ndims = H5Sget_simple_extent_dims(space, ldims, NULL);
+		tile_info_t *tileinfo = (tile_info_t *)malloc(ldims[0] * sizeof(tile_info_t));
+		hstatus = H5Dread(dset, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, tileinfo);
+
+		// now write out to other dataset
+		extendAndWrite(out_file_id, NS_TILE_INFO_SET, 1, ldims, memtype, tileinfo, true);
+
+
+
+		hstatus = H5Dvlen_reclaim(memtype, space, H5P_DEFAULT, tileinfo);
+		free(tileinfo);
+
+		hstatus = H5Tclose(memtype);
+		hstatus = H5Dclose(dset);
+		hstatus = H5Sclose(space);
+
+
+	} else {
+		// else we are looking at tile image.
+
+		hstatus = H5LTget_dataset_info ( file_id, NS_NU_INFO_SET, ldims, NULL, NULL );
+		n_rows = ldims[0];
+		n_cols = ldims[1];
+
+		// now read
+		data = new float[n_rows * n_cols];
+		H5LTread_dataset (file_id, NS_NU_INFO_SET, H5T_NATIVE_FLOAT, data);
+
+		// create feature dataset as extensible.
+		maxdims[0] = H5S_UNLIMITED;
+		maxdims[1] = n_cols;
+		chunk[0] = 100;
+		chunk[1] = n_cols;
+		createExtensibleDataset(out_file_id, 2, maxdims, chunk, H5T_IEEE_F32LE, NS_NU_INFO_SET);
+
+		// do the selection
+		data2 = new float[num_selected * n_cols];
+		for (int i = 0; i < num_selected; ++i) {
+			memcpy(data2 + i * n_cols, data + selected[i] * n_cols, sizeof(float) * n_cols);
+		}
+		newdims[0] = num_selected;
+		newdims[1] = n_cols;
+
+		// write to new file
+		extendAndWrite(out_file_id, NS_NU_INFO_SET, 2, newdims, H5T_NATIVE_FLOAT, data2, true);
+		delete [] data;
+		delete [] data2;
+	}
+
+	// copy the remaining attributes
+	char imagename[256];
+	if (H5Aexists_by_name(file_id, NS_NU_INFO_SET, NS_IMG_NAME_ATTR, H5P_DEFAULT)) {
+		// read the version attribute.
+		hstatus = H5LTget_attribute_string( file_id, NS_NU_INFO_SET, NS_IMG_NAME_ATTR, imagename );
+		hstatus = H5LTset_attribute_string( out_file_id, NS_NU_INFO_SET, NS_IMG_NAME_ATTR, imagename);
+	}
+	hstatus = H5LTset_attribute_string ( out_file_id, NS_NU_INFO_SET, NS_H5_VER_ATTR, "0.2" );
+	hstatus = H5LTset_attribute_string ( out_file_id, NS_NU_INFO_SET, NS_FILE_CONTENT_TYPE, "sampled features" );
+	hstatus = H5LTset_attribute_float ( out_file_id, NS_NU_INFO_SET, NS_SAMPLE_RATE_ATTR, &ratio, 1 );
+
+
+
+	hstatus = H5Fclose(file_id);
+	hstatus = H5Fclose(out_file_id);
+
+	// done.
+
+
+	return;
+
 }
 
 
