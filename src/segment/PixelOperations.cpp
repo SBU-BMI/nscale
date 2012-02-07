@@ -38,13 +38,20 @@ Mat PixelOperations::invert(const Mat& img) {
 }
 
 template <typename T>
-Mat PixelOperations::mod(const Mat& img, T mod) {
+Mat PixelOperations::mod(Mat& img, T mod) {
 	// write the raw image
 	CV_Assert(img.channels() == 1);
 	CV_Assert(std::numeric_limits<T>::is_integer);
 
 	Mat result(img.size(), img.type());
-	bitwise_and(img, Scalar(mod - (T)1), result);
+	T *ptr, *res;
+	for(int y=0; y< img.rows; y++){
+		ptr = img.ptr<T>(y);
+		res = result.ptr<T>(y);
+		for (int x = 0; x < img.cols; ++x) {
+			res[x] = ptr[x] % mod;
+		}
+	}
 
 	return result;
 }
@@ -240,8 +247,8 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 template Mat PixelOperations::invert<unsigned char>(const Mat&);
 template Mat PixelOperations::invert<float>(const Mat&);
 
-template Mat PixelOperations::mod<unsigned char>(const Mat&, unsigned char mod);
-template Mat PixelOperations::mod<int>(const Mat&, int mod);
+template Mat PixelOperations::mod<unsigned char>(Mat&, unsigned char mod);
+template Mat PixelOperations::mod<int>(Mat&, int mod);
 
 }
 

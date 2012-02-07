@@ -37,7 +37,7 @@ GpuMat PixelOperations::threshold(const GpuMat& img, T lower, bool lower_inclusi
 template <typename T>
 GpuMat PixelOperations::divide(const GpuMat& num, const GpuMat& den, Stream& stream) { throw_nogpu(); }
 template <typename T>
-GpuMat PixelOperations::mod(const GpuMat& img, T mod, Stream& stream) { throw_nogpu(); }
+GpuMat PixelOperations::mod(GpuMat& img, T mod, Stream& stream) { throw_nogpu(); }
 template <typename T>
 GpuMat PixelOperations::mask(const GpuMat& input, const GpuMat& mask, T background, Stream& stream) { throw_nogpu(); }
 
@@ -239,7 +239,7 @@ GpuMat PixelOperations::mask(const GpuMat& input, const GpuMat& mask, T backgrou
 }
 
 template <typename T>
-GpuMat PixelOperations::mod(const GpuMat& img, T mod, Stream& stream) {
+GpuMat PixelOperations::mod(GpuMat& img, T mod, Stream& stream) {
 	// write the raw image
 	CV_Assert(img.channels() == 1);
 	CV_Assert(std::numeric_limits<T>::is_integer);
@@ -264,8 +264,8 @@ template GpuMat PixelOperations::mask<unsigned char>(const GpuMat&, const GpuMat
 template GpuMat PixelOperations::mask<int>(const GpuMat&, const GpuMat&, int background, Stream&);
 
 
-template GpuMat PixelOperations::mod<unsigned char>(const GpuMat&, unsigned char, Stream&);
-template GpuMat PixelOperations::mod<int>(const GpuMat&, int, Stream&);
+template GpuMat PixelOperations::mod<unsigned char>(GpuMat&, unsigned char, Stream&);
+template GpuMat PixelOperations::mod<int>(GpuMat&, int, Stream&);
 
 
 }
