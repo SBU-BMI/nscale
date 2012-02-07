@@ -8,6 +8,6 @@ namespace gpu {
 
 template <typename T>
 void borderCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1,
- cv::gpu::PtrStep_<T> result, T background, cudaStream_t stream);
+ cv::gpu::PtrStep_<T> result, T background, int connectivity, cudaStream_t stream);
 
 }}

@@ -11,27 +11,39 @@ using namespace cv::gpu;
 
 
 template <typename T>
-__global__ void borderKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep_<T> result, T background)
+__global__ void borderKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep_<T> result, T background, int connectivity)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
+    // treat this as a specialized erosion
     if (y > 0 && y < (rows-1) && x > 0 && x < (cols-1))
     {
     	T p = img1.ptr(y)[x];
     	T output = p;
-    	// if it's background, won't change data.  so let it run to avoid branching.
-		T p_ym1_xm1 = img1.ptr(y-1)[x-1];
-		p_ym1_xm1 = (p_ym1_xm1 == background ? p : p_ym1_xm1);  // if neighbor is a background pixel, consider that to be the same as self.
-		T p_ym1_x0 = img1.ptr(y-1)[x];
-		p_ym1_x0 = (p_ym1_x0 == background ? p : p_ym1_x0);
-//		T p_ym1_xp1 = img1.ptr(y-1)[x+1];   // this thins out the border on the right side of shapes a bit.
-//		p_ym1_xp1 = (p_ym1_xp1 == background ? p : p_ym1_xp1);
-		T p_y0_xm1 = img1.ptr(y)[x-1];
-		p_y0_xm1 = (p_y0_xm1 == background ? p : p_y0_xm1);
-		//if (p != p_ym1_xm1 || p != p_ym1_x0 || p != p_ym1_xp1 || p != p_y0_xm1)
-		if (p != p_ym1_xm1 || p != p_ym1_x0 || p != p_y0_xm1)
-			output = background;
+	// if p is already background, this will not change it so run it through
+	T q1, q2, q3, q4;
+
+	q1 = img1.ptr(y-1)[x];
+	q2 = img1.ptr(y)[x-1];
+	q3 = img1.ptr(y)[x+1];
+	q4 = img1.ptr(y+1)[x];
+	if ((q1 != background && p!=q1) ||
+	 (q2 != background && p!=q2) || 
+	 (q3 != background && p!=q3) ||
+	 (q4 != background && p!=q4)) output = background;
+		
+	if (connectivity == 8) {
+	
+		q1 = img1.ptr(y-1)[x-1];
+		q2 = img1.ptr(y-1)[x+1];
+		q3 = img1.ptr(y+1)[x-1];
+		q4 = img1.ptr(y+1)[x+1];
+		if ((q1 != background && p!=q1) ||
+		 (q2 != background && p!=q2) || 
+		 (q3 != background && p!=q3) ||
+		 (q4 != background && p!=q4)) output = background;
+	}
 
     	result.ptr(y)[x] = output;
     }
@@ -39,19 +51,19 @@ __global__ void borderKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep
 
 template <typename T>
 void borderCaller(int rows, int cols, const PtrStep_<T> img1,
- PtrStep_<T> result, T background, cudaStream_t stream)
+ PtrStep_<T> result, T background, int connectivity, cudaStream_t stream)
 {
     dim3 threads(16, 16);
     dim3 grid((cols + threads.x -1) / threads.x, (rows + threads.y - 1) / threads.y);
 
-    borderKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, background);
+    borderKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, background, connectivity);
     cudaGetLastError();
 
     if (stream == 0)
         cudaDeviceSynchronize();
 }
 
-template void borderCaller<int>(int, int, const PtrStep_<int>, PtrStep_<int>, int, cudaStream_t);
+template void borderCaller<int>(int, int, const PtrStep_<int>, PtrStep_<int>, int, int, cudaStream_t);
 
 
 
