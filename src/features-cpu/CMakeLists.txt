@@ -5,6 +5,14 @@ project( FeaturesComputation )
 set(ExecEngine_VERSION_MAJOR 1)
 set(ExecEngine_VERSION_MINOR 1)
 
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE Release CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo 
+MinSizeRel."
+      FORCE)
+ENDIF(NOT CMAKE_BUILD_TYPE)
+
+
 # Source files used by Execution Engine
 set(libsrcs Contour.cpp Blob.cpp RegionalMorphologyAnalysis.cpp DrawAuxiliar.cpp Operators.cpp)
 
