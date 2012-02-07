@@ -18,7 +18,7 @@ class NeighborOperations {
 public:
 
 	template <typename T>
-	static ::cv::Mat border(const ::cv::Mat& img, T background);
+	static ::cv::Mat border(const ::cv::Mat& img, T background, int connectivity);
 
 };
 
@@ -28,7 +28,7 @@ class NeighborOperations {
 public:
 
 	template <typename T>
-	static ::cv::gpu::GpuMat border(const ::cv::gpu::GpuMat& img, T background, ::cv::gpu::Stream& stream);
+	static ::cv::gpu::GpuMat border(const ::cv::gpu::GpuMat& img, T background, int connectivity, ::cv::gpu::Stream& stream);
 };
 
 }

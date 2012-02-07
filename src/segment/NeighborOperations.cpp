@@ -15,7 +15,7 @@ using namespace cv;
 
 
 template <typename T>
-Mat NeighborOperations::border(const Mat& img, T background) {
+Mat NeighborOperations::border(const Mat& img, T background, int connectivity) {
 	// write the raw image
 	printf("Border() is not implemented for CPU yet");
 	CV_Assert(0);
@@ -33,7 +33,7 @@ Mat NeighborOperations::border(const Mat& img, T background) {
 	return img;
 }
 
-template Mat NeighborOperations::border<int>(const Mat&, int background);
+template Mat NeighborOperations::border<int>(const Mat&, int background, int connectivity);
 
 }
 

@@ -27,13 +27,13 @@ using namespace cv::gpu;
 
 #if !defined (HAVE_CUDA)
 template <typename T>
-GpuMat NeighborOperations::border(const GpuMat& img, T background, Stream& stream) { throw_nogpu(); }
+GpuMat NeighborOperations::border(const GpuMat& img, T background, int connectivity, Stream& stream) { throw_nogpu(); }
 
 #else
 
 
 template <typename T>
-GpuMat NeighborOperations::border(const GpuMat& img, T background, Stream& stream) {
+GpuMat NeighborOperations::border(const GpuMat& img, T background, int connectivity, Stream& stream) {
 	// write the raw image
 	CV_Assert(img.channels() == 1);
 	CV_Assert(std::numeric_limits<T>::is_integer);
@@ -45,7 +45,7 @@ GpuMat NeighborOperations::border(const GpuMat& img, T background, Stream& strea
 
     GpuMat result = createContinuous(input.size(), input.type());
 
-    borderCaller<T>(input.rows, input.cols, input, result, background, StreamAccessor::getStream(stream));
+    borderCaller<T>(input.rows, input.cols, input, result, background, connectivity, StreamAccessor::getStream(stream));
     stream.waitForCompletion();
 
     input.release();
@@ -55,7 +55,7 @@ GpuMat NeighborOperations::border(const GpuMat& img, T background, Stream& strea
 
 #endif
 
-template GpuMat NeighborOperations::border<int>(const GpuMat&, int, Stream&);
+template GpuMat NeighborOperations::border<int>(const GpuMat&, int, int, Stream&);
 
 
 }
