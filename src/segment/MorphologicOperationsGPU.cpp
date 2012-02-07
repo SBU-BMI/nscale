@@ -16,6 +16,7 @@
 
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
+#include "NeighborOperations.h"
 
 //#define HAVE_CUDA
 
@@ -945,7 +946,7 @@ GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivit
 }
 
 // input should have foreground > 0, and 0 for background
-GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) {
+GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background, int connectivity, Stream& stream) {
 
 	CV_Assert(image.channels() == 1);
 	CV_Assert(image.type() == CV_32FC1);
@@ -971,14 +972,32 @@ GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivit
 	// here call the cuda function.
 	dw::giwatershed((int*)(labels.data), (float*)(input.data), input.cols, input.rows, connectivity, StreamAccessor::getStream(stream));
 //	::giwatershed((int*)labels.data, (unsigned*)input.data, input.cols, input.rows, connectivity);
+	// this code does generate borders but not between touching blobs.  for the borders, they are 4 connected.
 
-    stream.waitForCompletion();
-    input.release();
+	GpuMat mask = createContinuous(maskImage.size().height + 2, maskImage.size().width + 2, maskImage.type());
+	copyMakeBorder(maskImage, mask, 1, 1, 1, 1, Scalar(0), stream);
+	// allocate results
+	GpuMat labels2 = createContinuous(labels.size(), labels.type());
+	stream.enqueueMemSet(labels2, Scalar(background));
+	stream.waitForCompletion();
 
-    GpuMat output(image.size(), labels.type());
-    stream.enqueueCopy(labels(Rect(1,1, image.cols, image.rows)), output);
+
+	// now clean up the borders.
+	dw::giwatershed_cleanup(mask, labels, labels2, input.cols, input.rows, background, connectivity, StreamAccessor::getStream(stream));
+
+	// and generate the missing borders
+	GpuMat bordered = NeighborOperations::border(labels2, background, connectivity, stream);
+
     stream.waitForCompletion();
     labels.release();
+    mask.release();
+    input.release();
+    labels2.release();
+
+    GpuMat output(image.size(), bordered.type());
+    stream.enqueueCopy(bordered(Rect(1,1, image.cols, image.rows)), output);
+    stream.waitForCompletion();
+    bordered.release();
     return output;
 }
 

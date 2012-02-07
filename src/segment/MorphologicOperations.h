@@ -144,7 +144,7 @@ template <typename T>
 cv::gpu::GpuMat imhmin(const cv::gpu::GpuMat& image, T h, int connectivity, cv::gpu::Stream& stream);
 //
 cv::gpu::GpuMat watershedCA(const cv::gpu::GpuMat& origImage, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
-cv::gpu::GpuMat watershedDW(const cv::gpu::GpuMat& origImage, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream);
+cv::gpu::GpuMat watershedDW(const cv::gpu::GpuMat& maskImage, const cv::gpu::GpuMat& image, int background, int connectivity, cv::gpu::Stream& stream);
 //
 //template <typename T>
 //cv::Mat_<uchar> localMaxima(const cv::Mat& image, int connectivity);

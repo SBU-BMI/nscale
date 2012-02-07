@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
+#include "PixelOperations.h"
 #include "NeighborOperations.h"
 
 #include "utils.h"
@@ -33,7 +34,7 @@ int main (int argc, char **argv){
 //	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/gbm2.1/gbm2.1.ndpi-0000004096-0000004096-15.mask.pbm", -1);
 //	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/normal.3/normal.3.ndpi-0000028672-0000012288-15.mask.pbm", -1);
 //	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192-15.mask.pbm", -1);
-	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm", -1);
+	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm", -1);
 
 //	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif", -1);
 //	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif", -1);
@@ -124,31 +125,39 @@ int main (int argc, char **argv){
 #if defined (HAVE_CUDA)
 	// gpu version of watershed
 	//Stream stream;
-	GpuMat g_distance2, g_watermask, g_dummy;
+	GpuMat g_distance2, g_watermask, g_seg_big;
 	stream.enqueueUpload(distance2, g_distance2);
+	stream.enqueueUpload(seg_big, g_seg_big);
 	stream.waitForCompletion();
 	std::cout << "finished uploading" << std::endl;
 
 	t1 = cciutils::ClockGetTime();
-	g_watermask = nscale::gpu::watershedDW(g_dummy, g_distance2, 8, stream);
+	g_watermask = nscale::gpu::watershedDW(g_seg_big, g_distance2, -1, 8, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "gpu watershed DW loop took " << t2-t1 << "ms" << std::endl;
-t1 = cciutils::ClockGetTime();
-	GpuMat g_border = nscale::gpu::NeighborOperations::border(g_watermask, 0, stream);
+
+	Mat temp(g_watermask.size(), g_watermask.type());
+	stream.enqueueDownload(g_watermask, temp);
 	stream.waitForCompletion();
-t2 = cciutils::ClockGetTime();
-std::cout << "gpu border detection took " << t2 - t1 << "ms" << std::endl;
+	minMaxLoc(temp, &mn, &mx);
+	printf("masked:  min = %f, max = %f\n", mn, mx);
+	temp = nscale::PixelOperations::mod<int>(temp, 256);
+	imwrite("test/out-gpu-watershed-oligoIII.1.png", temp);
+
+
 
 	printf("watermask size: %d %d,  type %d\n", g_watermask.rows, g_watermask.cols, g_watermask.type());
-	printf("g_border size: %d %d,  type %d\n", g_border.rows, g_border.cols, g_border.type());
-	Mat watermask2(g_border.size(), g_border.type());
-	stream.enqueueDownload(g_border, watermask2);
-	stream.waitForCompletion();
-	printf("here\n");
+//	printf("g_border size: %d %d,  type %d\n", g_border.rows, g_border.cols, g_border.type());
+//	Mat watermask2(g_border.size(), g_border.type());
+//	stream.enqueueDownload(g_watermask, watermask2);
+//	stream.waitForCompletion();
+//	printf("here\n");
 
 	g_watermask.release();
-	g_border.release();
+	g_distance2.release();
+	g_seg_big.release();
+//	g_border.release();
 
 //	minMaxLoc(watermask2, &mn, &mx);
 //	watermask2 = (watermask2 - mn) * (255.0 / (mx-mn));
@@ -156,8 +165,12 @@ std::cout << "gpu border detection took " << t2 - t1 << "ms" << std::endl;
 	// to show the segmentation, use modulus to separate adjacent object's values
 	//watermask2 = nscale::PixelOperations::mod(watermask2, 16) * 16;
 
-	imwrite("test/out-gpu-watershed-dw-oligoIII.1.png", watermask2);
+//	minMaxLoc(watermask2, &mn, &mx);
+//	printf("watershed:  min = %f, max = %f\n", mn, mx);
+//	watermask = nscale::PixelOperations::mod<int>(watermask2, 256);
 
+
+//	imwrite("test/out-gpu-watershed-dw-oligoIII.1.png", watermask);
 
 
 
@@ -217,9 +230,7 @@ std::cout << "gpu border detection took " << t2 - t1 << "ms" << std::endl;
 //	gray.release();
 //	g_gray.release();
 
-	g_dummy.release();
-	g_distance2.release();
-	watermask2.release();
+//	watermask2.release();
 #endif
 
 	seg_big.release();
