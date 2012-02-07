@@ -114,12 +114,15 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 
 	FileUtils futils(suffix);
 	futils.traverseDirectoryRecursive(maskName, seg_output);
-	std::string dirname;
+	std::string dirname = maskName;
 	if (seg_output.size() == 1) {
-		dirname = maskName.substr(0, maskName.find_last_of("/\\"));
-	} else {
-		dirname = maskName;
+		// if the maskname is actually a file, then the dirname is extracted from the maskname.
+		if (strcmp(seg_output[0].c_str(), maskName.c_str()) == 0) {
+			dirname = maskName.substr(0, maskName.find_last_of("/\\"));
+		}
 	}
+
+//	printf("seg_output size for dir %s = %d, entry 1 = %s \n", maskName.c_str(), seg_output.size(), seg_output[0].c_str());
 
 	std::string temp, temp2, tempdir;
 	FILE *file;
@@ -129,6 +132,9 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		temp = futils.replaceDir(temp, dirname, imgDir);
 		temp2 = futils.replaceExt(seg_output[i], ".mask.pbm", ".tiff");
 		temp2 = futils.replaceDir(temp2, dirname, imgDir);
+
+//		printf("image file names: %s %s\n", temp.c_str(), temp2.c_str());
+
 		if ((file = fopen(temp.c_str(), "r"))) {
 			fclose(file);
 			filenames.push_back(temp);
@@ -136,16 +142,18 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 			fclose(file);
 			filenames.push_back(temp2);
 		} else {
-			// file does not exist.  continue;
+			printf("unable to find corresponing image file for %s in dir %s.  skipping\n", seg_output[i].c_str(), imgDir.c_str());
 			continue;
 		}
 
 		// generate the output file name
 		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
 		temp = futils.replaceDir(temp, dirname, outDir);
+		tempdir = temp.substr(0, temp.find_last_of("/\\"));
+		futils.mkdirs(tempdir);
 		features_output.push_back(temp);
+//		printf("feature filename: %s\n", temp.c_str());
 	}
-
 
 }
 
@@ -655,6 +663,7 @@ int main (int argc, char **argv){
 	printf("file read took %lu us\n", t1 - t0);
 
 	int total = filenames.size();
+	printf("num files = %d\n", total);
 	int i = 0;
 
 	// openmp bag of task
@@ -666,7 +675,7 @@ int main (int argc, char **argv){
     	while (i < total) {
 			// now do some work
 			compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str());
-    		printf("processed %s\n", filenames[i].c_str());
+    		printf("processed %s %s\n", filenames[i].c_str(), seg_output[i].c_str());
     		++i;
     	}
 
@@ -684,7 +693,7 @@ int main (int argc, char **argv){
 				{
 //        				printf("t i: %d, %d \n", i, ti);
 					compute(filenames[ti].c_str(), seg_output[ti].c_str(), features_output[ti].c_str());
-	        		printf("processed %s\n", filenames[ti].c_str());
+	        		printf("processed %s %s \n", filenames[ti].c_str(), seg_output[ti].c_str());
 				}
 				i++;
 			}
@@ -696,7 +705,7 @@ int main (int argc, char **argv){
 	printf("not omp\n");
 	while (i < total) {
 		compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str());
-		printf("processed %s\n", filenames[i].c_str());
+		printf("processed %s %s \n", filenames[i].c_str(), seg_output[i].c_str());
 		++i;
 	}
 #endif

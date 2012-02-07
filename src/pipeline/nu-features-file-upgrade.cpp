@@ -88,12 +88,14 @@ void getFiles(const std::string &maskName, std::vector<std::string> &filenames) 
 
 	FileUtils futils(suffix);
 	futils.traverseDirectoryRecursive(maskName, filenames);
-	std::string dirname;
+	std::string dirname = maskName;
 	if (filenames.size() == 1) {
-		dirname = maskName.substr(0, maskName.find_last_of("/\\"));
-	} else {
-		dirname = maskName;
+		// if the maskname is actually a file, then the dirname is extracted from the maskname.
+		if (strcmp(filenames[0].c_str(), maskName.c_str()) == 0) {
+			dirname = maskName.substr(0, maskName.find_last_of("/\\"));
+		}
 	}
+
 
 //	for (int i = 0; i < filenames.size(); i++) {
 //		std::cout << "filename: " << filenames[i] << std::endl;
