@@ -142,7 +142,8 @@ int main (int argc, char **argv){
 	stream.waitForCompletion();
 	minMaxLoc(temp, &mn, &mx);
 	printf("masked:  min = %f, max = %f\n", mn, mx);
-	temp = nscale::PixelOperations::mod<int>(temp, 256);
+	//temp = nscale::PixelOperations::mod<int>(temp, 256);
+	temp = (temp - mn) * (255.0 / (mx-mn));
 	imwrite("test/out-gpu-watershed-oligoIII.1.png", temp);
 
 
