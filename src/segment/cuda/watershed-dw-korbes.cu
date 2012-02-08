@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "watershed-dw-korbes.cuh"
 
 
 namespace nscale { namespace gpu { namespace dw {
@@ -503,5 +504,76 @@ __host__ void giwatershed( int *hdataOut,
     cudaUnbindTexture(taux);
 }
 
+
+
+__global__ void cleanBorderKernel(int rows, int cols, const cv::gpu::PtrStep_<unsigned char> mask, const cv::gpu::PtrStep_<int> label, cv::gpu::PtrStep_<int> result, int background, int connectivity)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    // treat this as a specialized erosion
+    if (y > 0 && y < (rows-1) && x > 0 && x < (cols-1))
+    {
+    	int p = label.ptr(y)[x];
+    	int output = p;
+    	// if p is already background, this will not change it so run it through
+		unsigned char q, q1, q2, q3, q4;
+
+		q = mask.ptr(y)[x];
+		q1 = mask.ptr(y-1)[x];
+		q2 = mask.ptr(y)[x-1];
+		q3 = mask.ptr(y)[x+1];
+		q4 = mask.ptr(y+1)[x];
+		// if any of them is background in the mask
+		if (q == 0 ||
+				q1 == 0 ||
+				q2 == 0 ||
+				q3 == 0 ||
+				q4 == 0) {
+			q = 0;
+			output = background;
+		}
+
+		if (connectivity == 8) {
+
+			q1 = mask.ptr(y-1)[x-1];
+			q2 = mask.ptr(y-1)[x+1];
+			q3 = mask.ptr(y+1)[x-1];
+			q4 = mask.ptr(y+1)[x+1];
+			if (q == 0 ||
+					q1 == 0 ||
+					q2 == 0 ||
+					q3 == 0 ||
+					q4 == 0) {
+				output = background;
+			}
+		}
+
+    	result.ptr(y)[x] = output;
+    }
+}
+
+__host__ void giwatershed_cleanup( const cv::gpu::PtrStep_<unsigned char> mask,
+		const cv::gpu::PtrStep_<int> label,
+		cv::gpu::PtrStep_<int> result,
+                                      int w,
+                                      int h,
+                                      int background,
+                                      int conn,
+                                      cudaStream_t stream)
+{
+	// check to see if a pixel's neighbor is background.  if so, call the current one background as well.
+
+	   dim3 threads(16, 16);
+	    dim3 grid((w + threads.x -1) / threads.x, (h + threads.y - 1) / threads.y);
+
+	    cleanBorderKernel<<<grid, threads, 0, stream>>>(h, w, mask, label, result, background, conn);
+	    cudaGetLastError();
+
+	    if (stream == 0)
+	        cudaDeviceSynchronize();
+
+
+}
 
 }}}
