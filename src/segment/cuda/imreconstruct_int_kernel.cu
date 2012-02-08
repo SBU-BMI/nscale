@@ -488,8 +488,9 @@ iRec1DForward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask,
 	const unsigned int bx = blockIdx.x * MAX_THREADS;
 
 	volatile __shared__ T s_marker_B[MAX_THREADS+2];
-	volatile T* s_marker = s_marker_B + 1;
+	//	volatile T* s_marker = s_marker_B + 1;
 	unsigned int s_change = 0;
+	int tx1 = tx + 1;
 
 	T s_new, s_old, s_prev;
 
@@ -501,28 +502,28 @@ if ( bx + tx < sx ) { // make sure number of threads is a divisor of sx.
 		// copy part of marker and mask to shared memory
 		if (tx == 0) {
 			s_marker_B[0] = (bx == 0) ? 0 : marker[iy*sx + bx - 1];
-			s_marker[MAX_THREADS] = (bx + MAX_THREADS >= sx) ? 0 : marker[iy*sx + bx + MAX_THREADS];
+			s_marker_B[MAX_THREADS + 1] = (bx + MAX_THREADS >= sx) ? 0 : marker[iy*sx + bx + MAX_THREADS];
 		}
 		if (tx < WARP_SIZE) {
 			// first warp, get extra stuff
-			s_marker[tx] = marker[iy*sx + bx + tx];
+			s_marker_B[tx1] = marker[iy*sx + bx + tx];
 		}
 		if (tx < MAX_THREADS - WARP_SIZE) {
-			s_marker[tx + WARP_SIZE] = marker[iy*sx + bx + tx + WARP_SIZE];
+			s_marker_B[tx1 + WARP_SIZE] = marker[iy*sx + bx + tx + WARP_SIZE];
 		}
 		__syncthreads();
 
 		// perform iteration
-		s_old = s_marker[tx];
+		s_old = s_marker_B[tx1];
 		s_new = min( max( s_prev, s_old ),  mask[iy*sx + bx + tx]);
 		s_change |= s_old ^ s_new;
 
 		// output result back to global memory
-		s_marker[tx] = s_new;
+		s_marker_B[tx1] = s_new;
 		marker[iy*sx + bx + tx] = s_new;
 		__syncthreads();
 
-		s_prev = max( max(s_marker[tx-1], s_marker[tx]), s_marker[tx+1]);
+		s_prev = max( max(s_marker_B[tx1-1], s_marker_B[tx1]), s_marker_B[tx1+1]);
 	}
 }
 	if (s_change != 0) *change = true;
@@ -538,8 +539,9 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 	const int bx = blockIdx.x * MAX_THREADS;
 
 	volatile __shared__ T s_marker_B[MAX_THREADS+2];
-	volatile T* s_marker = s_marker_B + 1;
+//	volatile T* s_marker = s_marker_B + 1;
 	unsigned int s_change = 0;
+	int tx1 = tx + 1;  // for accessing s_marker_B
 
 	T s_new, s_old, s_prev;
 
@@ -551,29 +553,29 @@ iRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 
 		if (tx == 0) {
 			s_marker_B[0] = (bx == 0) ? 0 : marker[iy*sx + bx - 1];
-			s_marker[MAX_THREADS] = (bx + MAX_THREADS >= sx) ? 0 : marker[iy*sx + bx + MAX_THREADS];
+			s_marker_B[MAX_THREADS+1] = (bx + MAX_THREADS >= sx) ? 0 : marker[iy*sx + bx + MAX_THREADS];
 		}
 		if (tx < WARP_SIZE) {
 			// first warp, get extra stuff
-			s_marker[tx] = marker[iy*sx + bx + tx];
+			s_marker_B[tx1] = marker[iy*sx + bx + tx];
 		}
 		if (tx < MAX_THREADS - WARP_SIZE) {
-			s_marker[tx + WARP_SIZE] = marker[iy*sx + bx + tx + WARP_SIZE];
+			s_marker_B[tx1 + WARP_SIZE] = marker[iy*sx + bx + tx + WARP_SIZE];
 		}
 		__syncthreads();
 
 
 		// perform iteration
-		s_old = s_marker[tx];
+		s_old = s_marker_B[tx1];
 		s_new = min( max( s_prev, s_old ),  mask[iy*sx + bx + tx]);
 		s_change |= s_old ^ s_new;
 
 		// output result back to global memory
-		s_marker[tx] = s_new;
+		s_marker_B[tx1] = s_new;
 		marker[iy*sx + bx + tx] = s_new;
 		__syncthreads();
 
-		s_prev = max( max(s_marker[tx-1], s_marker[tx]), s_marker[tx+1]);
+		s_prev = max( max(s_marker_B[tx1-1], s_marker_B[tx1]), s_marker_B[tx1+1]);
 
 	}
 }
