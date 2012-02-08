@@ -608,6 +608,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
+			printf("worker %d processed \"%s\"\n", rank, mask);
 
 
 			// now do some work
