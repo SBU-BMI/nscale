@@ -12,8 +12,8 @@
 #include "h5utils.h"
 
 // version 0.1
-//#define NS_FEATURE_SET "/data"
-//#define NS_NU_INFO_SET "/metadata"
+#define NS_FEATURE_SET_01 "/data"
+#define NS_NU_INFO_SET_01 "/metadata"
 #define NS_IMG_TILE_ATTR "image_tile"
 #define NS_MASK_TILE_ATTR "mask_tile"
 #define NS_SUM_ATTR "sums"

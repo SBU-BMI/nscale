@@ -41,22 +41,27 @@ using namespace cv;
 #endif
 
 
-int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &imageDir, std::string &outdir);
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &imageDir, std::string &outdir, bool &overwrite);
 void getFiles(const std::string &maskName, const std::string &imgDir, const std::string &outDir, std::vector<std::string> &filenames,
-		std::vector<std::string> &seg_output, std::vector<std::string> &features_output);
+		std::vector<std::string> &seg_output, std::vector<std::string> &features_output, bool overwrite);
 void compute(const char *input, const char *mask, const char *output);
 void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cytoplasmFeatures_G, vector<vector<float> >& cytoplasmFeatures_H, vector<vector<float> >& cytoplasmFeatures_E,
 		const char* input, const char* mask, const char* output);
 
 
-int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &imageDir, std::string &outdir) {
+int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &imageDir, std::string &outdir, bool &overwrite) {
 	if (argc < 5) {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir feature_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir feature_dir " << "<overwrite(0|1)> [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
 		return -1;
 	}
 	maskName.assign(argv[1]);
 	imageDir.assign(argv[2]);
 	outdir.assign(argv[3]);
+	if (strcasecmp(argv[4], "1") == 0 || strcasecmp(argv[4], "T") == 0 || strcasecmp(argv[4], "TRUE") == 0) {
+		overwrite = true;
+	} else {
+		overwrite = false;
+	}
 	const char* mode = argc > 5 ? argv[5] : "cpu";
 
 	int threadCount;
@@ -67,7 +72,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 	threadCount = 1;
 #endif
 
-	printf("number of threads: %d\n", threadCount);
+//	printf("number of threads: %d\n", threadCount);
 
 #if defined (_OPENMP)
 	omp_set_num_threads(threadCount);
@@ -100,7 +105,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir feature_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir feature_dir " << "<overwrite(0|1)> [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
 		return -1;
 	}
 
@@ -109,7 +114,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 
 
 void getFiles(const std::string &maskName, const std::string &imgDir, const std::string &outDir, std::vector<std::string> &filenames,
-		std::vector<std::string> &seg_output, std::vector<std::string> &features_output) {
+		std::vector<std::string> &seg_output, std::vector<std::string> &features_output, bool overwrite) {
 
 	// check to see if it's a directory or a file
 	std::string suffix;
@@ -130,7 +135,21 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 	std::string temp, temp2, tempdir;
 	FILE *file;
 	for (unsigned int i = 0; i < seg_output.size(); ++i) {
-			// generate the input file name
+
+		// generate the output file name
+		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
+		temp = futils.replaceDir(temp, dirname, outDir);
+		tempdir = temp.substr(0, temp.find_last_of("/\\"));
+		futils.mkdirs(tempdir);
+		if (!overwrite && (file = fopen(temp.c_str(), "r"))) {
+			fclose(file);
+			continue;
+		} else {
+			printf("adding %s\n", temp.c_str());
+			features_output.push_back(temp);
+		}
+
+		// generate the input file name
 		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".tif");
 		temp = futils.replaceDir(temp, dirname, imgDir);
 		temp2 = futils.replaceExt(seg_output[i], ".mask.pbm", ".tiff");
@@ -145,16 +164,10 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 			fclose(file);
 			filenames.push_back(temp2);
 		} else {
-			printf("unable to find corresponing image file for %s in dir %s.  skipping\n", seg_output[i].c_str(), imgDir.c_str());
+			printf("unable to find corresponding image file for %s in dir %s.  skipping\n", seg_output[i].c_str(), imgDir.c_str());
 			continue;
 		}
 
-		// generate the output file name
-		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
-		temp = futils.replaceDir(temp, dirname, outDir);
-		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
-		features_output.push_back(temp);
 //		printf("feature filename: %s\n", temp.c_str());
 	}
 
@@ -411,7 +424,7 @@ void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cy
 #if defined (WITH_MPI)
 MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &imgDir, std::string &outDir);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &imgDir, std::string &outDir, bool overwrite);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank);
 
 
@@ -455,7 +468,7 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &imgDir, std::string &outDir) {
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &imgDir, std::string &outDir, bool overwrite) {
 	// first get the list of files to process
    	std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
@@ -463,7 +476,7 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	uint64_t t1, t0;
 
 	t0 = cciutils::ClockGetTime();
-	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output);
+	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output, overwrite);
 
 	t1 = cciutils::ClockGetTime();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
@@ -596,6 +609,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
+			printf("worker %d processing \"%s\"\n", rank, mask);
 
 
 			// now do some work
@@ -622,7 +636,8 @@ int main (int argc, char **argv){
 	// parse the input
 	int modecode;
 	std::string maskName, imgDir,  outDir;
-	int status = parseInput(argc, argv, modecode, maskName, imgDir, outDir);
+	bool overwrite;
+	int status = parseInput(argc, argv, modecode, maskName, imgDir, outDir, overwrite);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -655,7 +670,7 @@ int main (int argc, char **argv){
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
-		manager_process(comm_world, manager_rank, worker_size, maskName, imgDir, outDir);
+		manager_process(comm_world, manager_rank, worker_size, maskName, imgDir, outDir, overwrite);
 		t2 = cciutils::ClockGetTime();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
@@ -680,7 +695,8 @@ int main (int argc, char **argv){
 	// parse the input
 	int modecode;
 	std::string maskName, imgDir,  outDir;
-	int status = parseInput(argc, argv, modecode, maskName, imgDir, outDir);
+	bool overwrite;
+	int status = parseInput(argc, argv, modecode, maskName, imgDir, outDir, overwrite);
 	if (status != 0) return status;
 
 	uint64_t t0 = 0, t1 = 0, t2 = 0;
@@ -692,7 +708,7 @@ int main (int argc, char **argv){
 	std::vector<std::string> features_output;
 
 	t0 = cciutils::ClockGetTime();
-	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output);
+	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output, overwrite);
 
 	printf("file read took %lu us\n", t1 - t0);
 

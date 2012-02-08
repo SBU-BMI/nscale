@@ -474,7 +474,7 @@ void compute(const char *input, const char *output, float ratio) {
 
 
 	// check for dataset presence.
-	if (H5Lexists(file_id, NS_TILE_INFO_SET, H5P_DEFAULT)  <=0) {
+	if (H5Lexists(file_id, NS_TILE_INFO_SET, H5P_DEFAULT)  > 0) {
 		// if tile_info is present, then we are looking at image features.
 
 		// now copy the feature's attributes;

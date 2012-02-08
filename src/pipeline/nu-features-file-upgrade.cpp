@@ -329,31 +329,32 @@ void compute(const char *input) {
 			H5Aexists_by_name(file_id, NS_NU_INFO_SET, NS_H5_VER_ATTR, H5P_DEFAULT)) {
 		// read the version attribute.
 		hstatus = H5LTget_attribute_string(file_id, NS_NU_INFO_SET, NS_H5_VER_ATTR, version);
-	}
-	else strcpy(version, "0.1");  // this version only has a /data
+	} else if (H5Lexists(file_id, NS_NU_INFO_SET_01, H5P_DEFAULT)) {
+		strcpy(version, "0.1");
+	} else
+		strcpy(version, "0.0");  // this version only has a /data
 
 	//printf("version: %s\n", version);
 
 
-	if (strcmp(version, "0.1")==0) {  // version 0.0 or 0.1
+	if (strcmp(version, "0.0")== 0) {  // version 0.0
 
-		hstatus = H5LTget_dataset_info ( file_id, "/data", ldims, NULL, NULL );
+		hstatus = H5LTget_dataset_info ( file_id, NS_FEATURE_SET_01, ldims, NULL, NULL );
 		unsigned int n_rows = ldims[0];
 		unsigned int n_cols = ldims[1];
 
 		float *data = new float[n_rows * n_cols];
-		H5LTread_dataset (file_id, "/data", H5T_NATIVE_FLOAT, data);
+		H5LTread_dataset (file_id, NS_FEATURE_SET_01, H5T_NATIVE_FLOAT, data);
 
-		char *imgfilename = new char[256];  memset(imgfilename, 0, sizeof(char) * 256);
-		char *mskfilename = new char[256];	memset(mskfilename, 0, sizeof(char) * 256);
+		char *imgfilename = new char[1024];  memset(imgfilename, 0, sizeof(char) * 1024);
+		char *mskfilename = new char[1024];	memset(mskfilename, 0, sizeof(char) * 1024);
 
-		if (H5Aexists_by_name(file_id, "/data", "image_file", H5P_DEFAULT)) {
-			hstatus = H5LTget_attribute_string(file_id, "/data", "image_file", imgfilename);
+		if (H5Aexists_by_name(file_id, NS_FEATURE_SET_01, "image_file", H5P_DEFAULT)) {
+			hstatus = H5LTget_attribute_string(file_id, NS_FEATURE_SET_01, "image_file", imgfilename);
 		}
-		if (H5Aexists_by_name(file_id, "/data", "mask_file", H5P_DEFAULT)) {
-			hstatus = H5LTget_attribute_string(file_id, "/data", "mask_file", mskfilename);
+		if (H5Aexists_by_name(file_id, NS_FEATURE_SET_01, "mask_file", H5P_DEFAULT)) {
+			hstatus = H5LTget_attribute_string(file_id, NS_FEATURE_SET_01, "mask_file", mskfilename);
 		}
-
 		H5Fclose ( file_id );
 
 		//printf("image file name [%s].\n", imgfilename);
@@ -431,7 +432,107 @@ void compute(const char *input) {
 		hstatus = H5LTset_attribute_int(file_id, NS_NU_INFO_SET, NS_TILE_X_ATTR, &tilex, 1);
 		hstatus = H5LTset_attribute_int(file_id, NS_NU_INFO_SET, NS_TILE_Y_ATTR, &tiley, 1);
 		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_H5_VER_ATTR, "0.2" );
-		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_FILE_CONTENT_TYPE, "raw tile features upgraded" );
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_FILE_CONTENT_TYPE, "raw tile features upgraded from v0.0 to v0.2" );
+
+
+		delete [] imgfilename;
+
+		strcpy(version, "0.2");
+	} // brought to version 0.2 compliance.
+	else if (strcmp(version, "0.1")== 0) {  // version 0.1
+
+		hstatus = H5LTget_dataset_info ( file_id, NS_FEATURE_SET_01, ldims, NULL, NULL );
+		unsigned int n_rows = ldims[0];
+		unsigned int n_cols = ldims[1];
+
+		float *data = new float[n_rows * n_cols];
+		H5LTread_dataset (file_id, NS_FEATURE_SET_01, H5T_NATIVE_FLOAT, data);
+
+		hstatus = H5LTget_dataset_info ( file_id, NS_NU_INFO_SET_01, ldims, NULL, NULL );
+		unsigned int n_rows_meta = ldims[0];
+		unsigned int n_cols_meta = ldims[1];
+
+		float *metadata = new float[n_rows_meta * n_cols_meta];
+		H5LTread_dataset (file_id, NS_NU_INFO_SET_01, H5T_NATIVE_FLOAT, metadata);
+
+		char *imgfilename = new char[1024];  memset(imgfilename, 0, sizeof(char) * 1024);
+		char *mskfilename = new char[1024];	memset(mskfilename, 0, sizeof(char) * 1024);
+
+		if (H5Aexists_by_name(file_id, NS_NU_INFO_SET_01, NS_IMG_TILE_ATTR, H5P_DEFAULT)) {
+			hstatus = H5LTget_attribute_string(file_id, NS_NU_INFO_SET_01, NS_IMG_TILE_ATTR, imgfilename);
+		}
+		if (H5Aexists_by_name(file_id, NS_NU_INFO_SET_01, NS_MASK_TILE_ATTR, H5P_DEFAULT)) {
+			hstatus = H5LTget_attribute_string(file_id, NS_NU_INFO_SET_01, NS_MASK_TILE_ATTR, mskfilename);
+		}
+
+		H5Fclose ( file_id );
+
+		//printf("image file name [%s].\n", imgfilename);
+		//printf("mask file name [%s].\n", mskfilename);
+
+		// overwrite the original file
+		//printf("writing out %s\n", input);
+
+		hsize_t dims[2];
+		file_id = H5Fcreate ( input, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
+
+		dims[0] = n_rows; dims[1] = n_cols;
+		hstatus = H5LTmake_dataset ( file_id, NS_FEATURE_SET,
+				2, // rank
+				dims, // dims
+				H5T_NATIVE_FLOAT, data );
+
+		dims[0] = n_rows_meta; dims[1] = n_cols_meta;
+		hstatus = H5LTmake_dataset ( file_id, NS_NU_INFO_SET,
+				2, // rank
+				dims, // dims
+				H5T_NATIVE_FLOAT, metadata );
+		// attach the attributes
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_IMG_TILE_ATTR, imgfilename );
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_MASK_TILE_ATTR, mskfilename );
+
+
+		// clear the data
+		delete [] data;
+		delete [] metadata;
+		delete [] mskfilename;
+
+
+		// unable to get rename working.
+//		file_id = H5Fopen(input, H5F_ACC_RDONLY, H5P_DEFAULT );
+//		hid_t group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+//		hstatus = H5Lmove(group_id, "data", group_id, "features", H5P_DEFAULT, H5P_DEFAULT);
+//		hstatus = H5Lmove(group_id, "metadata",group_id,  "nu-info", H5P_DEFAULT, H5P_DEFAULT);
+//		H5Gclose(group_id);
+
+		// parse the input string
+		string suffix;
+		suffix.assign(".tif");
+		FileUtils futils(suffix);
+		string infile;
+		infile.assign(imgfilename);
+		string filename = futils.getFile(infile);
+		// get the image name
+		unsigned int pos = filename.rfind('.');
+		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", imgfilename);
+		string prefix = filename.substr(0, pos);
+		pos = prefix.rfind("-");
+		if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", imgfilename);
+		string ystr = prefix.substr(pos + 1);
+		prefix = prefix.substr(0, pos);
+		pos = prefix.rfind("-");
+		if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", imgfilename);
+		string xstr = prefix.substr(pos + 1);
+		string imagename = prefix.substr(0, pos);
+		int tilex = atoi(xstr.c_str());
+		int tiley = atoi(ystr.c_str());
+
+
+		hstatus = H5LTset_attribute_string( file_id, NS_NU_INFO_SET, NS_IMG_NAME_ATTR, imagename.c_str());
+		hstatus = H5LTset_attribute_int(file_id, NS_NU_INFO_SET, NS_TILE_X_ATTR, &tilex, 1);
+		hstatus = H5LTset_attribute_int(file_id, NS_NU_INFO_SET, NS_TILE_Y_ATTR, &tiley, 1);
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_H5_VER_ATTR, "0.2" );
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_FILE_CONTENT_TYPE, "raw tile features upgraded from v0.1 to v0.2" );
 
 
 		delete [] imgfilename;
