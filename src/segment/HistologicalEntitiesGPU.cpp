@@ -587,7 +587,8 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 	//printf("g_seg_nonoverlap info: row %d col %d type %d,  CV_8U %d, data addr %lu, refcount %d \n", g_seg_nonoverlap.rows, g_seg_nonoverlap.cols, g_seg_nonoverlap.type(), CV_8U,g_seg_nonoverlap.data, *(g_seg_nonoverlap.refcount));
 	stream.enqueueMemSet(g_seg_nonoverlap, Scalar(0));
 //	seg_big.copyTo(seg_nonoverlap, (watermask >= 0));
-	GpuMat g_wmask = ::nscale::gpu::PixelOperations::threshold<int>(g_watermask, 0, false, std::numeric_limits<int>::max(), true, stream);
+	// background is -1.
+	GpuMat g_wmask = ::nscale::gpu::PixelOperations::threshold<int>(g_watermask, 0, true, std::numeric_limits<int>::max(), true, stream);
 
 //	stream.waitForCompletion();
 //if (true) {
