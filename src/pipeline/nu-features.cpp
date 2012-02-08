@@ -24,6 +24,9 @@
 #include "hdf5.h"
 #include "hdf5_hl.h"
 
+#include "datatypes.h"
+#include "h5utils.h"
+
 using namespace cv;
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.
@@ -335,7 +338,7 @@ void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cy
 		hid_t file_id;
 		herr_t hstatus;
 
-		printf("writing out %s\n", output);
+//		printf("writing out %s\n", output);
 
 #if defined (_OPENMP)
 #pragma omp critical
@@ -346,21 +349,52 @@ void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cy
 		file_id = H5Fcreate ( output, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
 
 		dims[0] = nucleiFeatures.size(); dims[1] = recordSize;
-		hstatus = H5LTmake_dataset ( file_id, "/data",
+		hstatus = H5LTmake_dataset ( file_id, NS_FEATURE_SET,
 				2, // rank
 				dims, // dims
 				H5T_NATIVE_FLOAT, data );
 
 		dims[0] = nucleiFeatures.size(); dims[1] = metadataSize;
-		hstatus = H5LTmake_dataset ( file_id, "/metadata",
+		hstatus = H5LTmake_dataset ( file_id, NS_NU_INFO_SET,
 				2, // rank
 				dims, // dims
 				H5T_NATIVE_FLOAT, metadata );
 		// attach the attributes
-		hstatus = H5LTset_attribute_string ( file_id, "/metadata", "image_tile", input );
-		hstatus = H5LTset_attribute_string ( file_id, "/metadata", "mask_tile", mask );
-		H5Fclose ( file_id );
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_IMG_TILE_ATTR, input );
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_MASK_TILE_ATTR, mask );
 
+
+		// version 0.2 stuff below.
+
+		// parse the input string
+		string suffix;
+		suffix.assign(".tif");
+		FileUtils futils(suffix);
+		string infile;
+		infile.assign(input);
+		string filename = futils.getFile(infile);
+		// get the image name
+		unsigned int pos = filename.rfind('.');
+		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", input);
+		string prefix = filename.substr(0, pos);
+		pos = prefix.rfind("-");
+		if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", input);
+		string ystr = prefix.substr(pos + 1);
+		prefix = prefix.substr(0, pos);
+		pos = prefix.rfind("-");
+		if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", input);
+		string xstr = prefix.substr(pos + 1);
+		string imagename = prefix.substr(0, pos);
+		int tilex = atoi(xstr.c_str());
+		int tiley = atoi(ystr.c_str());
+
+		hstatus = H5LTset_attribute_string( file_id, NS_NU_INFO_SET, NS_IMG_NAME_ATTR, imagename.c_str());
+		hstatus = H5LTset_attribute_int(file_id, NS_NU_INFO_SET, NS_TILE_X_ATTR, &tilex, 1);
+		hstatus = H5LTset_attribute_int(file_id, NS_NU_INFO_SET, NS_TILE_Y_ATTR, &tiley, 1);
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_H5_VER_ATTR, "0.2" );
+		hstatus = H5LTset_attribute_string ( file_id, NS_NU_INFO_SET, NS_FILE_CONTENT_TYPE, "raw tile features" );
+
+		H5Fclose ( file_id );
 #if defined (_OPENMP)
 		}
 #endif
