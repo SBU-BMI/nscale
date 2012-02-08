@@ -72,7 +72,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 	threadCount = 1;
 #endif
 
-	printf("number of threads: %d\n", threadCount);
+//	printf("number of threads: %d\n", threadCount);
 
 #if defined (_OPENMP)
 	omp_set_num_threads(threadCount);
@@ -143,9 +143,10 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		futils.mkdirs(tempdir);
 		if (!overwrite && (file = fopen(temp.c_str(), "r"))) {
 			fclose(file);
-		} else {
-			features_output.push_back(temp);
 			continue;
+		} else {
+			printf("adding %s\n", temp.c_str());
+			features_output.push_back(temp);
 		}
 
 		// generate the input file name
@@ -163,7 +164,7 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 			fclose(file);
 			filenames.push_back(temp2);
 		} else {
-			printf("unable to find corresponing image file for %s in dir %s.  skipping\n", seg_output[i].c_str(), imgDir.c_str());
+			printf("unable to find corresponding image file for %s in dir %s.  skipping\n", seg_output[i].c_str(), imgDir.c_str());
 			continue;
 		}
 
@@ -608,7 +609,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
-			printf("worker %d processed \"%s\"\n", rank, mask);
+			printf("worker %d processing \"%s\"\n", rank, mask);
 
 
 			// now do some work
