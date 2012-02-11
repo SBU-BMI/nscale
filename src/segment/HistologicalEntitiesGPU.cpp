@@ -713,7 +713,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 	}
 
 	// erode by 1 - need to be fixed  - erode does not check borders.
-	GpuMat g_seg_nonoverlap2 = ::nscale::gpu::morphErode<unsigned char>(g_seg_nonoverlap, disk3, stream);
+	// ERODE IS ONLY NEEDED BY CPU Watershed,
+	//GpuMat g_seg_nonoverlap2 = ::nscale::gpu::morphErode<unsigned char>(g_seg_nonoverlap, disk3, stream);
 //	GpuMat g_twm;
 //	copyMakeBorder(g_seg_nonoverlap, g_twm, 1, 2, 1, 2, Scalar(std::numeric_limits<unsigned char>::max()), stream);
 //	GpuMat g_t_nonoverlap(g_twm.size(), g_twm.type());
@@ -728,8 +729,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 //	g_twm.release();
 
 	//	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
-	if (logger) logger->logTimeSinceLastLog("watershed erode");
-	if (iresHandler) iresHandler->saveIntermediate(g_seg_nonoverlap2, 22);
+	//if (logger) logger->logTimeSinceLastLog("watershed erode");
+	//if (iresHandler) iresHandler->saveIntermediate(g_seg_nonoverlap2, 22);
 
 
 	/*
@@ -747,10 +748,10 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
     seg = ismember(L,ind);
 	 *
 	 */
-	Mat seg_nonoverlap(g_seg_nonoverlap2.size(), g_seg_nonoverlap2.type());
-	stream.enqueueDownload(g_seg_nonoverlap2, seg_nonoverlap);
+	Mat seg_nonoverlap(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
+	stream.enqueueDownload(g_seg_nonoverlap, seg_nonoverlap);
 	stream.waitForCompletion();
-	g_seg_nonoverlap2.release();
+	g_seg_nonoverlap.release();
 
 	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4);
 
