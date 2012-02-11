@@ -195,7 +195,26 @@ void compute(const char *input, const char *mask, const char *output) {
 	//bool isNuclei = true;
 
 	// Convert color image to grayscale
-	::cv::Mat grayMat = ::nscale::PixelOperations::bgr2gray(image);
+//	::cv::Mat grayMat = ::nscale::PixelOperations::bgr2gray(image);
+	std::vector<cv::Mat> bgr;
+	::cv::split(image, bgr);
+	::cv::Mat_<unsigned char> grayMat(image.size());
+	unsigned char *rPtr, *gPtr, *bPtr, *grayPtr;
+	for (int y = 0; y < image.rows; ++y) {
+		rPtr =  bgr[2].ptr<unsigned char>(y);
+		gPtr =  bgr[1].ptr<unsigned char>(y);
+		bPtr =  bgr[0].ptr<unsigned char>(y);
+		 
+		grayPtr = grayMat.ptr<unsigned char>(y);
+		for (int x = 0; x < image.cols; ++x) {
+			grayPtr[x] = (unsigned char)(double(gPtr[x]) / (double(bPtr[x]) + double(gPtr[x]) + double(rPtr[x]) + std::numeric_limits<double>::epsilon()) * 255.0);
+		}
+	}
+	bgr[0].release();
+	bgr[1].release();
+	bgr[2].release();
+	//imwrite("test-g.pgm", grayMat);
+
 	//	cvSaveImage("newGrayScale.png", grayscale);
 	IplImage grayscale(grayMat);
 
@@ -387,7 +406,7 @@ void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cy
 		infile.assign(input);
 		string filename = futils.getFile(infile);
 		// get the image name
-		unsigned int pos = filename.rfind('.');
+		size_t pos = filename.rfind('.');
 		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", input);
 		string prefix = filename.substr(0, pos);
 		pos = prefix.rfind("-");
