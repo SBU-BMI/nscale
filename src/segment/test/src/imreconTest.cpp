@@ -69,15 +69,15 @@ int main (int argc, char **argv){
 	stream.waitForCompletion();
 	std::cout << "finished uploading" << std::endl;
 
-///	t1 = cciutils::ClockGetTime();
-///	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
-///	stream.waitForCompletion();
-///	t2 = cciutils::ClockGetTime();
-///	std::cout << "gpu recon loop 4 took " << t2-t1 << "ms" << std::endl;
-///	g_recon.download(recon2);
-///	imwrite("test/out-reconLoop4-gpu.pbm", recon2);
-///	g_recon.release();
-///
+//	t1 = cciutils::ClockGetTime();
+//	g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
+//	stream.waitForCompletion();
+//	t2 = cciutils::ClockGetTime();
+//	std::cout << "gpu recon loop 4 took " << t2-t1 << "ms" << std::endl;
+//	g_recon.download(recon2);
+//	imwrite("test/out-reconLoop4-gpu.pbm", recon2);
+//	g_recon.release();
+
 	vector<GpuMat> g_marker_v;
 	vector<GpuMat> g_mask_v;
 

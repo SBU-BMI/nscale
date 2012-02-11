@@ -469,7 +469,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 //	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
 	if (logger) logger->logTimeSinceLastLog("watershed erode");
 	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 22);
-
+	twm.release();
 
 	/*
      %CHANGE
