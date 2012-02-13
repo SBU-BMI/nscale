@@ -397,6 +397,16 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	if (logger) logger->logTimeSinceLastLog("water to mask");
 	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 21);
 
+	Mat twm;
+	copyMakeBorder(seg_nonoverlap, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(std::numeric_limits<uchar>::max()));
+	Mat t_nonoverlap = Mat::zeros(twm.size(), twm.type());
+	erode(twm, t_nonoverlap, disk3);
+	seg_nonoverlap = t_nonoverlap(Rect(1,1,seg_nonoverlap.cols, seg_nonoverlap.rows));
+//	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
+	if (logger) logger->logTimeSinceLastLog("watershed erode");
+	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 22);
+	twm.release();
+	t_nonoverlap.release();
 
 	return ::nscale::HistologicalEntities::CONTINUE;
 
@@ -460,16 +470,6 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return sepResult;
 	}
-
-	Mat twm;
-	copyMakeBorder(seg_nonoverlap, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(std::numeric_limits<uchar>::max()));
-	Mat t_nonoverlap = Mat::zeros(twm.size(), twm.type());
-	erode(twm, t_nonoverlap, disk3);
-	seg_nonoverlap = t_nonoverlap(Rect(1,1,seg_nonoverlap.cols, seg_nonoverlap.rows));
-//	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
-	if (logger) logger->logTimeSinceLastLog("watershed erode");
-	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 22);
-	twm.release();
 
 	/*
      %CHANGE
