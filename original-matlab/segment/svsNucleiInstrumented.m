@@ -9,8 +9,8 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
             'normal.3/normal.3.ndpi-0000028672-0000012288',...
             };
         impath='/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/';
-        resultpath='/home/tcpan/PhD/path/Data/seg-test-ws-gpu/';
-        validationpath='/home/tcpan/PhD/path/Data/seg-test-ws-gpu/';
+        resultpath='/home/tcpan/PhD/path/Data/seg-validate-ws-cpu/';
+        validationpath='/home/tcpan/PhD/path/Data/seg-validate-ws-cpu/';
         fileext = '.tif';
 
         for i = 1:length(image)
@@ -364,11 +364,11 @@ tic;
     watermask = watershed(distance2);
 t=toc;
 fprintf(logfid, '%s, watershed, %d\n', filename, t);
-%     fid = fopen([validationpath, filename, '-', sprintf('%d',120), '.32SC1.raw'], 'r');
-%     cv_wmask1 = fread(fid, [4096,4096], '*int32');
-%     cv_wmask1 = int32(cv_wmask1');
-%     fclose(fid);
-%     
+    fid = fopen([validationpath, filename, '-', sprintf('%d',20), '.32SC1.raw'], 'r');
+    cv_wmask = fread(fid, [4096,4096], '*int32');
+    cv_wmask = int32(cv_wmask');
+    fclose(fid);
+    
 %     fid = fopen([validationpath, filename, '-', sprintf('%d',121), '.32SC1.raw'], 'r');
 %     cv_wmask2 = fread(fid, [4096,4096], '*int32');
 %     cv_wmask2 = int32(cv_wmask2');
@@ -382,9 +382,7 @@ fprintf(logfid, '%s, watershed, %d\n', filename, t);
 %     fprintf(1, 'matlab vs cv. watershed %d\n', max(max(watermask ~= cv_watermask)));
 %    figure; imshow(watermask);
 %    figure; imshow(cv_watermask);
-	t = watermask > 0;    
- cv_bwatermask = imread([validationpath, filename, '-', sprintf('%d',21), '.mask.pbm']) > 0;
-    fprintf(1, 'matlab vs cv.  watershed contour interior %d\n', length(find(t ~= cv_bwatermask)));
+	fprintf(1, 'matlab vs cv.  watershed contour interior %d\n', length(find(watermask ~= cv_wmask)));
     
 tic;    
     seg_nonoverlap = seg_big;
@@ -393,7 +391,7 @@ t=toc;
 fprintf(logfid, '%s, water to mask, %d\n', filename, t);
 
     %seg_nonoverlap = lines & seg_big;
-    cv_seg_nonoverlap = imread([validationpath, filename, '-', sprintf('%d',22), '.mask.pbm']) > 0;
+    cv_seg_nonoverlap = imread([validationpath, filename, '-', sprintf('%d',21), '.mask.pbm']) > 0;
     fprintf(1, 'matlab vs cv.  nonoverlap %d\n', length(find(seg_nonoverlap ~= cv_seg_nonoverlap)));
     
     %clear lines distance2

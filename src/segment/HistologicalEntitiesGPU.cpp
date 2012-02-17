@@ -714,7 +714,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 
 	// erode by 1 - need to be fixed  - erode does not check borders.
 	// ERODE IS ONLY NEEDED BY CPU Watershed,
-	//GpuMat g_seg_nonoverlap2 = ::nscale::gpu::morphErode<unsigned char>(g_seg_nonoverlap, disk3, stream);
+	// GpuMat g_seg_nonoverlap2 = ::nscale::gpu::morphErode<unsigned char>(g_seg_nonoverlap, disk3, stream);
 //	GpuMat g_twm;
 //	copyMakeBorder(g_seg_nonoverlap, g_twm, 1, 2, 1, 2, Scalar(std::numeric_limits<unsigned char>::max()), stream);
 //	GpuMat g_t_nonoverlap(g_twm.size(), g_twm.type());
