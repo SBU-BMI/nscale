@@ -69,25 +69,4 @@ clear k;
 load('GaussianModels.mat');
 load('NormalizationParameters.mat');
 
-% compute the clustering
-addpath('ConsensusClustering');
-[Labels CophenetCorr Ordered Indices Initializations ks] = KMeansModelSelection(Means, 10, 5);
-[Labels2 CophenetCorr2 Ordered2 Indices2 Initializations2 ks2] = KMeansModelSelection(normmean, 10, 5);
-
-% now check membership co-occurence
-cooccur = cell(size(Labels,2), 1);
-for i = 1 : size(cooccur, 1)
-    temp = zeros(size(Labels, 1), (i+1) * (i+1), 'uint8'); % temp array
-    pos = (Labels(:, i)-1) .* (i+1) + Labels2(:, i);
-    ii = 1:size(Labels,1);
-    idx = sub2ind(size(temp), ii', pos);
-    temp(idx) = 1;  % use multiplication to identify cooccurrence
-    temp2 = sum(temp, 1);
-    cooccur{i} = reshape(temp2, i+1, i+1);
-end
-clear temp2;
-clear temp;
-clear idx;
-clear ii;
-clear pos;
 
