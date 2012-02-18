@@ -26,23 +26,25 @@ __global__ void borderKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep
 
 	q1 = img1.ptr(y-1)[x];
 	q2 = img1.ptr(y)[x-1];
-	q3 = img1.ptr(y)[x+1];
-	q4 = img1.ptr(y+1)[x];
+//	q3 = img1.ptr(y)[x+1];
+//	q4 = img1.ptr(y+1)[x];
 	if ((q1 != background && p!=q1) ||
-	 (q2 != background && p!=q2) || 
-	 (q3 != background && p!=q3) ||
-	 (q4 != background && p!=q4)) output = background;
+	 (q2 != background && p!=q2)) // || 
+//	 (q3 != background && p!=q3) ||
+//	 (q4 != background && p!=q4))
+		 output = background;
 		
 	if (connectivity == 8) {
 	
 		q1 = img1.ptr(y-1)[x-1];
 		q2 = img1.ptr(y-1)[x+1];
-		q3 = img1.ptr(y+1)[x-1];
-		q4 = img1.ptr(y+1)[x+1];
+//		q3 = img1.ptr(y+1)[x-1];
+//		q4 = img1.ptr(y+1)[x+1];
 		if ((q1 != background && p!=q1) ||
-		 (q2 != background && p!=q2) || 
-		 (q3 != background && p!=q3) ||
-		 (q4 != background && p!=q4)) output = background;
+		 (q2 != background && p!=q2)) // || 
+//		 (q3 != background && p!=q3) ||
+//		 (q4 != background && p!=q4))
+			 output = background;
 	}
 
     	result.ptr(y)[x] = output;

@@ -14,6 +14,7 @@
 #include "utils.h"
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
+#include "NeighborOperations.h"
 
 using namespace cv;
 
@@ -1071,6 +1072,8 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
 	watershed(input, output);
+
+	//output = nscale::NeighborOperations::border(temp, 0, 8);
 
 	return output(Rect(1,1, image.cols, image.rows));
 }
