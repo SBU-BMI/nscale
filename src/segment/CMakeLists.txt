@@ -42,7 +42,7 @@ foreach(program ${programs})
 endforeach(program)
 
 # if build test applications is set, than build them: currently just one
-if(BUILD_TEST_APPS)
+if(BUILD_TEST_APPLICATIONS)
 	add_subdirectory("test/src")
-endif(BUILD_TEST_APPS)
+endif(BUILD_TEST_APPLICATIONS)
 

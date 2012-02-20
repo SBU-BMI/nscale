@@ -15,7 +15,7 @@ foreach(program ${programs})
 	add_executable(${program} ${program}.cpp)
 
 	# Link the executable to the Segmentation library
-	target_link_libraries(${program} segment gpusegment)
+	target_link_libraries(${program} segment)
 endforeach(program)
 
 
