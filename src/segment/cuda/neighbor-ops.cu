@@ -22,7 +22,8 @@ __global__ void borderKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep
     	T p = img1.ptr(y)[x];
     	T output = p;
 	// if p is already background, this will not change it so run it through
-	T q1, q2, q3, q4;
+	T q1, q2;
+//	T q3, q4;
 
 	q1 = img1.ptr(y-1)[x];
 	q2 = img1.ptr(y)[x-1];

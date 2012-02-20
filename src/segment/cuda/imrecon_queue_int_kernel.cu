@@ -766,7 +766,7 @@ struct GreaterThanConst : public thrust::unary_function<T,bool>
 		QueueIterator sparseQueue_end;
 
 		thrust::device_vector<bool> dummy(area, false);
-		printf("number of entries in sparseQueue: %d, denseQueue: %d \n", queueSize, denseQueue_end - denseQueue.begin());
+		printf("number of entries in sparseQueue: %d, denseQueue: %lu \n", queueSize, denseQueue_end - denseQueue.begin());
 		int iterations = 0;
 		int total = 0;
 		while (queueSize > 0 && iterations < 10000) {
@@ -873,7 +873,7 @@ struct GreaterThanConst : public thrust::unary_function<T,bool>
 			thrust::fill(denseQueue.begin(), denseQueue.end(), -1);
 
 			denseQueue_end = thrust::copy_if(ids, ids+area, dummy.begin(), denseQueue.begin(), thrust::identity<bool>());
-			printf("number of entries in queue: %d \n", denseQueue_end - denseQueue.begin());
+			printf("number of entries in queue: %lu \n", denseQueue_end - denseQueue.begin());
 
 		}
 

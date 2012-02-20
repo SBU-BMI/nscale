@@ -630,7 +630,7 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 		
 		*h_change = true;
 //		printf("completed setup for imrecon binary caller \n");
-		long t1, t2;
+		//long t1, t2;
 
 		if (conn8) {
 			while ( (*h_change) && (iter < 100000) )  // repeat until stability

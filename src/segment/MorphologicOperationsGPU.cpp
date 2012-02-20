@@ -80,8 +80,8 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 template <typename T>
 GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu();}
 
-// input should have foreground > 0, and 0 for background
-GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
+//// input should have foreground > 0, and 0 for background
+//GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
 // input should have foreground > 0, and 0 for background
 GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
 // input should have foreground > 0, and 0 for background
@@ -889,61 +889,61 @@ GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) {
 }
 
 
-// input should have foreground > 0, and 0 for background
-GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) {
-
-	CV_Assert(image.channels() == 1);
-	CV_Assert(image.type() == CV_32FC1);
-//	CV_Assert(image.type() == CV_8UC1);
-
-
-	/*
-	 * MatLAB implementation:
-		cc = bwconncomp(imregionalmin(A, conn), conn);
-		L = watershed_meyer(A,conn,cc);
-	 */
-
-	// this implementation requires seed image.
-	Mat h_img(image.size(), image.type());
-	stream.enqueueDownload(image, h_img);
-	Mat minima = localMinima<float>(h_img, connectivity);
-//imwrite("test-minima.pbm", minima);
-	Mat_<int> h_labels = bwlabel(minima, false, connectivity);
-//imwrite("test-bwlabel.png", labels);
-	GpuMat d_labels(h_labels.size(), h_labels.type());
-	stream.enqueueUpload(h_labels, d_labels);
-	GpuMat seeds(d_labels.rows + 2, d_labels.cols + 2, d_labels.type());
-	copyMakeBorder(d_labels, seeds, 1, 1, 1, 1, Scalar(0), stream);
-	stream.waitForCompletion();
-	h_img.release();
-	minima.release();
-	h_labels.release();
-	d_labels.release();
-
-
-
-	GpuMat input = createContinuous(image.size().height + 2, image.size().width + 2, image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, Scalar(0), stream);
-
-	// allocate results
-	GpuMat labels = createContinuous(image.size().height + 2, image.size().width + 2, CV_32SC1);
-	stream.enqueueMemSet(labels, Scalar(0));
-	stream.waitForCompletion();
-
-	// here call the cuda function.
-	ca::ws_kauffmann((int*)(labels.data), (float*)(input.data), (int*)seeds.data, input.cols, input.rows, connectivity);
-//	::ws_kauffmann((int*)labels.data, (unsigned char*)input.data, input.cols, input.rows, connectivity);
-
-    stream.waitForCompletion();
-    input.release();
-    seeds.release();
-
-    GpuMat output(image.size(), labels.type());
-    stream.enqueueCopy(labels(Rect(1,1, image.cols, image.rows)), output);
-    stream.waitForCompletion();
-    labels.release();
-    return output;
-}
+//// input should have foreground > 0, and 0 for background
+//GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) {
+//
+//	CV_Assert(image.channels() == 1);
+//	CV_Assert(image.type() == CV_32FC1);
+////	CV_Assert(image.type() == CV_8UC1);
+//
+//
+//	/*
+//	 * MatLAB implementation:
+//		cc = bwconncomp(imregionalmin(A, conn), conn);
+//		L = watershed_meyer(A,conn,cc);
+//	 */
+//
+//	// this implementation requires seed image.
+//	Mat h_img(image.size(), image.type());
+//	stream.enqueueDownload(image, h_img);
+//	Mat minima = localMinima<float>(h_img, connectivity);
+////imwrite("test-minima.pbm", minima);
+//	Mat_<int> h_labels = bwlabel(minima, false, connectivity);
+////imwrite("test-bwlabel.png", labels);
+//	GpuMat d_labels(h_labels.size(), h_labels.type());
+//	stream.enqueueUpload(h_labels, d_labels);
+//	GpuMat seeds(d_labels.rows + 2, d_labels.cols + 2, d_labels.type());
+//	copyMakeBorder(d_labels, seeds, 1, 1, 1, 1, Scalar(0), stream);
+//	stream.waitForCompletion();
+//	h_img.release();
+//	minima.release();
+//	h_labels.release();
+//	d_labels.release();
+//
+//
+//
+//	GpuMat input = createContinuous(image.size().height + 2, image.size().width + 2, image.type());
+//	copyMakeBorder(image, input, 1, 1, 1, 1, Scalar(0), stream);
+//
+//	// allocate results
+//	GpuMat labels = createContinuous(image.size().height + 2, image.size().width + 2, CV_32SC1);
+//	stream.enqueueMemSet(labels, Scalar(0));
+//	stream.waitForCompletion();
+//
+//	// here call the cuda function.
+//	ca::ws_kauffmann((int*)(labels.data), (float*)(input.data), (int*)seeds.data, input.cols, input.rows, connectivity);
+////	::ws_kauffmann((int*)labels.data, (unsigned char*)input.data, input.cols, input.rows, connectivity);
+//
+//    stream.waitForCompletion();
+//    input.release();
+//    seeds.release();
+//
+//    GpuMat output(image.size(), labels.type());
+//    stream.enqueueCopy(labels(Rect(1,1, image.cols, image.rows)), output);
+//    stream.waitForCompletion();
+//    labels.release();
+//    return output;
+//}
 
 // input should have foreground > 0, and 0 for background
 GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background, int connectivity, Stream& stream) {

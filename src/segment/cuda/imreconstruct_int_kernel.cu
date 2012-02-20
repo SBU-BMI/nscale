@@ -621,7 +621,7 @@ unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict_
 	*h_change = true;
 	//		printf("completed setup for imrecon int caller \n");
 
-	long t1, t2;
+	//long t1, t2;
 
 	if (conn8) {
 		while ( (*h_change) && (iter < 100000) )  // repeat until stability
@@ -870,7 +870,7 @@ template <typename T> int *imreconstructIntCallerBuildQueue(T* __restrict__ mark
 	// stability detection
 	unsigned int iter = 0;
 
-	long t1, t2, t3;
+	//long t1, t2, t3;
 
 //	t1 = ClockGetTime();
 	if (conn8) {
@@ -932,7 +932,7 @@ template <typename T> int *imreconstructIntCallerBuildQueue(T* __restrict__ mark
 
 	 cudaMemcpy( &h_compact_queue_size, d_queue_size, sizeof(int), cudaMemcpyDeviceToHost ) ;
 	
-	t3 = ClockGetTime();
+	//t3 = ClockGetTime();
 //	printf("	compactQueueSize %d, time to generate %lu ms\n", h_compact_queue_size, t3-t2);
 
 

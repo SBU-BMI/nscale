@@ -941,11 +941,11 @@ __global__ void morphReconKernelSpeedup(int* d_Result, int *d_Seeds, unsigned ch
 
 extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Seed, unsigned char *g_Image, int h_ncols, int h_nrows, int connectivity, int nBlocks, float queue_increase_factor){
 // seeds contais the maker and it is also the output image
-	int nImages = 1;
+//	int nImages = 1;
 	// TODO: change blockNum to nBlocks
 //	int nBlocks = nImages;
 	int *d_Result;
-	int *d_return_code;
+//	int *d_return_code;
 
 //	float queue_increase_factor = 1.1;
 
@@ -959,7 +959,7 @@ extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Se
 	int tempNblocks = nBlocks;
 
 	int subListsInit[tempNblocks];
-	int subListsEnd[tempNblocks];
+//	int subListsEnd[tempNblocks];
 	int subListsSize[tempNblocks];
 
 	for(int i = 0; i < tempNblocks; i++){
@@ -967,7 +967,7 @@ extern "C" int morphReconSpeedup( int *g_InputListPtr, int h_ListSize, int *g_Se
 		int curSubListEnd = ((i+1<tempNblocks)?((i+1)*(h_ListSize/tempNblocks)-1):(h_ListSize-1));
 //		printf("BlockId = %d - init = %d end = %d size=%d\n", i, curSubListInit, curSubListEnd, curSubListEnd-curSubListInit+1);
 		subListsInit[i] = curSubListInit;
-		subListsEnd[i] = curSubListEnd;
+//		subListsEnd[i] = curSubListEnd;
 		subListsSize[i]	= curSubListEnd-curSubListInit+1;
 	}
 
