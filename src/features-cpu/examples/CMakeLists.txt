@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 2.6)
 project(Examples)
 
 # Make sure the compiler can find the includes in the Features Computation directory

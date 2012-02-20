@@ -1,0 +1,5 @@
+add_subdirectory(execEngine)
+add_subdirectory(features-cpu)
+add_subdirectory(segment)
+add_subdirectory(pipeline)
+add_subdirectory(tasks)

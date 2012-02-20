@@ -1,66 +1,23 @@
-cmake_minimum_required(VERSION 2.6)
 project( Pipeline )
 
 # The version number
 set(Pipeline_VERSION_MAJOR 1)
 set(Pipeline_VERSION_MINOR 0)
 
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING
-      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-      FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+# Make sure the compiler can find the includes
+include_directories(${Segmentation_SOURCE_DIR})
+include_directories(${FeaturesComputation_SOURCE_DIR})
+
+# Make sure the compiler can find the library in Execution Engine directory
+link_directories(${Segmentation_SOURCE_DIR})
+link_directories(${FeaturesComputation_SOURCE_DIR})
 
 
-
-# Source files used by Execution Engine
-
-# fix this properly later to correctly export and import other packages
-include_directories(${Pipeline_SOURCE_DIR}/../segment)
-include_directories(${Pipeline_SOURCE_DIR}/../features-cpu)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -L${Pipeline_SOURCE_DIR}/../segment")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -L${Pipeline_SOURCE_DIR}/../features-cpu")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${Pipeline_SOURCE_DIR}/../segment")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${Pipeline_SOURCE_DIR}/../features-cpu")
-# fix this properly later to correctly export and import other packages
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${Pipeline_SOURCE_DIR}/../../../textascale -L${Pipeline_SOURCE_DIR}/../../../textascale/nwkmeans/.libs")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${Pipeline_SOURCE_DIR}/../../../textascale -L${Pipeline_SOURCE_DIR}/../../../textascale/nwkmeans/.libs")
-
-#### OpenCV
-find_package( OpenCV REQUIRED )
-
-#### HDF5
-find_package(HDF5 REQUIRED)
-if (HDF5_FOUND)
-	include_directories(${HDF5_INCLUDE_DIRS})
-	add_definitions(${HDF5_DEFINITIONS})
-message(STATUS "HDF5LIBRARY_DIRS flags: ${HDF5_LIBRARY_DIRS}")
-message(STATUS "HDF5LIBRARY_DIRS include: ${HDF5_INCLUDE_DIRS}")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -L${HDF5_LIBRARY_DIRS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${HDF5_LIBRARY_DIRS}")
-endif(HDF5_FOUND)
-
-#### MPI
-set(WITH_MPI OFF CACHE BOOL "Build with MPI support")
-if (WITH_MPI)
-	find_package(MPI REQUIRED)
-	include_directories(${MPI_INCLUDE_PATH})
-else(WITH_MPI)
-	set(MPI_FOUND 0)
-endif(WITH_MPI)
-
-#### OpenMP
-set(WITH_OPENMP OFF CACHE BOOL "Build with OpenMP support")
-if (WITH_OPENMP)
-    include(FindOpenMP)
-    
-	 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-	 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif(WITH_OPENMP)
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${Pipeline_SOURCE_DIR}/../../../textascale -L${Pipeline_SOURCE_DIR}/../../../textascale/nwkmeans/.libs")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${Pipeline_SOURCE_DIR}/../../../textascale -L${Pipeline_SOURCE_DIR}/../../../textascale/nwkmeans/.libs")
 
 
-# Source files used by Execution Engine
+# Source files used by pipeline
 set(libsrcs h5utils.cpp )
 
 set(libname pipeline)
@@ -69,10 +26,6 @@ add_library("${libname}" SHARED ${libsrcs} )
 if(HDF5_FOUND)
 	target_link_libraries(${libname} ${HDF5_LIBRARIES})
 endif(HDF5_FOUND) 
-
-
-
-set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
 
 set(fprograms nu-features)
