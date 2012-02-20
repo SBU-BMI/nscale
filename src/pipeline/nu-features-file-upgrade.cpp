@@ -413,7 +413,7 @@ void compute(const char *input) {
 		infile.assign(imgfilename);
 		string filename = futils.getFile(infile);
 		// get the image name
-		unsigned int pos = filename.rfind('.');
+		size_t pos = filename.rfind('.');
 		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", imgfilename);
 		string prefix = filename.substr(0, pos);
 		pos = prefix.rfind("-");
@@ -513,7 +513,7 @@ void compute(const char *input) {
 		infile.assign(imgfilename);
 		string filename = futils.getFile(infile);
 		// get the image name
-		unsigned int pos = filename.rfind('.');
+		size_t pos = filename.rfind('.');
 		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", imgfilename);
 		string prefix = filename.substr(0, pos);
 		pos = prefix.rfind("-");

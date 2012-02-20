@@ -10,7 +10,7 @@
 
 #include "hdf5.h"
 
-extern int _debug = 1;
+//extern int _debug = 1;
 
 
 // version 0.2

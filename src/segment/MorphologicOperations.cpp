@@ -938,7 +938,7 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 	CV_Assert(contours.size() > idx);
 	CV_Assert(idx > 0);
 
-	int area = contourArea(contours[idx]);
+	int area = (int)rint(contourArea(contours[idx]));
 	int circum = contours[idx].size() / 2 + 1;
 
 	area += circum;
@@ -947,7 +947,7 @@ bool contourAreaFilter(const std::vector<std::vector<Point> >& contours, const s
 
 	int i = hierarchy[idx][2];
 	for ( ; i >= 0; i = hierarchy[i][0]) {
-		area -= (contourArea(contours[i]) + contours[i].size() / 2 + 1);
+		area -= ((int)rint(contourArea(contours[i])) + contours[i].size() / 2 + 1);
 		if (area < minArea) return false;
 	}
 

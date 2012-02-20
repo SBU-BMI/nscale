@@ -31,13 +31,12 @@ A4Task::~A4Task() {
 // does not keep data in GPU memory yet.  no appropriate flag to show that data is on GPU, so that execEngine can try to reuse.
 bool A4Task::run(int procType, int tid) {
 	// begin work
-	::cv::Mat temp(img.size(), CV_8U);  // temporary until the code could be fixed.
 	int result;	
 
 	printf("A4\n");
 
 #if !defined (HAVE_CUDA)
-	procType = ExecEngineconstants::CPU;
+	procType = ExecEngineConstants::CPU;
 #endif
 
 
@@ -53,7 +52,7 @@ bool A4Task::run(int procType, int tid) {
 		stream.enqueueUpload(input, g_input);
 		stream.waitForCompletion();
 
-		result = ::nscale::gpu::HistologicalEntities::plSeparateNuclei(g_img, g_input, g_output, stream, temp, NULL, -1);
+		result = ::nscale::gpu::HistologicalEntities::plSeparateNuclei(g_img, g_input, g_output, stream, NULL, NULL);
 		stream.enqueueDownload(g_output, output);
 		stream.waitForCompletion();
 
@@ -62,13 +61,12 @@ bool A4Task::run(int procType, int tid) {
 		g_output.release();
 
 	} else if (procType == ExecEngineConstants::CPU) { // CPU
-		result = ::nscale::HistologicalEntities::plSeparateNuclei(img, input, output, temp, NULL, -1);
+		result = ::nscale::HistologicalEntities::plSeparateNuclei(img, input, output, NULL, NULL);
 	} else { // error
 		printf("ERROR: invalid proc type");
 		result = ::nscale::HistologicalEntities::RUNTIME_FAILED;
 	}	
 
-	temp.release();
 
 	//stage the next work
 	if (result == ::nscale::HistologicalEntities::CONTINUE) {

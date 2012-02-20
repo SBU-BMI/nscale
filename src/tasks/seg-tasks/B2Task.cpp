@@ -10,6 +10,7 @@
 #include "B2Task.h"
 #include "HistologicalEntities.h"
 #include "A4Task.h"
+#include "MorphologicOperations.h"
 
 namespace nscale {
 
@@ -38,7 +39,7 @@ bool B2Task::run(int procType, int tid) {
 	printf("B2\n");
 
 #if !defined (HAVE_CUDA)
-	procType = ExecEngineconstants::CPU;
+	procType = ExecEngineConstants::CPU;
 #endif
 
 	if (procType == ExecEngineConstants::GPU) {  // GPU
@@ -78,7 +79,7 @@ bool B2Task::run(int procType, int tid) {
         // can't use morphologyEx.  the erode phase is not creating a border even though the method signature makes it appear that way.
         // because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
         //      morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, ::cv::Point(1,1)); //, ::cv::Point(-1, -1), 1, ::cv::BORDER_REFLECT);
-        output = ::nscale::morphOpen<unsigned char>(seg_nohole, disk3);
+        output = ::nscale::morphOpen<unsigned char>(input, disk3);
 
 		result = ::nscale::HistologicalEntities::CONTINUE;
 	} else { // error
