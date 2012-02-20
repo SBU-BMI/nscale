@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 2.6)
 
+PROJECT( NSCALE )
+# The version number
+set(NSCALE_VERSION_MAJOR 1)
+set(NSCALE_VERSION_MINOR 0)
+
+message(STATUS "CMAKE binary dir location: ${CMAKE_BINARY_DIR}")
+message(STATUS "PROJECT binary dir location: ${PROJECT_BINARY_DIR}")
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
@@ -12,18 +20,6 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 if(UNIX)
     set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /lib /usr/lib)
 endif()
-
-# it _must_ go before PROJECT(NSCALE) in order to work
-#set(CMAKE_INSTALL_PREFIX "/usr/local" CACHE PATH "Installation Directory")
-
-#set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-#set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-
-PROJECT( NSCALE )
-# The version number
-set(NSCALE_VERSION_MAJOR 1)
-set(NSCALE_VERSION_MINOR 0)
 
 
 # --------------------------------------------------------------
@@ -105,8 +101,8 @@ find_package(HDF5 REQUIRED)
 if (HDF5_FOUND)
 	include_directories(${HDF5_INCLUDE_DIRS})
 	add_definitions(${HDF5_DEFINITIONS})
-message(STATUS "HDF5LIBRARY_DIRS flags: ${HDF5_LIBRARY_DIRS}")
-message(STATUS "HDF5LIBRARY_DIRS include: ${HDF5_INCLUDE_DIRS}")
+	message(STATUS "HDF5LIBRARY_DIRS flags: ${HDF5_LIBRARY_DIRS}")
+	message(STATUS "HDF5LIBRARY_DIRS include: ${HDF5_INCLUDE_DIRS}")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -L${HDF5_LIBRARY_DIRS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${HDF5_LIBRARY_DIRS}")
 endif(HDF5_FOUND)
