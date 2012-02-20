@@ -12,33 +12,33 @@
 #include "h5utils.h"
 
 // version 0.1
-#define NS_FEATURE_SET_01 "/data"
-#define NS_NU_INFO_SET_01 "/metadata"
-#define NS_IMG_TILE_ATTR "image_tile"
-#define NS_MASK_TILE_ATTR "mask_tile"
-#define NS_SUM_ATTR "sums"
-#define NS_SUM_SQUARE_ATTR "sum_squares"
+char NS_FEATURE_SET_01[] = "/data";
+char NS_NU_INFO_SET_01[] = "/metadata";
+char NS_IMG_TILE_ATTR[] = "image_tile";
+char NS_MASK_TILE_ATTR[] = "mask_tile";
+char NS_SUM_ATTR[] = "sums";
+char NS_SUM_SQUARE_ATTR[] = "sum_squares";
 
 // version 0.2
-#define NS_FEATURE_SET "/features"
-#define NS_NU_INFO_SET "/nu-info"
-#define NS_TILE_SUM_SET "/tile-sum"
-#define NS_TILE_INFO_SET "/tile-info"
-#define NS_IMAGE_SUM_SET "/image-sum"
-#define NS_IMAGE_INFO_SET "/image-info"
+char NS_FEATURE_SET[] = "/features";
+char NS_NU_INFO_SET[] = "/nu-info";
+char NS_TILE_SUM_SET[] = "/tile-sum";
+char NS_TILE_INFO_SET[] = "/tile-info";
+char NS_IMAGE_SUM_SET[] = "/image-sum";
+char NS_IMAGE_INFO_SET[] = "/image-info";
 
-#define NS_TILE_X_ATTR "tile_x"
-#define NS_TILE_Y_ATTR "tile_y"
-#define NS_IMG_NAME_ATTR "image_name"
-#define NS_MEAN_ATTR "mean"
-#define NS_STDEV_ATTR "stdev"
-#define NS_COUNT_ATTR "count"
-#define NS_NUM_BAD_VALUES_ATTR "num_bad_values"
-#define NS_FULL_MEAN_ATTR "full_mean"
-#define NS_FULL_STDEV_ATTR "full_stdev"
-#define NS_SAMPLE_RATE_ATTR "sample_rate"
+char NS_TILE_X_ATTR[] = "tile_x";
+char NS_TILE_Y_ATTR[] = "tile_y";
+char NS_IMG_NAME_ATTR[] = "image_name";
+char NS_MEAN_ATTR[] = "mean";
+char NS_STDEV_ATTR[] = "stdev";
+char NS_COUNT_ATTR[] = "count";
+char NS_NUM_BAD_VALUES_ATTR[] = "num_bad_values";
+char NS_FULL_MEAN_ATTR[] = "full_mean";
+char NS_FULL_STDEV_ATTR[] = "full_stdev";
+char NS_SAMPLE_RATE_ATTR[] = "sample_rate";
 
-#define NS_FILE_CONTENT_TYPE "feature_content_type"
+char NS_FILE_CONTENT_TYPE[] = "feature_content_type";
 
 
 typedef struct {
