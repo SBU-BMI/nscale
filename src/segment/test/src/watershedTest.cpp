@@ -30,17 +30,17 @@ using namespace cv::gpu;
 
 int main (int argc, char **argv){
 
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/astroII.1/astroII.1.ndpi-0000008192-0000008192-15.mask.pbm", -1);
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/gbm2.1/gbm2.1.ndpi-0000004096-0000004096-15.mask.pbm", -1);
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/normal.3/normal.3.ndpi-0000028672-0000012288-15.mask.pbm", -1);
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/segmentation-tests/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192-15.mask.pbm", -1);
-	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm", -1);
+//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/astroII.1/astroII.1.ndpi-0000008192-0000008192-15.mask.pbm", -1);
+	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/gbm2.1/gbm2.1.ndpi-0000004096-0000004096-15.mask.pbm", -1);
+//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/normal.3/normal.3.ndpi-0000028672-0000012288-15.mask.pbm", -1);
+//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192-15.mask.pbm", -1);
+//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm", -1);
 
 //	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif", -1);
-//	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif", -1);
+	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif", -1);
 //	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/normal.3/normal.3.ndpi-0000028672-0000012288.tif", -1);
 //	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192.tif", -1);
-	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672.tif", -1);
+//	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672.tif", -1);
 	// original
 	Stream stream;
 
@@ -105,18 +105,33 @@ int main (int argc, char **argv){
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
-	Mat watermask = nscale::watershed2(nuclei, distance2, 8);
+	Mat watermask = nscale::watershed(nuclei, distance2, 8);
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 
 	t2 = cciutils::ClockGetTime();
 	std::cout << "cpu watershed loop took " << t2-t1 << "ms" << std::endl;
-
-	// cpu version of watershed.
 	double mn, mx;
 	minMaxLoc(watermask, &mn, &mx);
 	watermask = (watermask - mn) * (255.0 / (mx-mn));
 
-	imwrite("test/out-cpu-watershed-oligoIII.1.png", watermask);
+	imwrite("test/out-cpu-watershed-oligoIII.1-1.png", watermask);
+
+	t1 = cciutils::ClockGetTime();
+
+	// watershed in openCV requires labels.  input foreground > 0, 0 is background
+	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
+	watermask = nscale::watershed2(nuclei, distance2, 8);
+//	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
+
+	t2 = cciutils::ClockGetTime();
+	std::cout << "cpu watershed2 loop took " << t2-t1 << "ms" << std::endl;
+
+	// cpu version of watershed.
+	mn, mx;
+	minMaxLoc(watermask, &mn, &mx);
+	watermask = (watermask - mn) * (255.0 / (mx-mn));
+
+	imwrite("test/out-cpu-watershed-oligoIII.1-2.png", watermask);
 	dist.release();
 	distance.release();
 	watermask.release();

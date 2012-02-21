@@ -15,6 +15,7 @@
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
 #include "NeighborOperations.h"
+#include "ConnComponents.h"
 
 using namespace cv;
 
@@ -872,6 +873,21 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
 }
 
 // Operates on BINARY IMAGES ONLY
+// perform bwlabel using union find.
+Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity) {
+	CV_Assert(binaryImage.channels() == 1);
+	// only works for binary images.
+	CV_Assert(binaryImage.type() == CV_8U);
+
+	ConnComponents cc;
+	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
+	cc.label((unsigned char*) binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)output.data, -1, connectivity);
+
+	return output;
+}
+
+
+// Operates on BINARY IMAGES ONLY
 // ideally, output should be 64 bit unsigned.
 //	maximum number of labels in a single image is 18 exa-labels, in an image with minimum size of 2^32 x 2^32 pixels.
 // rationale for going to this size is that if we go with 32 bit, even if unsigned, we can support 4 giga labels,
@@ -1027,6 +1043,20 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	}
 	return output(Rect(1,1, binaryImage.cols, binaryImage.rows));
 }
+// inclusive min, exclusive max
+template <typename T>
+Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivity) {
+	// only works for binary images.
+	CV_Assert(binaryImage.channels() == 1);
+	// only works for binary images.
+	CV_Assert(binaryImage.type() == CV_8U);
+
+	ConnComponents cc;
+	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
+	cc.areaThreshold((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)output.data, -1, minSize, maxSize, connectivity);
+
+	return output;
+}
 
 template <typename T>
 Mat imhmin(const Mat& image, T h, int connectivity) {
@@ -1049,7 +1079,7 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 }
 
 // input should have foreground > 0, and 0 for background
-Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connectivity) {
+Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 	CV_Assert(origImage.channels() == 3);
@@ -1069,6 +1099,36 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 // need borders, else get edges at edge.
 	Mat input, output;
 	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
+
+	watershed(input, output);
+
+	//output = nscale::NeighborOperations::border(temp, 0, 8);
+
+	return output(Rect(1,1, image.cols, image.rows));
+}
+
+// input should have foreground > 0, and 0 for background
+Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connectivity) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+	CV_Assert(origImage.channels() == 3);
+
+	/*
+	 * MatLAB implementation:
+		cc = bwconncomp(imregionalmin(A, conn), conn);
+		L = watershed_meyer(A,conn,cc);
+
+	 */
+
+	Mat minima = localMinima<float>(image, connectivity);
+//imwrite("test-minima.pbm", minima);
+	Mat_<int> labels = bwlabel2(minima, connectivity);
+//imwrite("test-bwlabel.png", labels);
+
+// need borders, else get edges at edge.
+	Mat input, output;
+	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, -1);
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
 	watershed(input, output);
@@ -1214,6 +1274,7 @@ template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
 		bool contourOnly, int connectivity);
 template Mat bwareaopen<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
+template Mat bwareaopen2<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
 template Mat imhmin(const Mat& image, uchar h, int connectivity);
 template Mat imhmin(const Mat& image, float h, int connectivity);
 template Mat_<uchar> localMaxima<float>(const Mat& image, int connectivity);

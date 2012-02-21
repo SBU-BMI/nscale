@@ -43,6 +43,8 @@ template <typename T>
 cv::Mat bwselect(const cv::Mat& binaryImage, const cv::Mat& seeds, int connectivity);
 
 cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, bool contourOnly, int connectivity);
+cv::Mat_<int> bwlabel2(const cv::Mat& binaryImage, int connectivity);
+
 // incorporates a filter for the contours.
 template <typename T>
 cv::Mat bwlabelFiltered(const cv::Mat& binaryImage, bool binaryOutput,
@@ -55,10 +57,13 @@ bool contourAreaFilter(const std::vector<std::vector<cv::Point> >& contours, con
 // inclusive min, exclusive max.
 template <typename T>
 cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity);
+template <typename T>
+cv::Mat bwareaopen2(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity);
 
 template <typename T>
 cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
 
+cv::Mat_<int> watershed(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
 cv::Mat_<int> watershed2(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
 
 template <typename T>
