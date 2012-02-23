@@ -139,7 +139,7 @@ int ConnComponents::flatten(int *label, int x, int bgval) {
 }
 
 // inclusive lower, exclusive upper
-void ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label, int bgval, int lower, int upper, int connectivity) {
+int ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label, int bgval, int lower, int upper, int connectivity) {
 
 	int length = w*h;
 
@@ -170,7 +170,7 @@ void ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label,
 			}
 		}
 	}
-
+	int j = 0;
 	//  TONY finally do the threshold and change the value of the
 	for (int i=0; i<length; ++i) {
 		// look at the roots
@@ -180,7 +180,7 @@ void ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label,
 				// reset the value of the root
 				label[i] = bgval;
 				//printf(", removed");
-			}
+			} else ++j;
 			//printf("\n");
 		}
 	}
@@ -190,6 +190,7 @@ void ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label,
 	}
 
 	delete [] areas;
+	return j;
 }
 
 }

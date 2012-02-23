@@ -1020,7 +1020,7 @@ bool contourAreaFilter2(const std::vector<std::vector<Point> >& contours, const 
 
 // inclusive min, exclusive max
 template <typename T>
-Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivity) {
+Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
 	// only works for binary images.
 	CV_Assert(binaryImage.channels() == 1);
 	CV_Assert(minSize > 0);
@@ -1040,6 +1040,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
 	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 	//TODO: TEMP std::cout << "num contours = " << contours.size() << std::endl;
+	count = 0;
 	if (contours.size() > 0) {
 		Scalar color(std::numeric_limits<T>::max());
 		// iterate over all top level contours (all siblings, draw with own label color
@@ -1047,6 +1048,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 			if (contourAreaFilter2(contours, hierarchy, idx, minSize, maxSize)) {
 				// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 				drawContours(output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
+				++count;
 			}
 		}
 	}
@@ -1054,7 +1056,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 }
 // inclusive min, exclusive max
 template <typename T>
-Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivity) {
+Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
 	// only works for binary images.
 	CV_Assert(binaryImage.channels() == 1);
 	// only works for binary images.
@@ -1062,7 +1064,7 @@ Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivi
 
 	ConnComponents cc;
 	Mat_<int> temp = Mat_<int>::zeros(binaryImage.size());
-	cc.areaThreshold((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)temp.data, -1, minSize, maxSize, connectivity);
+	count = cc.areaThreshold((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)temp.data, -1, minSize, maxSize, connectivity);
 
 	Mat output = Mat::zeros(temp.size(), CV_8U);
 	output = temp > -1;
@@ -1301,24 +1303,24 @@ Mat morphOpen(const Mat& image, const Mat& kernel) {
 
 
 //template Mat imreconstructGeorge<uchar>(const Mat& seeds, const Mat& image, int connectivity);
-template Mat imreconstruct<uchar>(const Mat& seeds, const Mat& image, int connectivity);
+template Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
 
-template Mat imreconstructBinary<uchar>(const Mat& seeds, const Mat& binaryImage, int connectivity);
-template Mat imfill<uchar>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
-template Mat imfillHoles<uchar>(const Mat& image, bool binary, int connectivity);
-template Mat bwselect<uchar>(const Mat& binaryImage, const Mat& seeds, int connectivity);
-template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
+template Mat imreconstructBinary<unsigned char>(const Mat& seeds, const Mat& binaryImage, int connectivity);
+template Mat imfill<unsigned char>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
+template Mat imfillHoles<unsigned char>(const Mat& image, bool binary, int connectivity);
+template Mat bwselect<unsigned char>(const Mat& binaryImage, const Mat& seeds, int connectivity);
+template Mat bwlabelFiltered<unsigned char>(const Mat& binaryImage, bool binaryOutput,
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
 		bool contourOnly, int connectivity);
-template Mat bwareaopen<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
-template Mat bwareaopen2<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
-template Mat imhmin(const Mat& image, uchar h, int connectivity);
+template Mat bwareaopen<unsigned char>(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
+template Mat bwareaopen2<unsigned char>(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
+template Mat imhmin(const Mat& image, unsigned char h, int connectivity);
 template Mat imhmin(const Mat& image, float h, int connectivity);
-template Mat_<uchar> localMaxima<float>(const Mat& image, int connectivity);
-template Mat_<uchar> localMinima<float>(const Mat& image, int connectivity);
-template Mat_<uchar> localMaxima<uchar>(const Mat& image, int connectivity);
-template Mat_<uchar> localMinima<uchar>(const Mat& image, int connectivity);
+template Mat_<unsigned char> localMaxima<float>(const Mat& image, int connectivity);
+template Mat_<unsigned char> localMinima<float>(const Mat& image, int connectivity);
+template Mat_<unsigned char> localMaxima<unsigned char>(const Mat& image, int connectivity);
+template Mat_<unsigned char> localMinima<unsigned char>(const Mat& image, int connectivity);
 template Mat morphOpen<unsigned char>(const Mat& image, const Mat& kernel);
 
 }

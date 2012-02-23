@@ -819,7 +819,7 @@ GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& 
 //}
 
 // inclusive min, exclusive max
-GpuMat bwareaopen(const GpuMat& binaryImage, int minSize, int maxSize, int connectivity, Stream& stream) {
+GpuMat bwareaopen(const GpuMat& binaryImage, int minSize, int maxSize, int connectivity, int& count, Stream& stream) {
 
 	CV_Assert(binaryImage.channels() == 1);
 	CV_Assert(binaryImage.type() == CV_8U);
@@ -834,7 +834,7 @@ GpuMat bwareaopen(const GpuMat& binaryImage, int minSize, int maxSize, int conne
 	stream.waitForCompletion();
 	input.release();
 
-	::nscale::gpu::areaThreshold(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
+	count = ::nscale::gpu::areaThreshold(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
 
 	GpuMat output = ::nscale::gpu::PixelOperations::threshold(temp, 0, true, std::numeric_limits<int>::max(), true, stream);
 	stream.waitForCompletion();

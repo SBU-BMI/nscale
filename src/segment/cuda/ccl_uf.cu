@@ -13,7 +13,7 @@
 #include <thrust/sort.h>
 #include <thrust/adjacent_difference.h>
 #include <thrust/scan.h>
-
+#include <thrust/count.h>
 
 namespace nscale {
 namespace gpu {
@@ -396,6 +396,16 @@ struct apply_threshold
 	}
   }
 };
+
+template<typename TT, typename T>
+struct is_root
+{
+	__host__ __device__
+	T operator()(TT x) {
+		return (thrust::get<0>(x) == thrust::get<1>(x)) ? (T)1 : (T)0;
+	}
+};
+
 __global__ void area_flatten (int* label, int w, int h, int bgval) {
     int x = blockIdx.x*blockDim.x + threadIdx.x;
     int y = blockIdx.y*blockDim.y + threadIdx.y;
@@ -403,15 +413,16 @@ __global__ void area_flatten (int* label, int w, int h, int bgval) {
 
     bool in_limits = x < w && y < h;
     int target = label[global_index];
+	
 
     if (in_limits) {
 	if (target != bgval) label[global_index] = label[target];
     }
-}
+};
 
 
 // relabelling.  .
-void areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSize, cudaStream_t stream) {
+int areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSize, cudaStream_t stream) {
 	// do this by:  
 	///  segmented reduce (global op)
 	///  sort (global)
@@ -428,6 +439,7 @@ void areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSi
 
 	
  	START_TIME_T;
+	thrust::counting_iterator<int> idx;
 	thrust::device_ptr<int> label(d_label);
 		STOP_TIME_T;
 	printf("   uf area label alloc: %f\n", ett);
@@ -500,14 +512,27 @@ void areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSi
 	STOP_TIME_T;
 	printf("   uf area flatten: %f\n", ett);
  
+	// get the count
+	START_TIME_T;
+	int j =	thrust::count_if(thrust::make_zip_iterator(
+		thrust::make_tuple(
+			label, idx)),
+		thrust::make_zip_iterator(
+			thrust::make_tuple(label+w*h, idx+w*h)),
+		is_root<LabelCompareType, int>());
+	STOP_TIME_T;
+	printf("   uf area count updated roots: %f\n", ett);
+
+		
+
 
     err = cudaGetLastError();
     if (err != cudaSuccess) {
         printf("endERROR: %s\n", cudaGetErrorString(err));
-        return;
+        return -1;
     }
 
-
+	return j;
 // original thought was to sort, then scan to get area, then scan to get max area for each label, then reset any element that has lower area.  this did not work right.
 
 }
