@@ -28,6 +28,7 @@
 #include "cuda/imrecon_queue_int_kernel.cuh"
 #include "cuda/watershed-ca-korbes.cuh"
 #include "cuda/watershed-dw-korbes.cuh"
+#include "cuda/ccl_uf.cuh"
 extern "C" int listComputation(void *d_Data, int dataElements, unsigned char *seeds, unsigned char *image, int ncols, int nrows);
 extern "C" int morphRecon(int *d_input_list, int dataElements, int *d_seeds, unsigned char *d_image, int ncols, int nrows);
 extern "C" int morphReconVector(int nImages, int **h_InputListPtr, int* h_ListSize, int **h_Seeds, unsigned char **h_images, int* ncols, int* nrows, int connectivity);
@@ -79,6 +80,9 @@ template <typename T>
 GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {throw_nogpu();}
 template <typename T>
 GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu();}
+
+
+GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& stream) { throw_nogpu(); }
 
 //// input should have foreground > 0, and 0 for background
 //GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
@@ -705,51 +709,37 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 	// no need to and between marker and binaryImage - since marker is always <= binary image
 }
 
-//
-//// Operates on BINARY IMAGES ONLY
-//// ideally, output should be 64 bit unsigned.
-////	maximum number of labels in a single image is 18 exa-labels, in an image with minimum size of 2^32 x 2^32 pixels.
-//// rationale for going to this size is that if we go with 32 bit, even if unsigned, we can support 4 giga labels,
-////  in an image with minimum size of 2^16 x 2^16 pixels, which is only 65k x 65k.
-//// however, since the contour finding algorithm uses Vec4i, the maximum index can only be an int.  similarly, the image size is
-////  bound by Point's internal representation, so only int.  The Mat will therefore be of type CV_32S, or int.
-//Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
-//	CV_Assert(binaryImage.channels() == 1);
-//	// only works for binary images.
-//
-//	int lineThickness = CV_FILLED;
-//	if (contourOnly) lineThickness = 1;
-//
-//	// based on example from
-//	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
-//	// only outputs
-//
-////	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
-////	Mat input = binaryImage.clone();
-//	Mat_<int> output = Mat_<int>::zeros(binaryImage.size() + Size(2,2));
-//	Mat input(output.size(), binaryImage.type());
-//	copyMakeBorder(binaryImage, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-//
-//	std::vector<std::vector<Point> > contours;
-//	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
-//
-//	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-//	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
-//	std::cout << "num contours = " << contours.size() << std::endl;
-//
-//	int color = 1;
-//	uint64_t t1 = cciutils::ClockGetTime();
-//	// iterate over all top level contours (all siblings, draw with own label color
-//	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
-//		// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-//		drawContours( output, contours, idx, Scalar(color), lineThickness, connectivity, hierarchy );
-//	}
-//	uint64_t t2 = cciutils::ClockGetTime();
-//	std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
-//
-//	return output(Rect(1,1,binaryImage.cols, binaryImage.rows));
-//}
-//
+
+// Operates on BINARY IMAGES ONLY
+// ideally, output should be 64 bit unsigned.
+//	maximum number of labels in a single image is 18 exa-labels, in an image with minimum size of 2^32 x 2^32 pixels.
+// rationale for going to this size is that if we go with 32 bit, even if unsigned, we can support 4 giga labels,
+//  in an image with minimum size of 2^16 x 2^16 pixels, which is only 65k x 65k.
+// however, since the contour finding algorithm uses Vec4i, the maximum index can only be an int.  similarly, the image size is
+//  bound by Point's internal representation, so only int.  The Mat will therefore be of type CV_32S, or int.
+GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& stream) {
+	CV_Assert(binaryImage.channels() == 1);
+	CV_Assert(binaryImage.type() == CV_8U);
+	// only works for binary images.
+
+	GpuMat input = createContinuous(binaryImage.size(), binaryImage.type());
+	stream.enqueueCopy(binaryImage, input);
+
+	GpuMat output = createContinuous(binaryImage.size(), CV_32SC1);
+
+	::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)output.data, -1, connectivity, StreamAccessor::getStream(stream));
+	stream.waitForCompletion();
+	if (relab) {
+		int j = ::nscale::gpu::relabel(output.cols, output.rows, (int*)output.data, -1, StreamAccessor::getStream(stream));
+		printf(" num components = %d\n", j);
+	}
+
+	input.release();
+
+	return output;
+
+}
+
 //// Operates on BINARY IMAGES ONLY
 //// ideally, output should be 64 bit unsigned.
 ////	maximum number of labels in a single image is 18 exa-labels, in an image with minimum size of 2^32 x 2^32 pixels.
@@ -827,39 +817,31 @@ GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity
 //
 //	return true;
 //}
-//
-//// inclusive min, exclusive max
-//template <typename T>
-//Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivity) {
-//	// only works for binary images.
-//	CV_Assert(binaryImage.channels() == 1);
-//	CV_Assert(minSize > 0);
-//	CV_Assert(maxSize > 0);
-//
-//	// based on example from
-//	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
-//	// only outputs
-//
-//	Mat_<T> output = Mat_<T>::zeros(binaryImage.size());
-//	Mat input = binaryImage.clone();
-//
-//	std::vector<std::vector<Point> > contours;
-//	std::vector<Vec4i> hierarchy;  // 3rd entry in the vec is the child - holes.  1st entry in the vec is the next.
-//
-//	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
-//	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
-//	std::cout << "num contours = " << contours.size() << std::endl;
-//
-//	Scalar color(std::numeric_limits<T>::max());
-//	// iterate over all top level contours (all siblings, draw with own label color
-//	for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
-//		if (contourAreaFilter(contours, hierarchy, idx, minSize, maxSize)) {
-//			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
-//			drawContours(output, contours, idx, color, CV_FILLED, connectivity, hierarchy );
-//		}
-//	}
-//	return output;
-//}
+
+// inclusive min, exclusive max
+GpuMat bwareaopen(const GpuMat& binaryImage, int minSize, int maxSize, int connectivity, Stream& stream) {
+
+	CV_Assert(binaryImage.channels() == 1);
+	CV_Assert(binaryImage.type() == CV_8U);
+	// only works for binary images.
+
+	GpuMat input = createContinuous(binaryImage.size(), binaryImage.type());
+	stream.enqueueCopy(binaryImage, input);
+
+	GpuMat temp = createContinuous(binaryImage.size(), CV_32SC1);
+
+	::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)temp.data, -1, connectivity, StreamAccessor::getStream(stream));
+	stream.waitForCompletion();
+	input.release();
+
+	::nscale::gpu::areaThreshold(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
+
+	GpuMat output = ::nscale::gpu::PixelOperations::threshold(temp, 0, true, std::numeric_limits<int>::max(), true, stream);
+	stream.waitForCompletion();
+	temp.release();
+
+	return output;
+}
 
 template <typename T>
 GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) {

@@ -856,8 +856,8 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
 
 	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
 	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
-	//TODO: TEMP std::cout << "num contours = " << contours.size() << std::endl;
 
+	int j = 0;
 	if (contours.size() > 0) {
 		int color = 1;
 //		uint64_t t1 = cciutils::ClockGetTime();
@@ -865,16 +865,18 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 			drawContours( output, contours, idx, Scalar(color), lineThickness, connectivity, hierarchy );
+			j++;
 		}
 //		uint64_t t2 = cciutils::ClockGetTime();
 		//TODO: TEMP std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
 	}
+	std::cout << "num contours = " << contours.size() << std::endl;
 	return output(Rect(1,1,binaryImage.cols, binaryImage.rows));
 }
 
 // Operates on BINARY IMAGES ONLY
 // perform bwlabel using union find.
-Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity) {
+Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity, bool relab) {
 	CV_Assert(binaryImage.channels() == 1);
 	// only works for binary images.
 	CV_Assert(binaryImage.type() == CV_8U);
@@ -882,6 +884,13 @@ Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity) {
 	ConnComponents cc;
 	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
 	cc.label((unsigned char*) binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)output.data, -1, connectivity);
+
+	// relabel if requested
+	int j;
+	if (relab) {
+		j = cc.relabel(output.cols, output.rows, (int *)output.data, -1);
+		printf("%d number of components\n", j);
+	}
 
 	return output;
 }
@@ -1052,8 +1061,13 @@ Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivi
 	CV_Assert(binaryImage.type() == CV_8U);
 
 	ConnComponents cc;
-	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
-	cc.areaThreshold((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)output.data, -1, minSize, maxSize, connectivity);
+	Mat_<int> temp = Mat_<int>::zeros(binaryImage.size());
+	cc.areaThreshold((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)temp.data, -1, minSize, maxSize, connectivity);
+
+	Mat output = Mat::zeros(temp.size(), CV_8U);
+	output = temp > -1;
+
+	temp.release();
 
 	return output;
 }
@@ -1091,17 +1105,28 @@ Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connecti
 
 	 */
 
+	long long int t1, t2;
+	t1 = ::cciutils::ClockGetTime();
 	Mat minima = localMinima<float>(image, connectivity);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    cpu localMinima = %lld\n", t2-t1);
+
+	t1 = ::cciutils::ClockGetTime();
 //imwrite("test-minima.pbm", minima);
 	Mat_<int> labels = bwlabel(minima, false, connectivity);
 //imwrite("test-bwlabel.png", labels);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    cpu opencv bwlabel = %lld\n", t2-t1);
 
 // need borders, else get edges at edge.
 	Mat input, output;
 	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
+	t1 = ::cciutils::ClockGetTime();
 	watershed(input, output);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    cpu watershed = %lld\n", t2-t1);
 
 	//output = nscale::NeighborOperations::border(temp, 0, 8);
 
@@ -1120,18 +1145,31 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 		L = watershed_meyer(A,conn,cc);
 
 	 */
-
+	long long int t1, t2;
+	t1 = ::cciutils::ClockGetTime();
 	Mat minima = localMinima<float>(image, connectivity);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    cpu localMinima = %lld\n", t2-t1);
+
+	t1 = ::cciutils::ClockGetTime();
 //imwrite("test-minima.pbm", minima);
-	Mat_<int> labels = bwlabel2(minima, connectivity);
+	// watershed is sensitive to label values.  need to relabel.
+	Mat_<int> labels = bwlabel2(minima, connectivity, true);
 //imwrite("test-bwlabel.png", labels);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    cpu UF bwlabel2 = %lld\n", t2-t1);
+
 
 // need borders, else get edges at edge.
 	Mat input, output;
 	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, -1);
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
+	t1 = ::cciutils::ClockGetTime();
+
 	watershed(input, output);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    CPU watershed = %lld\n", t2-t1);
 
 	//output = nscale::NeighborOperations::border(temp, 0, 8);
 

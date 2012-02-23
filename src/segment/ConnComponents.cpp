@@ -6,7 +6,8 @@
  */
 
 #include "ConnComponents.h"
-#include <string.h>
+#include <string>
+#include <tr1/unordered_map>
 
 namespace nscale {
 
@@ -76,6 +77,36 @@ void ConnComponents::label(unsigned char *img, int w, int h, int *label, int bgv
 			}
 		}
 	}
+
+	// final flatten
+	for (int i = 0; i < length; ++i) {
+		label[i] = flatten(label, i, bgval);
+	}
+
+}
+
+// relabelling to get sequential labels.  assumes labeled image is flattened with background set to bgval
+int ConnComponents::relabel(int w, int h, int *label, int bgval) {
+	int length = w * h;
+	std::tr1::unordered_map<int, int> labelmap;
+
+	int j = 1;
+	// first find the roots
+	labelmap[bgval] = 0;
+	for (int i=0; i<length; ++i) {
+		if (label[i] == i) {
+			// root.  record its value
+			labelmap[i] = j;
+//			printf("root: %d: %d\n", j, i);
+			++j;
+		}
+	}
+
+	// next do a one pass value change.
+	for (int i = 0; i < length; ++i) {
+		label[i] = labelmap[label[i]];
+	}
+	return j-1;
 }
 
 

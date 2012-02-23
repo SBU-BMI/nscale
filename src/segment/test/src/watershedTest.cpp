@@ -30,17 +30,25 @@ using namespace cv::gpu;
 
 int main (int argc, char **argv){
 
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/astroII.1/astroII.1.ndpi-0000008192-0000008192-15.mask.pbm", -1);
-	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/gbm2.1/gbm2.1.ndpi-0000004096-0000004096-15.mask.pbm", -1);
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/normal.3/normal.3.ndpi-0000028672-0000012288-15.mask.pbm", -1);
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192-15.mask.pbm", -1);
-//	Mat seg_big = imread("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm", -1);
+	std::vector<std::string> segfiles;
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/astroII.1/astroII.1.ndpi-0000008192-0000008192-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/gbm2.1/gbm2.1.ndpi-0000004096-0000004096-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/normal.3/normal.3.ndpi-0000028672-0000012288-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm"));
 
-//	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif", -1);
-	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif", -1);
-//	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/normal.3/normal.3.ndpi-0000028672-0000012288.tif", -1);
-//	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192.tif", -1);
-//	Mat img = imread("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672.tif", -1);
+	std::vector<std::string> imgfiles;
+	imgfiles.push_back(std::string("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif"));
+	imgfiles.push_back(std::string("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif"));
+	imgfiles.push_back(std::string("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/normal.3/normal.3.ndpi-0000028672-0000012288.tif"));
+	imgfiles.push_back(std::string("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192.tif"));
+	imgfiles.push_back(std::string("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672.tif"));
+
+	for (int i = 0; i < segfiles.size(); ++i ) {
+
+		printf("testing file : %s\n", segfiles[i].c_str());
+	Mat seg_big = imread(segfiles[i].c_str(), -1);
+	Mat img = imread(imgfiles[i].c_str(), -1);
 	// original
 	Stream stream;
 
@@ -251,7 +259,7 @@ int main (int argc, char **argv){
 
 	seg_big.release();
 	img.release();
-
+	}
 	return 0;
 }
 
