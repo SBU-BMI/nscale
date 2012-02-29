@@ -172,7 +172,7 @@ int ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label, 
 	}
 	int j = 0;
 	//  TONY finally do the threshold and change the value of the
-	for (int i=0; i<length; ++i) {
+	for (i=0; i<length; ++i) {
 		// look at the roots
 		if (label[i] == i) {
 			//printf("%d, %d area = %d", i/w, i%w, areas[i]);
@@ -185,7 +185,7 @@ int ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label, 
 		}
 	}
 	// flatten one last time
-	for (int i = 0; i < length; ++i) {
+	for (i = 0; i < length; ++i) {
 		label[i] = flatten(label, i, bgval);
 	}
 

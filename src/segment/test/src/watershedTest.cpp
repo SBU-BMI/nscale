@@ -31,11 +31,11 @@ using namespace cv::gpu;
 int main (int argc, char **argv){
 
 	std::vector<std::string> segfiles;
-	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/astroII.1/astroII.1.ndpi-0000008192-0000008192-15.mask.pbm"));
-	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/gbm2.1/gbm2.1.ndpi-0000004096-0000004096-15.mask.pbm"));
-	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/normal.3/normal.3.ndpi-0000028672-0000012288-15.mask.pbm"));
-	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192-15.mask.pbm"));
-	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-gpu/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-cpu/astroII.1/astroII.1.ndpi-0000008192-0000008192-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-cpu/gbm2.1/gbm2.1.ndpi-0000004096-0000004096-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-cpu/normal.3/normal.3.ndpi-0000028672-0000012288-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-cpu/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192-15.mask.pbm"));
+	segfiles.push_back(std::string("/home/tcpan/PhD/path/Data/seg-validate-cpu/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672-15.mask.pbm"));
 
 	std::vector<std::string> imgfiles;
 	imgfiles.push_back(std::string("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif"));

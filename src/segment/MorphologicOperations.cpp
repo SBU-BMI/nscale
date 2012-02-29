@@ -881,9 +881,13 @@ Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity, bool relab) {
 	// only works for binary images.
 	CV_Assert(binaryImage.type() == CV_8U);
 
+	//copy, to make data continuous.
+	Mat input = Mat::zeros(binaryImage.size(), binaryImage.type());
+	binaryImage.copyTo(input);
+
 	ConnComponents cc;
-	Mat_<int> output = Mat_<int>::zeros(binaryImage.size());
-	cc.label((unsigned char*) binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)output.data, -1, connectivity);
+	Mat_<int> output = Mat_<int>::zeros(input.size());
+	cc.label((unsigned char*) input.data, input.cols, input.rows, (int *)output.data, -1, connectivity);
 
 	// relabel if requested
 	int j;
@@ -891,6 +895,8 @@ Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity, bool relab) {
 		j = cc.relabel(output.cols, output.rows, (int *)output.data, -1);
 		printf("%d number of components\n", j);
 	}
+
+	input.release();
 
 	return output;
 }
@@ -1055,20 +1061,23 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	return output(Rect(1,1, binaryImage.cols, binaryImage.rows));
 }
 // inclusive min, exclusive max
-template <typename T>
 Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
 	// only works for binary images.
 	CV_Assert(binaryImage.channels() == 1);
 	// only works for binary images.
 	CV_Assert(binaryImage.type() == CV_8U);
 
+	//copy, to make data continuous.
+	Mat input = Mat::zeros(binaryImage.size(), binaryImage.type());
+	binaryImage.copyTo(input);
+
 	ConnComponents cc;
-	Mat_<int> temp = Mat_<int>::zeros(binaryImage.size());
-	count = cc.areaThreshold((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)temp.data, -1, minSize, maxSize, connectivity);
+	Mat_<int> temp = Mat_<int>::zeros(input.size());
+	count = cc.areaThreshold((unsigned char*)input.data, input.cols, input.rows, (int *)temp.data, -1, minSize, maxSize, connectivity);
 
-	Mat output = Mat::zeros(temp.size(), CV_8U);
-	output = temp > -1;
+	Mat output = temp > (int)(-1);
 
+	input.release();
 	temp.release();
 
 	return output;
@@ -1314,7 +1323,6 @@ template Mat bwlabelFiltered<unsigned char>(const Mat& binaryImage, bool binaryO
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
 		bool contourOnly, int connectivity);
 template Mat bwareaopen<unsigned char>(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
-template Mat bwareaopen2<unsigned char>(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
 template Mat imhmin(const Mat& image, unsigned char h, int connectivity);
 template Mat imhmin(const Mat& image, float h, int connectivity);
 template Mat_<unsigned char> localMaxima<float>(const Mat& image, int connectivity);

@@ -57,7 +57,7 @@ bool contourAreaFilter(const std::vector<std::vector<cv::Point> >& contours, con
 // inclusive min, exclusive max.
 template <typename T>
 cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
-template <typename T>
+
 cv::Mat bwareaopen2(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
 
 template <typename T>

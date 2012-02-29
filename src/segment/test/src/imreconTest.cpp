@@ -48,8 +48,8 @@ int main (int argc, char **argv){
 */
 //	gpu::setDevice(1);
 
-	Mat marker = imread("test/in-imrecon-gray-marker.pgm", -1);
-	Mat mask = imread("test/in-imrecon-gray-mask.pgm", -1);
+	Mat marker = imread("/home/tcpan/PhD/path/src/nscale/src/segment/test/in-imrecon-gray-marker.pgm", -1);
+	Mat mask = imread("/home/tcpan/PhD/path/src/nscale/src/segment/test/in-imrecon-gray-mask.pgm", -1);
 	Mat markerb = marker > 64;
 	Mat maskb = mask > 32;
 	
@@ -163,6 +163,7 @@ int main (int argc, char **argv){
 //	stream.enqueueUpload(maskb, g_mask);
 //	stream.waitForCompletion();
 //	std::cout << "finished uploading" << std::endl;
+	t1 = cciutils::ClockGetTime();
 	g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, 4, numFirstPass,stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
@@ -225,7 +226,7 @@ int main (int argc, char **argv){
 	t1 = cciutils::ClockGetTime();
 	recon = nscale::imreconstruct<uchar>(marker, mask, 8);
 	t2 = cciutils::ClockGetTime();
-	std::cout << "recon8 took " << t2-t1 << "ms" << std::endl;
+	std::cout << " cpu recon8 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-recon8.ppm", recon);
 
 //	t1 = cciutils::ClockGetTime();

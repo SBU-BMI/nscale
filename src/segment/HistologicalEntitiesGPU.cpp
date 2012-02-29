@@ -384,7 +384,7 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
  */
 	int compcount;
 #if defined (USE_UF_CCL)	
-	GpuMat g_bw1_t = ::nscale::gpu::bwareaopen<unsigned char>(g_bw1, 11, 1000, 8, compcount, stream);
+	GpuMat g_bw1_t = ::nscale::gpu::bwareaopen(g_bw1, 11, 1000, 8, compcount, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_bw1_t, 8);
 #else
@@ -460,7 +460,7 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 	// bwareaopen is done as a area threshold.
 	int compcount;
 #if defined (USE_UF_CCL)
-	GpuMat g_seg_big_t = ::nscale::gpu::bwareaopen<unsigned char>(g_seg_open, 30, std::numeric_limits<int>::max(), 8, compcount, stream);
+	GpuMat g_seg_big_t = ::nscale::gpu::bwareaopen(g_seg_open, 30, std::numeric_limits<int>::max(), 8, compcount, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_big_t, 14);
 #else
@@ -759,7 +759,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 	 */
 	int compcount;
 #if defined (USE_UF_CCL)
-	GpuMat g_seg = ::nscale::gpu::bwareaopen<unsigned char>(g_seg_nonoverlap, 21, 1000, 4, compcount, stream);
+	GpuMat g_seg = ::nscale::gpu::bwareaopen(g_seg_nonoverlap, 21, 1000, 4, compcount, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg, 23);
 	

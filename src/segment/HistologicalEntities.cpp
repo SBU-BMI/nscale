@@ -228,7 +228,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("threshold1");
 	if (iresHandler) iresHandler->saveIntermediate(diffIm2, 6);
 
-	Mat bw1 = ::nscale::imfillHoles<uchar>(diffIm2, true, 4);
+	Mat bw1 = ::nscale::imfillHoles<unsigned char>(diffIm2, true, 4);
 //	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 	if (logger) logger->logTimeSinceLastLog("fillHoles1");
 	if (iresHandler) iresHandler->saveIntermediate(bw1, 7);
@@ -253,18 +253,19 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
  *
  */
 	int compcount;
+
 #if defined (USE_UF_CCL)
-	bw1 = ::nscale::bwareaopen2<unsigned char>(bw1, 11, 1000, 8, compcount);
+	Mat bw1_t = ::nscale::bwareaopen2(bw1, 11, 1000, 8, compcount);
 #else
-	bw1 = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
+	Mat bw1_t = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
 #endif
-	if (iresHandler) iresHandler->saveIntermediate(bw1, 8);
-	if (countNonZero(bw1) == 0) {
-		if (logger) logger->logTimeSinceLastLog("areaThreshold1");
+	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
+
+	bw1.release();
+	if (iresHandler) iresHandler->saveIntermediate(bw1_t, 8);
+	if (compcount == 0) {
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
-//	imwrite("test/out-nucleicandidatessized.ppm", bw1);
-	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
 
 
 	uchar G2 = 45;
@@ -281,7 +282,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	 *
 	 */
 
-	seg_norbc = ::nscale::bwselect<uchar>(bw2, bw1, 8);
+	seg_norbc = ::nscale::bwselect<uchar>(bw2, bw1_t, 8);
 	if (iresHandler) iresHandler->saveIntermediate(seg_norbc, 10);
 
 	seg_norbc = seg_norbc & (rbc == 0);
@@ -306,7 +307,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	// bwareaopen is done as a area threshold.
 	int compcount;
 #if defined (USE_UF_CCL)
-	Mat seg_big_t = ::nscale::bwareaopen2<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
+	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
 #else
 	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
 #endif
@@ -502,7 +503,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	 */
 	int compcount;
 #if defined (USE_UF_CCL)
-	Mat seg = ::nscale::bwareaopen2<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
+	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, 21, 1000, 4, compcount);
 #else
 	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
 #endif
