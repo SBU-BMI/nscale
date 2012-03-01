@@ -6,7 +6,8 @@
  */
 
 #include "ConnComponents.h"
-#include <string.h>
+#include <string>
+#include <tr1/unordered_map>
 
 namespace nscale {
 
@@ -76,6 +77,36 @@ void ConnComponents::label(unsigned char *img, int w, int h, int *label, int bgv
 			}
 		}
 	}
+
+	// final flatten
+	for (int i = 0; i < length; ++i) {
+		label[i] = flatten(label, i, bgval);
+	}
+
+}
+
+// relabelling to get sequential labels.  assumes labeled image is flattened with background set to bgval
+int ConnComponents::relabel(int w, int h, int *label, int bgval) {
+	int length = w * h;
+	std::tr1::unordered_map<int, int> labelmap;
+
+	int j = 1;
+	// first find the roots
+	labelmap[bgval] = 0;
+	for (int i=0; i<length; ++i) {
+		if (label[i] == i) {
+			// root.  record its value
+			labelmap[i] = j;
+//			printf("root: %d: %d\n", j, i);
+			++j;
+		}
+	}
+
+	// next do a one pass value change.
+	for (int i = 0; i < length; ++i) {
+		label[i] = labelmap[label[i]];
+	}
+	return j-1;
 }
 
 
@@ -108,7 +139,7 @@ int ConnComponents::flatten(int *label, int x, int bgval) {
 }
 
 // inclusive lower, exclusive upper
-void ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label, int bgval, int lower, int upper, int connectivity) {
+int ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label, int bgval, int lower, int upper, int connectivity) {
 
 	int length = w*h;
 
@@ -139,9 +170,9 @@ void ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label,
 			}
 		}
 	}
-
+	int j = 0;
 	//  TONY finally do the threshold and change the value of the
-	for (int i=0; i<length; ++i) {
+	for (i=0; i<length; ++i) {
 		// look at the roots
 		if (label[i] == i) {
 			//printf("%d, %d area = %d", i/w, i%w, areas[i]);
@@ -149,16 +180,17 @@ void ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label,
 				// reset the value of the root
 				label[i] = bgval;
 				//printf(", removed");
-			}
+			} else ++j;
 			//printf("\n");
 		}
 	}
 	// flatten one last time
-	for (int i = 0; i < length; ++i) {
+	for (i = 0; i < length; ++i) {
 		label[i] = flatten(label, i, bgval);
 	}
 
 	delete [] areas;
+	return j;
 }
 
 }

@@ -228,7 +228,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("threshold1");
 	if (iresHandler) iresHandler->saveIntermediate(diffIm2, 6);
 
-	Mat bw1 = ::nscale::imfillHoles<uchar>(diffIm2, true, 4);
+	Mat bw1 = ::nscale::imfillHoles<unsigned char>(diffIm2, true, 4);
 //	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 	if (logger) logger->logTimeSinceLastLog("fillHoles1");
 	if (iresHandler) iresHandler->saveIntermediate(bw1, 7);
@@ -252,14 +252,20 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
     end
  *
  */
-	bw1 = ::nscale::bwareaopen<uchar>(bw1, 11, 1000, 8);
-	if (iresHandler) iresHandler->saveIntermediate(bw1, 8);
-	if (countNonZero(bw1) == 0) {
-		if (logger) logger->logTimeSinceLastLog("areaThreshold1");
+	int compcount;
+
+#if defined (USE_UF_CCL)
+	Mat bw1_t = ::nscale::bwareaopen2(bw1, 11, 1000, 8, compcount);
+#else
+	Mat bw1_t = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
+#endif
+	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
+
+	bw1.release();
+	if (iresHandler) iresHandler->saveIntermediate(bw1_t, 8);
+	if (compcount == 0) {
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
-//	imwrite("test/out-nucleicandidatessized.ppm", bw1);
-	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
 
 
 	uchar G2 = 45;
@@ -276,7 +282,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	 *
 	 */
 
-	seg_norbc = ::nscale::bwselect<uchar>(bw2, bw1, 8);
+	seg_norbc = ::nscale::bwselect<uchar>(bw2, bw1_t, 8);
 	if (iresHandler) iresHandler->saveIntermediate(seg_norbc, 10);
 
 	seg_norbc = seg_norbc & (rbc == 0);
@@ -299,7 +305,12 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
 	 */
 	// bwareaopen is done as a area threshold.
-	Mat seg_big_t = ::nscale::bwareaopen<uchar>(seg_open, 30, std::numeric_limits<int>::max(), 8);
+	int compcount;
+#if defined (USE_UF_CCL)
+	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
+#else
+	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
+#endif
 	if (logger) logger->logTimeSinceLastLog("30To1000");
 	if (iresHandler) iresHandler->saveIntermediate(seg_big_t, 14);
 
@@ -385,7 +396,11 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
+#if defined (USE_UF_CCL)
 	Mat watermask = ::nscale::watershed2(nuclei, distance2, 8);
+#else
+	Mat watermask = ::nscale::watershed(nuclei, distance2, 8);
+#endif
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 	if (logger) logger->logTimeSinceLastLog("watershed");
 	if (iresHandler) iresHandler->saveIntermediate(watermask, 20);
@@ -486,7 +501,12 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
     seg = ismember(L,ind);
 	 *
 	 */
-	Mat seg = ::nscale::bwareaopen<uchar>(seg_nonoverlap, 21, 1000, 4);
+	int compcount;
+#if defined (USE_UF_CCL)
+	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, 21, 1000, 4, compcount);
+#else
+	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
+#endif
 	if (logger) logger->logTimeSinceLastLog("20To1000");
 	if (countNonZero(seg) == 0) {
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;

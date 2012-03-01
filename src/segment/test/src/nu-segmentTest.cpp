@@ -27,14 +27,14 @@ using namespace cv;
 
 
 int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, bool &debug,
-		::cciutils::SimpleCSVLogger *logger);
+		::cciutils::SimpleCSVLogger *&logger);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
 void compute(const char *input, const char *mask, const char *output, const int modecode, bool &debug,
 		::cciutils::SimpleCSVLogger *logger);
 
 int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, bool &debug,
-		::cciutils::SimpleCSVLogger *logger) {
+		::cciutils::SimpleCSVLogger *&logger) {
 	if (argc < 5) {
 		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id <time | debug> [cpu | gpu [id]]" << std::endl;
 		return -1;
@@ -186,6 +186,8 @@ int main (int argc, char **argv){
     	::cciutils::SimpleCSVLogger *logger = NULL;
     	bool debug = false;
     	int status = parseInput(argc, argv, modecode, imageName, outDir, debug, logger);
+
+    	printf("logger created ? %s \n", logger == NULL ? "no" : "yes");
     	if (status != 0) return status;
 
     	uint64_t t0 = 0, t1 = 0, t2 = 0;

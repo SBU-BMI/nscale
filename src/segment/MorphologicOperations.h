@@ -43,7 +43,7 @@ template <typename T>
 cv::Mat bwselect(const cv::Mat& binaryImage, const cv::Mat& seeds, int connectivity);
 
 cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, bool contourOnly, int connectivity);
-cv::Mat_<int> bwlabel2(const cv::Mat& binaryImage, int connectivity);
+cv::Mat_<int> bwlabel2(const cv::Mat& binaryImage, int connectivity, bool relab);
 
 // incorporates a filter for the contours.
 template <typename T>
@@ -56,9 +56,9 @@ bool contourAreaFilter(const std::vector<std::vector<cv::Point> >& contours, con
 
 // inclusive min, exclusive max.
 template <typename T>
-cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity);
-template <typename T>
-cv::Mat bwareaopen2(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity);
+cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
+
+cv::Mat bwareaopen2(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
 
 template <typename T>
 cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
@@ -129,8 +129,8 @@ cv::gpu::GpuMat imfillHoles(const cv::gpu::GpuMat& image, bool binary, int conne
 template <typename T>
 cv::gpu::GpuMat bwselect(const cv::gpu::GpuMat& binaryImage, const cv::gpu::GpuMat& seeds, int connectivity, cv::gpu::Stream& stream);
 
-//cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, bool contourOnly, int connectivity);
-//// incorporates a filter for the contours.
+cv::gpu::GpuMat bwlabel(const cv::gpu::GpuMat& binaryImage, int connectivity, bool relab, cv::gpu::Stream& stream);
+// incorporates a filter for the contours.
 //template <typename T>
 //cv::Mat bwlabelFiltered(const cv::Mat& binaryImage, bool binaryOutput,
 //		bool (*contourFilter)(const std::vector<std::vector<cv::Point> >&, const std::vector<cv::Vec4i>&, int),
@@ -141,9 +141,8 @@ cv::gpu::GpuMat bwselect(const cv::gpu::GpuMat& binaryImage, const cv::gpu::GpuM
 //// inclusive min, exclusive max
 //bool contourAreaFilter2(const std::vector<std::vector<cv::Point> >& contours, const std::vector<cv::Vec4i>& hierarchy, int idx, int minArea, int maxArea);
 //
-//// inclusive min, exclusive max.
-//template <typename T>
-//cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity);
+// inclusive min, exclusive max.
+cv::gpu::GpuMat bwareaopen(const cv::gpu::GpuMat& binaryImage, int minSize, int maxSize, int connectivity, int& count, Stream& stream);
 //
 template <typename T>
 cv::gpu::GpuMat imhmin(const cv::gpu::GpuMat& image, T h, int connectivity, cv::gpu::Stream& stream);

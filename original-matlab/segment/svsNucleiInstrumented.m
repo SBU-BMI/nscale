@@ -9,8 +9,8 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
             'normal.3/normal.3.ndpi-0000028672-0000012288',...
             };
         impath='/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/';
-        resultpath='/home/tcpan/PhD/path/Data/seg-validate-ws-cpu/';
-        validationpath='/home/tcpan/PhD/path/Data/seg-validate-ws-cpu/';
+        resultpath='/home/tcpan/PhD/path/Data/seg-uf-cpu-debug/';
+        validationpath='/home/tcpan/PhD/path/Data/seg-uf-cpu-debug/';
         fileext = '.tif';
 
         for i = 1:length(image)

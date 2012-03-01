@@ -19,7 +19,10 @@ public:
 	virtual ~ConnComponents();
 
 	void label(unsigned char *img, int w, int h, int *label, int bgval, int connectivity);
-	void areaThreshold(unsigned char *img, int w, int h, int *label, int bgval, int lower, int upper, int connectivity);
+	int areaThreshold(unsigned char *img, int w, int h, int *label, int bgval, int lower, int upper, int connectivity);
+
+	int relabel(int w, int h, int *label, int bgval);
+
 protected:
 	int find(int *label, int x);
 	void merge(int *label, int x, int y);
