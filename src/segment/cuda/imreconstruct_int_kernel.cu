@@ -958,6 +958,8 @@ template <typename T> int *imreconstructIntCallerBuildQueue(T* __restrict__ mark
 
 template unsigned int imreconstructIntCaller<unsigned char>(unsigned char*, const unsigned char*, const int, const int,
 		const int, cudaStream_t);
+template unsigned int imreconstructIntCaller<int>(int*, const int*, const int, const int,
+		const int, cudaStream_t);
 //,unsigned char*h_markerFistPass );
 
 template int *imreconstructIntCallerBuildQueue<unsigned char>(unsigned char*, const unsigned char*, const int, const int, const int, int&, int, cudaStream_t);

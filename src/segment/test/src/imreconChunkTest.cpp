@@ -40,15 +40,15 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 ;
 	
 /*	t1 = cciutils::ClockGetTime();
-	if (binary) recon = nscale::imreconstructBinary<uchar>(marker, mask, 4);
-	else recon = nscale::imreconstruct<uchar>(marker, mask, 4);
+	if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker, mask, 4);
+	else recon = nscale::imreconstruct<unsigned char>(marker, mask, 4);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tcpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 */
 	if (w == -1) {
 		t1 = cciutils::ClockGetTime();
-		if (binary) recon = nscale::imreconstructBinary<uchar>(marker, mask, 8);
-		else recon = nscale::imreconstruct<uchar>(marker, mask, 8);
+		if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker, mask, 8);
+		else recon = nscale::imreconstruct<unsigned char>(marker, mask, 8);
 		t2 = cciutils::ClockGetTime();
 		std::cout << "cpu,imrecon," << (binary ? "binary" : "grayscale") << ",8,"<<s.width << ",0," << t2-t1 << std::endl;
 	} else {
@@ -60,8 +60,8 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 				Range rx = Range((i-b > 0 ? i-b : 0), (i+w+b < s.width ? i+w+b : s.width));
 				Range ry = Range((j-b > 0 ? j-b : 0), (j+w+b < s.height ? j+w+b : s.height));
 				
-				if (binary) recon = nscale::imreconstructBinary<uchar>(marker(rx, ry), mask(rx, ry), 8);
-				else recon = nscale::imreconstruct<uchar>(marker(rx, ry), mask(rx, ry), 8);
+				if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker(rx, ry), mask(rx, ry), 8);
+				else recon = nscale::imreconstruct<unsigned char>(marker(rx, ry), mask(rx, ry), 8);
 				uint64_t t4 = cciutils::ClockGetTime();
 
 				//std::cout << "\t\tchunk "<< i << "," << j << " took " << t4-t3 << "ms " <<  std::endl;
@@ -94,14 +94,14 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 //	std::cout << "\tfinished uploading to GPU" << std::endl;
 
 //	t1 = cciutils::ClockGetTime();
-//	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 4, stream);
+//	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 4, stream);
 //	stream.waitForCompletion();
 //	t2 = cciutils::ClockGetTime();
 //	std::cout << "\tgpu recon2 4-con took " << t2-t1 << "ms" << std::endl;
 //	g_recon.release();
 //
 //	t1 = cciutils::ClockGetTime();
-//	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 8, stream);
+//	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 8, stream);
 //	stream.waitForCompletion();
 //	t2 = cciutils::ClockGetTime();
 //	std::cout << "\tgpu recon2 8-con took " << t2-t1 << "ms" << std::endl;
@@ -109,8 +109,8 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 
 	
 /*	t1 = cciutils::ClockGetTime();
-	if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 4, stream);
-	else g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
+	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 4, stream);
+	else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon 4-con took " << t2-t1 << "ms" << std::endl;
@@ -118,8 +118,8 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 */
 	if (w == -1) {
 		t1 = cciutils::ClockGetTime();
-		if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 8, stream);
-		else g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 8, stream);
+		if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 8, stream);
+		else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 8, stream);
 		stream.waitForCompletion();
 		t2 = cciutils::ClockGetTime();
 		std::cout << "gpu,imrecon," << (binary ? "binary" : "grayscale") << ",8,"<< s.width <<",0,"<< t2-t1 << std::endl;
@@ -135,8 +135,8 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 				Range rx = Range((i-b > 0 ? i-b : 0), (i+w+b < s.width ? i+w+b : s.width));
 				Range ry = Range((j-b > 0 ? j-b : 0), (j+w+b < s.height ? j+w+b : s.height));
 				
-				if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker(rx, ry), g_mask(rx, ry), 8, stream, iter);
-				else g_recon = nscale::gpu::imreconstruct<uchar>(g_marker(rx, ry), g_mask(rx, ry), 8, stream, iter);
+				if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker(rx, ry), g_mask(rx, ry), 8, stream, iter);
+				else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker(rx, ry), g_mask(rx, ry), 8, stream, iter);
 				stream.waitForCompletion();
 				uint64_t t4 = cciutils::ClockGetTime();
 

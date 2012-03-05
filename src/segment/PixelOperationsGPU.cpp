@@ -254,6 +254,7 @@ GpuMat PixelOperations::mod(GpuMat& img, T mod, Stream& stream) {
 #endif
 
 template GpuMat PixelOperations::invert<unsigned char>(const GpuMat&, Stream&);
+template GpuMat PixelOperations::invert<int>(const GpuMat&, Stream&);  // for imfillholes
 template GpuMat PixelOperations::invert<float>(const GpuMat&, Stream&);
 template GpuMat PixelOperations::threshold<float>(const GpuMat&, float, bool, float, bool, Stream&);
 template GpuMat PixelOperations::threshold<double>(const GpuMat&, double, bool, double, bool, Stream&);

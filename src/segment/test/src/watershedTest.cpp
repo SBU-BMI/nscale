@@ -105,7 +105,7 @@ int main (int argc, char **argv){
 //	Mat dist4 = Mat::zeros(distance3.size(), distance3.type());
 //	distance3.copyTo(dist4, seg_big);
 //	Mat dist5(dist4.size(), CV_8U);
-//	dist4.convertTo(dist5, CV_8U, (std::numeric_limits<uchar>::max() / mmax));
+//	dist4.convertTo(dist5, CV_8U, (std::numeric_limits<unsigned char>::max() / mmax));
 //	cvtColor(dist5, nuclei, CV_GRAY2BGR);
 	img.copyTo(nuclei, seg_big);
 

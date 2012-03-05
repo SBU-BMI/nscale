@@ -67,9 +67,9 @@ cv::Mat_<int> watershed(const cv::Mat& origImage, const cv::Mat_<float>& image, 
 cv::Mat_<int> watershed2(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
 
 template <typename T>
-cv::Mat_<uchar> localMaxima(const cv::Mat& image, int connectivity);
+cv::Mat_<unsigned char> localMaxima(const cv::Mat& image, int connectivity);
 template <typename T>
-cv::Mat_<uchar> localMinima(const cv::Mat& image, int connectivity);
+cv::Mat_<unsigned char> localMinima(const cv::Mat& image, int connectivity);
 
 template <typename T>
 cv::Mat morphOpen(const cv::Mat& image, const cv::Mat& kernel);
@@ -151,9 +151,9 @@ cv::gpu::GpuMat imhmin(const cv::gpu::GpuMat& image, T h, int connectivity, cv::
 cv::gpu::GpuMat watershedDW(const cv::gpu::GpuMat& maskImage, const cv::gpu::GpuMat& image, int background, int connectivity, cv::gpu::Stream& stream);
 //
 //template <typename T>
-//cv::Mat_<uchar> localMaxima(const cv::Mat& image, int connectivity);
+//cv::Mat_<unsigned char> localMaxima(const cv::Mat& image, int connectivity);
 //template <typename T>
-//cv::Mat_<uchar> localMinima(const cv::Mat& image, int connectivity);
+//cv::Mat_<unsigned char> localMinima(const cv::Mat& image, int connectivity);
 
 
 template <typename T>

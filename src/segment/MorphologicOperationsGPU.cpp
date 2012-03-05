@@ -355,7 +355,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 		// Create an int version of the input marker
 		markerIntVector[i] = createContinuous(seeds[i].size(), CV_32S);
 	
-		// Perform appropriate conversion from uchar to int
+		// Perform appropriate conversion from unsigned char to int
 		markerVector[i].convertTo(markerIntVector[i], CV_32S);
 
 	}
@@ -655,7 +655,10 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 //	uint64_t t1 = cciutils::ClockGetTime();
 	GpuMat output2;
 	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
-	else output2 = imreconstruct<T>(marker, mask, connectivity, stream);
+	else if (sizeof(T) == 1 && !(std::numeric_limits<T>::is_signed))
+		output2 = imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 1, stream);
+	else
+		output2 = imreconstruct<T>(marker, mask, connectivity, stream);
 //	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
 	stream.waitForCompletion();
 //	uint64_t t2 = cciutils::ClockGetTime();
@@ -861,7 +864,11 @@ GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) {
 	stream.waitForCompletion();
 	GpuMat marker(mask.size(), mask.type());
 	subtract(mask, Scalar(h), marker);
-	GpuMat recon = nscale::gpu::imreconstruct<T>(marker, mask, connectivity, stream);
+	GpuMat recon;
+	if (sizeof(T) == 1 && !(std::numeric_limits<T>::is_signed))
+		recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 1, stream);
+	else
+		recon = nscale::gpu::imreconstruct<T>(marker, mask, connectivity, stream);
 	GpuMat output = nscale::gpu::PixelOperations::invert<T>(recon,stream);
 	stream.waitForCompletion();
 	recon.release();
@@ -987,12 +994,12 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 //
 //// only works with integer images
 //template <typename T>
-//Mat_<uchar> localMaxima(const Mat& image, int connectivity) {
+//Mat_<unsigned char> localMaxima(const Mat& image, int connectivity) {
 //	CV_Assert(image.channels() == 1);
 //
 //	// use morphologic reconstruction.
 //	Mat marker = image - 1;
-//	Mat_<uchar> candidates =
+//	Mat_<unsigned char> candidates =
 //			marker < imreconstruct<T>(marker, image, connectivity);
 ////	candidates marked as 0 because floodfill with mask will fill only 0's
 ////	return (image - imreconstruct(marker, image, 8)) >= (1 - std::numeric_limits<T>::epsilon());
@@ -1001,8 +1008,8 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 //	// now check the candidates
 //	// first pad the border
 //	T mn = cciutils::min<T>();
-//	T mx = std::numeric_limits<uchar>::max();
-//	Mat_<uchar> output(candidates.size() + Size(2,2));
+//	T mx = std::numeric_limits<unsigned char>::max();
+//	Mat_<unsigned char> output(candidates.size() + Size(2,2));
 //	copyMakeBorder(candidates, output, 1, 1, 1, 1, BORDER_CONSTANT, mx);
 //	Mat input(image.size() + Size(2,2), image.type());
 //	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, mn);
@@ -1012,7 +1019,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 //	int xminus, xplus;
 //	T val;
 //	T *iPtr, *iPtrMinus, *iPtrPlus;
-//	uchar *oPtr;
+//	unsigned char *oPtr;
 //	Rect reg(1, 1, image.cols, image.rows);
 //	Scalar zero(0);
 //	Scalar smx(mx);
@@ -1026,7 +1033,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 //		iPtr = input.ptr<T>(y);
 //		iPtrMinus = input.ptr<T>(y-1);
 //		iPtrPlus = input.ptr<T>(y+1);
-//		oPtr = output.ptr<uchar>(y);
+//		oPtr = output.ptr<unsigned char>(y);
 //
 //		for (int x = 1; x < maxx; ++x) {
 //
@@ -1062,7 +1069,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 //}
 //
 //template <typename T>
-//Mat_<uchar> localMinima(const Mat& image, int connectivity) {
+//Mat_<unsigned char> localMinima(const Mat& image, int connectivity) {
 //	// only works for intensity images.
 //	CV_Assert(image.channels() == 1);
 //
@@ -1213,18 +1220,18 @@ GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {
 
 
 
-//template Mat imfill<uchar>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
-//template Mat bwselect<uchar>(const Mat& binaryImage, const Mat& seeds, int connectivity);
-//template Mat bwlabelFiltered<uchar>(const Mat& binaryImage, bool binaryOutput,
+//template Mat imfill<unsigned char>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
+//template Mat bwselect<unsigned char>(const Mat& binaryImage, const Mat& seeds, int connectivity);
+//template Mat bwlabelFiltered<unsigned char>(const Mat& binaryImage, bool binaryOutput,
 //		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
 //		bool contourOnly, int connectivity);
-//template Mat bwareaopen<uchar>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
-//template Mat imhmin(const Mat& image, uchar h, int connectivity);
+//template Mat bwareaopen<unsigned char>(const Mat& binaryImage, int minSize, int maxSize, int connectivity);
+//template Mat imhmin(const Mat& image, unsigned char h, int connectivity);
 //template Mat imhmin(const Mat& image, float h, int connectivity);
-//template Mat_<uchar> localMaxima<float>(const Mat& image, int connectivity);
-//template Mat_<uchar> localMinima<float>(const Mat& image, int connectivity);
-//template Mat_<uchar> localMaxima<uchar>(const Mat& image, int connectivity);
-//template Mat_<uchar> localMinima<uchar>(const Mat& image, int connectivity);
+//template Mat_<unsigned char> localMaxima<float>(const Mat& image, int connectivity);
+//template Mat_<unsigned char> localMinima<float>(const Mat& image, int connectivity);
+//template Mat_<unsigned char> localMaxima<unsigned char>(const Mat& image, int connectivity);
+//template Mat_<unsigned char> localMinima<unsigned char>(const Mat& image, int connectivity);
 
 #endif
 
@@ -1239,6 +1246,12 @@ template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Strea
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 template GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
+
+template GpuMat imfillHoles<int>(const GpuMat&, bool, int, Stream&);
+template GpuMat imreconstruct<int>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstruct<int>(const GpuMat&, const GpuMat&, int, Stream&);
+template GpuMat imreconstructBinary<int>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template GpuMat imreconstructBinary<int>(const GpuMat&, const GpuMat&, int, Stream&);
 
 template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
 template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);

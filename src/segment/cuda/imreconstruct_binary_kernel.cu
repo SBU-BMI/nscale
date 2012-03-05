@@ -717,4 +717,6 @@ bRec1DBackward_Y_dilation_8 ( T* __restrict__ marker, const T* __restrict__ mask
 
 	template unsigned int imreconstructBinaryCaller<unsigned char>(unsigned char*, const unsigned char*, const int, const int,
 		const int, cudaStream_t );
+	template unsigned int imreconstructBinaryCaller<int>(int*, const int*, const int, const int,
+		const int, cudaStream_t );
 }}

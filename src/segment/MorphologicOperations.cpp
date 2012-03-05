@@ -41,7 +41,7 @@ inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::q
 
 template
 inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
-		int, int, uchar* iPtr, uchar* oPtr, const uchar&);
+		int, int, unsigned char* iPtr, unsigned char* oPtr, const unsigned char&);
 template
 inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, float* iPtr, float* oPtr, const float&);
@@ -396,9 +396,9 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 
 
 inline void propagateUchar(int *irev, int *ifwd,
-		int& x, int offset, uchar* iPtr, uchar* oPtr, uchar& pval) {
-    uchar val1 = oPtr[x];
-    uchar ival = iPtr[x];
+		int& x, int offset, unsigned char* iPtr, unsigned char* oPtr, unsigned char& pval) {
+    unsigned char val1 = oPtr[x];
+    unsigned char ival = iPtr[x];
     int val2 = pval < ival ? pval : ival;
     if (val1 < val2) {
       if (val1 != 0) {  // if the neighbor's value is going to be replaced, remove the neighbor from list
@@ -433,7 +433,7 @@ Mat imreconstructUChar(const Mat& seeds, const Mat& image, int connectivity) {
 	  int offset, currentP;
 	  int currentQ;  // current value in downhill
 	  int pixPerImg=width*height;
-	  uchar val, maxVal = 0;
+	  unsigned char val, maxVal = 0;
 	  int val1;
 	  int *istart,*irev,*ifwd;
 
@@ -451,7 +451,7 @@ Mat imreconstructUChar(const Mat& seeds, const Mat& image, int connectivity) {
 
 	  // populate the lists with pixel locations - essentially sorting the image by pixel values
 	  // backward traversal here will result in forward traversal in the next step.
-	  MatIterator_<uchar> mend = output.end<uchar>();
+	  MatIterator_<unsigned char> mend = output.end<unsigned char>();
 	  for (offset = pixPerImg-1, --mend; offset >= 0; --mend, --offset) {
 		  val = *mend;
 		  if (val > 0) {
@@ -468,9 +468,9 @@ Mat imreconstructUChar(const Mat& seeds, const Mat& image, int connectivity) {
 	  int xminus, xplus, yminus, yplus;
 	  int maxx = width - 1;
 	  int maxy = height - 1;
-	  uchar pval;
+	  unsigned char pval;
 	  int x, y;
-	  uchar *oPtr, *oPtrPlus, *oPtrMinus, *iPtr, *iPtrPlus, *iPtrMinus;
+	  unsigned char *oPtr, *oPtrPlus, *oPtrMinus, *iPtr, *iPtrPlus, *iPtrMinus;
 	  for (currentQ = -maxVal; currentQ < 0; ++currentQ) {
 	    currentP = irev[currentQ];   // get the head of the list for the curr value
 	    while (currentP >= 0) {  // non empty list
@@ -485,12 +485,12 @@ Mat imreconstructUChar(const Mat& seeds, const Mat& image, int connectivity) {
 			yminus = y-1;
 			yplus = y+1;
 
-			oPtr = output.ptr<uchar>(y);
-			oPtrPlus = output.ptr<uchar>(yplus);
-			oPtrMinus = output.ptr<uchar>(yminus);
-			iPtr = input.ptr<uchar>(y);
-			iPtrPlus = input.ptr<uchar>(yplus);
-			iPtrMinus = input.ptr<uchar>(yminus);
+			oPtr = output.ptr<unsigned char>(y);
+			oPtrPlus = output.ptr<unsigned char>(yplus);
+			oPtrMinus = output.ptr<unsigned char>(yminus);
+			iPtr = input.ptr<unsigned char>(y);
+			iPtrPlus = input.ptr<unsigned char>(yplus);
+			iPtrMinus = input.ptr<unsigned char>(yminus);
 
 			pval = oPtr[x];
 
@@ -555,7 +555,7 @@ inline void propagateBinary(const Mat& image, Mat& output, std::queue<int>& xQ, 
 
 template
 inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
-		int, int, uchar* iPtr, uchar* oPtr, const uchar&);
+		int, int, unsigned char* iPtr, unsigned char* oPtr, const unsigned char&);
 template
 inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, float* iPtr, float* oPtr, const float&);
@@ -1189,12 +1189,12 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 
 // only works with integer images
 template <typename T>
-Mat_<uchar> localMaxima(const Mat& image, int connectivity) {
+Mat_<unsigned char> localMaxima(const Mat& image, int connectivity) {
 	CV_Assert(image.channels() == 1);
 
 	// use morphologic reconstruction.
 	Mat marker = image - 1;
-	Mat_<uchar> candidates =
+	Mat_<unsigned char> candidates =
 			marker < imreconstruct<T>(marker, image, connectivity);
 //	candidates marked as 0 because floodfill with mask will fill only 0's
 //	return (image - imreconstruct(marker, image, 8)) >= (1 - std::numeric_limits<T>::epsilon());
@@ -1203,8 +1203,8 @@ Mat_<uchar> localMaxima(const Mat& image, int connectivity) {
 	// now check the candidates
 	// first pad the border
 	T mn = cciutils::min<T>();
-	T mx = std::numeric_limits<uchar>::max();
-	Mat_<uchar> output(candidates.size() + Size(2,2));
+	T mx = std::numeric_limits<unsigned char>::max();
+	Mat_<unsigned char> output(candidates.size() + Size(2,2));
 	copyMakeBorder(candidates, output, 1, 1, 1, 1, BORDER_CONSTANT, mx);
 	Mat input(image.size() + Size(2,2), image.type());
 	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, mn);
@@ -1214,7 +1214,7 @@ Mat_<uchar> localMaxima(const Mat& image, int connectivity) {
 	int xminus, xplus;
 	T val;
 	T *iPtr, *iPtrMinus, *iPtrPlus;
-	uchar *oPtr;
+	unsigned char *oPtr;
 	Rect reg(1, 1, image.cols, image.rows);
 	Scalar zero(0);
 	Scalar smx(mx);
@@ -1228,7 +1228,7 @@ Mat_<uchar> localMaxima(const Mat& image, int connectivity) {
 		iPtr = input.ptr<T>(y);
 		iPtrMinus = input.ptr<T>(y-1);
 		iPtrPlus = input.ptr<T>(y+1);
-		oPtr = output.ptr<uchar>(y);
+		oPtr = output.ptr<unsigned char>(y);
 
 		for (int x = 1; x < maxx; ++x) {
 
@@ -1264,7 +1264,7 @@ Mat_<uchar> localMaxima(const Mat& image, int connectivity) {
 }
 
 template <typename T>
-Mat_<uchar> localMinima(const Mat& image, int connectivity) {
+Mat_<unsigned char> localMinima(const Mat& image, int connectivity) {
 	// only works for intensity images.
 	CV_Assert(image.channels() == 1);
 
@@ -1311,13 +1311,17 @@ Mat morphOpen(const Mat& image, const Mat& kernel) {
 
 
 
-//template Mat imreconstructGeorge<uchar>(const Mat& seeds, const Mat& image, int connectivity);
+//template Mat imreconstructGeorge<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
 
 template Mat imreconstructBinary<unsigned char>(const Mat& seeds, const Mat& binaryImage, int connectivity);
 template Mat imfill<unsigned char>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
 template Mat imfillHoles<unsigned char>(const Mat& image, bool binary, int connectivity);
+template Mat imfillHoles<int>(const Mat& image, bool binary, int connectivity);
+template Mat imreconstruct<int>(const Mat& seeds, const Mat& image, int connectivity);
+template Mat imreconstructBinary<int>(const Mat& seeds, const Mat& binaryImage, int connectivity);
+
 template Mat bwselect<unsigned char>(const Mat& binaryImage, const Mat& seeds, int connectivity);
 template Mat bwlabelFiltered<unsigned char>(const Mat& binaryImage, bool binaryOutput,
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),

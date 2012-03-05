@@ -71,12 +71,12 @@ Mat PixelOperations::bgr2gray(const ::cv::Mat& img){
 	int nr = img.rows, nc = img.cols;
 
 	for(int i=0; i<nr; i++){
-		const uchar* data_in = img.ptr<uchar>(i);
-		uchar* data_out = gray.ptr<uchar>(i);
+		const unsigned char* data_in = img.ptr<unsigned char>(i);
+		unsigned char* data_out = gray.ptr<unsigned char>(i);
 		for(int j=0; j<nc; j++){
-			uchar b = data_in[j * imageChannels];
-			uchar g = data_in[j * imageChannels + 1];
-			uchar r = data_in[j * imageChannels + 2];
+			unsigned char b = data_in[j * imageChannels];
+			unsigned char g = data_in[j * imageChannels + 1];
+			unsigned char r = data_in[j * imageChannels + 2];
 			double grayPixelValue = r_const * (double)r + g_const * (double)g + b_const * (double)b;
 			data_out[j] = cciutils::double2uchar(grayPixelValue);
 		}
@@ -145,7 +145,7 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 	Mat dn = Mat::zeros(nr, nc, CV_64FC3);
 	if (image.channels() == 1){
 		for(int i=0; i<nr; i++){
-			const uchar* data_in = image.ptr<uchar>(i);
+			const unsigned char* data_in = image.ptr<unsigned char>(i);
 			double* data_out = dn.ptr<double>(i);
 			for(int j=0; j<nc; j++){
 				data_out[j] = -(255.0*log(((double)(data_in[j])+1.0)/255.0))/log(255.0);
@@ -160,7 +160,7 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 		}
 
 		for(int i=0; i<nr; i++){
-			const uchar* data_in = image.ptr<uchar>(i);
+			const unsigned char* data_in = image.ptr<unsigned char>(i);
 			double* data_out = dn.ptr<double>(i);
 				for(int j=0; j<nc; j++){
 					for(int k=0; k<imageChannels; k++){
@@ -225,8 +225,8 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 	//denormalized H and E channels
 	double temp;
 	for(int i=0; i<nr; i++){
-		uchar *E_ptr = E.ptr<uchar>(i);
-		uchar *H_ptr = H.ptr<uchar>(i);
+		unsigned char *E_ptr = E.ptr<unsigned char>(i);
+		unsigned char *H_ptr = H.ptr<unsigned char>(i);
 		const double *cn_ptr = cn.ptr<double>(i);
 		double log255div255 = log(255.0)/255.0;
 
@@ -246,6 +246,8 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 
 template Mat PixelOperations::invert<unsigned char>(const Mat&);
 template Mat PixelOperations::invert<float>(const Mat&);
+template Mat PixelOperations::invert<int>(const Mat&);  // for imfillholes
+
 
 template Mat PixelOperations::mod<unsigned char>(Mat&, unsigned char mod);
 template Mat PixelOperations::mod<int>(Mat&, int mod);

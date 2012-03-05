@@ -56,28 +56,28 @@ int main (int argc, char **argv){
 	Mat imfillseeds = repeat(seeds, 512, 512);
 
 	uint64_t t1 = cciutils::ClockGetTime();
-	Mat filled = nscale::imfill<uchar>(imfillinput, imfillseeds, true, 8);
+	Mat filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 8);
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "imfill took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-imfilled.pbm", filled);
 
 	// imfill holes
 	t1 = cciutils::ClockGetTime();
-	filled = nscale::imfillHoles<uchar>(imfillinput, true, 8);
+	filled = nscale::imfillHoles<unsigned char>(imfillinput, true, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill holes took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-holesfilled.pbm", filled);
 
 
 	t1 = cciutils::ClockGetTime();
-	filled = nscale::imfill<uchar>(imfillinput, imfillseeds, true, 4);
+	filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 4);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill 4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-imfilled4.pbm", filled);
 
 	// imfill holes
 	t1 = cciutils::ClockGetTime();
-	filled = nscale::imfillHoles<uchar>(imfillinput, true, 4);
+	filled = nscale::imfillHoles<unsigned char>(imfillinput, true, 4);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill holes4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-holesfilled4.pbm", filled);
@@ -87,13 +87,13 @@ int main (int argc, char **argv){
 	imfillinput = repeat(imfilldata, 20, 17);
 
 	t1 = cciutils::ClockGetTime();
-	filled = nscale::imfillHoles<uchar>(imfillinput, false, 8);
+	filled = nscale::imfillHoles<unsigned char>(imfillinput, false, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill holes gray took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-holesfilled-gray.ppm", filled);
 
 	t1 = cciutils::ClockGetTime();
-	filled = nscale::imfillHoles<uchar>(imfillinput, false, 4);
+	filled = nscale::imfillHoles<unsigned char>(imfillinput, false, 4);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "imfill holes gray4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-holesfilled-gray4.ppm", filled);
@@ -116,13 +116,13 @@ int main (int argc, char **argv){
 	imfillseeds = repeat(seeds, 16, 16);
 
 	t1 = cciutils::ClockGetTime();
-	Mat bwselected = nscale::bwselect<uchar>(imfillinput, imfillseeds, 8);
+	Mat bwselected = nscale::bwselect<unsigned char>(imfillinput, imfillseeds, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwselect took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-bwselected.pbm", bwselected);
 
 	t1 = cciutils::ClockGetTime();
-	Mat bwselected2 = nscale::bwselect<uchar>(imfillinput, imfillseeds, 4);
+	Mat bwselected2 = nscale::bwselect<unsigned char>(imfillinput, imfillseeds, 4);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwselect4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-bwselected4.pbm", bwselected2);
@@ -134,7 +134,7 @@ int main (int argc, char **argv){
 	stream.enqueueUpload(imfillseeds, g_imfillseeds);
 	stream.waitForCompletion();
 	t1 = cciutils::ClockGetTime();
-	GpuMat g_bwselected = nscale::gpu::bwselect<uchar>(g_imfillinput, g_imfillseeds, 8, stream);
+	GpuMat g_bwselected = nscale::gpu::bwselect<unsigned char>(g_imfillinput, g_imfillseeds, 8, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwselect gpu took " << t2-t1 << "ms" << std::endl;
@@ -144,7 +144,7 @@ int main (int argc, char **argv){
 	imwrite("test/out-bwselected-gpu.pbm", bwselected3);
 
 	t1 = cciutils::ClockGetTime();
-	GpuMat g_bwselected2 = nscale::gpu::bwselect<uchar>(g_imfillinput, g_imfillseeds, 4, stream);
+	GpuMat g_bwselected2 = nscale::gpu::bwselect<unsigned char>(g_imfillinput, g_imfillseeds, 4, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "bwselect4 gpu took " << t2-t1 << "ms" << std::endl;

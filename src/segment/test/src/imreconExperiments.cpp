@@ -96,9 +96,9 @@ int main (int argc, char **argv){
 			Mat recon2;
 			// 4 connectivity
 			t1 = cciutils::ClockGetTime();
-			g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, connectivity, numPasses,stream, 
+			g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, connectivity, numPasses,stream,
 32);
-//			g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, connectivity, numPasses,stream);
+//			g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, connectivity, numPasses,stream);
 			stream.waitForCompletion();
 			t2 = cciutils::ClockGetTime();
 			g_recon.download(recon2);
@@ -113,7 +113,7 @@ int main (int argc, char **argv){
 //			// 4 connectivity
 //			t1 = cciutils::ClockGetTime();
 //
-//			g_recon = nscale::gpu::imreconstructQueueSpeedup<uchar>(g_marker, g_mask, connectivity, numFirstPasses,stream,numBlocks);
+//			g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, connectivity, numFirstPasses,stream,numBlocks);
 //			stream.waitForCompletion();
 //			t2 = cciutils::ClockGetTime();
 //			cout << "gpu queue_recon"<< connectivity<< " nBlocks "<< numBlocks<<" took " << t2-t1<< " ms"<<endl;
@@ -124,14 +124,14 @@ int main (int argc, char **argv){
 
 //		cout << "Connectivity="<<connectivity<<endl;
 //		t1 = cciutils::ClockGetTime();
-//		g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, connectivity, stream);
+//		g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, connectivity, stream);
 //		stream.waitForCompletion();
 //		t2 = cciutils::ClockGetTime();
 //		std::cout << "gpu recon"<< connectivity <<" took " << t2-t1 << " ms" << std::endl;
 //		g_recon.release();
 
 //		t1 = cciutils::ClockGetTime();
-//		recon = nscale::imreconstruct<uchar>(marker, mask, connectivity);
+//		recon = nscale::imreconstruct<unsigned char>(marker, mask, connectivity);
 //		t2 = cciutils::ClockGetTime();
 //		std::cout << "recon"<< connectivity <<" took " << t2-t1 << "ms" << std::endl;
 //		imwrite("test/out-recon8.ppm", recon);

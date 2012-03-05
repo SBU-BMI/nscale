@@ -310,7 +310,7 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
 
 
 	unsigned int iter;
-	GpuMat g_rc_recon = ::nscale::gpu::imreconstruct<unsigned char>(g_rc_open, g_rc, 8, stream, iter);
+	GpuMat g_rc_recon = ::nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_rc_open, g_rc, 8, 1, stream);
 	stream.waitForCompletion();
 //	std::cout << "\tIterations: " << iter << std::endl;
 	if (iresHandler) iresHandler->saveIntermediate(g_rc_recon, 4);
@@ -323,7 +323,7 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
 
 
 	if (logger) logger->logTimeSinceLastLog("reconToNuclei");
-	if (logger) logger->log("rc_reconIter", iter);
+	//if (logger) logger->log("rc_reconIter", iter);
 	int rc_openPixelCount = countNonZero(g_rc_open);
 	if (logger) logger->log("rc_openPixCount", rc_openPixelCount);
 	g_rc_open.release();
@@ -383,23 +383,23 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
  *
  */
 	int compcount;
-#if defined (USE_UF_CCL)	
+//#if defined (USE_UF_CCL)
 	GpuMat g_bw1_t = ::nscale::gpu::bwareaopen(g_bw1, 11, 1000, 8, compcount, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_bw1_t, 8);
-#else
-	Mat bw1(g_bw1.size(), g_bw1.type());
-	stream.enqueueDownload(g_bw1, bw1);
-	stream.waitForCompletion();
-
-	bw1 = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
-	if (iresHandler) iresHandler->saveIntermediate(bw1, 8);
-
-	GpuMat g_bw1_t(bw1.size(), bw1.type());
-	stream.enqueueUpload(bw1, g_bw1_t);
-	stream.waitForCompletion();
-	bw1.release();
-#endif
+//#else
+//	Mat bw1(g_bw1.size(), g_bw1.type());
+//	stream.enqueueDownload(g_bw1, bw1);
+//	stream.waitForCompletion();
+//
+//	bw1 = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
+//	if (iresHandler) iresHandler->saveIntermediate(bw1, 8);
+//
+//	GpuMat g_bw1_t(bw1.size(), bw1.type());
+//	stream.enqueueUpload(bw1, g_bw1_t);
+//	stream.waitForCompletion();
+//	bw1.release();
+//#endif
 	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
 	g_bw1.release();
 	if (compcount == 0) {
@@ -459,24 +459,24 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 	 */
 	// bwareaopen is done as a area threshold.
 	int compcount;
-#if defined (USE_UF_CCL)
+//#if defined (USE_UF_CCL)
 	GpuMat g_seg_big_t = ::nscale::gpu::bwareaopen(g_seg_open, 30, std::numeric_limits<int>::max(), 8, compcount, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_big_t, 14);
-#else
-	Mat seg_open(g_seg_open.size(), g_seg_open.type());
-	stream.enqueueDownload(g_seg_open, seg_open);
-	stream.waitForCompletion();
-	
-	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
-	if (iresHandler) iresHandler->saveIntermediate(seg_big_t, 14);
-	seg_open.release();
-	
-	GpuMat g_seg_big_t(seg_big_t.size(), seg_big_t.type());
-	stream.enqueueUpload(seg_big_t, g_seg_big_t);
-	stream.waitForCompletion();
-	seg_big_t.release();
-#endif	
+//#else
+//	Mat seg_open(g_seg_open.size(), g_seg_open.type());
+//	stream.enqueueDownload(g_seg_open, seg_open);
+//	stream.waitForCompletion();
+//
+//	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
+//	if (iresHandler) iresHandler->saveIntermediate(seg_big_t, 14);
+//	seg_open.release();
+//
+//	GpuMat g_seg_big_t(seg_big_t.size(), seg_big_t.type());
+//	stream.enqueueUpload(seg_big_t, g_seg_big_t);
+//	stream.waitForCompletion();
+//	seg_big_t.release();
+//#endif
 	if (logger) logger->logTimeSinceLastLog("30To1000");
 	// a 3x3 mat with a cross
 	unsigned char disk3raw[9] = {
@@ -758,26 +758,26 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 	 *
 	 */
 	int compcount;
-#if defined (USE_UF_CCL)
+//#if defined (USE_UF_CCL)
 	GpuMat g_seg = ::nscale::gpu::bwareaopen(g_seg_nonoverlap, 21, 1000, 4, compcount, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg, 23);
 	
-#else
-	Mat seg_nonoverlap(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
-	stream.enqueueDownload(g_seg_nonoverlap, seg_nonoverlap);
-	stream.waitForCompletion();
-
-	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
-	if (iresHandler) iresHandler->saveIntermediate(seg, 23);
-	seg_nonoverlap.release();
-//	imwrite("test/out-seg.ppm", seg);
-	
-	GpuMat g_seg(seg.size(), seg.type());
-	stream.enqueueUpload(seg, g_seg);
-	stream.waitForCompletion();
-	seg.release();
-#endif
+//#else
+//	Mat seg_nonoverlap(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
+//	stream.enqueueDownload(g_seg_nonoverlap, seg_nonoverlap);
+//	stream.waitForCompletion();
+//
+//	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
+//	if (iresHandler) iresHandler->saveIntermediate(seg, 23);
+//	seg_nonoverlap.release();
+////	imwrite("test/out-seg.ppm", seg);
+//
+//	GpuMat g_seg(seg.size(), seg.type());
+//	stream.enqueueUpload(seg, g_seg);
+//	stream.waitForCompletion();
+//	seg.release();
+//#endif
 	if (logger) logger->logTimeSinceLastLog("20To1000");
 	if (compcount == 0) {
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;

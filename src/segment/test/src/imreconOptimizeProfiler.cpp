@@ -46,14 +46,14 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 	std::cout << "\tfinished uploading to GPU" << std::endl;
 /*
 	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 4, stream);
+	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon2 4-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 
 	t1 = cciutils::ClockGetTime();
-	g_recon = nscale::gpu::imreconstruct2<uchar>(g_marker, g_mask, 8, stream);
+	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 8, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon2 8-con took " << t2-t1 << "ms" << std::endl;
@@ -61,16 +61,16 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 
 	
 	t1 = cciutils::ClockGetTime();
-	if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 4, stream);
-	else g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
+	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 4, stream);
+	else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 */
 	t1 = cciutils::ClockGetTime();
-	if (binary) recon = nscale::imreconstructBinary<uchar>(marker, mask, 8);
-	else recon = nscale::imreconstruct<uchar>(marker, mask, 8);
+	if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker, mask, 8);
+	else recon = nscale::imreconstruct<unsigned char>(marker, mask, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tcpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-imrecon-vincent.pgm", recon);
@@ -85,16 +85,16 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 
 /* For profiling
 	t1 = cciutils::ClockGetTime();
-	if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 8, stream);
-	else g_recon = nscale::gpu::imreconstructQ<uchar>(g_marker, g_mask, 8, stream);
+	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 8, stream);
+	else g_recon = nscale::gpu::imreconstructQ<unsigned char>(g_marker, g_mask, 8, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon 8-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 */
 /*	t1 = cciutils::ClockGetTime();
-	if (binary) g_recon = nscale::gpu::imreconstructBinary<uchar>(g_marker, g_mask, 4, stream);
-	else g_recon = nscale::gpu::imreconstruct<uchar>(g_marker, g_mask, 4, stream);
+	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 4, stream);
+	else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
 	t2 = cciutils::ClockGetTime();
 	std::cout << "\tgpu recon 4-con took " << t2-t1 << "ms" << std::endl;

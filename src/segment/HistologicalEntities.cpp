@@ -71,7 +71,7 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr,
 	if (countNonZero(bw1) > 0) {
 //		imwrite("test/in-bwselect-marker.pgm", bw2);
 //		imwrite("test/in-bwselect-mask.pgm", bw1);
-		rbc = bwselect<uchar>(bw2, bw1, 8) & imR2B;
+		rbc = bwselect<unsigned char>(bw2, bw1, 8) & imR2B;
 	} else {
 		rbc = Mat::zeros(bw2.size(), bw2.type());
 	}
@@ -165,14 +165,14 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
     diffIm = rc-rc_recon;
 	 */
 
-	Mat rc = ::nscale::PixelOperations::invert<uchar>(bgr[2]);
+	Mat rc = ::nscale::PixelOperations::invert<unsigned char>(bgr[2]);
 	if (logger) logger->logTimeSinceLastLog("invert");
 
 	Mat rc_open(rc.size(), rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
 	// structuring element is not the same between matlab and opencv.  using the one from matlab explicitly....
 	// (for 4, 6, and 8 connected, they are approximations).
-	uchar disk19raw[361] = {
+	unsigned char disk19raw[361] = {
 			0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
 			0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
 			0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
@@ -192,7 +192,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 			0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
 			0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
 			0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0};
-	std::vector<uchar> disk19vec(disk19raw, disk19raw+361);
+	std::vector<unsigned char> disk19vec(disk19raw, disk19raw+361);
 	Mat disk19(disk19vec);
 	disk19 = disk19.reshape(1, 19);
 	rc_open = ::nscale::morphOpen<unsigned char>(rc, disk19);
@@ -205,7 +205,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 //	imwrite("test/in-imrecon-gray-mask.pgm", rc);
 //	exit(0);
 // END for generating test data
-	Mat rc_recon = ::nscale::imreconstruct<uchar>(rc_open, rc, 8);
+	Mat rc_recon = ::nscale::imreconstruct<unsigned char>(rc_open, rc, 8);
 	if (iresHandler) iresHandler->saveIntermediate(rc_recon, 4);
 
 
@@ -223,7 +223,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
     bw1 = imfill(diffIm>G1,'holes');
  *
  */
-	uchar G1 = 80;
+	unsigned char G1 = 80;
 	Mat diffIm2 = diffIm > G1;
 	if (logger) logger->logTimeSinceLastLog("threshold1");
 	if (iresHandler) iresHandler->saveIntermediate(diffIm2, 6);
@@ -254,11 +254,11 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
  */
 	int compcount;
 
-#if defined (USE_UF_CCL)
+//#if defined (USE_UF_CCL)
 	Mat bw1_t = ::nscale::bwareaopen2(bw1, 11, 1000, 8, compcount);
-#else
-	Mat bw1_t = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
-#endif
+//#else
+//	Mat bw1_t = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
+//#endif
 	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
 
 	bw1.release();
@@ -268,7 +268,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	}
 
 
-	uchar G2 = 45;
+	unsigned char G2 = 45;
 	Mat bw2 = diffIm > G2;
 	if (iresHandler) iresHandler->saveIntermediate(bw2, 9);
 
@@ -282,7 +282,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	 *
 	 */
 
-	seg_norbc = ::nscale::bwselect<uchar>(bw2, bw1_t, 8);
+	seg_norbc = ::nscale::bwselect<unsigned char>(bw2, bw1_t, 8);
 	if (iresHandler) iresHandler->saveIntermediate(seg_norbc, 10);
 
 	seg_norbc = seg_norbc & (rbc == 0);
@@ -306,11 +306,11 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	 */
 	// bwareaopen is done as a area threshold.
 	int compcount;
-#if defined (USE_UF_CCL)
+//#if defined (USE_UF_CCL)
 	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
-#else
-	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
-#endif
+//#else
+//	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
+//#endif
 	if (logger) logger->logTimeSinceLastLog("30To1000");
 	if (iresHandler) iresHandler->saveIntermediate(seg_big_t, 14);
 
@@ -388,7 +388,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 //	Mat dist4 = Mat::zeros(distance3.size(), distance3.type());
 //	distance3.copyTo(dist4, seg_big);
 //	Mat dist5(dist4.size(), CV_8U);
-//	dist4.convertTo(dist5, CV_8U, (std::numeric_limits<uchar>::max() / mmax));
+//	dist4.convertTo(dist5, CV_8U, (std::numeric_limits<unsigned char>::max() / mmax));
 //	cvtColor(dist5, nuclei, CV_GRAY2BGR);
 	img.copyTo(nuclei, seg_big);
 	if (logger) logger->logTimeSinceLastLog("nucleiCopy");
@@ -396,11 +396,11 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
-#if defined (USE_UF_CCL)
+//#if defined (USE_UF_CCL)
 	Mat watermask = ::nscale::watershed2(nuclei, distance2, 8);
-#else
-	Mat watermask = ::nscale::watershed(nuclei, distance2, 8);
-#endif
+//#else
+//	Mat watermask = ::nscale::watershed(nuclei, distance2, 8);
+//#endif
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 	if (logger) logger->logTimeSinceLastLog("watershed");
 	if (iresHandler) iresHandler->saveIntermediate(watermask, 20);
@@ -413,7 +413,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 21);
 
 	Mat twm;
-	copyMakeBorder(seg_nonoverlap, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(std::numeric_limits<uchar>::max()));
+	copyMakeBorder(seg_nonoverlap, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(std::numeric_limits<unsigned char>::max()));
 	Mat t_nonoverlap = Mat::zeros(twm.size(), twm.type());
 	erode(twm, t_nonoverlap, disk3);
 	seg_nonoverlap = t_nonoverlap(Rect(1,1,seg_nonoverlap.cols, seg_nonoverlap.rows));
@@ -450,7 +450,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	}
 
 
-	Mat seg_nohole = ::nscale::imfillHoles<uchar>(seg_norbc, true, 4);
+	Mat seg_nohole = ::nscale::imfillHoles<unsigned char>(seg_norbc, true, 4);
 	if (logger) logger->logTimeSinceLastLog("fillHoles2");
 	if (iresHandler) iresHandler->saveIntermediate(seg_nohole, 12);
 
@@ -460,12 +460,12 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 //	// because of this, and the fact that erode and dilate need different border values, have to do the erode and dilate myself.
 //	//	morphologyEx(seg_nohole, seg_open, CV_MOP_OPEN, disk3, Point(1,1)); //, Point(-1, -1), 1, BORDER_REFLECT);
 //	Mat t_seg_nohole;
-//	copyMakeBorder(seg_nohole, t_seg_nohole, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<uchar>::max());
+//	copyMakeBorder(seg_nohole, t_seg_nohole, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<unsigned char>::max());
 //	Mat t_seg_erode = Mat::zeros(t_seg_nohole.size(), t_seg_nohole.type());
 //	erode(t_seg_nohole, t_seg_erode, disk3);
 //	Mat seg_erode = t_seg_erode(Rect(1, 1, seg_nohole.cols, seg_nohole.rows));
 //	Mat t_seg_erode2;
-//	copyMakeBorder(seg_erode,t_seg_erode2, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<uchar>::min());
+//	copyMakeBorder(seg_erode,t_seg_erode2, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<unsigned char>::min());
 //	Mat t_seg_open = Mat::zeros(t_seg_erode2.size(), t_seg_erode2.type());
 //	dilate(t_seg_erode2, t_seg_open, disk3);
 //	Mat seg_open = t_seg_open(Rect(1,1,seg_nohole.cols, seg_nohole.rows));
@@ -502,11 +502,11 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	 *
 	 */
 	int compcount;
-#if defined (USE_UF_CCL)
+//#if defined (USE_UF_CCL)
 	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, 21, 1000, 4, compcount);
-#else
-	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
-#endif
+//#else
+//	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
+//#endif
 	if (logger) logger->logTimeSinceLastLog("20To1000");
 	if (countNonZero(seg) == 0) {
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
@@ -525,7 +525,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	 *
 	 */
 	// don't worry about bwlabel.
-	output = ::nscale::imfillHoles<uchar>(seg, true, 8);
+	output = ::nscale::imfillHoles<unsigned char>(seg, true, 8);
 	if (logger) logger->logTimeSinceLastLog("fillHolesLast");
 
 //	imwrite("test/out-nuclei.ppm", seg);
