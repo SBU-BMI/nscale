@@ -7,7 +7,6 @@
 
 #include "ConnComponents.h"
 #include <string>
-#include <tr1/unordered_map>
 
 namespace nscale {
 
@@ -192,5 +191,73 @@ int ConnComponents::areaThreshold(unsigned char *img, int w, int h, int *label, 
 	delete [] areas;
 	return j;
 }
+
+
+int ConnComponents::areaThresholdLabeled(const int *label, const int w, const int h, int *n_label, const int bgval, const int lower, const int upper) {
+	int length = w * h;
+	typedef std::tr1::unordered_map<int, int> AreaMap;
+	AreaMap areas, thresholdedareas;
+
+	for (int i=0; i<length; ++i) {
+		if (label[i] != bgval) {  // not background, then increment area
+			areas[label[i]] += 1;
+		}
+		// initialize output
+		n_label[i] = bgval;
+	}
+	// count ones that are within threshold
+	for (AreaMap::iterator it = areas.begin();
+			it != areas.end(); ++it) {
+		if (it->second >= lower && it->second < upper) {
+			thresholdedareas[it->first] = 1;
+		} else {
+			thresholdedareas[it->first] = 0;
+		}
+	}
+	areas.clear();
+	int j = thresholdedareas.size();
+
+	//  TONY finally do the threshold and change the value of the
+	for (int i=0; i<length; ++i) {
+		// look at the roots
+		if (label[i] != bgval && thresholdedareas[label[i]] == 1) n_label[i] = label[i];
+	}
+
+	thresholdedareas.clear();
+	return j;
+}
+
+int ConnComponents::boundingBox(const int w, const int h, const int* label, int bgval, int *n_label, int *mnx, int *mxx, int *mny, int *mxy) {
+	int length = w * h;
+	std::tr1::unordered_map<int, int> label2index;
+
+	int x, y;
+	int j = 0;
+	for (int i=0; i<length; ++i) {
+		if (label[i] == bgval) continue;
+
+		x = i % w;
+		y = i / w;
+		if (label2index.find(label[i]) == label2index.end()) {
+			label2index[label[i]] = j;
+			n_label[j] = label[i];
+			mnx[j] = x;
+			mxx[j] = x;
+			mny[j] = y;
+			mxy[j] = y;
+			j++;
+
+		} else {
+
+			mnx[label2index[label[i]]] = (mnx[label2index[label[i]]] > x ? x : mnx[label2index[label[i]]]);
+			mxx[label2index[label[i]]] = (mxx[label2index[label[i]]] < x ? x : mxx[label2index[label[i]]]);
+			mny[label2index[label[i]]] = (mny[label2index[label[i]]] > y ? y : mny[label2index[label[i]]]);
+			mxy[label2index[label[i]]] = (mxy[label2index[label[i]]] < y ? y : mxy[label2index[label[i]]]);
+		}
+	}
+
+	return j;
+}
+
 
 }

@@ -42,7 +42,7 @@ cv::Mat imfillHoles(const cv::Mat& image, bool binary, int connectivity);
 template <typename T>
 cv::Mat bwselect(const cv::Mat& binaryImage, const cv::Mat& seeds, int connectivity);
 
-cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, bool contourOnly, int connectivity);
+cv::Mat_<int> bwlabel(const cv::Mat& binaryImage, bool contourOnly, int connectivity, bool bbox, std::vector<Vec4i> &boundingBoxes);
 cv::Mat_<int> bwlabel2(const cv::Mat& binaryImage, int connectivity, bool relab);
 
 // incorporates a filter for the contours.
@@ -59,6 +59,7 @@ template <typename T>
 cv::Mat bwareaopen(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
 
 cv::Mat bwareaopen2(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
+cv::Mat bwareaopen3(const cv::Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
 
 template <typename T>
 cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);

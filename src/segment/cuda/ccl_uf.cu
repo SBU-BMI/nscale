@@ -158,19 +158,27 @@ __global__ void UF_final(int* label, int w, int h, int bgval) {
 
 // img on GPU already.  also label should be allocated on GPU as well.
 void CCL(unsigned char* img, int w, int h, int* d_label, int bgval, int connectivity, cudaStream_t stream) {
-    cudaEvent_t startt,stopt;
-    cudaEventCreate( &startt );
-    cudaEventCreate( &stopt );
-    float ett;
 
     cudaError_t err;
 
-    START_TIME_T;
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("before startERROR: %s\n", cudaGetErrorString(err));
+        return;
+    }
+
+//    cudaEvent_t startt,stopt;
+//    cudaEventCreate( &startt );
+//    cudaEventCreate( &stopt );
+//    float ett;
+
+
+    //START_TIME_T;
     cudaChannelFormatDesc uchardesc = 
         cudaCreateChannelDesc<unsigned char>();
     cudaBindTexture2D(0, imgtex, img, uchardesc, w, h, w * sizeof(unsigned char));
-    STOP_TIME_T;
-	printf("   uf bind texture: %f\n", ett);
+    //STOP_TIME_T;
+	//printf("   uf bind texture: %f\n", ett);
 
     dim3 block (UF_BLOCK_SIZE_X, UF_BLOCK_SIZE_Y);
     dim3 grid ((w+UF_BLOCK_SIZE_X-1)/UF_BLOCK_SIZE_X,
@@ -184,22 +192,22 @@ void CCL(unsigned char* img, int w, int h, int* d_label, int bgval, int connecti
 
     cudaThreadSetCacheConfig(cudaFuncCachePreferShared);
 
-    START_TIME_T;
+    //START_TIME_T;
     UF_local <<<grid, block, 0, stream>>>(d_label, w, h, connectivity);
-    STOP_TIME_T;
-	printf("   uf_local: %f\n", ett);
+    //STOP_TIME_T;
+	//printf("   uf_local: %f\n", ett);
 
     cudaThreadSetCacheConfig(cudaFuncCachePreferL1);
 
-	START_TIME_T;
+	//START_TIME_T;
         UF_global <<<grid, block, 0, stream>>>(d_label, w, h, connectivity);
-    STOP_TIME_T;
-	printf("   uf_global: %f\n", ett);
+    //STOP_TIME_T;
+	//printf("   uf_global: %f\n", ett);
 
-	START_TIME_T;
+	//START_TIME_T;
         UF_final <<<grid, block, 0, stream>>>(d_label, w, h, bgval);
-    STOP_TIME_T;
-	printf("   uf_final: %f\n", ett);
+    //STOP_TIME_T;
+	//printf("   uf_final: %f\n", ett);
  
     err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -306,62 +314,62 @@ int relabel(int w, int h, int* d_label, int bgval, cudaStream_t stream) {
 //   find the number of components via scan (global reduction type)
 //   next change roots to the scan id using root map as stencil (element wise)
 // 	finally run another flatten operation.	(global random access)
-    cudaEvent_t startt,stopt;
-    cudaEventCreate( &startt );
-    cudaEventCreate( &stopt );
-    float ett;
+//    cudaEvent_t startt,stopt;
+//    cudaEventCreate( &startt );
+//    cudaEventCreate( &stopt );
+//    float ett;
 
     cudaError_t err;
 
 
-	START_TIME_T;
+	//START_TIME_T;
 	thrust::counting_iterator<int> idx;
-		STOP_TIME_T;
-	printf("   uf relabel idx alloc %f\n", ett);
- START_TIME_T;
+	//	STOP_TIME_T;
+	//printf("   uf relabel idx alloc %f\n", ett);
+ //START_TIME_T;
 	thrust::device_ptr<int> label(d_label);
-		STOP_TIME_T;
-	printf("   uf relabel label alloc: %f\n", ett);
- START_TIME_T;
+	//	STOP_TIME_T;
+	//printf("   uf relabel label alloc: %f\n", ett);
+ //START_TIME_T;
 	thrust::device_vector<int> roots(w*h, 0);
-		STOP_TIME_T;
-	printf("   uf relabel root alloc: %f\n", ett);
- START_TIME_T;
+	//	STOP_TIME_T;
+	//printf("   uf relabel root alloc: %f\n", ett);
+ //START_TIME_T;
 	thrust::device_vector<int> newlabel(w*h, 0);
-	STOP_TIME_T;
-	printf("   uf relabel newlabel alloc: %f\n", ett);
+	//STOP_TIME_T;
+	//printf("   uf relabel newlabel alloc: %f\n", ett);
  
 	// get loc of roots
-	START_TIME_T;
+	//TART_TIME_T;
 	thrust::transform(label, label+w*h, idx, roots.begin(), thrust::equal_to<int>());
-		STOP_TIME_T;
-	printf("   uf relabel find roots: %f\n", ett);
- START_TIME_T;
+	//	STOP_TIME_T;
+	//printf("   uf relabel find roots: %f\n", ett);
+ //START_TIME_T;
 	thrust::inclusive_scan(roots.begin(), roots.end(), newlabel.begin());
-		STOP_TIME_T;
-	printf("   uf relabel scan: %f\n", ett);
- START_TIME_T;
+	//	STOP_TIME_T;
+	//printf("   uf relabel scan: %f\n", ett);
+ //START_TIME_T;
 	int count = newlabel[w*h-1];
-		STOP_TIME_T;
-	printf("   uf relabel get count: %f\n", ett);
- START_TIME_T;
+		//STOP_TIME_T;
+	//printf("   uf relabel get count: %f\n", ett);
+ //START_TIME_T;
 	thrust::transform_if(label, label+w*h, newlabel.begin(), roots.begin(), 
 		 label,
 		 thrust::project2nd<int, int>(),
 	 	 thrust::identity<int>());
-	STOP_TIME_T;
-	printf("   uf relabel reset root: %f\n", ett);
+	//STOP_TIME_T;
+	//printf("   uf relabel reset root: %f\n", ett);
  // now flatten
 
 	dim3 block (UF_BLOCK_SIZE_X, UF_BLOCK_SIZE_Y);
     	dim3 grid ((w+UF_BLOCK_SIZE_X-1)/UF_BLOCK_SIZE_X,
                (h+UF_BLOCK_SIZE_Y-1)/UF_BLOCK_SIZE_Y);
  
-	START_TIME_T;
+	//START_TIME_T;
         relabel_flatten <<<grid, block, 0, stream>>>(d_label, 
 		thrust::raw_pointer_cast(roots.data()), w, h, bgval);
-	STOP_TIME_T;
-	printf("   uf relabel flatten: %f\n", ett);
+	//STOP_TIME_T;
+	//printf("   uf relabel flatten: %f\n", ett);
  
 	roots.clear();
 	newlabel.clear();
@@ -421,7 +429,7 @@ __global__ void area_flatten (int* label, int w, int h, int bgval) {
 };
 
 
-// relabelling.  .
+// area thresholding.
 int areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSize, cudaStream_t stream) {
 	// do this by:  
 	///  segmented reduce (global op)
@@ -430,64 +438,64 @@ int areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSiz
 	///  then selectively update the roots (using the label to area map) (label wise, global memory access)
 	///  then do a flattening to propagate changes.
 	// the first three steps compute area per label.  we do it as 2 reduces because sort first would cost about 42 ms without reduce.  doing it this way costs around 45 ms total, including teh last reduce.
-    cudaEvent_t startt,stopt;
-    cudaEventCreate( &startt );
-    cudaEventCreate( &stopt );
-    float ett;
+//    cudaEvent_t startt,stopt;
+//    cudaEventCreate( &startt );
+//    cudaEventCreate( &stopt );
+//    float ett;
 
     cudaError_t err;
 
 	
- 	START_TIME_T;
+// 	START_TIME_T;
 	thrust::counting_iterator<int> idx;
 	thrust::device_ptr<int> label(d_label);
-		STOP_TIME_T;
-	printf("   uf area label alloc: %f\n", ett);
+//		STOP_TIME_T;
+//	printf("   uf area label alloc: %f\n", ett);
  
 	// testing
-		START_TIME_T;
+//		START_TIME_T;
 	thrust::device_vector<int> area(w*h, 1);
 	thrust::device_vector<int> ol(label, label+w*h);
 	thrust::device_vector<int> newarea(w*h, 0);
 	thrust::device_vector<int> nl(w*h, 0);
 	thrust::pair<thrust::device_vector<int>::iterator,
 	 	thrust::device_vector<int>::iterator> newend, newend2;
-		STOP_TIME_T;
-	printf("   uf area test alloc 1: %f\n", ett);
+//		STOP_TIME_T;
+//	printf("   uf area test alloc 1: %f\n", ett);
 
 	// first do segmented reduction. this is obviously faster when 
 	// there is more background and larger objects
-	START_TIME_T;
+//	START_TIME_T;
 	newend = thrust::reduce_by_key(ol.begin(), ol.end(), area.begin(), nl.begin(), newarea.begin());
-		STOP_TIME_T;
-	printf("   uf area test reduce 1: %f\n", ett);
+//		STOP_TIME_T;
+//	printf("   uf area test reduce 1: %f\n", ett);
 
 	area.clear();
 	ol.clear();
 
 	// then we sort by key.  faster when fewer, larger objects
-	START_TIME_T;
+//	START_TIME_T;
 	thrust::sort_by_key(nl.begin(), newend.first, newarea.begin());
-		STOP_TIME_T;
-	printf("   uf area test sort 1: %f\n", ett);
+//		STOP_TIME_T;
+//	printf("   uf area test sort 1: %f\n", ett);
 
-	START_TIME_T;
+//	START_TIME_T;
 	thrust::device_vector<int> nna(newend.second - newarea.begin(), 0);
 	thrust::device_vector<int> nnl(newend.first - nl.begin(), 0);
-		STOP_TIME_T;
-	printf("   uf area test alloc 2: %f\n", ett);
+//		STOP_TIME_T;
+//	printf("   uf area test alloc 2: %f\n", ett);
 
 	// then we reduce again. to get the areas to label mapping
-	START_TIME_T;
+//	START_TIME_T;
 	newend2 = thrust::reduce_by_key(nl.begin(), newend.first, newarea.begin(), nnl.begin(), nna.begin());
-	STOP_TIME_T;
-	printf("   uf area test reduce 2: %f\n", ett);
+//	STOP_TIME_T;
+//	printf("   uf area test reduce 2: %f\n", ett);
 
 	newarea.clear();
 	nl.clear();
 
 	// now iterate over all the labels that are left, and update the roots
-	START_TIME_T;
+//	START_TIME_T;
 	typedef typename thrust::tuple<int, int> LabelCompareType;
 	thrust::for_each(thrust::make_zip_iterator(
 		thrust::make_tuple(
@@ -495,8 +503,8 @@ int areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSiz
 		thrust::make_zip_iterator(
 			thrust::make_tuple(newend2.first, newend2.second)),
 		apply_threshold<LabelCompareType, int>(d_label, bgval, minSize, maxSize));
-	STOP_TIME_T;
-	printf("   uf area test update roots: %f\n", ett);
+//	STOP_TIME_T;
+//	printf("   uf area test update roots: %f\n", ett);
 
 
 	nna.clear();
@@ -507,21 +515,21 @@ int areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSiz
     	dim3 grid ((w+UF_BLOCK_SIZE_X-1)/UF_BLOCK_SIZE_X,
                (h+UF_BLOCK_SIZE_Y-1)/UF_BLOCK_SIZE_Y);
  
-	START_TIME_T;
+//	START_TIME_T;
         area_flatten <<<grid, block, 0, stream>>>(d_label, w, h, bgval);
-	STOP_TIME_T;
-	printf("   uf area flatten: %f\n", ett);
+//	STOP_TIME_T;
+//	printf("   uf area flatten: %f\n", ett);
  
 	// get the count
-	START_TIME_T;
+//	START_TIME_T;
 	int j =	thrust::count_if(thrust::make_zip_iterator(
 		thrust::make_tuple(
 			label, idx)),
 		thrust::make_zip_iterator(
 			thrust::make_tuple(label+w*h, idx+w*h)),
 		is_root<LabelCompareType, int>());
-	STOP_TIME_T;
-	printf("   uf area count updated roots: %f\n", ett);
+//	STOP_TIME_T;
+//	printf("   uf area count updated roots: %f\n", ett);
 
 		
 
@@ -534,6 +542,299 @@ int areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSiz
 
 	return j;
 // original thought was to sort, then scan to get area, then scan to get max area for each label, then reset any element that has lower area.  this did not work right.
+
+}
+
+
+template <typename TI, typename TO, typename T>
+struct computeXY : public thrust::unary_function<TI, TO>
+{
+	T w;
+
+	computeXY(T width) : w(width) {}
+
+	__host__ __device__
+	TO operator()(TI li) {
+		return thrust::make_tuple<T, T, T>(thrust::get<0>(li),
+				thrust::get<1>(li) % w, thrust::get<1>(li) / w);
+	}
+
+};
+template <typename T, typename TO>
+struct computeXY2 : public thrust::unary_function<T, TO>
+{
+	T w;
+
+	computeXY2(T width) : w(width) {}
+
+	__host__ __device__
+	TO operator()(T id) {
+		return thrust::make_tuple<T, T>(id % w, id / w);
+	}
+
+};
+
+template <typename T>
+struct notEqualToK
+{
+	T t;
+
+	notEqualToK(T thresh) : t(thresh) {}
+
+	__host__ __device__
+	bool operator()(T x) {
+		return x != t;
+	}
+
+};
+
+
+template <typename T, typename TT>
+struct computeBounds : public thrust::binary_function<TT, TT, TT>
+{
+	thrust::maximum<T> mx;
+	thrust::minimum<T> mn;
+
+	__host__ __device__
+	TT operator()(TT a, TT b) {
+		return thrust::make_tuple<T, T, T, T>(
+			mn(thrust::get<0>(a), thrust::get<0>(b)),
+			mx(thrust::get<1>(a), thrust::get<1>(b)),
+			mn(thrust::get<2>(a), thrust::get<2>(b)),
+			mx(thrust::get<3>(a), thrust::get<3>(b)));
+	}
+
+};
+
+
+// bounding box finding.
+int boundingBox(const int w, const int h, int* d_label, int bgval, int *n_label, int *mnx, int *mxx, int *mny, int *mxy, cudaStream_t stream) {
+	// do this by:
+	///  segmented reduce (global op)
+	///  sort (global)
+	///  then segmented reduce again (global)
+	// the first three steps compute bounding box per label.  we do it as 2 reduces because sort first would cost about 42 ms without reduce.  doing it this way costs around 45 ms total, including teh last reduce.
+//    cudaEvent_t startt,stopt;
+//    cudaEventCreate( &startt );
+//    cudaEventCreate( &stopt );
+//    float ett;
+
+    cudaError_t err;
+
+
+// 	START_TIME_T;
+	thrust::counting_iterator<int> idx;
+	thrust::device_ptr<int> lab(d_label);
+
+	thrust::device_vector<int> label(w*h);
+	thrust::device_vector<int> x(w*h);
+	thrust::device_vector<int> y(w*h);
+	typedef thrust::tuple<thrust::device_ptr<int>,
+		thrust::device_ptr<int>,
+		thrust::device_ptr<int> > IteratorTuple3;
+	typedef thrust::zip_iterator<IteratorTuple3> ZipIterator3;
+	typedef thrust::tuple<int, int> LI;
+	typedef thrust::tuple<int, int, int> LXY;
+
+	// precompute x and y
+//	START_TIME_T;
+//	thrust::transform(idx, idx+w*h, thrust::make_zip_iterator(
+//			thrust::make_tuple(x.begin(), y.begin())), computeXY<int, XY>(w));
+	// remove background
+	ZipIterator3 start = thrust::make_zip_iterator(thrust::make_tuple(label.data(), x.data(), y.data()));
+	ZipIterator3 end = thrust::copy_if(thrust::make_transform_iterator(
+				thrust::make_zip_iterator(thrust::make_tuple(lab, idx)), computeXY<LI, LXY, int>(w)),
+			thrust::make_transform_iterator(
+				thrust::make_zip_iterator(thrust::make_tuple(lab+w*h, idx+w*h)), computeXY<LI, LXY, int>(w)),
+			lab,
+			start,
+			notEqualToK<int>(bgval));
+
+	int non_bg_count = thrust::distance(start, end);
+	thrust::device_vector<int> nl(non_bg_count);
+	thrust::device_vector<int> minx(non_bg_count, std::numeric_limits<int>::max());
+	thrust::device_vector<int> maxx(non_bg_count, std::numeric_limits<int>::min());
+	thrust::device_vector<int> miny(non_bg_count, std::numeric_limits<int>::max());
+	thrust::device_vector<int> maxy(non_bg_count, std::numeric_limits<int>::min());
+// have to set the iterator to use device ptr.  else type mismatch later.
+	typedef thrust::tuple<thrust::device_ptr<int>,
+		thrust::device_ptr<int>,
+		thrust::device_ptr<int>,
+		thrust::device_ptr<int> > IteratorTuple;
+	typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
+	typedef thrust::tuple<int, int, int, int> MinMaxXY;
+	thrust::pair<thrust::device_vector<int>::iterator,
+	 	ZipIterator> newend, newend2;
+//	STOP_TIME_T;
+//	printf("   uf area test alloc 1: %f\n", ett);
+
+
+	// have to set the iterator to use device ptr.  else type mismatch later.
+	ZipIterator minmax = thrust::make_zip_iterator(thrust::make_tuple(
+			minx.data(), maxx.data(), miny.data(), maxy.data()));
+//	STOP_TIME_T;
+//	printf("   init: %f\n", ett);
+
+
+	// first do segmented reduction. this is obviously faster when
+	// there is more background and larger objects
+//	START_TIME_T;
+	newend = thrust::reduce_by_key(label.begin(), label.begin() + non_bg_count,
+			thrust::make_zip_iterator(thrust::make_tuple(
+					x.begin(), x.begin(), y.begin(), y.begin())),
+			nl.begin(),
+			minmax,
+			thrust::equal_to<int>(), computeBounds<int, MinMaxXY>());
+//		STOP_TIME_T;
+//	printf("   uf area test reduce 1: %f\n", ett);
+
+	label.clear();
+	x.clear();
+	y.clear();
+
+	// then we sort by key.  faster when fewer, larger objects
+//	START_TIME_T;
+	thrust::sort_by_key(nl.begin(), newend.first,
+			minmax);
+//	STOP_TIME_T;
+//	printf("   uf area test sort 1: %f\n", ett);
+
+//	START_TIME_T;
+	thrust::device_ptr<int> nnl(n_label);
+	thrust::device_ptr<int> tmnx(mnx);
+	thrust::device_ptr<int> tmxx(mxx);
+	thrust::device_ptr<int> tmny(mny);
+	thrust::device_ptr<int> tmxy(mxy);
+	ZipIterator minmax2 = thrust::make_zip_iterator(thrust::make_tuple(
+			tmnx, tmxx, tmny, tmxy));
+//	STOP_TIME_T;
+//	printf("   uf area test alloc 2: %f\n", ett);
+
+	// then we reduce again. to get the areas to label mapping
+//	START_TIME_T;
+	newend2 = thrust::reduce_by_key(nl.begin(), newend.first,
+			minmax,
+			nnl,
+			minmax2,
+			thrust::equal_to<int>(), computeBounds<int, MinMaxXY>());
+//	STOP_TIME_T;
+//	printf("   uf area test reduce 2: %f\n", ett);
+
+	minx.clear();
+	maxx.clear();
+	miny.clear();
+	maxy.clear();
+	nl.clear();
+
+	int j = thrust::distance(minmax2, newend2.second);
+
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("endERROR: %s\n", cudaGetErrorString(err));
+        return -1;
+    }
+
+	return j;
+
+}
+// bounding box finding.
+int boundingBox2(const int w, const int h, int* d_label, int bgval, int *n_label, int *mnx, int *mxx, int *mny, int *mxy, cudaStream_t stream) {
+	// do this by:
+	///  segmented reduce (global op)
+	///  sort (global)
+	///  then segmented reduce again (global)
+	// the first three steps compute bounding box per label.  we do it as 2 reduces because sort first would cost about 42 ms without reduce.  doing it this way costs around 45 ms total, including teh last reduce.
+//    cudaEvent_t startt,stopt;
+//    cudaEventCreate( &startt );
+//    cudaEventCreate( &stopt );
+//    float ett;
+
+    cudaError_t err;
+
+
+// 	START_TIME_T;
+	thrust::counting_iterator<int> idx;
+	thrust::device_ptr<int> lab(d_label);
+
+	thrust::device_vector<int> label(w*h);
+	thrust::device_vector<int> sortedIdx(w*h);
+	typedef thrust::tuple<int, int> XY;
+	typedef thrust::tuple<thrust::device_ptr<int>,
+		thrust::device_ptr<int> > IteratorTuple2;
+	typedef thrust::zip_iterator<IteratorTuple2> ZipIterator2;
+
+//	STOP_TIME_T;
+//	printf("   uf area test alloc 1: %f\n", ett);
+
+	// pre sort the id based on label
+//	START_TIME_T;
+	ZipIterator2 start = thrust::make_zip_iterator(thrust::make_tuple(label.data(), sortedIdx.data()));
+	ZipIterator2 end = thrust::copy_if(thrust::make_zip_iterator(thrust::make_tuple(lab, idx)),
+			thrust::make_zip_iterator(thrust::make_tuple(lab+w*h, idx+w*h)),
+			lab,
+			start,
+			notEqualToK<int>(bgval));
+	int fgcount = thrust::distance(start, end);
+	thrust::sort_by_key(label.begin(), label.begin() + fgcount, sortedIdx.begin());
+//	STOP_TIME_T;
+//	printf("   sort: %f\n", ett);
+
+	// precompute x and y
+//	START_TIME_T;
+	thrust::device_vector<int> x(fgcount);
+	thrust::device_vector<int> y(fgcount);
+	thrust::transform(sortedIdx.begin(), sortedIdx.begin() + fgcount, thrust::make_zip_iterator(
+			thrust::make_tuple(x.begin(), y.begin())), computeXY2<int, XY>(w));
+//	STOP_TIME_T;
+//	printf("   init: %f\n", ett);
+
+
+//	START_TIME_T;
+	thrust::device_ptr<int> nnl(n_label);
+	thrust::device_ptr<int> tmnx(mnx);
+	thrust::device_ptr<int> tmxx(mxx);
+	thrust::device_ptr<int> tmny(mny);
+	thrust::device_ptr<int> tmxy(mxy);
+	typedef thrust::tuple<thrust::device_ptr<int>,
+		thrust::device_ptr<int>,
+		thrust::device_ptr<int>,
+		thrust::device_ptr<int> > IteratorTuple;
+	typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
+	ZipIterator minmax = thrust::make_zip_iterator(thrust::make_tuple(
+			tmnx, tmxx, tmny, tmxy));
+	typedef thrust::tuple<int, int, int, int> MinMaxXY;
+	thrust::pair<thrust::device_vector<int>::iterator,
+	 	ZipIterator> newend;
+//	STOP_TIME_T;
+//	printf("   uf area test alloc 2: %f\n", ett);
+
+	// now do reduce, all 4 at the same time?
+	// then we reduce again. to get the areas to label mapping
+//	START_TIME_T;
+	newend = thrust::reduce_by_key(label.begin(), label.begin()+fgcount,
+			thrust::make_zip_iterator(thrust::make_tuple(
+				x.begin(), x.begin(), y.begin(), y.begin())),
+			nnl,
+			minmax,
+			thrust::equal_to<int>(), computeBounds<int, MinMaxXY>());
+//	STOP_TIME_T;
+//	printf("   uf area test reduce 2: %f\n", ett);
+
+
+	label.clear();
+	x.clear();
+	y.clear();
+    sortedIdx.clear();
+
+	int j = thrust::distance(minmax, newend.second);
+
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("endERROR: %s\n", cudaGetErrorString(err));
+        return -1;
+    }
+
+	return j;
 
 }
 

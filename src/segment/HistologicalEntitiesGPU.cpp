@@ -584,6 +584,8 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 	GpuMat g_watermask = ::nscale::gpu::watershedDW(g_seg_big, g_distance2, -1, 8, stream);
 	stream.waitForCompletion();
 	g_distance2.release();
+
+
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
 	//Mat watermask = ::nscale::watershed2(nuclei, distance2, 8);

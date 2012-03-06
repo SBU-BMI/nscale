@@ -40,10 +40,10 @@ inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::q
 }
 
 template
-inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
+void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, unsigned char* iPtr, unsigned char* oPtr, const unsigned char&);
 template
-inline void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
+void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, float* iPtr, float* oPtr, const float&);
 
 
@@ -554,10 +554,10 @@ inline void propagateBinary(const Mat& image, Mat& output, std::queue<int>& xQ, 
 }
 
 template
-inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
+void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, unsigned char* iPtr, unsigned char* oPtr, const unsigned char&);
 template
-inline void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
+void propagateBinary(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, float* iPtr, float* oPtr, const float&);
 
 /** optimized serial implementation for binary,
@@ -834,7 +834,7 @@ Mat bwselect(const Mat& binaryImage, const Mat& seeds, int connectivity) {
 //  in an image with minimum size of 2^16 x 2^16 pixels, which is only 65k x 65k.
 // however, since the contour finding algorithm uses Vec4i, the maximum index can only be an int.  similarly, the image size is
 //  bound by Point's internal representation, so only int.  The Mat will therefore be of type CV_32S, or int.
-Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
+Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity, bool bbox, std::vector<Vec4i> &boundingBoxes) {
 	CV_Assert(binaryImage.channels() == 1);
 	// only works for binary images.
 
@@ -865,6 +865,16 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity) {
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 			drawContours( output, contours, idx, Scalar(color), lineThickness, connectivity, hierarchy );
+
+			if (bbox) {
+				CvRect boundbox  = boundingRect(contours[j]);
+				Vec4i b;
+				b[0] = boundbox.x - 1;  // border padded
+				b[1] = b[0] + boundbox.width - 1;
+				b[2] = boundbox.y - 1;  // border padded
+				b[3] = b[2] + boundbox.height - 1;
+				boundingBoxes.push_back(b);
+			}
 			j++;
 		}
 //		uint64_t t2 = cciutils::ClockGetTime();
@@ -890,7 +900,7 @@ Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity, bool relab) {
 	cc.label((unsigned char*) input.data, input.cols, input.rows, (int *)output.data, -1, connectivity);
 
 	// relabel if requested
-	int j;
+	int j = 0;
 	if (relab) {
 		j = cc.relabel(output.cols, output.rows, (int *)output.data, -1);
 		printf("%d number of components\n", j);
@@ -915,7 +925,8 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 		bool contourOnly, int connectivity) {
 	// only works for binary images.
 	if (contourFilter == NULL) {
-		return bwlabel(binaryImage, contourOnly, connectivity);
+		std::vector<Vec4i> dummy;
+		return bwlabel(binaryImage, contourOnly, connectivity, false, dummy);
 	}
 	CV_Assert(binaryImage.channels() == 1);
 
@@ -1061,7 +1072,7 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	return output(Rect(1,1, binaryImage.cols, binaryImage.rows));
 }
 // inclusive min, exclusive max
-Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
+Mat bwareaopen3(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
 	// only works for binary images.
 	CV_Assert(binaryImage.channels() == 1);
 	// only works for binary images.
@@ -1082,6 +1093,33 @@ Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivi
 
 	return output;
 }
+
+// inclusive min, exclusive max
+Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
+	// only works for binary images.
+	CV_Assert(binaryImage.channels() == 1);
+	// only works for binary images.
+	CV_Assert(binaryImage.type() == CV_8U);
+
+	//copy, to make data continuous.
+	Mat input = Mat::zeros(binaryImage.size(), binaryImage.type());
+	binaryImage.copyTo(input);
+
+	ConnComponents cc;
+	Mat_<int> temp = Mat_<int>::zeros(input.size());
+	Mat_<int> temp2 = Mat_<int>::zeros(input.size());
+	cc.label((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)temp.data, -1, connectivity);
+	count = cc.areaThresholdLabeled((int *)temp.data, temp.cols, temp.rows, (int *)temp2.data, -1, minSize, maxSize);
+
+	Mat output = temp2 > (int)(-1);
+
+	input.release();
+	temp.release();
+	temp2.release();
+
+	return output;
+}
+
 
 template <typename T>
 Mat imhmin(const Mat& image, T h, int connectivity) {
@@ -1124,7 +1162,8 @@ Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connecti
 
 	t1 = ::cciutils::ClockGetTime();
 //imwrite("test-minima.pbm", minima);
-	Mat_<int> labels = bwlabel(minima, false, connectivity);
+	std::vector<Vec4i> dummy;
+	Mat_<int> labels = bwlabel(minima, false, connectivity, false, dummy);
 //imwrite("test-bwlabel.png", labels);
 	t2 = ::cciutils::ClockGetTime();
 	printf("    cpu opencv bwlabel = %lld\n", t2-t1);

@@ -10,8 +10,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <tr1/unordered_map>
 
 namespace nscale {
+
+
+struct box {
+	int minx;
+	int maxx;
+	int miny;
+	int maxy;
+};
+
 
 class ConnComponents {
 public:
@@ -22,6 +32,8 @@ public:
 	int areaThreshold(unsigned char *img, int w, int h, int *label, int bgval, int lower, int upper, int connectivity);
 
 	int relabel(int w, int h, int *label, int bgval);
+	int areaThresholdLabeled(const int *label, const int w, const int h, int *n_label, const int bgval, const int lower, const int upper);
+	int boundingBox(const int w, const int h, const int* label, int bgval, int *n_label, int *mnx, int *mxx, int *mny, int *mxy);
 
 protected:
 	int find(int *label, int x);
