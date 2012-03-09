@@ -5,7 +5,6 @@
  *      Author: tcpan
  */
 #include <iostream>
-#include <string>
 #include <omp.h>
 #include <stdio.h>
 
