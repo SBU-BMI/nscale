@@ -9,7 +9,6 @@
 #include <iostream>
 #include <dirent.h>
 #include <vector>
-#include <string>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
 #include <time.h>

@@ -7,7 +7,6 @@
 #include <iostream>
 #include <dirent.h>
 #include <vector>
-#include <string>
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
