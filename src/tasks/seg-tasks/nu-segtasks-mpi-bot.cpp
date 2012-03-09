@@ -9,7 +9,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
-#include <string>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
 #include "utils.h"
