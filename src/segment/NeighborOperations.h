@@ -17,10 +17,9 @@ class NeighborOperations {
 
 public:
 
-	// IMPLE DOES NOT WORK BETTER THAN ERODE.  
 	// fixes watershed borders.
 	template <typename T>
-	static ::cv::Mat border(::cv::Mat& img, T background, int connectivity);
+	static ::cv::Mat border(::cv::Mat& img, T background);
 
 };
 

@@ -33,7 +33,7 @@ public:
 
 	int relabel(int w, int h, int *label, int bgval);
 	int areaThresholdLabeled(const int *label, const int w, const int h, int *n_label, const int bgval, const int lower, const int upper);
-	int boundingBox(const int w, const int h, const int* label, int bgval, int *n_label, int *mnx, int *mxx, int *mny, int *mxy);
+	int* boundingBox(const int w, const int h, const int* label, int bgval, int &compcount);
 
 protected:
 	int find(int *label, int x);

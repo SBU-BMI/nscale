@@ -48,7 +48,7 @@ int main (int argc, char **argv){
         figure, imshow(I), figure, imshow(I2)
 
 	 */
-	Mat imfilldata = imread("test/imfillTest.pbm", 0);
+	Mat imfilldata = imread("/home/tcpan/PhD/path/src/nscale/src/segment/test/imfillTest.pbm", 0);
 	Mat imfillinput = repeat(imfilldata, 512, 512);
 	Mat seeds = Mat::zeros(imfilldata.size(), CV_8U);
 	seeds.ptr(2)[2] = 1;
@@ -106,14 +106,13 @@ int main (int argc, char **argv){
         BW2 = bwselect(BW1,c,r,4);
 	 *
 	 */
-	imfilldata = imread("test/text.png", 0);
+	imfilldata = imread("/home/tcpan/PhD/path/src/nscale/src/segment/test/text.png", 0);
 	imfillinput = repeat(imfilldata, 16, 16);
 	seeds = Mat::zeros(imfilldata.size(), CV_8U);
 	seeds.ptr(125)[33] = 1;
 	seeds.ptr(186)[171] = 1;
 	seeds.ptr(10)[19] = 1;
 	imfillseeds = repeat(seeds, 16, 16);
-
 	t1 = cciutils::ClockGetTime();
 	Mat bwselected = nscale::bwselect<unsigned char>(imfillinput, imfillseeds, 8);
 	t2 = cciutils::ClockGetTime();
@@ -126,6 +125,7 @@ int main (int argc, char **argv){
 	std::cout << "bwselect4 took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-bwselected4.pbm", bwselected2);
 
+#if defined (HAVE_CUDA)
 	GpuMat g_imfillinput(imfillinput.size(), imfillinput.type());
 	Stream stream;
 	stream.enqueueUpload(imfillinput, g_imfillinput);
@@ -151,7 +151,7 @@ int main (int argc, char **argv){
 	stream.enqueueDownload(g_bwselected2, bwselected4);
 	stream.waitForCompletion();
 	imwrite("test/out-bwselected4-gpu.pbm", bwselected4);
-
+#endif
 
 
 

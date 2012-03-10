@@ -8,10 +8,12 @@
 #include "HistologicalEntities.h"
 #include <iostream>
 #include "MorphologicOperations.h"
+#include "NeighborOperations.h"
 #include "PixelOperations.h"
 #include "highgui.h"
 #include "float.h"
 #include "utils.h"
+#include "ConnComponents.h"
 
 namespace nscale {
 
@@ -106,21 +108,6 @@ Mat HistologicalEntities::getBackground(const std::vector<Mat>& bgr,
 }
 
 
-
-int HistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
-	Mat input = imread(in);
-	if (!input.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
-
-	Mat output(input.size(), CV_8U, Scalar(0));
-
-	int status = ::nscale::HistologicalEntities::segmentNuclei(input, output, logger, iresHandler);
-
-	if (status == ::nscale::HistologicalEntities::SUCCESS)
-		imwrite(out, output);
-
-	return status;
-}
 
 
 // S1
@@ -252,10 +239,11 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
     end
  *
  */
-	int compcount;
+	int compcount2;
 
 //#if defined (USE_UF_CCL)
-	Mat bw1_t = ::nscale::bwareaopen2(bw1, 11, 1000, 8, compcount);
+	Mat bw1_t = ::nscale::bwareaopen2(bw1, false, true, 11, 1000, 8, compcount2);
+	printf(" cpu compcount 11-1000 = %d\n", compcount2);
 //#else
 //	Mat bw1_t = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
 //#endif
@@ -263,7 +251,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 
 	bw1.release();
 	if (iresHandler) iresHandler->saveIntermediate(bw1_t, 8);
-	if (compcount == 0) {
+	if (compcount2 == 0) {
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
 
@@ -305,11 +293,13 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
 	 */
 	// bwareaopen is done as a area threshold.
-	int compcount;
+	int compcount2;
 //#if defined (USE_UF_CCL)
-	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
+	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, false, true, 30, std::numeric_limits<int>::max(), 8, compcount2);
+	printf(" cpu compcount 30-1000 = %d\n", compcount2);
+
 //#else
-//	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount);
+//	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount2);
 //#endif
 	if (logger) logger->logTimeSinceLastLog("30To1000");
 	if (iresHandler) iresHandler->saveIntermediate(seg_big_t, 14);
@@ -405,23 +395,30 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	if (logger) logger->logTimeSinceLastLog("watershed");
 	if (iresHandler) iresHandler->saveIntermediate(watermask, 20);
 
-
+// MASK approach
 	seg_nonoverlap = Mat::zeros(seg_big.size(), seg_big.type());
 	seg_big.copyTo(seg_nonoverlap, (watermask >= 0));
-	// erode a bit
 	if (logger) logger->logTimeSinceLastLog("water to mask");
 	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 21);
 
-	Mat twm;
-	copyMakeBorder(seg_nonoverlap, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(std::numeric_limits<unsigned char>::max()));
-	Mat t_nonoverlap = Mat::zeros(twm.size(), twm.type());
-	erode(twm, t_nonoverlap, disk3);
-	seg_nonoverlap = t_nonoverlap(Rect(1,1,seg_nonoverlap.cols, seg_nonoverlap.rows));
-//	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
-	if (logger) logger->logTimeSinceLastLog("watershed erode");
-	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 22);
-	twm.release();
-	t_nonoverlap.release();
+//// ERODE has been replaced with border finding and moved into watershed.
+//	Mat twm(seg_nonoverlap.rows + 2, seg_nonoverlap.cols + 2, seg_nonoverlap.type());
+//	Mat t_nonoverlap = Mat::zeros(twm.size(), twm.type());
+//	//ERODE to fix border
+//	if (seg_nonoverlap.type() == CV_32S)
+//		copyMakeBorder(seg_nonoverlap, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<int>(std::numeric_limits<int>::max()));
+//	else
+//		copyMakeBorder(seg_nonoverlap, twm, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<unsigned char>(std::numeric_limits<unsigned char>::max()));
+//	erode(twm, t_nonoverlap, disk3);
+//	seg_nonoverlap = t_nonoverlap(Rect(1,1,seg_nonoverlap.cols, seg_nonoverlap.rows));
+//	if (logger) logger->logTimeSinceLastLog("watershed erode");
+//	if (iresHandler) iresHandler->saveIntermediate(seg_nonoverlap, 22);
+//	twm.release();
+//	t_nonoverlap.release();
+
+	// LABEL approach -erode does not support 32S
+//	seg_nonoverlap = ::nscale::PixelOperations::replace<int>(watermask, (int)0, (int)-1);
+	// watershed output: 0 for background, -1 for border.  bwlabel before watershd has 0 for background
 
 	return ::nscale::HistologicalEntities::CONTINUE;
 
@@ -429,8 +426,28 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 
 
 
+int HistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
+		int &compcount, int *&bbox,
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	Mat input = imread(in);
+	if (!input.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
+
+	Mat output;
+
+	printf("input: %d %d %d\n", input.rows, input.cols, input.type());
+	int status = ::nscale::HistologicalEntities::segmentNuclei(input, output, compcount, bbox, logger, iresHandler);
+	input.release();
+
+	if (status == ::nscale::HistologicalEntities::SUCCESS)
+		imwrite(out, output);
+	output.release();
+
+	return status;
+}
+
 
 int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
+		int &compcount, int *&bbox,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	// image in BGR format
 	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
@@ -501,21 +518,24 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
     seg = ismember(L,ind);
 	 *
 	 */
-	int compcount;
+	int compcount2;
 //#if defined (USE_UF_CCL)
-	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, 21, 1000, 4, compcount);
+	// MASK approach
+	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, false, true, 21, 1000, 4, compcount2);
+	// LABEL approach - erode does not support 32S
+//	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, true, false, 21, 1000, 4, compcount2);
+	// bwareaopen without flattening has -1 for background
+	printf("  cpu compcount 21-1000 = %d\n", compcount2);	
 //#else
 //	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
 //#endif
 	if (logger) logger->logTimeSinceLastLog("20To1000");
-	if (countNonZero(seg) == 0) {
+	if (compcount2 == 0) {
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
 	if (iresHandler) iresHandler->saveIntermediate(seg, 23);
 
-//	imwrite("test/out-seg.ppm", seg);
-
-
+	
 	/*
 	 *     %CHANGE
     %[L, num] = bwlabel(seg,8);
@@ -525,13 +545,26 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	 *
 	 */
 	// don't worry about bwlabel.
-	output = ::nscale::imfillHoles<unsigned char>(seg, true, 8);
+	// MASK approach
+	Mat final = ::nscale::imfillHoles<unsigned char>(seg, true, 8);
+	// LABEL approach - upstream erode does not support 32S
+//	Mat t_seg = ::nscale::PixelOperations::replace(seg, -1, 0);
+//	seg.release();
+//	output = ::nscale::imfillHoles<int>(t_seg, false, 8);
+//	t_seg.release();
+	//output = temp2 > 0;
 	if (logger) logger->logTimeSinceLastLog("fillHolesLast");
-
-//	imwrite("test/out-nuclei.ppm", seg);
 
 //	if (logger) logger->endSession();
 
+	// MASK approach
+	output = nscale::bwlabel2(final, 8, true);
+	final.release();
+
+	::nscale::ConnComponents cc;
+	bbox = cc.boundingBox(output.cols, output.rows, (int *)output.data, 0, compcount);
+	printf(" number of bounding boxes: %d\n", compcount);
+	printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
 	return ::nscale::HistologicalEntities::SUCCESS;
 
 }

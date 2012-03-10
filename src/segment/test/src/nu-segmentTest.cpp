@@ -12,7 +12,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
-#include <string>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
 #include "utils.h"
@@ -132,7 +131,6 @@ void compute(const char *input, const char *mask, const char *output, const int 
 		::cciutils::SimpleCSVLogger *logger ) {
 	// compute
 
-
     ::cciutils::cv::IntermediateResultHandler *iwrite = NULL;
     if (debug)	{
     	std::vector<int> stages;
@@ -159,18 +157,24 @@ void compute(const char *input, const char *mask, const char *output, const int 
     }
 
 
+	int *bbox = NULL;
+	int compcount;
+
+	printf("processing %s\n", input);
 
 	switch (modecode) {
 	case cciutils::DEVICE_CPU :
 	case cciutils::DEVICE_MCORE :
-		nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), logger, iwrite);
+		nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox, logger, iwrite);
 		break;
 	case cciutils::DEVICE_GPU :
-		nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), NULL, logger, iwrite);
+		nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, logger, iwrite);
 		break;
 	default :
 		break;
 	}
+	if (bbox != NULL) free(bbox);
+	else printf("WHY IS BBOX NULL?\n");
 
 	if (logger) logger->endSession();
 	if (iwrite)	delete iwrite;
@@ -206,8 +210,6 @@ int main (int argc, char **argv){
 
     	int total = filenames.size();
     	int i = 0;
-
-
     	while (i < total) {
     		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, debug, logger);
     		++i;

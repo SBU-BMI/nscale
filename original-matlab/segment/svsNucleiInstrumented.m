@@ -9,8 +9,8 @@ function []=svsNucleiInstrumented(impath,filename,fileext, resultpath, validatio
             'normal.3/normal.3.ndpi-0000028672-0000012288',...
             };
         impath='/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/';
-        resultpath='/home/tcpan/PhD/path/Data/seg-uf-cpu-debug/';
-        validationpath='/home/tcpan/PhD/path/Data/seg-uf-cpu-debug/';
+        resultpath='/home/tcpan/PhD/path/Data/seg-cpu-labeled-debug/';
+        validationpath='/home/tcpan/PhD/path/Data/seg-cpu-labeled-debug/';
         fileext = '.tif';
 
         for i = 1:length(image)
@@ -440,6 +440,10 @@ fprintf(logfid, '%s, fillHolesLast, %d\n', filename, t);
     fprintf(1, 'matlab vs cv.  nuclei pixel difference %d\n', length(find(tolabel ~= cv_tolabel)));
 %    figure; imshow(tolabel ~= cv_tolabel);
 
+    % CYAN = missing red -> matlab has border
+    % Magenta = missing green -> OpenCV has border
+    % BLUE = missing matlab and opencv. - this is fine
+    % WHITE = all three present - this is fine too.
 	out = zeros(size(tolabel, 1), size(tolabel, 2), 3, 'uint8');
 	out(:,:,1) = 255 * tolabel;
 	out(:,:,2) = 255 * cv_tolabel;

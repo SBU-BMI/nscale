@@ -117,8 +117,8 @@ template <typename T>
 GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
-	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
-	CV_Assert(image.type() == CV_32FC1 || image.type() == CV_8UC1);
+	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1 || seeds.type() == CV_32SC1);
+	CV_Assert(image.type() == CV_32FC1 || image.type() == CV_8UC1 || image.type() == CV_32SC1);
 
     // allocate results
 	GpuMat marker = createContinuous(seeds.size(), seeds.type());
@@ -485,8 +485,8 @@ template <typename T>
 GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
-	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1);
-	CV_Assert(image.type() == CV_32FC1 || image.type() == CV_8UC1);
+	CV_Assert(seeds.type() == CV_32FC1 || seeds.type() == CV_8UC1 || seeds.type() == CV_32SC1);
+	CV_Assert(image.type() == CV_32FC1 || image.type() == CV_8UC1 || image.type() == CV_32SC1);
 
 //	Mat c_seeds;
 //	seeds.download(c_seeds);
@@ -596,7 +596,7 @@ GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connect
 //
 //	mask.copyTo(marker, seeds);
 //
-//	if (binary) marker = imreconstructBinary<T>(marker, mask, connectivity);
+//	if (binary == true) marker = imreconstructBinary<T>(marker, mask, connectivity);
 //	else marker = imreconstruct<T>(marker, mask, connectivity);
 //
 //	return image | marker;
@@ -637,32 +637,31 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 
 	// copy the input and pad with -inf.
 	GpuMat mask2;
-	copyMakeBorder(image, mask2, 1, 1, 1, 1, Scalar(mn), stream);
+	copyMakeBorder(image, mask2, 1, 1, 1, 1, Scalar_<T>(mn), stream);
 	// create marker with inf inside and -inf at border, and take its complement
-	GpuMat marker;
 	GpuMat marker2(image.size(), image.type());
-	stream.enqueueMemSet(marker2, Scalar(mn));
+	stream.enqueueMemSet(marker2, Scalar_<T>(mn));
 
 	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
-	copyMakeBorder(marker2, marker, 1, 1, 1, 1, Scalar(mx), stream);
+	GpuMat marker;
+	copyMakeBorder(marker2, marker, 1, 1, 1, 1, Scalar_<T>(mx), stream);
 
 	// now do the work...
 	GpuMat mask = nscale::gpu::PixelOperations::invert<T>(mask2, stream);
 	stream.waitForCompletion();
 	marker2.release();
 	mask2.release();
-
-//	uint64_t t1 = cciutils::ClockGetTime();
 	GpuMat output2;
-	if (binary) output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
-	else if (sizeof(T) == 1 && !(std::numeric_limits<T>::is_signed))
+	if (binary == true) {
+		output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
+
+	}
+	else if (sizeof(T) == 1 && !(std::numeric_limits<T>::is_signed)) {
 		output2 = imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 1, stream);
-	else
+
+	} else {
 		output2 = imreconstruct<T>(marker, mask, connectivity, stream);
-//	output2 = imreconstruct2<T>(marker, mask, connectivity, stream);
-	stream.waitForCompletion();
-//	uint64_t t2 = cciutils::ClockGetTime();
-//	std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
+	}
 	stream.waitForCompletion();
 	marker.release();
 	mask.release();
@@ -732,9 +731,9 @@ GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& 
 
 	::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)output.data, -1, connectivity, StreamAccessor::getStream(stream));
 	stream.waitForCompletion();
-	if (relab) {
+	if (relab == true) {
 		int j = ::nscale::gpu::relabel(output.cols, output.rows, (int*)output.data, -1, StreamAccessor::getStream(stream));
-		printf(" num components = %d\n", j);
+		printf("gpu bwlabel num components = %d\n", j);
 	}
 
 	input.release();
@@ -761,7 +760,7 @@ GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& 
 //	CV_Assert(binaryImage.channels() == 1);
 //
 //	int lineThickness = CV_FILLED;
-//	if (contourOnly) lineThickness = 1;
+//	if (contourOnly == true) lineThickness = 1;
 //
 //	// based on example from
 //	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
@@ -776,7 +775,7 @@ GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& 
 //	// using CV_RETR_CCOMP - 2 level hierarchy - external and hole.  if contour inside hole, it's put on top level.
 //	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 //
-//	if (binaryOutput) {
+//	if (binaryOutput == true) {
 //		Scalar color(std::numeric_limits<T>::max());
 //		// iterate over all top level contours (all siblings, draw with own label color
 //		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
@@ -822,26 +821,73 @@ GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& 
 //}
 
 // inclusive min, exclusive max
-GpuMat bwareaopen(const GpuMat& binaryImage, int minSize, int maxSize, int connectivity, int& count, Stream& stream) {
+GpuMat bwareaopen(const GpuMat& binaryImage, bool labeled, bool flatten, int minSize, int maxSize, int connectivity, int& count, Stream& stream) {
 
 	CV_Assert(binaryImage.channels() == 1);
-	CV_Assert(binaryImage.type() == CV_8U);
+	if (labeled == false)
+		CV_Assert(binaryImage.type() == CV_8U);
+	else
+		CV_Assert(binaryImage.type() == CV_32S);
+
 	// only works for binary images.
 
 	GpuMat input = createContinuous(binaryImage.size(), binaryImage.type());
 	stream.enqueueCopy(binaryImage, input);
+	GpuMat output;
 
-	GpuMat temp = createContinuous(binaryImage.size(), CV_32SC1);
+	if (labeled == false) {
+		GpuMat temp = createContinuous(binaryImage.size(), CV_32SC1);
+		::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)temp.data, -1, connectivity, StreamAccessor::getStream(stream));
+		count = ::nscale::gpu::areaThreshold(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
+		printf("inside bwareaopen: count unlabeled = %d\n", count);
+		if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(temp, 0, true, std::numeric_limits<int>::max(), true, stream);
+		else output = temp;
+		stream.waitForCompletion();
+		temp.release();
+	} else {
+		count = ::nscale::gpu::areaThreshold(input.cols, input.rows, (int*)input.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
+		printf("inside bwareaopen: count labeled = %d\n", count);
+			if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(input, 0, true, std::numeric_limits<int>::max(), true, stream);
+		else output = input;
+		stream.waitForCompletion();
+	}
 
-	::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)temp.data, -1, connectivity, StreamAccessor::getStream(stream));
-	stream.waitForCompletion();
 	input.release();
 
-	count = ::nscale::gpu::areaThreshold(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
+	return output;
+}
 
-	GpuMat output = ::nscale::gpu::PixelOperations::threshold(temp, 0, true, std::numeric_limits<int>::max(), true, stream);
-	stream.waitForCompletion();
-	temp.release();
+GpuMat bwareaopen2(const GpuMat& binaryImage, bool labeled, bool flatten, int minSize, int maxSize, int connectivity, int& count, Stream& stream) {
+
+	CV_Assert(binaryImage.channels() == 1);
+	if (labeled == false)
+		CV_Assert(binaryImage.type() == CV_8U);
+	else
+		CV_Assert(binaryImage.type() == CV_32S);
+	// only works for binary images.
+
+	GpuMat input = createContinuous(binaryImage.size(), binaryImage.type());
+	stream.enqueueCopy(binaryImage, input);
+	GpuMat output;
+
+	if (labeled == false) {
+		GpuMat temp = createContinuous(binaryImage.size(), CV_32SC1);
+		::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)temp.data, -1, connectivity, StreamAccessor::getStream(stream));
+		count = ::nscale::gpu::areaThreshold2(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
+		printf("inside bwareaopen2: count unlabeled = %d\n", count);
+		if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(temp, 0, true, std::numeric_limits<int>::max(), true, stream);
+		else output = temp;
+		stream.waitForCompletion();
+	} else {
+		count = ::nscale::gpu::areaThreshold2(input.cols, input.rows, (int*)input.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
+		printf("inside bwareaopen2: count labeled = %d\n", count);
+		if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(input, 0, true, std::numeric_limits<int>::max(), true, stream);
+		else output = input;
+		stream.waitForCompletion();
+	}
+
+	input.release();
+
 
 	return output;
 }
@@ -951,7 +997,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 	// this implementation does not require seed image, nor the original image (at all).
 
 	GpuMat input = createContinuous(image.size().height + 2, image.size().width + 2, image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, Scalar(0), stream);
+	copyMakeBorder(image, input, 1, 1, 1, 1, Scalar(0.0), stream);
 
 	// allocate results
 	GpuMat labels = createContinuous(image.size().height + 2, image.size().width + 2, CV_32SC1);

@@ -6,7 +6,8 @@
  */
 
 #include "ConnComponents.h"
-#include <string>
+#include <string.h>
+
 
 namespace nscale {
 
@@ -100,6 +101,14 @@ int ConnComponents::relabel(int w, int h, int *label, int bgval) {
 			++j;
 		}
 	}
+
+	// Debug
+//	printf("labels = ");
+//	for (std::tr1::unordered_map<int, int>::iterator iter = labelmap.begin();
+//			iter != labelmap.end(); ++iter) {
+//		printf("%d->%d ", iter->first, iter->second);
+//	}
+//	printf("\n");
 
 	// next do a one pass value change.
 	for (int i = 0; i < length; ++i) {
@@ -205,17 +214,19 @@ int ConnComponents::areaThresholdLabeled(const int *label, const int w, const in
 		// initialize output
 		n_label[i] = bgval;
 	}
+
+	int j = 0;
 	// count ones that are within threshold
 	for (AreaMap::iterator it = areas.begin();
 			it != areas.end(); ++it) {
 		if (it->second >= lower && it->second < upper) {
 			thresholdedareas[it->first] = 1;
+			++j;
 		} else {
 			thresholdedareas[it->first] = 0;
 		}
 	}
 	areas.clear();
-	int j = thresholdedareas.size();
 
 	//  TONY finally do the threshold and change the value of the
 	for (int i=0; i<length; ++i) {
@@ -227,36 +238,49 @@ int ConnComponents::areaThresholdLabeled(const int *label, const int w, const in
 	return j;
 }
 
-int ConnComponents::boundingBox(const int w, const int h, const int* label, int bgval, int *n_label, int *mnx, int *mxx, int *mny, int *mxy) {
+int* ConnComponents::boundingBox(const int w, const int h, const int* label, int bgval, int &compcount) {
 	int length = w * h;
 	std::tr1::unordered_map<int, int> label2index;
 
+	int *tbox = (int*)malloc(sizeof(int) * length * 5);
+	int *minx = tbox + length, *maxx = tbox +2*length, *miny = tbox +3*length, *maxy = tbox + 4*length;
 	int x, y;
 	int j = 0;
 	for (int i=0; i<length; ++i) {
 		if (label[i] == bgval) continue;
 
+		if (label[i] == -1) { printf("-1 background\n"); break; }
+		if (label[i] == 0) { printf("0 background\n"); break; }
+
 		x = i % w;
 		y = i / w;
 		if (label2index.find(label[i]) == label2index.end()) {
 			label2index[label[i]] = j;
-			n_label[j] = label[i];
-			mnx[j] = x;
-			mxx[j] = x;
-			mny[j] = y;
-			mxy[j] = y;
-			j++;
+			tbox[j] = label[i];
+			minx[j] = x;
+			maxx[j] = x;
+			miny[j] = y;
+			maxy[j] = y;
+			++j;
 
 		} else {
 
-			mnx[label2index[label[i]]] = (mnx[label2index[label[i]]] > x ? x : mnx[label2index[label[i]]]);
-			mxx[label2index[label[i]]] = (mxx[label2index[label[i]]] < x ? x : mxx[label2index[label[i]]]);
-			mny[label2index[label[i]]] = (mny[label2index[label[i]]] > y ? y : mny[label2index[label[i]]]);
-			mxy[label2index[label[i]]] = (mxy[label2index[label[i]]] < y ? y : mxy[label2index[label[i]]]);
+			minx[label2index[label[i]]] = (minx[label2index[label[i]]] > x ? x : minx[label2index[label[i]]]);
+			maxx[label2index[label[i]]] = (maxx[label2index[label[i]]] < x ? x : maxx[label2index[label[i]]]);
+			miny[label2index[label[i]]] = (miny[label2index[label[i]]] > y ? y : miny[label2index[label[i]]]);
+			maxy[label2index[label[i]]] = (maxy[label2index[label[i]]] < y ? y : maxy[label2index[label[i]]]);
 		}
 	}
+	compcount = j;
 
-	return j;
+	int *output = (int*)malloc(sizeof(int) * compcount * 5);
+	memcpy(output, tbox, compcount * sizeof(int));
+	memcpy(output+compcount, minx, compcount * sizeof(int));
+	memcpy(output+2*compcount, maxx, compcount * sizeof(int));
+	memcpy(output+3*compcount, miny, compcount * sizeof(int));
+	memcpy(output+4*compcount, maxy, compcount * sizeof(int));
+	free(tbox);
+	return output;
 }
 
 

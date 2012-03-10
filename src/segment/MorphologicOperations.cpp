@@ -731,7 +731,7 @@ Mat imfill(const Mat& image, const Mat& seeds, bool binary, int connectivity) {
 
 	mask.copyTo(marker, seeds);
 
-	if (binary) marker = imreconstructBinary<T>(marker, mask, connectivity);
+	if (binary == true) marker = imreconstructBinary<T>(marker, mask, connectivity);
 	else marker = imreconstruct<T>(marker, mask, connectivity);
 
 	return image | marker;
@@ -785,7 +785,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 
 //	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
-	if (binary) {
+	if (binary == true) {
 //		imwrite("test/in-fillholes-bin-marker.pgm", marker);
 //		imwrite("test/in-fillholes-bin-mask.pgm", mask);
 		output = imreconstructBinary<T>(marker, mask, connectivity);
@@ -839,7 +839,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity, bo
 	// only works for binary images.
 
 	int lineThickness = CV_FILLED;
-	if (contourOnly) lineThickness = 1;
+	if (contourOnly == true) lineThickness = 1;
 
 	// based on example from
 	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
@@ -866,7 +866,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity, bo
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
 			drawContours( output, contours, idx, Scalar(color), lineThickness, connectivity, hierarchy );
 
-			if (bbox) {
+			if (bbox == true) {
 				CvRect boundbox  = boundingRect(contours[j]);
 				Vec4i b;
 				b[0] = boundbox.x - 1;  // border padded
@@ -880,7 +880,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity, bo
 //		uint64_t t2 = cciutils::ClockGetTime();
 		//TODO: TEMP std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
 	}
-	std::cout << "num contours = " << contours.size() << std::endl;
+	std::cout << "num contours = " << contours.size() << " vs outer contours " << j << std::endl;
 	return output(Rect(1,1,binaryImage.cols, binaryImage.rows));
 }
 
@@ -901,7 +901,7 @@ Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity, bool relab) {
 
 	// relabel if requested
 	int j = 0;
-	if (relab) {
+	if (relab == true) {
 		j = cc.relabel(output.cols, output.rows, (int *)output.data, -1);
 		printf("%d number of components\n", j);
 	}
@@ -931,7 +931,7 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 	CV_Assert(binaryImage.channels() == 1);
 
 	int lineThickness = CV_FILLED;
-	if (contourOnly) lineThickness = 1;
+	if (contourOnly == true) lineThickness = 1;
 
 	// based on example from
 	// http://opencv.willowgarage.com/documentation/cpp/imgproc_structural_analysis_and_shape_descriptors.html#cv-drawcontours
@@ -950,7 +950,7 @@ Mat bwlabelFiltered(const Mat& binaryImage, bool binaryOutput,
 	findContours(input, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 
 	if (contours.size() > 0) {
-		if (binaryOutput) {
+		if (binaryOutput == true) {
 			Scalar color(std::numeric_limits<T>::max());
 			// iterate over all top level contours (all siblings, draw with own label color
 			for (int idx = 0; idx >= 0; idx = hierarchy[idx][0]) {
@@ -1071,8 +1071,44 @@ Mat bwareaopen(const Mat& binaryImage, int minSize, int maxSize, int connectivit
 	}
 	return output(Rect(1,1, binaryImage.cols, binaryImage.rows));
 }
+
 // inclusive min, exclusive max
-Mat bwareaopen3(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
+Mat bwareaopen2(const Mat& image, bool labeled, bool flatten, int minSize, int maxSize, int connectivity, int& count) {
+	// only works for binary images.
+	CV_Assert(image.channels() == 1);
+	// only works for binary images.
+	if (labeled == false)
+		CV_Assert(image.type() == CV_8U);
+	else
+		CV_Assert(image.type() == CV_32S);
+
+	//copy, to make data continuous.
+	Mat input = Mat::zeros(image.size(), image.type());
+	image.copyTo(input);
+	Mat_<int> output = Mat_<int>::zeros(input.size());
+
+	ConnComponents cc;
+	if (labeled == false) {
+		Mat_<int> temp = Mat_<int>::zeros(input.size());
+		cc.label((unsigned char*)input.data, input.cols, input.rows, (int *)temp.data, -1, connectivity);
+		count = cc.areaThresholdLabeled((int *)temp.data, temp.cols, temp.rows, (int *)output.data, -1, minSize, maxSize);
+		temp.release();
+	} else {
+		count = cc.areaThresholdLabeled((int *)input.data, input.cols, input.rows, (int *)output.data, -1, minSize, maxSize);
+	}
+
+	input.release();
+	if (flatten == true) {
+		Mat O2 = Mat::zeros(output.size(), CV_8U);
+		O2 = output > -1;
+		output.release();
+		return O2;
+	} else
+		return output;
+
+}
+// inclusive min, exclusive max
+Mat bwareaopen3(const Mat& binaryImage, bool flatten, int minSize, int maxSize, int connectivity, int& count) {
 	// only works for binary images.
 	CV_Assert(binaryImage.channels() == 1);
 	// only works for binary images.
@@ -1086,38 +1122,15 @@ Mat bwareaopen3(const Mat& binaryImage, int minSize, int maxSize, int connectivi
 	Mat_<int> temp = Mat_<int>::zeros(input.size());
 	count = cc.areaThreshold((unsigned char*)input.data, input.cols, input.rows, (int *)temp.data, -1, minSize, maxSize, connectivity);
 
-	Mat output = temp > (int)(-1);
-
 	input.release();
-	temp.release();
+	if (flatten == true) {
+		Mat output = Mat::zeros(temp.size(), CV_8U);
+		output = temp > -1;
+		temp.release();
+		return output;
+	} else
+		return temp;
 
-	return output;
-}
-
-// inclusive min, exclusive max
-Mat bwareaopen2(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count) {
-	// only works for binary images.
-	CV_Assert(binaryImage.channels() == 1);
-	// only works for binary images.
-	CV_Assert(binaryImage.type() == CV_8U);
-
-	//copy, to make data continuous.
-	Mat input = Mat::zeros(binaryImage.size(), binaryImage.type());
-	binaryImage.copyTo(input);
-
-	ConnComponents cc;
-	Mat_<int> temp = Mat_<int>::zeros(input.size());
-	Mat_<int> temp2 = Mat_<int>::zeros(input.size());
-	cc.label((unsigned char*)binaryImage.data, binaryImage.cols, binaryImage.rows, (int *)temp.data, -1, connectivity);
-	count = cc.areaThresholdLabeled((int *)temp.data, temp.cols, temp.rows, (int *)temp2.data, -1, minSize, maxSize);
-
-	Mat output = temp2 > (int)(-1);
-
-	input.release();
-	temp.release();
-	temp2.release();
-
-	return output;
 }
 
 
@@ -1169,16 +1182,19 @@ Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connecti
 	printf("    cpu opencv bwlabel = %lld\n", t2-t1);
 
 // need borders, else get edges at edge.
-	Mat input, output;
-	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat input, temp, output;
+	copyMakeBorder(labels, temp, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<int>(0));
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
 	t1 = ::cciutils::ClockGetTime();
-	watershed(input, output);
+	watershed(input, temp);
 	t2 = ::cciutils::ClockGetTime();
 	printf("    cpu watershed = %lld\n", t2-t1);
 
-	//output = nscale::NeighborOperations::border(temp, 0, 8);
+	t1 = ::cciutils::ClockGetTime();
+	output = nscale::NeighborOperations::border<int>(temp, (int)-1);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    CPU watershed border fix = %lld\n", t2-t1);
 
 	return output(Rect(1,1, image.cols, image.rows));
 }
@@ -1211,17 +1227,22 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 
 
 // need borders, else get edges at edge.
-	Mat input, output;
-	copyMakeBorder(labels, output, 1, 1, 1, 1, BORDER_CONSTANT, -1);
+	Mat input, temp, output;
+	copyMakeBorder(labels, temp, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<int>(0));
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
 	t1 = ::cciutils::ClockGetTime();
 
-	watershed(input, output);
+		// input: seeds are labeled from 1 to n, with 0 as background or unknown regions
+	// output has -1 as borders.
+	watershed(input, temp);
 	t2 = ::cciutils::ClockGetTime();
 	printf("    CPU watershed = %lld\n", t2-t1);
 
-	//output = nscale::NeighborOperations::border(temp, 0, 8);
+	t1 = ::cciutils::ClockGetTime();
+	output = nscale::NeighborOperations::border<int>(temp, (int)-1);
+	t2 = ::cciutils::ClockGetTime();
+	printf("    CPU watershed border fix = %lld\n", t2-t1);
 
 	return output(Rect(1,1, image.cols, image.rows));
 }
@@ -1361,11 +1382,11 @@ template Mat imfillHoles<int>(const Mat& image, bool binary, int connectivity);
 template Mat imreconstruct<int>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstructBinary<int>(const Mat& seeds, const Mat& binaryImage, int connectivity);
 
-template Mat bwselect<unsigned char>(const Mat& binaryImage, const Mat& seeds, int connectivity);
-template Mat bwlabelFiltered<unsigned char>(const Mat& binaryImage, bool binaryOutput,
+template Mat bwselect<unsigned char>(const Mat& image, const Mat& seeds, int connectivity);
+template Mat bwlabelFiltered<unsigned char>(const Mat& image, bool binaryOutput,
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
 		bool contourOnly, int connectivity);
-template Mat bwareaopen<unsigned char>(const Mat& binaryImage, int minSize, int maxSize, int connectivity, int& count);
+template Mat bwareaopen<unsigned char>(const Mat& image, int minSize, int maxSize, int connectivity, int& count);
 template Mat imhmin(const Mat& image, unsigned char h, int connectivity);
 template Mat imhmin(const Mat& image, float h, int connectivity);
 template Mat_<unsigned char> localMaxima<float>(const Mat& image, int connectivity);

@@ -277,6 +277,37 @@ template void thresholdCaller<int>(int, int, const PtrStep_<int>, PtrStep_<unsig
 
 
 template <typename T>
+__global__ void replaceKernel(int rows, int cols, const PtrStep_<T> img1, PtrStep_<T> result, T oldval, T newval)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (y < rows && x < cols)
+    {
+    	T p = img1.ptr(y)[x];
+    	result.ptr(y)[x] = (p == oldval ? newval : p);
+    }
+}
+
+template <typename T>
+void replaceCaller(int rows, int cols, const PtrStep_<T> img1,
+ PtrStep_<T> result, T oldval, T newval, cudaStream_t stream)
+{
+    dim3 threads(16, 16);
+    dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
+
+    replaceKernel<<<grid, threads, 0, stream>>>(rows, cols, img1, result, oldval, newval);
+     cudaGetLastError() ;
+
+    if (stream == 0)
+        cudaDeviceSynchronize();
+}
+
+template void replaceCaller<unsigned char>(int, int, const PtrStep_<unsigned char>, PtrStep_<unsigned char>, unsigned char, unsigned char, cudaStream_t);
+template void replaceCaller<int>(int, int, const PtrStep_<int>, PtrStep_<int>, int, int, cudaStream_t);
+
+
+template <typename T>
 __global__ void divideKernel(int rows, int cols, const PtrStep_<T> img1, const PtrStep_<T> img2, PtrStep_<T> result)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;

@@ -97,6 +97,14 @@ int main (int argc, char **argv){
      *
 	 */
 
+        Mat minima = nscale::localMinima<float>(distance2, 8);
+        // watershed is sensitive to label values.  need to relabel.
+        std::vector<Vec4i> dummy;
+        Mat_<int> labels = nscale::bwlabel(minima, false, 8, false, dummy);
+
+	Mat_<int> labels2 = nscale::bwlabel2(minima, 8, true);
+
+	
 
 
 	Mat nuclei = Mat::zeros(img.size(), img.type());

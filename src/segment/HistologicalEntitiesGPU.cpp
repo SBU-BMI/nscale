@@ -14,8 +14,12 @@
 #include "opencv2/gpu/gpu.hpp"
 #include "NeighborOperations.h"
 
-
 //#define HAVE_CUDA
+
+#if defined (HAVE_CUDA)
+#include "ccl_uf.cuh"
+#include "opencv2/gpu/stream_accessor.hpp"
+#endif
 
 namespace nscale {
 
@@ -33,9 +37,14 @@ GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stre
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,
 				::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,  cv::gpu::Stream *str,
+int HistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
+		int &compcount, int *&g_bbox,  cv::gpu::Stream *str,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
-int HistologicalEntities::segmentNuclei(const std::string& input, const std::string& output,  cv::gpu::Stream *str,
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
+		int &compcount, int *&bbox, cv::gpu::Stream *str,
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+int HistologicalEntities::segmentNuclei(const std::string& input, const std::string& output,
+		int &compcount, int *&bbox, cv::gpu::Stream *str,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 
 
@@ -170,24 +179,9 @@ GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Str
 }
 
 
-int HistologicalEntities::segmentNuclei(const std::string& in, const std::string& out, cv::gpu::Stream *str,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
-	Mat input = imread(in);
-	if (!input.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
-
-	Mat output(input.size(), CV_8U, Scalar(0));
-
-	int status = ::nscale::gpu::HistologicalEntities::segmentNuclei(input, output, str, logger, iresHandler);
-
-	if (status == ::nscale::HistologicalEntities::SUCCESS)
-		imwrite(out, output);
-
-	return status;
-}
-
 
 // S1
-int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_norbc,
+int HistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g_seg_norbc,
 		Stream& stream,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
@@ -213,7 +207,6 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
 		g_bgr[0].release();
 		g_bgr[1].release();
 		g_bgr[2].release();
-		g_img.release();
 		return ::nscale::HistologicalEntities::BACKGROUND;
 	} else if (ratio >= 0.9) {
 		//std::cout << "background.  next." << std::endl;
@@ -222,7 +215,6 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
 		g_bgr[0].release();
 		g_bgr[1].release();
 		g_bgr[2].release();
-		g_img.release();
 
 		return ::nscale::HistologicalEntities::BACKGROUND_LIKELY;
 	}
@@ -357,7 +349,6 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
 	if (iresHandler) iresHandler->saveIntermediate(g_bw1, 7);
 
 	g_diffIm2.release();
-	g_img.release();
 	stream.waitForCompletion();
 //	if (logger) logger->logTimeSinceLastLog("GPU done");
 	
@@ -382,11 +373,12 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
     end
  *
  */
-	int compcount;
+	int compcount2;
 //#if defined (USE_UF_CCL)
-	GpuMat g_bw1_t = ::nscale::gpu::bwareaopen(g_bw1, 11, 1000, 8, compcount, stream);
+	GpuMat g_bw1_t = ::nscale::gpu::bwareaopen2(g_bw1, false, true, 11, 1000, 8, compcount2, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_bw1_t, 8);
+printf(" gpu compcount 11-1000 = %d\n", compcount2);
 //#else
 //	Mat bw1(g_bw1.size(), g_bw1.type());
 //	stream.enqueueDownload(g_bw1, bw1);
@@ -402,10 +394,10 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
 //#endif
 	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
 	g_bw1.release();
-	if (compcount == 0) {
+	if (compcount2 == 0) {
 		g_diffIm.release();
 		g_rbc.release();
-
+		printf("no candidates left: compcount2 = %d\n", compcount2);
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
 
@@ -450,7 +442,7 @@ int HistologicalEntities::plFindNucleusCandidates(GpuMat& g_img, GpuMat& g_seg_n
 }
 
 // A4
-int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, GpuMat& g_seg_nonoverlap, Stream& stream,
+int HistologicalEntities::plSeparateNuclei(const GpuMat& g_img, GpuMat& g_seg_open, GpuMat& g_seg_nonoverlap, Stream& stream,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	/*
@@ -458,11 +450,12 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 	seg_big = imdilate(bwareaopen(seg_open,30),strel('disk',1));
 	 */
 	// bwareaopen is done as a area threshold.
-	int compcount;
+	int compcount2;
 //#if defined (USE_UF_CCL)
-	GpuMat g_seg_big_t = ::nscale::gpu::bwareaopen(g_seg_open, 30, std::numeric_limits<int>::max(), 8, compcount, stream);
+	GpuMat g_seg_big_t = ::nscale::gpu::bwareaopen2(g_seg_open, false, true, 30, std::numeric_limits<int>::max(), 8, compcount2, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_big_t, 14);
+printf(" gpu compcount 30-1000 = %d\n", compcount2);
 //#else
 //	Mat seg_open(g_seg_open.size(), g_seg_open.type());
 //	stream.enqueueDownload(g_seg_open, seg_open);
@@ -593,66 +586,59 @@ int HistologicalEntities::plSeparateNuclei(GpuMat& g_img, GpuMat& g_seg_open, Gp
 	if (logger) logger->logTimeSinceLastLog("watershed");
 	if (iresHandler) iresHandler->saveIntermediate(g_watermask, 20);
 
-//	g_seg_nonoverlap.release();
+
+	//// MASK APPROACH
+//	// background is -1.
 	g_seg_nonoverlap = ::cv::gpu::createContinuous(g_seg_big.size(), g_seg_big.type());
-	//printf("g_seg_nonoverlap info: row %d col %d type %d,  CV_8U %d, data addr %lu, refcount %d \n", g_seg_nonoverlap.rows, g_seg_nonoverlap.cols, g_seg_nonoverlap.type(), CV_8U,g_seg_nonoverlap.data, *(g_seg_nonoverlap.refcount));
 	stream.enqueueMemSet(g_seg_nonoverlap, Scalar(0));
-//	seg_big.copyTo(seg_nonoverlap, (watermask >= 0));
-	// background is -1.
+	//	CPU: seg_big.copyTo(seg_nonoverlap, (watermask >= 0));
 	GpuMat g_wmask = ::nscale::gpu::PixelOperations::threshold<int>(g_watermask, 0, true, std::numeric_limits<int>::max(), true, stream);
-
-//	stream.waitForCompletion();
-//if (true) {
-//		::cv::Mat output(g_wmask.size(), g_wmask.type());
-//		stream.enqueueDownload(g_wmask, output);
-//		stream.waitForCompletion();
-//		imwrite("test-wmask.ppm", output);
-//	}
-//if (true) {
-//			::cv::Mat output(g_seg_big.size(), g_seg_big.type());
-//			stream.enqueueDownload(g_seg_big, output);
-//			stream.waitForCompletion();
-//			imwrite("test-seg_big-gpu.ppm", output);
-//		}
-//
-//	printf("g_wmask info: row %d col %d type %d,  CV_8U %d, data addr %lu, refcount %d \n", g_wmask.rows, g_wmask.cols, g_wmask.type(), CV_8U, g_wmask.data, *(g_wmask.refcount));
-//	printf("g_seg_big info: row %d col %d type %d,  CV_8U %d, data addr %lu, refcount %d \n", g_seg_big.rows, g_seg_big.cols, g_seg_big.type(), CV_8U, g_seg_big.data, *(g_seg_big.refcount));
-//	printf("g_seg_nonoverlap info: row %d col %d type %d,  CV_8U %d, data addr %lu, refcount %d \n", g_seg_nonoverlap.rows, g_seg_nonoverlap.cols, g_seg_nonoverlap.type(), CV_8U, g_seg_nonoverlap.data, *(g_seg_nonoverlap.refcount));
-
 	bitwise_and(g_wmask, g_seg_big, g_seg_nonoverlap, GpuMat(), stream);
-//	printf("error: %s\n", cudaGetErrorString(cudaGetLastError()));
-//	cudaStreamSynchronize(::cv::gpu::StreamAccessor::getStream(stream));
-//	printf("error: %s\n", cudaGetErrorString(cudaGetLastError()));
 	stream.waitForCompletion();
-
-//if (true) {
-//			::cv::Mat output(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
-//			stream.enqueueDownload(g_seg_nonoverlap, output);
-//			stream.waitForCompletion();
-//			imwrite("test-nonoverlap-gpu.ppm", output);
-//		}
-
 	g_wmask.release();
-	g_watermask.release();
-	g_seg_big.release();
-
 	if (logger) logger->logTimeSinceLastLog("water to mask");
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_nonoverlap, 21);
+
+
+
+	// LABEL Approach - cpu version does not support erode
+	// GPU watershed has -1 as background.  so don't need to replace?
+//	g_seg_nonoverlap = ::nscale::gpu::PixelOperations::replace<int>(g_watermask, (int)0, (int)-1, stream);
+//	g_seg_nonoverlap = g_watermask;
+
+	g_watermask.release();
+	g_seg_big.release();
 
 
 	return ::nscale::HistologicalEntities::CONTINUE;
 }
 
 
-
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::Stream *str,
+int HistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
+		int &compcount, int *&bbox,  cv::gpu::Stream *str,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
-	// image in BGR format
+	Mat input = imread(in);
+	if (!input.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
+
+	Mat output;
+
+	int status = ::nscale::gpu::HistologicalEntities::segmentNuclei(input, output, compcount, bbox, str, logger, iresHandler);
+	input.release();
+
+	if (status == ::nscale::HistologicalEntities::SUCCESS)
+		imwrite(out, output);
+
+	output.release();
+
+	return status;
+}
+
+
+
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
+		int &compcount, int *&bbox,  cv::gpu::Stream *str,
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
-
-
-	if (logger) logger->logT0("start");
-	if (iresHandler) iresHandler->saveIntermediate(img, 0);
 
 	Stream *str1 = str;
 	if (str1 == NULL) {
@@ -663,7 +649,46 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 	GpuMat g_img;
 	stream.enqueueUpload(img, g_img);
 	stream.waitForCompletion();
+	GpuMat g_output;
+	int *g_bbox;
+
+	int status = ::nscale::gpu::HistologicalEntities::segmentNuclei(g_img, g_output, compcount, g_bbox, str1, logger, iresHandler);
+
+	output = cv::Mat::zeros(g_output.size(), g_output.type());
+	stream.enqueueDownload(g_output, output);
+	stream.waitForCompletion();
 	if (logger) logger->logTimeSinceLastLog("uploaded image");
+	g_output.release();
+	g_img.release();
+
+	bbox = (int *)malloc(sizeof(int) * compcount * 5);
+	cudaMemcpy(bbox, g_bbox, sizeof(int) * compcount * 5, cudaMemcpyDeviceToHost);\
+	cudaFree(g_bbox);
+        printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
+
+	return status;
+
+
+}
+
+int HistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
+		int &compcount, int *&g_bbox,  cv::gpu::Stream *str,
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+
+
+	// image in BGR format
+	if (!g_img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
+
+
+	Stream *str1 = str;
+	if (str1 == NULL) {
+		str1 = new Stream();
+	}
+	Stream &stream = *str1;
+
+	if (logger) logger->logT0("start");
+	if (iresHandler) iresHandler->saveIntermediate(g_img, 0);
+
 	GpuMat g_seg_norbc(g_img.size(), CV_8U);
 	int findCandidateResult = ::nscale::gpu::HistologicalEntities::plFindNucleusCandidates(g_img, g_seg_norbc, stream, logger, iresHandler);
 	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
@@ -718,31 +743,12 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 	
 	int sepResult = ::nscale::gpu::HistologicalEntities::plSeparateNuclei(g_img, g_seg_open, g_seg_nonoverlap, stream, logger, iresHandler);
 	g_seg_open.release();
-	g_img.release();
 	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return sepResult;
 	}
 
 	// erode by 1 - need to be fixed  - erode does not check borders.
 	// ERODE IS ONLY NEEDED BY CPU Watershed,
-	// GpuMat g_seg_nonoverlap2 = ::nscale::gpu::morphErode<unsigned char>(g_seg_nonoverlap, disk3, stream);
-//	GpuMat g_twm;
-//	copyMakeBorder(g_seg_nonoverlap, g_twm, 1, 2, 1, 2, Scalar(std::numeric_limits<unsigned char>::max()), stream);
-//	GpuMat g_t_nonoverlap(g_twm.size(), g_twm.type());
-//	stream.enqueueMemSet(g_t_nonoverlap, Scalar(0));
-//	erode(g_twm, g_t_nonoverlap, disk3, Point(-1, -1), 1, stream);
-//	stream.waitForCompletion();
-//	GpuMat g_seg_nonoverlap2(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
-//	stream.enqueueCopy(g_t_nonoverlap(Rect(1,1,g_seg_nonoverlap.cols, g_seg_nonoverlap.rows)), g_seg_nonoverlap2);
-//	stream.waitForCompletion();
-//	g_seg_nonoverlap.release();
-//	g_t_nonoverlap.release();
-//	g_twm.release();
-
-	//	imwrite("test/out-seg_nonoverlap.ppm", seg_nonoverlap);
-	//if (logger) logger->logTimeSinceLastLog("watershed erode");
-	//if (iresHandler) iresHandler->saveIntermediate(g_seg_nonoverlap2, 22);
-
 
 	/*
      %CHANGE
@@ -759,12 +765,15 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
     seg = ismember(L,ind);
 	 *
 	 */
-	int compcount;
+	int compcount2;
 //#if defined (USE_UF_CCL)
-	GpuMat g_seg = ::nscale::gpu::bwareaopen(g_seg_nonoverlap, 21, 1000, 4, compcount, stream);
+	// MASK approach
+	GpuMat g_seg = ::nscale::gpu::bwareaopen2(g_seg_nonoverlap, false, true, 21, 1000, 4, compcount2, stream);
+	// LABEL approach - cpu does not support 32bit int erode.
+//	GpuMat g_seg = ::nscale::gpu::bwareaopen2(g_seg_nonoverlap, true, false, 21, 1000, 4, compcount2, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg, 23);
-	
+printf("  gpu components 21-1000 = %d\n", compcount2);	
 //#else
 //	Mat seg_nonoverlap(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
 //	stream.enqueueDownload(g_seg_nonoverlap, seg_nonoverlap);
@@ -781,11 +790,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 //	seg.release();
 //#endif
 	if (logger) logger->logTimeSinceLastLog("20To1000");
-	if (compcount == 0) {
+	if (compcount2 == 0) {
+		printf("no candidates left: compcount2 = %d\n", compcount2);
+
 		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
 	}
 	g_seg_nonoverlap.release();
-	/*
+	
+ /*
 	 *     %CHANGE
     %[L, num] = bwlabel(seg,8);
 
@@ -794,26 +806,29 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, cv::gpu::St
 	 *
 	 */
 	// don't worry about bwlabel.
-	GpuMat g_output = ::nscale::gpu::imfillHoles<unsigned char>(g_seg, true, 8, stream);
+	// MASK approach
+	GpuMat g_final = ::nscale::gpu::imfillHoles<unsigned char>(g_seg, true, 8, stream);
+	// LABEL approach - cpu version does not support erode
+//	g_output = ::nscale::gpu::imfillHoles<int>(g_seg, false, 8, stream);
 	stream.waitForCompletion();
 	if (logger) logger->logTimeSinceLastLog("fillHolesLast");
 	g_seg.release();
 	
-	output = cv::Mat::zeros(g_output.size(), g_output.type());
-	stream.enqueueDownload(g_output, output);
+	// MASK approach
+	g_output = nscale::gpu::bwlabel(g_final, 8, true, stream);
+	g_final.release();
+
+	g_bbox = ::nscale::gpu::boundingBox2(g_output.cols, g_output.rows, (int*)g_output.data, 0, compcount, cv::gpu::StreamAccessor::getStream(stream));
 	stream.waitForCompletion();
 	
-	g_output.release();
-	
+	printf("  gpu number of bounding boxes = %d\n", compcount);
+ 
 //	imwrite("test/out-nuclei.ppm", seg);
 
 //	if (logger) logger->endSession();
 
 	return ::nscale::HistologicalEntities::SUCCESS;
 
-	
-	
-	
 }
 
 #endif

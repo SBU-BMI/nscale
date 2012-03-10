@@ -22,6 +22,10 @@ void thresholdCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1,
  cv::gpu::PtrStep_<unsigned char> result, T lower, bool lower_inclusive, T upper, bool up_inclusive, cudaStream_t stream);
 
 template <typename T>
+void replaceCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1,
+ cv::gpu::PtrStep_<T> result, T oldval, T newval, cudaStream_t stream);
+
+template <typename T>
 void divideCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1, const cv::gpu::PtrStep_<T> img2,
  cv::gpu::PtrStep_<T> result, cudaStream_t stream);
 

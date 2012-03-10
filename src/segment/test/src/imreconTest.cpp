@@ -55,6 +55,7 @@ int main (int argc, char **argv){
 	Mat recon, recon2;
 	uint64_t t1, t2;
 
+#if defined (HAVE_CUDA)
 	Stream stream;
 	GpuMat g_marker, g_marker1;
 	GpuMat g_mask, g_mask1, g_recon;
@@ -63,19 +64,40 @@ int main (int argc, char **argv){
 	stream.enqueueUpload(mask, g_mask);
 	stream.enqueueUpload(marker, g_marker1);
 	stream.enqueueUpload(mask, g_mask1);
-
-
 	stream.waitForCompletion();
 	std::cout << "finished uploading" << std::endl;
+#endif
 
-//	t1 = cciutils::ClockGetTime();
-//	g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 4, stream);
-//	stream.waitForCompletion();
-//	t2 = cciutils::ClockGetTime();
-//	std::cout << "gpu recon loop 4 took " << t2-t1 << "ms" << std::endl;
-//	g_recon.download(recon2);
-//	imwrite("test/out-reconLoop4-gpu.pbm", recon2);
-//	g_recon.release();
+
+	Mat markerInt, maskInt;
+	marker.convertTo(markerInt, CV_32SC1, 1, 0);
+	mask.convertTo(maskInt, CV_32SC1, 1, 0);
+
+#if defined (HAVE_CUDA)
+	GpuMat g_marker_int, g_mask_int;
+	stream.enqueueUpload(markerInt, g_marker_int);
+	stream.enqueueUpload(maskInt, g_mask_int);
+	stream.waitForCompletion();
+#endif
+
+	// INT testing
+	t1 = cciutils::ClockGetTime();
+	Mat reconInt = nscale::imreconstruct<int>(markerInt, maskInt, 8);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "cpu recon int took " << t2-t1 << "ms" << std::endl;
+	//imwrite("test/out-reconint.ppm", recon);
+
+#if defined (HAVE_CUDA)
+	t1 = cciutils::ClockGetTime();
+	GpuMat g_recon_int = nscale::gpu::imreconstruct<int>(g_marker_int, g_mask_int, 8, stream);
+	stream.waitForCompletion();
+	t2 = cciutils::ClockGetTime();
+	std::cout << "gpu recon int took " << t2-t1 << "ms" << std::endl;
+	g_recon_int.download(reconInt);
+	imwrite("test/out-reconLoop4-gpu.pbm", recon2);
+	g_recon_int.release();
+
+
 
 	vector<GpuMat> g_marker_v;
 	vector<GpuMat> g_mask_v;
@@ -173,7 +195,7 @@ int main (int argc, char **argv){
 
 	g_marker.release();
 	g_mask.release();
-
+#endif
 
 ////
 ////	t1 = cciutils::ClockGetTime();

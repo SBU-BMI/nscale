@@ -58,6 +58,8 @@ namespace cv {
 
 		std::string filename = getFileName(stage, std::string(RAW), ss.str());
 		FILE* fid = fopen(filename.c_str(), "wb");
+		if (!fid) printf("ERROR: can't open %s to write\n", filename.c_str());
+
 		const unsigned char* imgPtr;
 		int elSize = intermediate.elemSize();
 		for (int j = 0; j < intermediate.rows; ++j) {

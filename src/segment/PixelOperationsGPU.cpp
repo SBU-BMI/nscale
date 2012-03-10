@@ -35,6 +35,8 @@ GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) { throw_nogpu(
 template <typename T>
 GpuMat PixelOperations::threshold(const GpuMat& img, T lower, bool lower_inclusive, T upper, bool up_inclusive, Stream& stream) { throw_nogpu(); }
 template <typename T>
+GpuMat PixelOperations::replace(const GpuMat& img, T oldval, T newval, Stream& stream) { throw_nogpu(); }
+template <typename T>
 GpuMat PixelOperations::divide(const GpuMat& num, const GpuMat& den, Stream& stream) { throw_nogpu(); }
 template <typename T>
 GpuMat PixelOperations::mod(GpuMat& img, T mod, Stream& stream) { throw_nogpu(); }
@@ -210,6 +212,22 @@ GpuMat PixelOperations::threshold(const GpuMat& img, T lower, bool lower_inclusi
 
 
 template <typename T>
+GpuMat PixelOperations::replace(const GpuMat& img, T oldval, T newval, Stream& stream) {
+	// write the raw image
+	CV_Assert(img.channels() == 1);
+
+    const Size size = img.size();
+//    const int depth = img.depth();
+
+    GpuMat result(size, img.type());
+
+    replaceCaller<T>(size.height, size.width, img, result, oldval, newval, StreamAccessor::getStream(stream));
+
+    return result;
+}
+
+
+template <typename T>
 GpuMat PixelOperations::divide(const GpuMat& num, const GpuMat& den, Stream& stream) {
 	CV_Assert(num.cols == den.cols && num.rows == den.rows);
 	CV_Assert(num.channels() == den.channels());
@@ -260,6 +278,8 @@ template GpuMat PixelOperations::threshold<float>(const GpuMat&, float, bool, fl
 template GpuMat PixelOperations::threshold<double>(const GpuMat&, double, bool, double, bool, Stream&);
 template GpuMat PixelOperations::threshold<unsigned char>(const GpuMat&, unsigned char, bool, unsigned char, bool, Stream&);
 template GpuMat PixelOperations::threshold<int>(const GpuMat&, int, bool, int, bool, Stream&);
+template GpuMat PixelOperations::replace<unsigned char>(const GpuMat&, unsigned char, unsigned char, Stream&);
+template GpuMat PixelOperations::replace<int>(const GpuMat&, int, int, Stream&);
 template GpuMat PixelOperations::divide<double>(const GpuMat&, const GpuMat&,  Stream&);
 template GpuMat PixelOperations::mask<unsigned char>(const GpuMat&, const GpuMat&, unsigned char background, Stream&);
 template GpuMat PixelOperations::mask<int>(const GpuMat&, const GpuMat&, int background, Stream&);

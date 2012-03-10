@@ -9,7 +9,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
-#include <string>
+#include <string.h>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
 #include "utils.h"
@@ -140,18 +140,23 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	// compute
 
 	int status;
+	int *bbox = NULL;
+	int compcount;
 
 	switch (modecode) {
 	case cciutils::DEVICE_CPU :
 	case cciutils::DEVICE_MCORE :
-		status = nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask));
+		status = nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox);
+
 		break;
 	case cciutils::DEVICE_GPU :
-		status = nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask));
+		status = nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox);
 		break;
 	default :
 		break;
 	}
+
+	free(bbox);
 
 #ifdef PRINT_CONTOUR_TEXT
 	Mat out = imread(mask, 0);

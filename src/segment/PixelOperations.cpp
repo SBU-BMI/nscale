@@ -244,6 +244,28 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 	cout << "	Rest = "<< t3-t2loop<<endl;
 }
 
+template <typename T>
+Mat PixelOperations::replace(const Mat& img, T oldval, T newval) {
+	// write the raw image
+	CV_Assert(img.channels() == 1);
+
+	Mat result(img.size(), img.type());
+	const T *ptr;
+	T *res;
+	for(int y=0; y< img.rows; y++){
+		ptr = img.ptr<T>(y);
+		res = result.ptr<T>(y);
+		for (int x = 0; x < img.cols; ++x) {
+			res[x] = (ptr[x] == oldval ? newval : ptr[x]);
+		}
+	}
+
+	return result;
+}
+
+
+
+
 template Mat PixelOperations::invert<unsigned char>(const Mat&);
 template Mat PixelOperations::invert<float>(const Mat&);
 template Mat PixelOperations::invert<int>(const Mat&);  // for imfillholes
@@ -251,6 +273,9 @@ template Mat PixelOperations::invert<int>(const Mat&);  // for imfillholes
 
 template Mat PixelOperations::mod<unsigned char>(Mat&, unsigned char mod);
 template Mat PixelOperations::mod<int>(Mat&, int mod);
+
+template Mat PixelOperations::replace<unsigned char>(const Mat&, unsigned char oldval, unsigned char newval);
+template Mat PixelOperations::replace<int>(const Mat&, int oldval, int newval);
 
 }
 

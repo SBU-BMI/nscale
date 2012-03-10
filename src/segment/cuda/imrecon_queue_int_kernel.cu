@@ -737,7 +737,7 @@ struct GreaterThanConst : public thrust::unary_function<T,bool>
 		typedef typename thrust::tuple<int, int, int, int> QueueElement;
 
 
-		thrust::counting_iterator<int> ids;
+		thrust::counting_iterator<int> ids(0);
 //		WindowedImage markerImg = thrust::make_tuple(ids, q_ym1xm1, q_ym1, q_ym1xp1, q_xm1, q, q_xp1, q_yp1xm1, q_yp1, q_yp1xp1);
 //		WindowedImage markerImgEnd = thrust::make_tuple(ids+area, q_ym1xm1+area, q_ym1+area, q_ym1xp1+area, q_xm1+area, q+area, q_xp1+area, q_yp1xm1+area, q_yp1+area, q_yp1xp1+area);
 //		WindowedImage maskImg = thrust::make_tuple(ids, p_ym1xm1, p_ym1, p_ym1xp1, p_xm1, p, p_xp1, p_yp1xm1, p_yp1, p_yp1xp1);

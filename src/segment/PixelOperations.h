@@ -31,6 +31,9 @@ public:
 
 	static void ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB=true);
 	static ::cv::Mat bgr2gray(const ::cv::Mat& img);
+
+	template <typename T>
+	static ::cv::Mat replace(const ::cv::Mat &img, T oldval, T newval);
 };
 
 namespace gpu {
@@ -47,6 +50,9 @@ public:
 	static ::cv::gpu::GpuMat divide(const ::cv::gpu::GpuMat& num, const ::cv::gpu::GpuMat& den, ::cv::gpu::Stream& stream);
 	template <typename T>
 	static ::cv::gpu::GpuMat mask(const ::cv::gpu::GpuMat& input, const ::cv::gpu::GpuMat& mask, T background, ::cv::gpu::Stream& stream);
+
+	template <typename T>
+	static ::cv::gpu::GpuMat replace(const ::cv::gpu::GpuMat &img, T oldval, T newval, ::cv::gpu::Stream& stream);
 
 	template <typename T>
 	static ::cv::gpu::GpuMat mod(::cv::gpu::GpuMat& img, T mod, ::cv::gpu::Stream& stream);
