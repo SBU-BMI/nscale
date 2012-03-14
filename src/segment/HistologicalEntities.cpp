@@ -561,10 +561,14 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	output = nscale::bwlabel2(final, 8, true);
 	final.release();
 
+	if (logger) logger->logTimeSinceLastLog("bwlabel2");
+
 	::nscale::ConnComponents cc;
 	bbox = cc.boundingBox(output.cols, output.rows, (int *)output.data, 0, compcount);
 	printf(" number of bounding boxes: %d\n", compcount);
 	printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
+
+	if (logger) logger->logTimeSinceLastLog("bounding_box");
 	return ::nscale::HistologicalEntities::SUCCESS;
 
 }
