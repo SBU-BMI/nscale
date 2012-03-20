@@ -86,6 +86,7 @@ public:
 };
 
 int* boundingBox2(cv::gpu::GpuMat g_input, cv::gpu::Stream *str);
+int* boundingBox2(cv::gpu::GpuMat g_input, int &compcount, cv::gpu::Stream *str);
 void cudaFreeData(char *dataPtr);
 void cudaDownloadData(char *dest, char *from, int size);
 

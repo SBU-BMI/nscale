@@ -363,6 +363,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	if (iresHandler) iresHandler->saveIntermediate(distance2, 18);
 
 
+//	imwrite("distance2.ppm", dist);
 //cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
 
 

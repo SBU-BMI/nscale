@@ -54,6 +54,7 @@ int plFindNucleusCandidates(const cv::gpu::GpuMat& img, cv::gpu::GpuMat& nuclei,
 int plSeparateNuclei(const cv::gpu::GpuMat& img, const cv::gpu::GpuMat& seg_open, cv::gpu::GpuMat& seg_nonoverlap,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }// A4
 
+int* boundingBox2(GpuMat g_input, int&, cv::gpu::Stream *str){ throw_nogpu(); }
 int* boundingBox2(GpuMat g_input, cv::gpu::Stream *str){ throw_nogpu(); }
 void cudaFreeData(char *dataPtr){ throw_nogpu(); }
 void cudaDownloadData(char* dest, char *from, int size){ throw_nogpu(); }
@@ -834,6 +835,11 @@ printf("  gpu components 21-1000 = %d\n", compcount2);
 	return ::nscale::HistologicalEntities::SUCCESS;
 
 }
+int* boundingBox2(GpuMat g_input, int &compcount, cv::gpu::Stream *str){
+	int *g_bbox = ::nscale::gpu::boundingBox2(g_input.cols, g_input.rows, (int*)g_input.data, 0, compcount, cv::gpu::StreamAccessor::getStream(*str));
+	return g_bbox;
+};
+
 int* boundingBox2(GpuMat g_input, cv::gpu::Stream *str){
 	int compcount;
 	int *g_bbox = ::nscale::gpu::boundingBox2(g_input.cols, g_input.rows, (int*)g_input.data, 0, compcount, cv::gpu::StreamAccessor::getStream(*str));
