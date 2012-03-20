@@ -68,6 +68,7 @@ float* ObjFeatures::gradientFeatures(const int* boundingBoxesInfo, int compCount
 
 	// Convert float gradient to unsigned char [0:255]
 	cv::gpu::GpuMat g_gradient_grayscale(grayImage.size(), CV_8UC1);
+
 	nscale::gpu::floatToUcharCaller(grayImage.rows, grayImage.cols,  g_gradient, g_gradient_grayscale, StreamAccessor::getStream(stream));
 
 	// Calculate the histogram for each object
@@ -90,7 +91,6 @@ float* ObjFeatures::gradientFeatures(const int* boundingBoxesInfo, int compCount
 	// Alloc host memory to transfer feature to CPU
 	float* cpu_features = (float*)malloc(sizeof(float)*nscale::ObjFeatures::N_GRADIENT_FEATURES * compCount);
 
-
 	// Download features
 	nscale::gpu::cudaDownloadCaller(cpu_features, g_features, sizeof(float)*nscale::ObjFeatures::N_GRADIENT_FEATURES*compCount);
 
@@ -104,6 +104,7 @@ float* ObjFeatures::gradientFeatures(const int* boundingBoxesInfo, int compCount
 
 	// Retrieve in CPU memory features
 	return cpu_features;
+//	return NULL;
 };
 
 

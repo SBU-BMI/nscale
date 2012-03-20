@@ -2,9 +2,9 @@
 #include <limits>
 
 
-#define HIST_BINS					256
-#define THREAD_N_BLOCK_INTENSITY	32
-#define N_INTENSITY_FEATURES		8
+#define HIST_BINS				256
+#define THREAD_N_BLOCK_INTENSITY		32
+#define N_INTENSITY_FEATURES			8
 
 namespace nscale {
 
@@ -61,7 +61,7 @@ __global__ void yDerivativeKernel(int rows, int cols, const cv::gpu::PtrStep_<un
 	if (y < rows && x < cols){
 		if(y==0){
 			derivative = (float)(input.ptr(y+1)[x] - input.ptr(y)[x]);
-		}else if(x==cols-1){
+		}else if(y==cols-1){
 			derivative = (float)(input.ptr(y)[x] - input.ptr(y-1)[x]);
 		}else{
 			derivative = (float)(input.ptr(y+1)[x] - input.ptr(y-1)[x])/2.0;
