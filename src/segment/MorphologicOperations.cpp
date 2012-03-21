@@ -880,7 +880,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity, bo
 //		uint64_t t2 = cciutils::ClockGetTime();
 		//TODO: TEMP std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
 	}
-	std::cout << "num contours = " << contours.size() << " vs outer contours " << j << std::endl;
+//	std::cout << "num contours = " << contours.size() << " vs outer contours " << j << std::endl;
 	return output(Rect(1,1,binaryImage.cols, binaryImage.rows));
 }
 
@@ -903,7 +903,7 @@ Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity, bool relab) {
 	int j = 0;
 	if (relab == true) {
 		j = cc.relabel(output.cols, output.rows, (int *)output.data, -1);
-		printf("%d number of components\n", j);
+//		printf("%d number of components\n", j);
 	}
 
 	input.release();
@@ -1168,33 +1168,31 @@ Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connecti
 	 */
 
 	long long int t1, t2;
-	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cciutils::ClockGetTime();
 	Mat minima = localMinima<float>(image, connectivity);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    cpu localMinima = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    cpu localMinima = %lld\n", t2-t1);
 
-	t1 = ::cciutils::ClockGetTime();
-//imwrite("test-minima.pbm", minima);
+//	t1 = ::cciutils::ClockGetTime();
 	std::vector<Vec4i> dummy;
 	Mat_<int> labels = bwlabel(minima, false, connectivity, false, dummy);
-//imwrite("test-bwlabel.png", labels);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    cpu opencv bwlabel = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    cpu opencv bwlabel = %lld\n", t2-t1);
 
 // need borders, else get edges at edge.
 	Mat input, temp, output;
 	copyMakeBorder(labels, temp, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<int>(0));
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
-	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cciutils::ClockGetTime();
 	watershed(input, temp);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    cpu watershed = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    cpu watershed = %lld\n", t2-t1);
 
-	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cciutils::ClockGetTime();
 	output = nscale::NeighborOperations::border<int>(temp, (int)-1);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    CPU watershed border fix = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    CPU watershed border fix = %lld\n", t2-t1);
 
 	return output(Rect(1,1, image.cols, image.rows));
 }
@@ -1211,19 +1209,17 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 		L = watershed_meyer(A,conn,cc);
 
 	 */
-	long long int t1, t2;
-	t1 = ::cciutils::ClockGetTime();
+//	long long int t1, t2;
+//	t1 = ::cciutils::ClockGetTime();
 	Mat minima = localMinima<float>(image, connectivity);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    cpu localMinima = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    cpu localMinima = %lld\n", t2-t1);
 
-	t1 = ::cciutils::ClockGetTime();
-//imwrite("test-minima.pbm", minima);
+//	t1 = ::cciutils::ClockGetTime();
 	// watershed is sensitive to label values.  need to relabel.
 	Mat_<int> labels = bwlabel2(minima, connectivity, true);
-//imwrite("test-bwlabel.png", labels);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    cpu UF bwlabel2 = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    cpu UF bwlabel2 = %lld\n", t2-t1);
 
 
 // need borders, else get edges at edge.
@@ -1231,18 +1227,18 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 	copyMakeBorder(labels, temp, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<int>(0));
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
-	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cciutils::ClockGetTime();
 
 		// input: seeds are labeled from 1 to n, with 0 as background or unknown regions
 	// output has -1 as borders.
 	watershed(input, temp);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    CPU watershed = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    CPU watershed = %lld\n", t2-t1);
 
-	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cciutils::ClockGetTime();
 	output = nscale::NeighborOperations::border<int>(temp, (int)-1);
-	t2 = ::cciutils::ClockGetTime();
-	printf("    CPU watershed border fix = %lld\n", t2-t1);
+//	t2 = ::cciutils::ClockGetTime();
+//	printf("    CPU watershed border fix = %lld\n", t2-t1);
 
 	return output(Rect(1,1, image.cols, image.rows));
 }

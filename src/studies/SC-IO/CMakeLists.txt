@@ -15,9 +15,9 @@ link_directories(${Segmentation_SOURCE_DIR})
 
 # Source files used by Segmentation
 set(libsrcs SCIOHistologicalEntities.cpp )
-set(gpulibsrcs SCIOHistologicalEntitiesGPU.cpp SCIOUtilsCVImageIO.cpp)
+set(gpulibsrcs SCIOUtilsCVImageIO.cpp SCIOHistologicalEntitiesGPU.cpp)
 
-include_directories(${Segmentation_SOURCE_DIR}/cuda)
+#include_directories(${Segmentation_SOURCE_DIR}/cuda)
 
 set(libname scio-segment)
 
@@ -38,7 +38,7 @@ foreach(program ${programs})
 	add_executable(${program} ${program}.cpp)
 
 	# Link the executable to the Features Computation library
-	target_link_libraries(${program} scio-segment)
+	target_link_libraries(${program} scio-segment segment ${OpenCV_LIBS})
 	if(MPI_FOUND)
   		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI") 
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 

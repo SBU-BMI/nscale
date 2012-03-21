@@ -34,32 +34,32 @@ using namespace cv::gpu;
 
 #if !defined (HAVE_CUDA)
 GpuMat SCIOHistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 GpuMat SCIOHistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,
-				::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+				::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 int SCIOHistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 		int &compcount, int *&g_bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 		int &compcount, int *&bbox, cv::gpu::Stream *str,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 int SCIOHistologicalEntities::segmentNuclei(const std::string& input, const std::string& output,
 		int &compcount, int *&bbox, cv::gpu::Stream *str,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 
 
 // the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
 int plFindNucleusCandidates(const cv::gpu::GpuMat& img, cv::gpu::GpuMat& nuclei,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }  // S1
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }  // S1
 int plSeparateNuclei(const cv::gpu::GpuMat& img, const cv::gpu::GpuMat& seg_open, cv::gpu::GpuMat& seg_nonoverlap,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }// A4
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }// A4
 
 
 
 #else
 
 GpuMat SCIOHistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	CV_Assert(bgr.size() >= 3);
 	/*
 	%T1=2.5; T2=2;
@@ -149,7 +149,7 @@ GpuMat SCIOHistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& 
 }
 
 GpuMat SCIOHistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	/*
 	* this part to decide if the tile is background or foreground
 	THR = 0.9;
@@ -183,14 +183,14 @@ GpuMat SCIOHistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr,
 // S1
 int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g_seg_norbc,
 		Stream& stream,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	std::vector<GpuMat> g_bgr;
 	split(g_img, g_bgr, stream);
 	stream.waitForCompletion();
-	if (logger) logger->logTimeSinceLastLog("toRGB");
+	if (logsession) logsession->logTimeSinceLastLog("toRGB");
 
-	GpuMat g_bg = ::nscale::gpu::SCIOHistologicalEntities::getBackground(g_bgr, stream, logger, iresHandler);
+	GpuMat g_bg = ::nscale::gpu::SCIOHistologicalEntities::getBackground(g_bgr, stream, logsession, iresHandler);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_bg, 1);
 
@@ -199,34 +199,34 @@ int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMa
 
 	float ratio = (float)bgArea / (float)(g_img.size().area());
 	//std::cout << " background size: " << bgArea << " ratio: " << ratio << std::endl;
-	if (logger) logger->log("backgroundRatio", ratio);
+	if (logsession) logsession->log("backgroundRatio", ratio);
 	if (ratio >= 0.99) {
 		//std::cout << "background.  next." << std::endl;
-		if (logger) logger->logTimeSinceLastLog("background");
-		//if (logger) logger->endSession();
+		if (logsession) logsession->logTimeSinceLastLog("background");
+		//if (logsession) logsession->endSession();
 		g_bgr[0].release();
 		g_bgr[1].release();
 		g_bgr[2].release();
 		return ::nscale::SCIOHistologicalEntities::BACKGROUND;
 	} else if (ratio >= 0.9) {
 		//std::cout << "background.  next." << std::endl;
-		if (logger) logger->logTimeSinceLastLog("background likely");
-		//if (logger) logger->endSession();
+		if (logsession) logsession->logTimeSinceLastLog("background likely");
+		//if (logsession) logsession->endSession();
 		g_bgr[0].release();
 		g_bgr[1].release();
 		g_bgr[2].release();
 
 		return ::nscale::SCIOHistologicalEntities::BACKGROUND_LIKELY;
 	}
-	if (logger) logger->logTimeSinceLastLog("background");
+	if (logsession) logsession->logTimeSinceLastLog("background");
 
-	GpuMat g_rbc = ::nscale::gpu::SCIOHistologicalEntities::getRBC(g_bgr, stream, logger, iresHandler);
+	GpuMat g_rbc = ::nscale::gpu::SCIOHistologicalEntities::getRBC(g_bgr, stream, logsession, iresHandler);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_rbc, 2);
 
-	if (logger) logger->logTimeSinceLastLog("RBC");
+	if (logsession) logsession->logTimeSinceLastLog("RBC");
 	int rbcPixelCount = countNonZero(g_rbc);
-	if (logger) logger->log("RBCPixCount", rbcPixelCount);
+	if (logsession) logsession->log("RBCPixCount", rbcPixelCount);
 
 	GpuMat g_r(g_bgr[2]);
 	g_bgr[0].release();
@@ -239,7 +239,7 @@ int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMa
 //	stream.enqueueDownload(g_rbc, rbc);
 //	stream.waitForCompletion();
 //  g_rbc.release();
-//	if (logger) logger->logTimeSinceLastLog("cpuCopyRBC");
+//	if (logsession) logsession->logTimeSinceLastLog("cpuCopyRBC");
 //	imwrite("test/out-rbc.pbm", rbc);
 
 	/*
@@ -252,7 +252,7 @@ int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMa
 	GpuMat g_rc = ::nscale::gpu::PixelOperations::invert<unsigned char>(g_r, stream);
 	stream.waitForCompletion();
 	g_r.release();
-	if (logger) logger->logTimeSinceLastLog("invert");
+	if (logsession) logsession->logTimeSinceLastLog("invert");
 
 	GpuMat g_rc_open(g_rc.size(), g_rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
@@ -297,7 +297,7 @@ int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMa
 //	rc_roi.release();
 	if (iresHandler) iresHandler->saveIntermediate(g_rc_open, 3);
 
-	if (logger) logger->logTimeSinceLastLog("open19");
+	if (logsession) logsession->logTimeSinceLastLog("open19");
 //	imwrite("test/out-rcopen.ppm", rc_open);
 
 
@@ -314,10 +314,10 @@ int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMa
 	if (iresHandler) iresHandler->saveIntermediate(g_diffIm, 5);
 
 
-	if (logger) logger->logTimeSinceLastLog("reconToNuclei");
-	//if (logger) logger->log("rc_reconIter", iter);
+	if (logsession) logsession->logTimeSinceLastLog("reconToNuclei");
+	//if (logsession) logsession->log("rc_reconIter", iter);
 	int rc_openPixelCount = countNonZero(g_rc_open);
-	if (logger) logger->log("rc_openPixCount", rc_openPixelCount);
+	if (logsession) logsession->log("rc_openPixCount", rc_openPixelCount);
 	g_rc_open.release();
 	g_rc.release();
 	g_rc_recon.release();
@@ -325,7 +325,7 @@ int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMa
 	Mat diffIm(g_diffIm.size(), g_diffIm.type());
 	stream.enqueueDownload(g_diffIm, diffIm);
 	stream.waitForCompletion();
-	if (logger) logger->logTimeSinceLastLog("downloadReconToNuclei");
+	if (logsession) logsession->logTimeSinceLastLog("downloadReconToNuclei");
 
 /*
     G1=80; G2=45; % default settings
@@ -340,17 +340,17 @@ int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMa
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_diffIm2, 6);
 
-	if (logger) logger->logTimeSinceLastLog("threshold1");
+	if (logsession) logsession->logTimeSinceLastLog("threshold1");
 
 
 	GpuMat g_bw1 = ::nscale::gpu::imfillHoles<unsigned char>(g_diffIm2, true, 4, stream);
 	stream.waitForCompletion();
-	if (logger) logger->logTimeSinceLastLog("fillHoles1");
+	if (logsession) logsession->logTimeSinceLastLog("fillHoles1");
 	if (iresHandler) iresHandler->saveIntermediate(g_bw1, 7);
 
 	g_diffIm2.release();
 	stream.waitForCompletion();
-//	if (logger) logger->logTimeSinceLastLog("GPU done");
+//	if (logsession) logsession->logTimeSinceLastLog("GPU done");
 	
 	
 	
@@ -392,7 +392,7 @@ printf(" gpu compcount 11-1000 = %d\n", compcount2);
 //	stream.waitForCompletion();
 //	bw1.release();
 //#endif
-	if (logger) logger->logTimeSinceLastLog("areaThreshold1");
+	if (logsession) logsession->logTimeSinceLastLog("areaThreshold1");
 	g_bw1.release();
 	if (compcount2 == 0) {
 		g_diffIm.release();
@@ -436,14 +436,14 @@ printf(" gpu compcount 11-1000 = %d\n", compcount2);
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_norbc, 11);
 
 	//	imwrite("test/out-nucleicandidatesnorbc.ppm", seg_norbc);
-	if (logger) logger->logTimeSinceLastLog("blobsGt45");
+	if (logsession) logsession->logTimeSinceLastLog("blobsGt45");
 
 	return ::nscale::SCIOHistologicalEntities::CONTINUE;
 }
 
 // A4
 int SCIOHistologicalEntities::plSeparateNuclei(const GpuMat& g_img, GpuMat& g_seg_open, GpuMat& g_seg_nonoverlap, Stream& stream,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	/*
 	 *
@@ -470,7 +470,7 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 //	stream.waitForCompletion();
 //	seg_big_t.release();
 //#endif
-	if (logger) logger->logTimeSinceLastLog("30To1000");
+	if (logsession) logsession->logTimeSinceLastLog("30To1000");
 	// a 3x3 mat with a cross
 	unsigned char disk3raw[9] = {
 			0, 1, 0,
@@ -500,7 +500,7 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_big, 15);
 
 	//	imwrite("test/out-nucleicandidatesbig.ppm", seg_big);
-	if (logger) logger->logTimeSinceLastLog("dilate");
+	if (logsession) logsession->logTimeSinceLastLog("dilate");
 
 	/*
 	 *
@@ -554,14 +554,14 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 	stream.waitForCompletion();
 	g_distneg.release();
 //	cciutils::cv::imwriteRaw("test/out-distance", distance);
-	if (logger) logger->logTimeSinceLastLog("distTransform");
+	if (logsession) logsession->logTimeSinceLastLog("distTransform");
 	if (iresHandler) iresHandler->saveIntermediate(g_distance,17);
 
 	// then do imhmin. (prevents small regions inside bigger regions)
 	GpuMat g_distance2 = ::nscale::gpu::imhmin<float>(g_distance, 1.0f, 8, stream);
 	stream.waitForCompletion();
 	g_distance.release();
-	if (logger) logger->logTimeSinceLastLog("imhmin");
+	if (logsession) logsession->logTimeSinceLastLog("imhmin");
 	if (iresHandler) iresHandler->saveIntermediate(g_distance2, 18);
 
 //cciutils::cv::imwriteRaw("test/out-distanceimhmin", distance2);
@@ -583,7 +583,7 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
 	//Mat watermask = ::nscale::watershed2(nuclei, distance2, 8);
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
-	if (logger) logger->logTimeSinceLastLog("watershed");
+	if (logsession) logsession->logTimeSinceLastLog("watershed");
 	if (iresHandler) iresHandler->saveIntermediate(g_watermask, 20);
 
 
@@ -596,7 +596,7 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 	bitwise_and(g_wmask, g_seg_big, g_seg_nonoverlap, GpuMat(), stream);
 	stream.waitForCompletion();
 	g_wmask.release();
-	if (logger) logger->logTimeSinceLastLog("water to mask");
+	if (logsession) logsession->logTimeSinceLastLog("water to mask");
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_nonoverlap, 21);
 
 
@@ -616,13 +616,13 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 
 int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
 		int &compcount, int *&bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	Mat input = imread(in);
 	if (!input.data) return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
 	Mat output;
 
-	int status = ::nscale::gpu::SCIOHistologicalEntities::segmentNuclei(input, output, compcount, bbox, str, logger, iresHandler);
+	int status = ::nscale::gpu::SCIOHistologicalEntities::segmentNuclei(input, output, compcount, bbox, str, logsession, iresHandler);
 	input.release();
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS)
@@ -637,7 +637,7 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 
 int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 		int &compcount, int *&bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	if (!img.data) return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
 	Stream *str1 = str;
@@ -652,12 +652,12 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	GpuMat g_output;
 	int *g_bbox;
 
-	int status = ::nscale::gpu::SCIOHistologicalEntities::segmentNuclei(g_img, g_output, compcount, g_bbox, str1, logger, iresHandler);
+	int status = ::nscale::gpu::SCIOHistologicalEntities::segmentNuclei(g_img, g_output, compcount, g_bbox, str1, logsession, iresHandler);
 
 	output = cv::Mat::zeros(g_output.size(), g_output.type());
 	stream.enqueueDownload(g_output, output);
 	stream.waitForCompletion();
-	if (logger) logger->logTimeSinceLastLog("uploaded image");
+	if (logsession) logsession->logTimeSinceLastLog("uploaded image");
 	g_output.release();
 	g_img.release();
 
@@ -673,7 +673,7 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 int SCIOHistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 		int &compcount, int *&g_bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 
 	// image in BGR format
@@ -686,11 +686,11 @@ int SCIOHistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_outpu
 	}
 	Stream &stream = *str1;
 
-	if (logger) logger->logT0("start");
+	if (logsession) logsession->logT0("start");
 	if (iresHandler) iresHandler->saveIntermediate(g_img, 0);
 
 	GpuMat g_seg_norbc(g_img.size(), CV_8U);
-	int findCandidateResult = ::nscale::gpu::SCIOHistologicalEntities::plFindNucleusCandidates(g_img, g_seg_norbc, stream, logger, iresHandler);
+	int findCandidateResult = ::nscale::gpu::SCIOHistologicalEntities::plFindNucleusCandidates(g_img, g_seg_norbc, stream, logsession, iresHandler);
 	if (findCandidateResult != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		return findCandidateResult;
 	}
@@ -698,7 +698,7 @@ int SCIOHistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_outpu
 	GpuMat g_seg_nohole = ::nscale::gpu::imfillHoles<unsigned char>(g_seg_norbc, true, 4, stream);
 	stream.waitForCompletion();
 	g_seg_norbc.release();
-	if (logger) logger->logTimeSinceLastLog("fillHoles2");
+	if (logsession) logsession->logTimeSinceLastLog("fillHoles2");
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_nohole, 12);
 
 
@@ -736,12 +736,12 @@ int SCIOHistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_outpu
 	g_seg_nohole.release();
 
 //	imwrite("test/out-nucleicandidatesopened.ppm", seg_open);
-	if (logger) logger->logTimeSinceLastLog("openBlobs");
+	if (logsession) logsession->logTimeSinceLastLog("openBlobs");
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_open, 13);
 
 	GpuMat g_seg_nonoverlap(g_img.size(), CV_8U);
 	
-	int sepResult = ::nscale::gpu::SCIOHistologicalEntities::plSeparateNuclei(g_img, g_seg_open, g_seg_nonoverlap, stream, logger, iresHandler);
+	int sepResult = ::nscale::gpu::SCIOHistologicalEntities::plSeparateNuclei(g_img, g_seg_open, g_seg_nonoverlap, stream, logsession, iresHandler);
 	g_seg_open.release();
 	if (sepResult != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		return sepResult;
@@ -789,7 +789,7 @@ printf("  gpu components 21-1000 = %d\n", compcount2);
 //	stream.waitForCompletion();
 //	seg.release();
 //#endif
-	if (logger) logger->logTimeSinceLastLog("20To1000");
+	if (logsession) logsession->logTimeSinceLastLog("20To1000");
 	if (compcount2 == 0) {
 		printf("no candidates left: compcount2 = %d\n", compcount2);
 
@@ -811,7 +811,7 @@ printf("  gpu components 21-1000 = %d\n", compcount2);
 	// LABEL approach - cpu version does not support erode
 //	g_output = ::nscale::gpu::imfillHoles<int>(g_seg, false, 8, stream);
 	stream.waitForCompletion();
-	if (logger) logger->logTimeSinceLastLog("fillHolesLast");
+	if (logsession) logsession->logTimeSinceLastLog("fillHolesLast");
 	g_seg.release();
 	
 	// MASK approach
@@ -825,7 +825,7 @@ printf("  gpu components 21-1000 = %d\n", compcount2);
  
 //	imwrite("test/out-nuclei.ppm", seg);
 
-//	if (logger) logger->endSession();
+//	if (logsession) logsession->endSession();
 
 	return ::nscale::SCIOHistologicalEntities::SUCCESS;
 

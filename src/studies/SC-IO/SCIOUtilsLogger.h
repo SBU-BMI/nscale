@@ -9,10 +9,8 @@
 #define SCIO_UTILS_LOGGER_H_
 
 #include <fstream>
-#include <iostream>
 #include <sys/time.h>
-
-#include "utils.h"
+#include <sstream>
 #include <tr1/unordered_map>
 
 
@@ -168,6 +166,48 @@ private:
 //};
 
 
+class SCIOLogSession {
+
+public :
+
+	SCIOLogSession() : id(-1), name(std::string()), session_name(std::string()), start(0LL) {};
+	SCIOLogSession(const int &_id, const std::string &_name, const std::string &_session_name, long long &_start) :
+		id(_id), name(_name), session_name(_session_name), events(), start(_start) {
+		events.clear();
+	};
+	virtual ~SCIOLogSession() {
+		events.clear();
+	};
+
+	virtual void log(cciutils::event e) {
+		events.push_back(e);
+	};
+
+	virtual void toString(std::string &header, std::string &value) {
+		std::stringstream ss1, ss2;
+		ss1 << id << "," << name << "," << session_name << ",";
+		ss2 << id << "," << name << "," << session_name << ",";
+
+		for (int i = 0; i < events.size(); ++i) {
+			ss1 << events[i].getName() << "," << events[i].getType() << ",";
+			ss2 << (events[i].getSart() - start) << "," << (events[i].getEnd() - start) << ",";
+		}
+		header.assign(ss1.str());
+		value.assign(ss2.str());
+	};
+
+	void setId(const int &_id) { id = _id; };
+	void setName(const std::string &_name) { name.assign(_name); };
+	void setSessionName(const std::string &_session_name) { session_name.assign(_session_name); };
+
+private :
+	int id;
+	std::string name;
+	std::string session_name;
+	std::vector<cciutils::event> events;
+	long long start;
+};
+
 
 /**
  *
@@ -179,78 +219,47 @@ public :
 
 	// _id is something like mpi rank or hostname
 	SCIOLogger(const int &_id, const std::string &_name) :
-		id(_id), name(_name) {};
+		id(_id), name(_name) {
+		starttime = cciutils::event::timestampInUS();	
+	};
+
 	virtual ~SCIOLogger() {
+		values.clear();
 	};
 	
 	// session id is something like a filename or image name that is being processed.
-	virtual bool addSession(const std::string &session_name) {
+	virtual cciutils::SCIOLogSession* getSession(const std::string &session_name) {
 		if (values.find(session_name) == values.end()) {
-			std::vector<cciutils::event> vals;
-			values[session_name] = vals;
+			cciutils::SCIOLogSession session(id, name, session_name, starttime);
+			values[session_name] = session;
 		}
-		return true;
+		return &(values[session_name]);
 	}
-
-	virtual void endSession(const std::string &session_name) {}
-
-	virtual void log(const std::string &session_name, cciutils::event &_event) {
-		std::string eventName = _event.getName();
-		int type = _event.getType();
-		int eventId = _event.getId();
-
-		if (headers.size() < eventId + 1) {
-			headers.resize(eventId * 2);
-			types.resize(eventId * 2);
-		}
-		if (eventName.compare(headers[eventId]) != 0) headers[eventId] = eventName;
-		if (type != types[eventId]) types[eventId] = type;
-
-		values[session_name] = _event;
-	};
 
 	virtual std::vector<std::string> toStrings() {
 		// headers
-		std::stringstream ss1, ss2, ss3;
-		ss1 << ",,,";
-		ss2 << ",,,";
-		for (int i = 0; i < headers.size(); ++i) {
-			ss1 << headers[i] << " start," << headers[i] << " end,";
-			ss2 << types[i] << "," << types[i] << ",";
-		}
-
 		std::vector<std::string> output;
-		output.push_back(ss1.str());
-		output.push_back(ss2.str());
 
-		ss1.str(std::string());
-		ss2.str(std::string());
-
-		for (std::tr1::unordered_map<std::string, std::vector<cciutils::event> >::iterator iter = values.begin();
+		for (std::tr1::unordered_map<std::string, cciutils::SCIOLogSession >::iterator iter = values.begin();
 				iter != values.end(); ++iter) {
-			ss3 << id << "," << name << ",";
+			std::string headers;
+			std::string times;
 
-			ss3 << iter->first << ",";
+			iter->second.toString(headers, times);
 
-			for (std::vector<cciutils::event>::iterator eiter = iter->second.begin(); eiter != iter->second.end(); ++eiter) {
-				ss3 << eiter->getSart() << "," << eiter->getEnd() << ",";
-			}
-
-			output.push_back(ss3.str());
-
-			ss3.str(std::string());
+			output.push_back(headers);
+			output.push_back(times);
 		}
 		return output;
 	}
 
 private :
-	std::string id;
+	int id;
 	std::string name;
-	std::vector<std::string> headers;
-	std::vector<int> types;
+	long long starttime;
 
 	// image name to log map.
-	std::tr1::unordered_map<std::string, std::vector<cciutils::event> > values;
+	std::tr1::unordered_map<std::string, cciutils::SCIOLogSession > values;
 };
 
 
