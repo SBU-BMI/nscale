@@ -19,70 +19,37 @@ using namespace cv;
 
 int main (int argc, char **argv){
 
-	// imfill test:
-	// example from matlab doc for imfill.
-	/*
-	 *     Fill in the background of a binary image from a specified starting
-    location:
+	Mat imfilldata = imread("in-imhmin.ppm", -1);
+	if(imfilldata.data == NULL){
+		std::cout << "Error reading input data"<< std::endl;
+		exit(1);
+	}
 
-        BW1 = logical([1 0 0 0 0 0 0 0
-                       1 1 1 1 1 0 0 0
-                       1 0 0 0 1 0 1 0
-                       1 0 0 0 1 1 1 0
-                       1 1 1 1 0 1 1 1
-                       1 0 0 1 1 0 1 0
-                       1 0 0 0 1 0 1 0
-                       1 0 0 0 1 1 1 0]);
-        BW2 = imfill(BW1,[3 3],8)
+	std::cout << "in-imhimn. size(type) = "<< (imfilldata.type() == CV_32FC1) << std::endl;
 
-    Fill in the holes of a binary image:
-
-        BW4 = im2bw(imread('coins.png'));
-        BW5 = imfill(BW4,'holes');
-        figure, imshow(BW4), figure, imshow(BW5)
-
-    Fill in the holes of an intensity image:
-
-        I = imread('tire.tif');
-        I2 = imfill(I,'holes');
-        figure, imshow(I), figure, imshow(I2)
-
-	 */
-	Mat imfilldata = imread("in-fillHolesDump.ppm", -1);
-//	Mat imfillinput = repeat(imfilldata, 512, 512);
-//	Mat seeds = Mat::zeros(imfilldata.size(), CV_8U);
-//	seeds.ptr(2)[2] = 1;
-//	Mat imfillseeds = repeat(seeds, 512, 512);
-//
-//	uint64_t t1 = cciutils::ClockGetTime();
-//	Mat filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 8);
-//	uint64_t t2 = cciutils::ClockGetTime();
-//	std::cout << "imfill took " << t2-t1 << "ms" << std::endl;
-//	imwrite("test/out-imfilled.pbm", filled);
-//
-	Mat filled;
+	Mat imhminout;
 	// imfill holes
 	uint64_t t1 = cciutils::ClockGetTime();
-	filled = nscale::imfillHoles<unsigned char>(imfilldata, true, 8);
+	imhminout = nscale::imhmin<float>(imfilldata, 1.0f, 8 );
 	uint64_t t2 = cciutils::ClockGetTime();
-	std::cout << "imfill holes took " << t2-t1 << "ms" << std::endl;
-	imwrite("out-holesfilledCPU.pbm", filled);
+	std::cout << "imhmin holes took " << t2-t1 << "ms" << std::endl;
+	imwrite("out-imhmin CPU.pbm", imhminout);
 
 	GpuMat input(imfilldata);
 	Stream stream;
 	t1 = cciutils::ClockGetTime();
-	GpuMat g_filled = nscale::gpu::imfillHoles<unsigned char>(input, true, 8, stream);
+	GpuMat g_outmin = nscale::gpu::imhmin<float>(input, 1.0f, 8, stream);
 	t2 = cciutils::ClockGetTime();
 
 
-	std::cout << "imfill holes gpu took " << t2-t1 << "ms" << std::endl;
+	std::cout << "imhmin holes gpu took " << t2-t1 << "ms" << std::endl;
 
-	Mat filledGPU(g_filled.size(), g_filled.type());
+	Mat imhminout_gpu(g_outmin.size(), g_outmin.type());
 
-	stream.enqueueDownload(g_filled, filledGPU);
+	stream.enqueueDownload(g_outmin, imhminout_gpu);
 	stream.waitForCompletion();
 
-	imwrite("out-holesfilledGPU.pbm", filledGPU);
+	imwrite("out-imhminGPU.pbm", imhminout_gpu);
 
 //	t1 = cciutils::ClockGetTime();
 //	filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 4);

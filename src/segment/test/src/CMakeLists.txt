@@ -9,7 +9,7 @@ link_directories(${Segmentation_SOURCE_DIR})
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
-set(programs bwareaopenTest deconvTest imfillTest imreconChunkTest imreconExperiments imreconOptimizeProfiler imreconTest localMaximaTest miscTest nu-segmentChunkTest nu-segmentTest queueTest watershedTest)
+set(programs bwareaopenTest deconvTest distTransform imfillTest imhminTest imreconChunkTest imreconExperiments imreconOptimizeProfiler imreconTest localMaximaTest miscTest nu-segmentChunkTest nu-segmentTest queueTest watershedTest)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)

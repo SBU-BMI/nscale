@@ -215,6 +215,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("threshold1");
 	if (iresHandler) iresHandler->saveIntermediate(diffIm2, 6);
 
+//	imwrite("in-fillHolesDump.ppm", diffIm2);
 	Mat bw1 = ::nscale::imfillHoles<unsigned char>(diffIm2, true, 4);
 //	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 	if (logger) logger->logTimeSinceLastLog("fillHoles1");
@@ -333,6 +334,8 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	// then invert to create basins
 	Mat dist(seg_big.size(), CV_32FC1);
 
+	imwrite("mask.pbm", seg_big);
+
 	// opencv: compute the distance to nearest zero
 	// matlab: compute the distance to the nearest non-zero
 	distanceTransform(seg_big, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
@@ -358,6 +361,8 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 
 
 	// then do imhmin. (prevents small regions inside bigger regions)
+//	imwrite("in-imhmin.ppm", distance);
+
 	Mat distance2 = ::nscale::imhmin<float>(distance, 1.0f, 8);
 	if (logger) logger->logTimeSinceLastLog("imhmin");
 	if (iresHandler) iresHandler->saveIntermediate(distance2, 18);

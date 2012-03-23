@@ -197,7 +197,6 @@ void convLoop3(int rows, int cols, int cn_channels, const PtrStep_<double> g_cn,
 	if (stream == 0)
         	cudaDeviceSynchronize();
 }
-
 __global__ void bgr2grayKernel(int rows, int cols, const PtrStep_<unsigned char> img,
  	PtrStep_<unsigned char> result)
 {
@@ -225,6 +224,75 @@ void bgr2grayCaller(int rows, int cols, const cv::gpu::PtrStep_<unsigned char> i
 	dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
 
 	bgr2grayKernel<<<grid, threads, 0, stream>>>(rows, cols, img, result);
+
+	 cudaGetLastError();
+
+	if (stream == 0)
+        	cudaDeviceSynchronize();
+
+}
+
+
+__device__ int floatToOrderedInt( float floatVal )
+{
+	int *intVal = (int*)( &floatVal );
+	return (intVal[0] >= 0 ) ? intVal[0] : intVal[0] ^ 0x7FFFFFFF;
+}
+
+__global__ void convFloatToIntOrderedKernel(int rows, int cols, const PtrStep_<float> input,
+ 	PtrStep_<int> result)
+{
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (y < rows && x < cols)
+	{
+		result.ptr(y)[x] = floatToOrderedInt( input.ptr(y)[x] );
+	}
+}
+void convFloatToIntOrderedCaller(int rows, int cols, const cv::gpu::PtrStep_<float> input,  
+	cv::gpu::PtrStep_<int> result, cudaStream_t stream)
+{
+	dim3 threads(16, 16);
+	dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
+
+	convFloatToIntOrderedKernel<<<grid, threads, 0, stream>>>(rows, cols, input, result);
+
+	 cudaGetLastError();
+
+	if (stream == 0)
+        	cudaDeviceSynchronize();
+
+}
+
+__device__ float orderedIntToFloat( int intVal )
+{
+	float *float_ptr;
+	int res = ( (intVal >= 0) ? intVal : intVal ^ 0x7FFFFFFF );
+	float_ptr = (float*) &res;
+	return float_ptr[0];
+} 
+
+
+__global__ void convIntToFloatOrderedKernel(int rows, int cols, const PtrStep_<int> input,
+ 	PtrStep_<float> result)
+{
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (y < rows && x < cols)
+	{
+		result.ptr(y)[x] = orderedIntToFloat( input.ptr(y)[x] );
+	}
+}
+
+void convIntToFloatOrderedCaller(int rows, int cols, const cv::gpu::PtrStep_<int> input,  
+	cv::gpu::PtrStep_<float> result, cudaStream_t stream)
+{
+	dim3 threads(16, 16);
+	dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
+
+	convIntToFloatOrderedKernel<<<grid, threads, 0, stream>>>(rows, cols, input, result);
 
 	 cudaGetLastError();
 
