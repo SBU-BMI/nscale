@@ -328,6 +328,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		}
 	}
 
+
 	managerStatus = MANAGER_FINISHED;
 /* tell everyone to quit */
 	int active_workers = worker_size;
@@ -350,6 +351,43 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		}
 	}
 
+	MPI_Barrier(comm_world);
+
+
+	// now do a collective io for the log
+	int logsize = 0;
+	int world_size;
+	MPI_Comm_size(comm_world, &world_size);
+
+	int *recbuf = (int *) malloc(world_size * sizeof(int));
+
+	// now send the thing to manager
+	// 	first gather sizes
+	MPI_Gather(&logsize, 1, MPI_INT, recbuf, 1, MPI_INT, manager_rank, comm_world);
+	
+	// then perform exclusive prefix sum to get the displacement and the total length
+	int *displbuf = (int *) malloc(world_size * sizeof(int));
+	displbuf[0] = 0;
+	for (int i = 1; i < world_size; i++) {
+		displbuf[i] = displbuf[i-1] + recbuf[i-1];	
+	}
+	int logtotalsize = displbuf[world_size - 1] + recbuf[world_size - 1];
+	
+	char *logdata = (char*) malloc(logtotalsize * sizeof(char) + 1);
+	memset(logdata, 0, logtotalsize * sizeof(char) + 1);
+	
+	char *sendlog = (char*) malloc(sizeof(char))	;
+	sendlog[0] = 0;
+
+	MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
+
+	printf("%s\n", logdata);
+
+
+	free(logdata);
+
+	free(displbuf);
+	free(recbuf);
 }
 
 void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname) {
@@ -418,10 +456,36 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 		}
 	}
 
+	// now do collective io.
+	MPI_Barrier(comm_world);
+
+
 	std::vector<std::string> timings = logger->toStrings();
+	std::stringstream ss;
 	for (int i = 0; i < timings.size(); i++) {
-		printf("%s\n", timings[i].c_str());	
+		ss << timings[i] << std::endl;	
 	}
+	std::string logstr = ss.str();
+	int logsize = logstr.size();
+	
+	int *recbuf = NULL;
+
+	// now send the thing to manager
+	// 	first gather sizes
+	MPI_Gather(&logsize, 1, MPI_INT, recbuf, 1, MPI_INT, manager_rank, comm_world);
+
+	// 	then gatherv the messages.
+	char *sendlog = (char *)malloc(sizeof(char) * logstr.size() + 1);
+	memset(sendlog, 0, sizeof(char) * logstr.size() + 1);
+	strncpy(sendlog, logstr.c_str(), logstr.size());
+
+	char *logdata = NULL;
+	int * displbuf = NULL;
+	MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
+
+	ss.str(std::string());
+	
+	free(sendlog);
 
 	delete logger;
 }
