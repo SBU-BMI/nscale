@@ -4,13 +4,12 @@
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
-#include "opencv2/opencv.hpp"
-#include "opencv2/gpu/gpu.hpp"
+//#include "opencv2/opencv.hpp"
+//#include "opencv2/gpu/gpu.hpp"
 #include <iostream>
-#include <stdio.h>
+//#include <stdio.h>
 #include <vector>
 #include <string.h>
-#include "MorphologicOperations.h"
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>
@@ -39,7 +38,7 @@ using namespace cv;
 int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogger *logger);
+void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session);
 
 int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir) {
 	if (argc < 4) {
@@ -70,8 +69,9 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 
 
 	} else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+//		modecode = cciutils::DEVICE_MCORE;
 		// get core count
+		modecode = cciutils::DEVICE_CPU;
 
 
 	} else if (strcasecmp(mode, "gpu") == 0) {
@@ -138,21 +138,17 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 
 
 
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogger *logger) {
+void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session) {
 	// compute
 
 	int status;
 	int *bbox = NULL;
 	int compcount;
 
-	logger->addSession(std::string(input));
-
-    ::cciutils::cv::IntermediateResultHandler *iwrite = NULL;
    	std::vector<int> stages;
 	for (int stage = 0; stage <= 200; ++stage) {
 		stages.push_back(stage);
 	}
-
 
 	FileUtils fu(".mask.pbm");
 	std::string fmask(mask);
@@ -160,24 +156,21 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	std::string prefix = fu.replaceExt(fmask, ".mask.pbm", "");
 	std::string suffix;
 	suffix.assign(".mask.pbm");
-	iwrite = new ::cciutils::cv::IntermediateResultWriter(prefix, suffix, stages);
+	::cciutils::cv::IntermediateResultHandler *iwrite = new ::cciutils::cv::IntermediateResultWriter(prefix, suffix, stages);
 
 
+	if (modecode == cciutils::DEVICE_GPU ) {
+		nscale::gpu::SCIOHistologicalEntities *seg2 = new nscale::gpu::SCIOHistologicalEntities(std::string(input));
+		status = seg2->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, session, iwrite);
+		delete seg2;
 
-	switch (modecode) {
-	case cciutils::DEVICE_CPU :
-	case cciutils::DEVICE_MCORE :
-		nscale::SCIOHistologicalEntities seg(std::string(input));
-		status = seg.segmentNuclei(std::string(input), std::string(mask), compcount, bbox, logger, iwrite);
-
-		break;
-	case cciutils::DEVICE_GPU :
-		nscale::gpu::SCIOHistologicalEntities seg(std::string(input));
-		status = seg.segmentNuclei(std::string(input), std::string(mask), compcount, bbox, logger, iwrite);
-		break;
-	default :
-		break;
+	} else {
+	
+		nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(std::string(input));
+		status = seg->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, session, iwrite);
+		delete seg;
 	}
+	
 
 	delete iwrite;
 
@@ -189,41 +182,59 @@ void compute(const char *input, const char *mask, const char *output, const int 
 
 
 #if defined (WITH_MPI)
-MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
-MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
+MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
+MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank);
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname);
 
 
 // initialize MPI
-MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname) {
-    MPI::Init(argc, argv);
+MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname) {
+    int ierr = MPI_Init(&argc, &argv);
 
     char * temp = new char[256];
     gethostname(temp, 255);
     hostname.assign(temp);
     delete [] temp;
 
-    size = MPI::COMM_WORLD.Get_size();
-    rank = MPI::COMM_WORLD.Get_rank();
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    return MPI::COMM_WORLD;
+    return MPI_COMM_WORLD;
 }
 
 // not necessary to create a new comm object
-MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid) {
-	// get old group
-	MPI::Group world_group = comm_world.Get_group();
+MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank ) {
+
+	int rank, size;
+	MPI_Comm_size(comm_world, &size);
+	MPI_Comm_rank(comm_world, &rank);
+	
 	// create new group from old group
-	int worker_size = comm_world.Get_size() - 1;
-	int *workers = new int[worker_size];
+	worker_size = size - 1;
+	int *workers = (int*) malloc(worker_size * sizeof(int));
 	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
 		if (id == managerid) ++id;  // skip the manager id
 		workers[i] = id;
 	}
-	MPI::Group worker_group = world_group.Incl(worker_size, workers);
-	delete [] workers;
-	return comm_world.Create(worker_group);
+	// get old group
+	MPI_Group world_group;
+	MPI_Comm_group ( comm_world, &world_group );
+
+	MPI_Group worker_group;
+	MPI_Group_incl ( world_group, worker_size, workers, &worker_group );
+	free(workers);
+	
+	MPI_Comm comm_worker;
+	MPI_Comm_create(comm_world, worker_group, &comm_worker);
+	
+	if (rank != managerid) {
+		MPI_Comm_size(comm_worker, &worker_size);
+	    	MPI_Comm_rank(comm_worker, &worker_rank);
+	} else {
+		worker_rank = -1;
+	}
+	return comm_worker;
 }
 
 static const char MANAGER_READY = 10;
@@ -235,7 +246,7 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir) {
+void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir) {
 	// first get the list of files to process
    	std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
@@ -247,12 +258,12 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 
 	t1 = cciutils::ClockGetTime();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
-	comm_world.Barrier();
+	MPI_Barrier(comm_world);
 
 	// now start the loop to listen for messages
 	int curr = 0;
 	int total = filenames.size();
-	MPI::Status status;
+	MPI_Status status;
 	int worker_id;
 	char ready;
 	char *input;
@@ -261,19 +272,24 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	int inputlen;
 	int masklen;
 	int outputlen;
+	int hasMessage;
+	char managerStatus;
 	while (curr < total) {
 		usleep(1000);
 
-		if (comm_world.Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, status)) {
+		managerStatus = MANAGER_READY;
+
+		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
+		if (hasMessage != 0) {
 /* where is it coming from */
-			worker_id=status.Get_source();
-			comm_world.Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+			worker_id = status.MPI_SOURCE;
+			MPI_Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world, &status);
 //			printf("manager received request from worker %d\n",worker_id);
 			if (worker_id == manager_rank) continue;
 
 			if(ready == WORKER_READY) {
 				// tell worker that manager is ready
-				comm_world.Send(&MANAGER_READY, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+				MPI_Send(&managerStatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 //				printf("manager signal transfer\n");
 /* send real data */
 				inputlen = filenames[curr].size() + 1;  // add one to create the zero-terminated string
@@ -289,14 +305,14 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 				memset(output, 0, sizeof(char) * outputlen);
 				strncpy(output, bounds_output[curr].c_str(), outputlen);
 
-				comm_world.Send(&inputlen, 1, MPI::INT, worker_id, TAG_METADATA);
-				comm_world.Send(&masklen, 1, MPI::INT, worker_id, TAG_METADATA);
-				comm_world.Send(&outputlen, 1, MPI::INT, worker_id, TAG_METADATA);
+				MPI_Send(&inputlen, 1, MPI::INT, worker_id, TAG_METADATA, comm_world);
+				MPI_Send(&masklen, 1, MPI::INT, worker_id, TAG_METADATA, comm_world);
+				MPI_Send(&outputlen, 1, MPI::INT, worker_id, TAG_METADATA, comm_world);
 
 				// now send the actual string data
-				comm_world.Send(input, inputlen, MPI::CHAR, worker_id, TAG_DATA);
-				comm_world.Send(mask, masklen, MPI::CHAR, worker_id, TAG_DATA);
-				comm_world.Send(output, outputlen, MPI::CHAR, worker_id, TAG_DATA);
+				MPI_Send(input, inputlen, MPI::CHAR, worker_id, TAG_DATA, comm_world);
+				MPI_Send(mask, masklen, MPI::CHAR, worker_id, TAG_DATA, comm_world);
+				MPI_Send(output, outputlen, MPI::CHAR, worker_id, TAG_DATA, comm_world);
 				curr++;
 
 				delete [] input;
@@ -311,29 +327,70 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 
 		}
 	}
+
+
+	managerStatus = MANAGER_FINISHED;
 /* tell everyone to quit */
 	int active_workers = worker_size;
 	while (active_workers > 0) {
 		usleep(1000);
 
-		if (comm_world.Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, status)) {
+		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
+		if (hasMessage != 0) {
 		/* where is it coming from */
-			worker_id=status.Get_source();
-			comm_world.Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+			worker_id=status.MPI_SOURCE;
+			MPI_Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world, &status);
 //			printf("manager received request from worker %d\n",worker_id);
 			if (worker_id == manager_rank) continue;
 
 			if(ready == WORKER_READY) {
-				comm_world.Send(&MANAGER_FINISHED, 1, MPI::CHAR, worker_id, TAG_CONTROL);
+				MPI_Send(&managerStatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 //				printf("manager signal finished\n");
 				--active_workers;
 			}
 		}
 	}
 
+	MPI_Barrier(comm_world);
+
+
+	// now do a collective io for the log
+	int logsize = 0;
+	int world_size;
+	MPI_Comm_size(comm_world, &world_size);
+
+	int *recbuf = (int *) malloc(world_size * sizeof(int));
+
+	// now send the thing to manager
+	// 	first gather sizes
+	MPI_Gather(&logsize, 1, MPI_INT, recbuf, 1, MPI_INT, manager_rank, comm_world);
+	
+	// then perform exclusive prefix sum to get the displacement and the total length
+	int *displbuf = (int *) malloc(world_size * sizeof(int));
+	displbuf[0] = 0;
+	for (int i = 1; i < world_size; i++) {
+		displbuf[i] = displbuf[i-1] + recbuf[i-1];	
+	}
+	int logtotalsize = displbuf[world_size - 1] + recbuf[world_size - 1];
+	
+	char *logdata = (char*) malloc(logtotalsize * sizeof(char) + 1);
+	memset(logdata, 0, logtotalsize * sizeof(char) + 1);
+	
+	char *sendlog = (char*) malloc(sizeof(char))	;
+	sendlog[0] = 0;
+
+	MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
+
+	printf("%s\n", logdata);
+
+
+	free(logdata);
+
+	free(displbuf);
+	free(recbuf);
 }
 
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname) {
+void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	int outputSize;
@@ -341,28 +398,31 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 	char *input;
 	char *output;
 	char *mask;
+	MPI_Status status;
 
-	comm_world.Barrier();
+	MPI_Barrier(comm_world);
 	uint64_t t0, t1;
 	printf("worker %d ready\n", rank);
 
 	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
+	char workerStatus = WORKER_READY;
+	cciutils::SCIOLogSession *session;
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
 		t0 = cciutils::ClockGetTime();
 
 		// tell the manager - ready
-		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
+		MPI_Send(&workerStatus, 1, MPI::CHAR, manager_rank, TAG_CONTROL, comm_world);
 //		printf("worker %d signal ready\n", rank);
 		// get the manager status
-		comm_world.Recv(&flag, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
+		MPI_Recv(&flag, 1, MPI::CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
 //		printf("worker %d received manager status %d\n", rank, flag);
 
 		if (flag == MANAGER_READY) {
 			// get data from manager
-			comm_world.Recv(&inputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
-			comm_world.Recv(&maskSize, 1, MPI::INT, manager_rank, TAG_METADATA);
-			comm_world.Recv(&outputSize, 1, MPI::INT, manager_rank, TAG_METADATA);
+			MPI_Recv(&inputSize, 1, MPI::INT, manager_rank, TAG_METADATA, comm_world, &status);
+			MPI_Recv(&maskSize, 1, MPI::INT, manager_rank, TAG_METADATA, comm_world, &status);
+			MPI_Recv(&outputSize, 1, MPI::INT, manager_rank, TAG_METADATA, comm_world, &status);
 
 			// allocate the buffers
 			input = new char[inputSize];
@@ -373,15 +433,15 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			memset(output, 0, outputSize * sizeof(char));
 
 			// get the file names
-			comm_world.Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA);
-			comm_world.Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA);
-			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
+			MPI_Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA, comm_world, &status);
+			MPI_Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA, comm_world, &status);
+			MPI_Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA, comm_world, &status);
 
 			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
-
-			compute(input, mask, output, modecode, logger);
+			session = logger->getSession(std::string(input));
+			compute(input, mask, output, modecode, session);
 			// now do some work
 
 			t1 = cciutils::ClockGetTime();
@@ -395,6 +455,38 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 		}
 	}
+
+	// now do collective io.
+	MPI_Barrier(comm_world);
+
+
+	std::vector<std::string> timings = logger->toStrings();
+	std::stringstream ss;
+	for (int i = 0; i < timings.size(); i++) {
+		ss << timings[i] << std::endl;	
+	}
+	std::string logstr = ss.str();
+	int logsize = logstr.size();
+	
+	int *recbuf = NULL;
+
+	// now send the thing to manager
+	// 	first gather sizes
+	MPI_Gather(&logsize, 1, MPI_INT, recbuf, 1, MPI_INT, manager_rank, comm_world);
+
+	// 	then gatherv the messages.
+	char *sendlog = (char *)malloc(sizeof(char) * logstr.size() + 1);
+	memset(sendlog, 0, sizeof(char) * logstr.size() + 1);
+	strncpy(sendlog, logstr.c_str(), logstr.size());
+
+	char *logdata = NULL;
+	int * displbuf = NULL;
+	MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
+
+	ss.str(std::string());
+	
+	free(sendlog);
+
 	delete logger;
 }
 
@@ -409,8 +501,9 @@ int main (int argc, char **argv){
 	if (status != 0) return status;
 
 	// set up mpi
-	int rank, size, worker_size, manager_rank;
-	MPI::Intracomm comm_world = init_mpi(argc, argv, size, rank, hostname);
+	int rank, size, worker_size, worker_rank, manager_rank;
+	MPI_Comm comm_world = init_mpi(argc, argv, size, rank, hostname);
+
 
 	if (size == 1) {
 		printf("ERROR:  this program can only be run with 2 or more MPI nodes.  The head node does not process data\n");
@@ -427,9 +520,7 @@ int main (int argc, char **argv){
 	manager_rank = size - 1;
 
 	// NOT NEEDED
-	//MPI::Intracomm comm_worker = init_workers(MPI::COMM_WORLD, manager_rank);
-	//int worker_rank = comm_worker.Get_rank();
-
+	MPI_Comm comm_worker = init_workers(comm_world, manager_rank, worker_size, worker_rank);
 
 	uint64_t t1 = 0, t2 = 0;
 	t1 = cciutils::ClockGetTime();
@@ -448,8 +539,8 @@ int main (int argc, char **argv){
 		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
 	}
-	comm_world.Barrier();
-	MPI::Finalize();
+	MPI_Barrier(comm_world);
+	MPI_Finalize();
 	exit(0);
 
 }
@@ -490,47 +581,64 @@ int main (int argc, char **argv){
     	if (omp_get_max_threads() == 1) {
         	printf("1 omp thread\n");
     		cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(0, std::string("localhost"));
-
+		cciutils::SCIOLogSession *session;
+	
         	while (i < total) {
-        		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode);
+			session = logger->getSession(filenames[i]);
+        		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session);
         		printf("processed %s\n", filenames[i].c_str());
         		++i;
         	}
+		std::vector<std::string> timings = logger->toStrings();
+		for (int i = 0; i < timings.size(); i++) {
+			printf("%s\n", timings[i].c_str());	
+		}
         	delete logger;
 
     	} else {
         	printf("omp %d\n", omp_get_max_threads());
-
+		cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(omp_get_thread_num(), std::string("localhost"));
 #pragma omp parallel
     	{
 #pragma omp single private(i)
     		{
-    			cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(omp_get_thread_id(), std::string("localhost"));
+    			
 
     			while (i < total) {
     				int ti = i;
     				// has to use firstprivate - private does not work.
-#pragma omp task firstprivate(ti) shared(filenames, seg_output, bounds_output, modecode)
+				cciutils::SCIOLogSession *session = logger->getSession(filenames[ti]);
+#pragma omp task firstprivate(ti, session) shared(filenames, seg_output, bounds_output, modecode)
     				{
 //        				printf("t i: %d, %d \n", i, ti);
-    					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode);
+    					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode, session);
     	        		printf("processed %s\n", filenames[ti].c_str());
     				}
     				i++;
     			}
-    			delete logger;
     		}
 #pragma omp taskwait
     	}
+		std::vector<std::string> timings = logger->toStrings();
+		for (int i = 0; i < timings.size(); i++) {
+			printf("%s\n", timings[i].c_str());	
+		}
+		delete logger;
     	}
 #else
-		cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(0, std::string("localhost"));
+	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(0, std::string("localhost"));
+	cciutils::SCIOLogSession *session;
     	printf("not omp\n");
     	while (i < total) {
-    		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, logger);
+		session = logger->getSession(filenames[i]);
+    		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session);
     		printf("processed %s\n", filenames[i].c_str());
     		++i;
     	}
+	std::vector<std::string> timings = logger->toStrings();
+	for (int i = 0; i < timings.size(); i++) {
+		printf("%s\n", timings[i].c_str());	
+	}
     	delete logger;
 #endif
 		t2 = cciutils::ClockGetTime();

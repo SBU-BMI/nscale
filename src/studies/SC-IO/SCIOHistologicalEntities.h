@@ -16,6 +16,7 @@
 
 namespace nscale {
 
+
 class SCIOHistologicalEntities {
 
 public:
@@ -33,27 +34,32 @@ public:
 	SCIOHistologicalEntities(std::string _filename) : filename(_filename) {};
 	virtual ~SCIOHistologicalEntities() {};
 
-	cv::Mat getRBC(const cv::Mat& img,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
-	cv::Mat getRBC(const std::vector<cv::Mat>& bgr,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
-	cv::Mat getBackground(const cv::Mat& img,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
-	cv::Mat getBackground(const std::vector<cv::Mat>& bgr,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+	float backgroundRatio(const std::vector<cv::Mat>& bgr, const std::vector<unsigned char> &thresholds, cv::Mat &bg, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+	
+	cv::Mat getRBC(const std::vector<cv::Mat>& bgr, const std::vector<double> &thresholds, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+	
+	int grayCandidates(cv::Mat &result, const cv::Mat &r, const int kernelType, const int kernelRadius, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+	
+	int grayToBinaryCandidate(cv::Mat &result, const cv::Mat &gray, const std::vector<unsigned char> &colorThresholds, const std::vector<int> &sizeThresholds, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+
+	int areaThreshold(cv::Mat &result, const cv::Mat &binary, const std::vector<int> &sizeThresholds, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+
+	int removeRBC(cv::Mat &result, const cv::Mat &input, const cv::Mat &rbc, const std::vector<int> &sizeThresholds, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+
+	int separateNuclei(cv::Mat &result, const cv::Mat &mask, const cv::Mat &image, const double h, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+	
+	int finalCleanup(cv::Mat &result, const cv::Mat &mask, const std::vector<int> &sizeThresholds, int &compcount, int *&bbox, ::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+
+
+
+
 
 	int segmentNuclei(const cv::Mat& img, cv::Mat& mask,
 			int &compcount, int *&bbox,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 	int segmentNuclei(const std::string& input, const std::string& output,
 			int &compcount, int *&bbox,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
-
-	// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
-	int plFindNucleusCandidates(const cv::Mat& img, cv::Mat& seg_norbc,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);  // S1
-	int plSeparateNuclei(const cv::Mat& img, const cv::Mat& seg_open, cv::Mat& seg_nonoverlap,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL); // A4
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 
 private:
 	std::string filename;
@@ -72,25 +78,25 @@ public:
 
 
 	cv::gpu::GpuMat getRBC(const std::vector<cv::gpu::GpuMat>& bgr, cv::gpu::Stream& stream,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 	cv::gpu::GpuMat getBackground(const std::vector<cv::gpu::GpuMat>& bgr, cv::gpu::Stream& stream,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 
 	int segmentNuclei(const cv::gpu::GpuMat& img, cv::gpu::GpuMat& mask,
 			int &compcount, int *&g_bbox, cv::gpu::Stream *str = NULL,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 	int segmentNuclei(const cv::Mat& img, cv::Mat& mask,
 			int &compcount, int *&bbox, cv::gpu::Stream *str = NULL,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 	int segmentNuclei(const std::string& input, const std::string& output,
 			int &compcount, int *&bbox, cv::gpu::Stream *str = NULL,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 
 	// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
 	int plFindNucleusCandidates(const cv::gpu::GpuMat& g_img, cv::gpu::GpuMat& g_seg_norbc, cv::gpu::Stream& stream,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);  // S1
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);  // S1
 	int plSeparateNuclei(const cv::gpu::GpuMat& g_img, cv::gpu::GpuMat& g_seg_open, cv::gpu::GpuMat& g_seg_nonoverlap, cv::gpu::Stream& stream,
-			::cciutils::SCIOLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL); // A4
+			::cciutils::SCIOLogSession *logsession = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL); // A4
 private:
 	std::string filename;
 
