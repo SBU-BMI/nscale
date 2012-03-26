@@ -396,15 +396,17 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 	GpuMat g_marker_f =  createContinuous(seeds.size(), seeds.type());
 	stream.enqueueCopy(seeds, g_marker_f);
 
-	// Wait til copies are complete
-//	stream.waitForCompletion();
 
 	// Will hold int to float convertion of mask and marker.
 	GpuMat g_mask_i = createContinuous(image.size(), CV_32SC1);
 	// Integer version of marker
 	GpuMat g_marker_i =  createContinuous(seeds.size(), CV_32SC1);
 
+	// Wait til copies are complete
+//	stream.waitForCompletion();
+
 	::nscale::gpu::convFloatToIntOrderedCaller(g_mask_f.rows, g_mask_f.cols, g_mask_f, g_mask_i, StreamAccessor::getStream(stream));
+
 	::nscale::gpu::convFloatToIntOrderedCaller(g_marker_f.rows, g_marker_f.cols, g_marker_f, g_marker_i, StreamAccessor::getStream(stream));
 	stream.waitForCompletion();
 
@@ -437,7 +439,7 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 		cout << "	queue time = "<< t41-imreconBuildEnd<<" nBlocks="<< nBlocks<<" morphRetCode="<<morphRetCode<<endl;
 		number_raster_passes = 0;
 
-	 	queue_increase_factor =4;
+	 	queue_increase_factor*=2;
 		// If the queue size has been exceed, run the reconstruction again.
 	}while(morphRetCode == 1);
 //
@@ -447,6 +449,7 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 //	g_markerInt.release();
 
 	::nscale::gpu::convIntToFloatOrderedCaller(g_marker_i.rows, g_marker_i.cols, g_marker_i, g_marker_f, StreamAccessor::getStream(stream));
+	stream.waitForCompletion();
 
 	g_mask_i.release();
 	g_marker_i.release();
@@ -814,7 +817,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 	GpuMat output2;
 	if (binary == true) {
 //		output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
-//		std::cout << "Call imrecont binary"<<std::endl;
+		std::cout << "Call imrecont binary"<<std::endl;
 		if(connectivity == 4){
 			output2 = imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 2, stream, 12, binary);
 		}else{
@@ -1082,7 +1085,7 @@ GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) {
 	}else{
 		recon = imreconstructQueueSpeedupFloat(marker, mask, connectivity, 1, stream);
 
-//		recon2 = nscale::gpu::imreconstruct<T>(marker, mask, connectivity, stream);
+//		recon = nscale::gpu::imreconstruct<T>(marker, mask, connectivity, stream);
 //		GpuMat res(recon.size(), recon.type());
 //		subtract(recon, recon2, res);
 //		GpuMat res = recon - recon2;
