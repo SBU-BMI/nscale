@@ -476,7 +476,7 @@ __host__ void giwatershed( int *hdataOut,
             cudaBindTexture(0,taux,gDist,sizei);
             cuLabel<<<dimGrid1, dimBlock1, 0, stream>>>(gArrow, w*h);
             cudaUnbindTexture(taux);
-            cudaThreadSynchronize();
+//            cudaThreadSynchronize();
         }
     }while(hCtrl);
 
@@ -486,7 +486,7 @@ __host__ void giwatershed( int *hdataOut,
     cuAjustaVetor<<<dimGrid1, dimBlock1, 0, stream>>>(gArrow,gDist, w*h);
     cudaBindTexture(0,taux,gDist,sizei);
     cuPropagaIndex<<<dimGrid1, dimBlock1, 0, stream>>>(gArrow,gDist, w*h);
-    cudaThreadSynchronize();
+ //   cudaThreadSynchronize();
 
     // Copiando resultado para o host...
     cudaMemcpy(hdataOut,gDist, sizei,cudaMemcpyDeviceToDevice);

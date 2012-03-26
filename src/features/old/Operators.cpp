@@ -148,44 +148,47 @@ unsigned int *Operators::buildHistogram256CPU(IplImage *inputImage, IplImage * i
 		exit(1);
 	}
 
-	int height = inputImage->height;
-	int width = inputImage->width;
-	char *imageData = inputImage->imageData;
-	char *imageDataMask = NULL;
-	if(inputImageMask != NULL){
-		imageDataMask = inputImageMask->imageData;
-	}
-	if(inputImage->roi != NULL){
-		height = inputImage->roi->height;
-		width = inputImage->roi->width;
-
-		imageData += inputImage->roi->yOffset * inputImage->widthStep + inputImage->roi->xOffset * inputImage->nChannels;
-
-		if(inputImageMask != NULL){
-			imageDataMask += inputImage->roi->yOffset * inputImageMask->widthStep + inputImage->roi->xOffset * inputImageMask->nChannels;
-		}
-	}
-
 	int intensity_hist_points = 0;
 	//build histogram from the input image
-	for (int i=0; i < height; i++){
-		for(int j=0; j < width; j++){
+	for (int i=0; i<inputImage->height; i++){
+//		unsigned char *ptr = (unsigned char*)(inputImage->imageData + i * inputImage->widthStep);
+		for(int j=0; j<inputImage->width; j++){
+//			CvScalar s=cvGet2D(inputImage, i, j);
+//			hist[(unsigned int)s.val[0]]++;
 			// verify if histogram is masked
 			if(inputImageMask != NULL){
 				// check if mask is not 0 for the given entry in the input image
-//				if((int)(((unsigned char*)(inputImageMask->imageData + i * inputImageMask->widthStep + j))[0]) == 0){
-				if((int)(((unsigned char*)(imageDataMask + i * inputImageMask->widthStep + j))[0]) == 0){
+				if((int)(((unsigned char*)(inputImageMask->imageData + i * inputImageMask->widthStep + j))[0]) == 0){
 					continue;
 				}
 			}
 			// get value of the input image pixel (i,j)
-//			int histAddr = (int)(((unsigned char*)(inputImage->imageData + i * inputImage->widthStep + j))[0]);
-			int histAddr = (int)(((unsigned char*)(imageData + i * inputImage->widthStep + j))[0]);
-	
+			int histAddr = (int)(((unsigned char*)(inputImage->imageData + i * inputImage->widthStep + j))[0]);
+
 			// increment histogram entry according to value of pixel (i,j)
 			hist[histAddr]++;
 		}
 	}
+
+/*	int numBins = 256;
+	float range[] = {0, 256};
+	float *ranges[] = { range };
+	CvHistogram* intensity_hist_temp = cvCreateHist(1, &numBins, CV_HIST_ARRAY, ranges, 1);
+
+	IplImage * tempImg = cvCreateImage(cvSize(inputImage->width, inputImage->height), IPL_DEPTH_8U, 1);
+
+	cvMul(inputImage, inputImageMask, tempImg);
+
+	// Calculates the histogram in the input image for the pixels in the input mask
+	cvCalcHist(&tempImg, intensity_hist_temp, 0);
+
+	intensity_hist_points = 0;
+
+	for(int i=0;i<256;i++){
+			float histValue = cvQueryHistValue_1D(intensity_hist_temp, i);
+			intensity_hist_points += (unsigned int)histValue;
+			cout<< "mat["<<i<<"]="<<histValue<<endl;
+	}*/
 
 
 #ifdef	DEBUG
@@ -217,37 +220,11 @@ unsigned int *Operators::buildHistogram256GPU(cv::gpu::GpuMat *inputImage, cv::g
 	if(inputImageMask != NULL){
 		// copy input image to a temporary, which can be modified
 		cv::gpu::GpuMat *tempInput = new cv::gpu::GpuMat(inputImage->size(), CV_8UC1);
-		cv::gpu::bitwise_and(*inputImage, *inputImageMask, *tempInput);
+
+		cv::gpu::multiply(*inputImage, *inputImageMask, *tempInput);
 
 		// calc histogram
-		cv::gpu::histEven(*tempInput, *histGPU, 257, 0, 256);
-
-//		cv::Mat tempCpu = (cv::Mat)*tempInput;
-//
-//		cv::Mat inputCpu = (cv::Mat)*inputImage;
-//
-//		cv::Mat maskCpu = (cv::Mat)*inputImageMask;
-//
-//		for(int j =0; j < tempCpu.rows; j++){
-//			cout << "bla"<<endl;
-//
-//			unsigned char *tempD = (unsigned char*) tempCpu.ptr<char*>(j);
-//			for(int i = 0; i < tempCpu.cols; i++){
-//
-//				if((int)tempD[i] != 0){
-//					cout << "temp["<< j <<"]["<< i <<"] = "<< (int)tempD[i] <<endl;
-//
-//					unsigned char *temp = (unsigned char*) inputCpu.ptr<char*>(j);
-//					cout << "input["<< j <<"]["<< i <<"] = "<< (int)temp[i] <<endl;
-//					temp = (unsigned char*) maskCpu.ptr<char*>(j);
-//					cout << "mask["<< j <<"]["<< i <<"] = "<< (int)temp[i] <<endl;
-//					
-//
-//					fflush(stdout);
-//					exit(1);
-//				}
-//			}
-//		}
+		cv::gpu::histEven(*tempInput, *histGPU, 256, 0, 256);
 
 		// calculate number of zeros in the mask, to subtract from the histogram results.
 		int nonZeroMask = cv::gpu::countNonZero(*inputImageMask);
@@ -268,15 +245,13 @@ unsigned int *Operators::buildHistogram256GPU(cv::gpu::GpuMat *inputImage, cv::g
 	// Copy hist data to the adequate data buffer.
 	memcpy(hist, M0, sizeof(int) * 256);
 	hist[0] -= zerosMask;
-//	for(int i = 0; i < 256; i++){
-//		cout << "hist["<< i <<"]="<<hist[i]<<endl;
-//	}
+
 	delete histGPU;
 
 	return hist;
 }
 
-double Operators::calcMeanFromHistogram( int *hist,  int numBins)
+double Operators::calcMeanFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	double histMean = 0.0;
 	int numElements = 0;
@@ -291,7 +266,7 @@ double Operators::calcMeanFromHistogram( int *hist,  int numBins)
 
 
 
-double Operators::calcStdFromHistogram( int *hist,  int numBins)
+double Operators::calcStdFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	  if(numBins == 0)
 	        return 0.0;
@@ -317,7 +292,7 @@ double Operators::calcStdFromHistogram( int *hist,  int numBins)
 
 
 
-int Operators::calcMinFromHistogram( int *hist,  int numBins)
+int Operators::calcMinFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	unsigned int minIntensity = numBins;
 
@@ -332,7 +307,7 @@ int Operators::calcMinFromHistogram( int *hist,  int numBins)
 
 
 
-int Operators::calcMaxFromHistogram( int *hist,  int numBins)
+int Operators::calcMaxFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	unsigned int maxIntensity = 0;
 
@@ -346,7 +321,7 @@ int Operators::calcMaxFromHistogram( int *hist,  int numBins)
 }
 
 
-int Operators::calcMedianFromHistogram( int *hist,  int numBins)
+int Operators::calcMedianFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	int numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
 	int accElements = 0;
@@ -364,7 +339,7 @@ int Operators::calcMedianFromHistogram( int *hist,  int numBins)
 
 
 
-int Operators::calcFirstQuartileFromHistogram( int *hist,  int numBins)
+int Operators::calcFirstQuartileFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	int numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
 	int accElements = 0;
@@ -381,14 +356,14 @@ int Operators::calcFirstQuartileFromHistogram( int *hist,  int numBins)
 
 
 
-int Operators::calcSecondQuartileFromHistogram( int *hist,  int numBins)
+int Operators::calcSecondQuartileFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	return Operators::calcMedianFromHistogram(hist, numBins);
 }
 
 
 
-int Operators::calcThirdQuartileFromHistogram( int *hist,  int numBins)
+int Operators::calcThirdQuartileFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	int numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
 	int accElements = 0;
@@ -403,7 +378,7 @@ int Operators::calcThirdQuartileFromHistogram( int *hist,  int numBins)
 	return thirdQuarile;
 }
 
-int Operators::calcNumElementsFromHistogram( int *hist,  int numBins)
+int Operators::calcNumElementsFromHistogram(unsigned int *hist, unsigned int numBins)
 {
 	int numElements  = 0;
 	for(int i = 0; i < numBins; i++){
@@ -412,210 +387,7 @@ int Operators::calcNumElementsFromHistogram( int *hist,  int numBins)
 	return numElements;
 }
 
-float Operators::calcEntropyFromHistogram(int* hist, int numBins) {
 
-		float entropy = 0.0;
-		float numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
-
-		for(int i = 0; i < numBins; i++){
-			float p_i = (float)hist[i]/numElements;
-			// ignore 0 entries
-			if(hist[i] == 0)continue;
-			entropy += ((p_i) * log2(p_i));
-		}
-		return (-1.0*entropy);
-}
-
-float Operators::calcEnergyFromHistogram(int* hist, int numBins) {
-	  float energy = 0.0;
-	  float numElements = Operators::calcNumElementsFromHistogram(hist, numBins);
-
-	  for(int i = 0; i < numBins; i++){
-		  energy += pow((float)hist[i]/numElements, 2);
-	  }
-
-	  return energy;
-}
-
-float Operators::calcSkewnessFromHistogram(int* hist, int numBins) {
-	float skewness = 0.0;
-	float avg = 0.0;
-	float numElements = 0;
-	for(int i = 0; i < numBins; i++){
-		numElements += (float)hist[i];
-		avg += i * (float)hist[i];
-	}
-	// finalizing AVG calculation
-	avg /= numElements;
-
-	float dividend = 0.0;
-	float divisor = 0.0;
-
-	for(int i = 0; i < numBins; i++){
-		float e_i = (float)hist[i];
-		dividend += e_i * pow(i - avg, 3);
-		divisor += e_i * pow(i - avg, 2);
-	}
-
-	if(dividend != 0 && divisor != 0 && numElements != 0){
-		dividend /= numElements;
-		divisor /= numElements;
-		divisor = sqrt(divisor);
-		divisor = pow( divisor, 3);
-		skewness = dividend / divisor;
-	}
-	return skewness;
-}
-
-float Operators::calcKurtosisFromHistogram(int* hist, int numBins) {
-	float kurtosis = 0.0;
-	float avg = 0.0;
-	float numElements = 0;
-
-	for(int i = 0; i < numBins; i++){
-		numElements += (float)hist[i];
-		avg += i * (float)hist[i];
-	}
-	//  AVG calculation
-	avg /= numElements;
-
-
-	float dividend = 0.0;
-	float divisor = 0.0;
-
-	for(int i = 0; i < numBins; i++){
-		float e_i = (float)hist[i];
-		dividend += e_i * pow(i - avg, 4);
-		divisor += e_i * pow(i - avg, 2);
-
-	}
-
-	if(dividend != 0 && divisor != 0 && numElements != 0){
-		dividend /= numElements;
-		divisor /= numElements;
-
-		divisor = pow( divisor, 2);
-
-		kurtosis = dividend / divisor;
-	}
-	return kurtosis;
-
-}
-
-int Operators::calcNonZeroFromHistogram(int* hist, int numBins) {
-	int nonZeroElements = 0;
-	for(int i = 1; i < numBins; i++){
-		nonZeroElements += hist[i];
-	}
-	return nonZeroElements;
-}
-
-int* Operators::buildHistogram256CPU(const cv::Mat& labeledMask, const cv::Mat& grayImage,  int minx,  int maxx,  int miny,  int maxy,  int label) {
-	int *hist = (int *)calloc(256, sizeof(int));;
-	const int *labeledImgPtr;
-	const unsigned char* grayImagePtr;
-
-	for(int y = miny; y <= maxy; y++){
-		labeledImgPtr =  labeledMask.ptr<int>(y);
-		grayImagePtr = grayImage.ptr<unsigned char>(y);
-
-		for(int x = minx; x <= maxx; x++){
-			if(labeledImgPtr[x] == label){
-				hist[grayImagePtr[x]]++;
-			}
-		}
-	}
-	return hist;
-}
-
-// Assuming n > 0
-int rndint(float n)//round float to the nearest integer
-{
-	int ret = (int)floor(n);
-	float t;
-	t=n-floor(n);
-	if (t>=0.5)
-	{
-		ret = (int)floor(n) + 1;
-	}
-	return ret;
-}
-
-
-
-void Operators::gradient(cv::Mat& inputImageMat, cv::Mat& gradientMat){
-
-	IplImage inputImage = inputImageMat;
-
-	IplImage* drv32f = cvCreateImage(cvGetSize(&inputImage), IPL_DEPTH_32F, 1);
-	IplImage* magDrv = cvCreateImage(cvGetSize(&inputImage), IPL_DEPTH_32F, 1);
-	IplImage* magDrvUint = cvCreateImage(cvGetSize(&inputImage), IPL_DEPTH_8U, 1);
-	cvSetZero( magDrv);
-
-	// Create convolution kernel for x
-	float kernel_array_x[] = {-0.5, 0, 0.5 };
-	CvMat kernel_x;
-	cvInitMatHeader(&kernel_x, 1 ,3, CV_32F, kernel_array_x);
-
-	// Calculate derivative in x
-	cvFilter2D(&inputImage, drv32f, &kernel_x);
-
-	// fix values in the first and last colums
-	for(int y = 0; y<drv32f->height; y++){
-		float *derive_ptr = (float*)(drv32f->imageData + y * drv32f->widthStep);
-		derive_ptr[0] *= 2;
-		derive_ptr[drv32f->width-1] *= 2;
-	}
-
-	// Accumulate square of dx
-	cvSquareAcc( drv32f, magDrv);
-
-	// Create convolution kernel for y
-	CvMat kernel_y;
-	cvInitMatHeader(&kernel_y, 3 ,1, CV_32F, kernel_array_x);
-
-	// Calculate derivative in x
-	cvFilter2D(&inputImage, drv32f, &kernel_y);
-
-
-	// fix values in the first and last lines
-	float *derive_ptr_first = (float*)(drv32f->imageData);
-	float *derive_ptr_last = (float*)(drv32f->imageData + (drv32f->height-1) * drv32f->widthStep);
-	for(int y = 0; y < drv32f->width; y++){
-		derive_ptr_first[y] *= 2;
-		derive_ptr_last[y] *= 2;
-	}
-
-	// Accumulate square of dx
-	cvSquareAcc( drv32f, magDrv);
-
-	cv::Mat magTemp(magDrv);
-	cv::sqrt( magTemp, magTemp );
-
-	// This is uint8 from MATLAB
-	for(int y = 0; y<drv32f->height; y++){
-		float *mag_dvr_ptr = (float*)(magDrv->imageData + y * magDrv->widthStep);
-		unsigned char *magDrvUint_ptr = (unsigned char*)(magDrvUint->imageData + y * magDrvUint->widthStep);
-		for(int x=0; x < drv32f->width; x++){
-			if(mag_dvr_ptr[x] < 0.0){
-				magDrvUint_ptr[x] = 0;
-			}else{
-				if(mag_dvr_ptr[x] > 255.0){
-					magDrvUint_ptr[x] = 255;
-				}else{
-					magDrvUint_ptr[x] = (unsigned char)rndint((mag_dvr_ptr[x]));
-				}
-			}
-		}
-	}
-
-	cv::Mat magMatTemp(magDrvUint);
-	magMatTemp.copyTo(gradientMat);
-
-	cvReleaseImage(&drv32f);
-	cvReleaseImage(&magDrv);
-	cvReleaseImage(&magDrvUint);
-}
 
 
 

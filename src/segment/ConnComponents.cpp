@@ -272,7 +272,7 @@ int* ConnComponents::boundingBox(const int w, const int h, const int* label, int
 		}
 	}
 	compcount = j;
-
+	printf("miny = %d maxy=%d\n", miny[0], maxy[0]);
 	int *output = (int*)malloc(sizeof(int) * compcount * 5);
 	memcpy(output, tbox, compcount * sizeof(int));
 	memcpy(output+compcount, minx, compcount * sizeof(int));

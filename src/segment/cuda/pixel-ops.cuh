@@ -47,6 +47,12 @@ void convLoop2(int rows, int cols, int cn_channels, const cv::gpu::PtrStep_<doub
 
 void convLoop3(int rows, int cols, int cn_channels, const cv::gpu::PtrStep_<double> g_cn, cv::gpu::PtrStep_<unsigned char> g_E, cv::gpu::PtrStep_<unsigned char> g_H, cudaStream_t stream);
 
+void convFloatToIntOrderedCaller(int rows, int cols, const cv::gpu::PtrStep_<float> img1, 
+	cv::gpu::PtrStep_<int> result, cudaStream_t stream);
+
+void convIntToFloatOrderedCaller(int rows, int cols, const cv::gpu::PtrStep_<int> img1, 
+	cv::gpu::PtrStep_<float> result, cudaStream_t stream);
+
 void convertIntToChar(int rows, int cols, int* input, unsigned char *result, cudaStream_t stream);
 void convertIntToCharAndRemoveBorder(int rows, int cols, int top, int bottom, int left, int right, int* input, unsigned char *result, cudaStream_t stream);
 

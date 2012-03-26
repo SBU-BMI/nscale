@@ -710,13 +710,149 @@ unsigned int imreconstructIntCaller(T* __restrict__ marker, const T* __restrict_
 
 	return iter;
 }
+//
+//__device__ bool checkCandidateNeighbor4(unsigned char *marker, const unsigned char *mask, int x, int y, int ncols, int nrows,unsigned char pval){
+//	bool isCandidate = false;
+//	int index = 0;
+//
+//	unsigned char markerXYval;
+//	unsigned char maskXYval;
+//	if(x < (ncols-1)){
+//		// check right pixel
+//		index = y * ncols + (x+1);
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval, maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//
+//	if(y < (nrows-1)){
+//		// check pixel bellow current
+//		index = (y+1) * ncols + x;
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval,maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//
+//	// check left pixel
+//	if(x > 0){
+//		index = y * ncols + (x-1);
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval,maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//
+//	if(y > 0){
+//		// check up pixel
+//		index = (y-1) * ncols + x;
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval,maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//	return isCandidate;
+//}
+//
+//__device__ bool checkCandidateNeighbor8(unsigned char *marker, const unsigned char *mask, int x, int y, int ncols, int nrows,unsigned char pval){
+//	int index = 0;
+//	bool isCandidate = checkCandidateNeighbor4(marker, mask, x, y, ncols, nrows, pval);
+////	if(threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0){
+////		printf("checkCandidateNeighbor8\n");
+////	}
+//
+//	unsigned char markerXYval;
+//	unsigned char maskXYval;
+//
+//	// check up right corner
+//	if(x < (ncols-1) && y > 0){
+//		// check right pixel
+//		index = (y-1) * ncols + (x+1);
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval, maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//
+//	// check up left corner
+//	if(x> 0 && y > 0){
+//		// check pixel bellow current
+//		index = (y-1) * ncols + (x-1);
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval,maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//
+//	// check bottom left pixel
+//	if(x > 0 && y < (nrows-1)){
+//		index = (y+1) * ncols + (x-1);
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval,maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//
+//	// check bottom right
+//	if(x < (ncols-1) && y < (nrows-1)){
+//		index = (y+1) * ncols + (x+1);
+//
+//		markerXYval = marker[index];
+//		maskXYval = mask[index];
+//		if( (markerXYval < min(pval,maskXYval)) ){
+//			isCandidate = true;
+//		}
+//	}
+//	return isCandidate;
+//}
+//
+//
+//__global__ void initQueuePixels(unsigned char *marker, const unsigned char *mask, int sx, int sy, bool conn8, int *d_queue, int *d_queue_size){
+//	int x = blockIdx.x * blockDim.x + threadIdx.x;
+//	int y = blockIdx.y * blockDim.y + threadIdx.y;
+//
+//	// if it is inside image without right/bottom borders
+//	if(y < (sy) && x < (sx)){
+//		int input_index = y * sy + x;
+//		unsigned char pval = marker[input_index];
+//		bool isCandidate = false;
+//		if(conn8){
+//			// connectivity 8
+//			isCandidate = checkCandidateNeighbor8(marker, mask, x, y, sx, sy, pval);
+//		}else{
+//			// connectivity 4
+//			isCandidate = checkCandidateNeighbor4(marker, mask, x, y, sx, sy, pval);
+//		}
+//		if(isCandidate){
+//			int queuePos = atomicAdd((unsigned int*)d_queue_size, 1);
+//			d_queue[queuePos] = input_index;
+//		}	
+//	}
+//}
+//
 
-__device__ bool checkCandidateNeighbor4(unsigned char *marker, const unsigned char *mask, int x, int y, int ncols, int nrows,unsigned char pval){
+template <typename T>
+__device__ bool checkCandidateNeighbor4(T *marker, const T *mask, int x, int y, int ncols, int nrows, T pval){
 	bool isCandidate = false;
 	int index = 0;
 
-	unsigned char markerXYval;
-	unsigned char maskXYval;
+	T markerXYval;
+	T maskXYval;
 	if(x < (ncols-1)){
 		// check right pixel
 		index = y * ncols + (x+1);
@@ -763,15 +899,13 @@ __device__ bool checkCandidateNeighbor4(unsigned char *marker, const unsigned ch
 	return isCandidate;
 }
 
-__device__ bool checkCandidateNeighbor8(unsigned char *marker, const unsigned char *mask, int x, int y, int ncols, int nrows,unsigned char pval){
+template <typename T>
+__device__ bool checkCandidateNeighbor8(T *marker, const T *mask, int x, int y, int ncols, int nrows,T pval){
 	int index = 0;
 	bool isCandidate = checkCandidateNeighbor4(marker, mask, x, y, ncols, nrows, pval);
-//	if(threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0){
-//		printf("checkCandidateNeighbor8\n");
-//	}
 
-	unsigned char markerXYval;
-	unsigned char maskXYval;
+	T markerXYval;
+	T maskXYval;
 
 	// check up right corner
 	if(x < (ncols-1) && y > 0){
@@ -821,15 +955,15 @@ __device__ bool checkCandidateNeighbor8(unsigned char *marker, const unsigned ch
 	return isCandidate;
 }
 
-
-__global__ void initQueuePixels(unsigned char *marker, const unsigned char *mask, int sx, int sy, bool conn8, int *d_queue, int *d_queue_size){
+template <typename T>
+__global__ void initQueuePixels(T *marker, const T *mask, int sx, int sy, bool conn8, int *d_queue, int *d_queue_size){
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 	// if it is inside image without right/bottom borders
 	if(y < (sy) && x < (sx)){
 		int input_index = y * sy + x;
-		unsigned char pval = marker[input_index];
+		T pval = marker[input_index];
 		bool isCandidate = false;
 		if(conn8){
 			// connectivity 8
@@ -844,6 +978,7 @@ __global__ void initQueuePixels(unsigned char *marker, const unsigned char *mask
 		}	
 	}
 }
+
 
 // connectivity:  if 8 conn, need to have border.
 template <typename T> int *imreconstructIntCallerBuildQueue(T* __restrict__ marker, const T* __restrict__ mask, const int sx, const int sy, const int connectivity, int &queueSize, int num_iterations, cudaStream_t stream) {
@@ -963,5 +1098,6 @@ template unsigned int imreconstructIntCaller<int>(int*, const int*, const int, c
 //,unsigned char*h_markerFistPass );
 
 template int *imreconstructIntCallerBuildQueue<unsigned char>(unsigned char*, const unsigned char*, const int, const int, const int, int&, int, cudaStream_t);
+template int *imreconstructIntCallerBuildQueue<int>(int*, const int*, const int, const int, const int, int&, int, cudaStream_t);
 
 }}

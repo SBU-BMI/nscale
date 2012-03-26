@@ -21,6 +21,7 @@ namespace nscale {
 template <typename T>
 cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
+
 //template <typename T>
 //cv::Mat imreconstructGeorge(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
@@ -92,7 +93,11 @@ template <typename T>
 vector<cv::gpu::GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
 
 template <typename T>
-cv::gpu::GpuMat imreconstructQueueSpeedup(GpuMat& seeds, GpuMat& image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks=14);
+cv::gpu::GpuMat imreconstructQueueSpeedup(GpuMat& seeds, GpuMat& image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks=14, bool binary=false);
+
+
+cv::gpu::GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks=14);
+
 
 template <typename T>
 cv::gpu::GpuMat imreconstruct(const cv::gpu::GpuMat& seeds, const cv::gpu::GpuMat& image, int connectivity, cv::gpu::Stream& stream) {
@@ -164,6 +169,8 @@ template <typename T>
 cv::gpu::GpuMat morphErode(const cv::gpu::GpuMat& image, const cv::Mat& kernel, cv::gpu::Stream& stream);
 template <typename T>
 cv::gpu::GpuMat morphDilate(const cv::gpu::GpuMat& image, const cv::Mat& kernel, cv::gpu::Stream& stream);
+
+cv::gpu::GpuMat distanceTransform(const cv::gpu::GpuMat& mask, cv::gpu::Stream& stream);
 
 }
 
