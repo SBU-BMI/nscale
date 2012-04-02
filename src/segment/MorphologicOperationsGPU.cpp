@@ -125,7 +125,7 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream) {
 		int *g_queue = nscale::gpu::distQueueBuildCaller(mask.rows, mask.cols, mask, g_nearestNeighbors, g_queue_size, StreamAccessor::getStream(stream));
 //		std::cout << "After Call build queue - queue size = "<< g_queue_size << std::endl;
 
-
+		stream.waitForCompletion();
 
 		// Calculate the propagation phase, where the nearest neighbors to the fontier elements are propated.
 		retCode = nscale::gpu::distTransformPropagation( g_queue, g_queue_size, mask , g_nearestNeighbors, mask.cols, mask.rows, queue_propagation_increase);
@@ -168,6 +168,7 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream) {
 
 	GpuMat g_distanceMap(mask.size(), CV_32FC1);
 	nscale::gpu::distMapCalcCaller(g_nearestNeighbors.rows, g_nearestNeighbors.cols, g_nearestNeighbors, g_distanceMap, StreamAccessor::getStream(stream));
+	stream.waitForCompletion();
 
 	g_nearestNeighbors.release();
 //	nearestNeighbors.release();
@@ -798,16 +799,20 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 	T mn = cciutils::min<T>();
 	T mx = std::numeric_limits<T>::max();
 
+
+	printf("fillHoles: input.rows:%d\n", image.rows);
 	// copy the input and pad with -inf.
 	GpuMat mask2;
 	copyMakeBorder(image, mask2, 1, 1, 1, 1, Scalar_<T>(mn), stream);
 	// create marker with inf inside and -inf at border, and take its complement
 	GpuMat marker2(image.size(), image.type());
 	stream.enqueueMemSet(marker2, Scalar_<T>(mn));
+	stream.waitForCompletion();
 
 	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
 	GpuMat marker;
 	copyMakeBorder(marker2, marker, 1, 1, 1, 1, Scalar_<T>(mx), stream);
+	stream.waitForCompletion();
 
 	// now do the work...
 	GpuMat mask = nscale::gpu::PixelOperations::invert<T>(mask2, stream);
@@ -1186,6 +1191,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 	dw::giwatershed((int*)(labels.data), (float*)(input.data), input.cols, input.rows, connectivity, StreamAccessor::getStream(stream));
 //	::giwatershed((int*)labels.data, (unsigned*)input.data, input.cols, input.rows, connectivity);
 	// this code does generate borders but not between touching blobs.  for the borders, they are 4 connected.
+	stream.waitForCompletion();
 
 	GpuMat mask = createContinuous(maskImage.size().height + 2, maskImage.size().width + 2, maskImage.type());
 	copyMakeBorder(maskImage, mask, 1, 1, 1, 1, Scalar(0), stream);
@@ -1197,6 +1203,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 
 	// now clean up the borders.
 	dw::giwatershed_cleanup(mask, labels, labels2, input.cols, input.rows, background, connectivity, StreamAccessor::getStream(stream));
+	stream.waitForCompletion();
 
 	// and generate the missing borders
 	GpuMat bordered = NeighborOperations::border(labels2, background, connectivity, stream);
@@ -1363,7 +1370,11 @@ GpuMat morphOpen(const GpuMat& image, const Mat& kernel, Stream& stream) {
 //	return g_open;
 
 	GpuMat erode = ::nscale::gpu::morphErode<T>(image, kernel, stream);
+
+//	stream.waitForCompletion();
 	GpuMat open = ::nscale::gpu::morphDilate<T>(erode, kernel, stream);
+	
+	stream.waitForCompletion();
 	erode.release();
 	return open;
 }
@@ -1376,9 +1387,10 @@ GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) {
 	CV_Assert((kernel.cols % 2) == 1 );
 
 	int bw = (kernel.cols - 1) / 2;
-
+	std::cout << "erodeCopyBorder: Image.cols = "<< image.cols << " bw="<< bw<<" image.data=" << (image.data==NULL) << std::endl;
 	GpuMat t_img;
 	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::max()), stream);
+	stream.waitForCompletion();
 	// this is same for CPU and GPU
 
 //	if (bw > 1) {
@@ -1395,6 +1407,8 @@ GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) {
 //	}
 	Rect roi = Rect(bw, bw, image.cols, image.rows);
     GpuMat g_erode(image.size(), t_erode.type());
+
+	stream.waitForCompletion();
     stream.enqueueCopy(t_erode(roi), g_erode);
     stream.waitForCompletion();
     t_erode.release();
@@ -1410,6 +1424,7 @@ GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {
 	CV_Assert(kernel.cols > 1);
 	CV_Assert((kernel.cols % 2) == 1 );
 
+
 	int bw = (kernel.cols - 1) / 2;
 
 
@@ -1417,6 +1432,7 @@ GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {
 	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::min()), stream);
 	// this is same for CPU and GPU
 
+	stream.waitForCompletion();
 //	if (bw > 1) {
 //		::cv::Mat output(t_img.size(), t_img.type());
 //		t_img.download(output);
@@ -1424,6 +1440,8 @@ GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {
 //	}
 	GpuMat t_dilate(t_img.size(), t_img.type());
 	dilate(t_img, t_dilate, kernel, Point(-1,-1), 1, stream);
+
+	stream.waitForCompletion();
 //	if (bw > 1) {
 //		::cv::Mat output(t_open.size(), t_open.type());
 //		t_open.download(output);

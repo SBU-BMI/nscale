@@ -521,21 +521,22 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 	// really just want the distance map.  CV computes distance to 0.
 	// background is 0 in output.
 	// then invert to create basins
-	Mat dist(g_seg_big.size(), CV_32FC1);
-	Mat seg_big(g_seg_big.size(), g_seg_big.type());
-	stream.enqueueDownload(g_seg_big, seg_big);
-	stream.waitForCompletion();
-
-	// opencv: compute the distance to nearest zero
-	// matlab: compute the distance to the nearest non-zero
-	distanceTransform(seg_big, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
-	seg_big.release();
-
-	GpuMat g_dist(dist.size(), dist.type());
-	stream.enqueueUpload(dist, g_dist);
-	stream.waitForCompletion();
-	dist.release();
-	
+//	Mat dist(g_seg_big.size(), CV_32FC1);
+//	Mat seg_big(g_seg_big.size(), g_seg_big.type());
+//	stream.enqueueDownload(g_seg_big, seg_big);
+//	stream.waitForCompletion();
+//
+//	// opencv: compute the distance to nearest zero
+//	// matlab: compute the distance to the nearest non-zero
+//	distanceTransform(seg_big, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+//	seg_big.release();
+//
+//	GpuMat g_dist(dist.size(), dist.type());
+//	stream.enqueueUpload(dist, g_dist);
+//	stream.waitForCompletion();
+//	dist.release();
+	GpuMat g_dist = ::nscale::gpu::distanceTransform(g_seg_big, stream);
+	stream.waitForCompletion();	
 
 //	double mmin, mmax;
 //	minMaxLoc(g_dist, &mmin, &mmax);

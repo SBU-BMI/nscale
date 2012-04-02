@@ -60,6 +60,8 @@ public:
 	static void convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream);
 	static void ColorDeconv( GpuMat& image, const Mat& M, const Mat& b, GpuMat& H, GpuMat& E, Stream& stream, bool BGR2RGB=true);
 	static GpuMat bgr2gray(const GpuMat& img, Stream& stream);
+
+	static void copyMakeBorder(const GpuMat& src, GpuMat& dst, int top, int bottom, int left, int right, const Scalar& value, Stream& stream);
 };
 
 }

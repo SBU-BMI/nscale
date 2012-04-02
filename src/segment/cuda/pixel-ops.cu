@@ -103,6 +103,44 @@ void invertFloatCaller(int rows, int cols, int cn, const PtrStep_<T> img1,
         cudaDeviceSynchronize();
 }
 
+
+
+__global__ void copyMakeBorderKernelFloat( const PtrStep_<float> src, int rows, int cols, PtrStep_<float> dst, int top, int bottom, int left, int right, float value)
+{
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	// if inside the destination image
+	if (y < rows + top + bottom && x < cols + left + right)
+	{
+		// if internal the source: copy data
+		if ( y >= top && y < rows + top  && x >=left && x < cols + left)
+		{
+			dst.ptr(y)[x] = src.ptr(y-top)[x-left];
+
+		}else{
+			// make border
+			dst.ptr(y)[x] = value;
+		}
+	}
+}
+
+
+
+void copyMakeBorderFloatCaller(const PtrStep_<float> src, int rows, int cols, PtrStep_<float> dst, int top, int bottom, int left, int right, float value, cudaStream_t stream)
+{
+	dim3 threads(16, 16);
+	dim3 grid((cols + left + right + threads.x - 1) / threads.x, (rows + top + bottom + threads.y - 1) / threads.y);
+
+	copyMakeBorderKernelFloat<<<grid, threads, 0, stream>>>(src, rows, cols, dst, top, bottom, left, right, value);
+	cudaGetLastError() ;
+
+	if (stream == 0)
+		cudaDeviceSynchronize();
+}
+
+
+
 void convLoop1(int rows, int cols, int cn, const PtrStep_<unsigned char> img1,
  	PtrStep_<double> result, cudaStream_t stream)
 {

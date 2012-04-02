@@ -37,6 +37,9 @@ template <typename T>
 void modCaller(int rows, int cols, const cv::gpu::PtrStep_<T> img1,
  cv::gpu::PtrStep_<T> result, T mod, cudaStream_t stream);
 
+void copyMakeBorderFloatCaller(const cv::gpu::PtrStep_<float> src, int rows, int cols, 
+	cv::gpu::PtrStep_<float> dst, int top, int bottom, int left, int right, float value, cudaStream_t stream);
+
 void bgr2grayCaller(int rows, int cols, const cv::gpu::PtrStep_<unsigned char> img1, 
 	cv::gpu::PtrStep_<unsigned char> result, cudaStream_t stream);
 

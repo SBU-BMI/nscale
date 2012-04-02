@@ -42,12 +42,37 @@ template <typename T>
 GpuMat PixelOperations::mod(GpuMat& img, T mod, Stream& stream) { throw_nogpu(); }
 template <typename T>
 GpuMat PixelOperations::mask(const GpuMat& input, const GpuMat& mask, T background, Stream& stream) { throw_nogpu(); }
+template <typename T>
+void PixelOperations::copyMakeBorder(const GpuMat& src, GpuMat& dst, int top, int bottom, int left, int right, const Scalar& value, Stream& stream);
 
 void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){ throw_nogpu();};
 void PixelOperations::convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream){ throw_nogpu();};
 void PixelOperations::ColorDeconv( GpuMat& image, const Mat& M, const Mat& b, GpuMat& H, GpuMat& E, Stream& stream, bool BGR2RGB){ throw_nogpu();};
 GpuMat PixelOperations::bgr2gray(const GpuMat& img, Stream& stream){ throw_nogpu();};
 #else
+
+void PixelOperations::copyMakeBorder(const GpuMat& src, GpuMat& dst, int top, int bottom, int left, int right, const Scalar& value, Stream& stream){
+	const Size size_src = src.size();
+	const Size size_dst = dst.size();
+	CV_Assert(src.cols+left+right == dst.cols);
+	CV_Assert(src.rows+top+bottom == dst.cols);
+    	CV_Assert(src.channels() == 1 && dst.channels() == 1);
+
+//	if (std::numeric_limits<T>::is_integer) {
+//
+//		if (std::numeric_limits<T>::is_signed) {
+//			copyMakeBorderIntCaller<T>(src, dst, size_src.height, size_src.width, top, bottom, left, right, StreamAccessor::getStream(stream));
+//		} else {
+//			// unsigned int
+//			copyMakeBorderUIntCaller<T>(src, dst, size_src.height, size_src.width, top, bottom, left, right, StreamAccessor::getStream(stream));
+//		}
+//
+//	} else {
+		// floating point type
+		std::cout << "Scalar value = "<< value[0] << std::endl;
+		copyMakeBorderFloatCaller(src, src.rows, src.cols, dst, top, bottom, left, right, (float)value[0], StreamAccessor::getStream(stream));
+//	}
+}
 
 void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){
 	// TODO: check if types/size are okay	
@@ -283,7 +308,6 @@ template GpuMat PixelOperations::replace<int>(const GpuMat&, int, int, Stream&);
 template GpuMat PixelOperations::divide<double>(const GpuMat&, const GpuMat&,  Stream&);
 template GpuMat PixelOperations::mask<unsigned char>(const GpuMat&, const GpuMat&, unsigned char background, Stream&);
 template GpuMat PixelOperations::mask<int>(const GpuMat&, const GpuMat&, int background, Stream&);
-
 
 template GpuMat PixelOperations::mod<unsigned char>(GpuMat&, unsigned char, Stream&);
 template GpuMat PixelOperations::mod<int>(GpuMat&, int, Stream&);
