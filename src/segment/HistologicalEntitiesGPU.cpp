@@ -380,7 +380,7 @@ int HistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g
 	GpuMat g_bw1_t = ::nscale::gpu::bwareaopen2(g_bw1, false, true, 11, 1000, 8, compcount2, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_bw1_t, 8);
-printf(" gpu compcount 11-1000 = %d\n", compcount2);
+//printf(" gpu compcount 11-1000 = %d\n", compcount2);
 //#else
 //	Mat bw1(g_bw1.size(), g_bw1.type());
 //	stream.enqueueDownload(g_bw1, bw1);
@@ -457,7 +457,7 @@ int HistologicalEntities::plSeparateNuclei(const GpuMat& g_img, GpuMat& g_seg_op
 	GpuMat g_seg_big_t = ::nscale::gpu::bwareaopen2(g_seg_open, false, true, 30, std::numeric_limits<int>::max(), 8, compcount2, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg_big_t, 14);
-printf(" gpu compcount 30-1000 = %d\n", compcount2);
+//printf(" gpu compcount 30-1000 = %d\n", compcount2);
 //#else
 //	Mat seg_open(g_seg_open.size(), g_seg_open.type());
 //	stream.enqueueDownload(g_seg_open, seg_open);
@@ -667,7 +667,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	bbox = (int *)malloc(sizeof(int) * compcount * 5);
 	cudaMemcpy(bbox, g_bbox, sizeof(int) * compcount * 5, cudaMemcpyDeviceToHost);\
 	cudaFree(g_bbox);
-        printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
+//        printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
 
 	return status;
 
@@ -776,7 +776,7 @@ int HistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 //	GpuMat g_seg = ::nscale::gpu::bwareaopen2(g_seg_nonoverlap, true, false, 21, 1000, 4, compcount2, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_seg, 23);
-printf("  gpu components 21-1000 = %d\n", compcount2);	
+//printf("  gpu components 21-1000 = %d\n", compcount2);
 //#else
 //	Mat seg_nonoverlap(g_seg_nonoverlap.size(), g_seg_nonoverlap.type());
 //	stream.enqueueDownload(g_seg_nonoverlap, seg_nonoverlap);
@@ -827,7 +827,7 @@ printf("  gpu components 21-1000 = %d\n", compcount2);
 
 	if (logger) logger->logTimeSinceLastLog("bounding_box");
 	
-	printf("  gpu number of bounding boxes = %d\n", compcount);
+//	printf("  gpu number of bounding boxes = %d\n", compcount);
  
 //	imwrite("test/out-nuclei.ppm", seg);
 

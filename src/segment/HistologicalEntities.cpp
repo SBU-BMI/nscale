@@ -244,7 +244,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 
 //#if defined (USE_UF_CCL)
 	Mat bw1_t = ::nscale::bwareaopen2(bw1, false, true, 11, 1000, 8, compcount2);
-	printf(" cpu compcount 11-1000 = %d\n", compcount2);
+//	printf(" cpu compcount 11-1000 = %d\n", compcount2);
 //#else
 //	Mat bw1_t = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
 //#endif
@@ -297,7 +297,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	int compcount2;
 //#if defined (USE_UF_CCL)
 	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, false, true, 30, std::numeric_limits<int>::max(), 8, compcount2);
-	printf(" cpu compcount 30-1000 = %d\n", compcount2);
+//	printf(" cpu compcount 30-1000 = %d\n", compcount2);
 
 //#else
 //	Mat seg_big_t = ::nscale::bwareaopen<unsigned char>(seg_open, 30, std::numeric_limits<int>::max(), 8, compcount2);
@@ -440,7 +440,7 @@ int HistologicalEntities::segmentNuclei(const std::string& in, const std::string
 
 	Mat output;
 
-	printf("input: %d %d %d\n", input.rows, input.cols, input.type());
+//	printf("input: %d %d %d\n", input.rows, input.cols, input.type());
 	int status = ::nscale::HistologicalEntities::segmentNuclei(input, output, compcount, bbox, logger, iresHandler);
 	input.release();
 
@@ -531,7 +531,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	// LABEL approach - erode does not support 32S
 //	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, true, false, 21, 1000, 4, compcount2);
 	// bwareaopen without flattening has -1 for background
-	printf("  cpu compcount 21-1000 = %d\n", compcount2);	
+//	printf("  cpu compcount 21-1000 = %d\n", compcount2);
 //#else
 //	Mat seg = ::nscale::bwareaopen<unsigned char>(seg_nonoverlap, 21, 1000, 4, compcount);
 //#endif
@@ -571,8 +571,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 	::nscale::ConnComponents cc;
 	bbox = cc.boundingBox(output.cols, output.rows, (int *)output.data, 0, compcount);
-	printf(" number of bounding boxes: %d\n", compcount);
-	printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
+//	printf(" number of bounding boxes: %d\n", compcount);
+//	printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
 
 	if (logger) logger->logTimeSinceLastLog("bounding_box");
 	return ::nscale::HistologicalEntities::SUCCESS;
