@@ -9,6 +9,8 @@
 #include <iostream>
 //#include <stdio.h>
 #include <vector>
+#include <iterator>
+#include <algorithm>
 #include <string.h>
 #include "utils.h"
 #include "FileUtils.h"
@@ -38,7 +40,7 @@ void printUsage(char **argv);
 void parseStages(const char *stagestr, std::vector<int> &stages);
 int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
-		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
+		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount);
 void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, const std::vector<int> &stages);
 
 void printUsage(char **argv) {
@@ -134,17 +136,17 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 		return -1;
 	}
 
-	for (int i = 0; i < stages.size(); i++) {
-		printf("%d ", stages[i]);
-	}
-	printf("\n");
+	std::ostream_iterator< int > output( std::cout, " " );
+	std::cout << "Selected stages: ";
+	std::copy( stages.begin(), stages.end(), output );
+	std::cout << std::endl;
 
 	return 0;
 }
 
 
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
-		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output) {
+		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount) {
 
 	// check to see if it's a directory or a file
 	std::string suffix;
@@ -161,6 +163,10 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 		}
 	}
 
+	if (imageCount != -1) {
+		// randomize the file order.
+		std::random_shuffle( filenames.begin(), filenames.end() );
+	}
 
 	std::string temp, tempdir;
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
@@ -177,6 +183,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 		futils.mkdirs(tempdir);
 		bounds_output.push_back(temp);
 	}
+
 
 }
 
@@ -224,7 +231,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 #if defined (WITH_MPI)
 MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank);
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir, int imageCount);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir, const int imageCount);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages);
 
 
@@ -286,7 +293,7 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir, int imageCount) {
+void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir, const int imageCount) {
 	// first get the list of files to process
    	std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
@@ -294,7 +301,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	uint64_t t1, t0;
 
 	t0 = cciutils::ClockGetTime();
-	getFiles(maskName, outDir, filenames, seg_output, bounds_output);
+	getFiles(maskName, outDir, filenames, seg_output, bounds_output, imageCount);
 
 	t1 = cciutils::ClockGetTime();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
@@ -441,13 +448,16 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	MPI_Status status;
 
 	MPI_Barrier(comm_world);
-	uint64_t t0, t1;
+	uint64_t t0, t1, t2, t3;
 	printf("worker %d ready\n", rank);
 
 	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
 	char workerStatus = WORKER_READY;
 	cciutils::SCIOLogSession *session;
 
+	int count = 0;
+
+	t2 = cciutils::ClockGetTime();
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
 		t0 = cciutils::ClockGetTime();
 
@@ -482,6 +492,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 			session = logger->getSession(std::string(input));
 			compute(input, mask, output, modecode, session, stages);
+			++count;
 			// now do some work
 
 			t1 = cciutils::ClockGetTime();
@@ -495,10 +506,11 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 		}
 	}
+	t3 = cciutils::ClockGetTime();
 
 	// now do collective io.
 	MPI_Barrier(comm_world);
-
+	printf("worker %d processed %d jobs in %lu us\n", rank, count, t3 - t2);
 
 	std::vector<std::string> timings = logger->toStrings();
 	std::stringstream ss;
@@ -611,7 +623,7 @@ int main (int argc, char **argv){
     	std::vector<std::string> bounds_output;
 
     	t0 = cciutils::ClockGetTime();
-    	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
+    	getFiles(imageName, outDir, filenames, seg_output, bounds_output, imageCount);
 
     	t1 = cciutils::ClockGetTime();
     	printf("file read took %lu us\n", t1 - t0);

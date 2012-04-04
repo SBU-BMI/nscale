@@ -1,0 +1,34 @@
+Using MPI.  if GPU is specified, will be changed to use CPU
+number of threads: 1
+Selected stages: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 
+Using MPI.  if GPU is specified, will be changed to use CPU
+number of threads: 1
+Selected stages: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 
+Using MPI.  if GPU is specified, will be changed to use CPU
+number of threads: 1
+Selected stages: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 
+Manager ready at 2, file read took 0 us
+worker 0 ready
+worker 1 ready
+[ MANAGER STATUS ] 4 tasks remaining.
+worker 0 processed "/home/tcpan/PhD/path/Data/segmentation-tests/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672.tif" in 12053 us
+worker 1 processed "/home/tcpan/PhD/path/Data/segmentation-tests/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif" in 12955 us
+worker 0 processed "/home/tcpan/PhD/path/Data/segmentation-tests/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192.tif" in 12699 us
+worker 1 processed "/home/tcpan/PhD/path/Data/segmentation-tests/normal.3/normal.3.ndpi-0000028672-0000012288.tif" in 13928 us
+worker 0 processed "/home/tcpan/PhD/path/Data/segmentation-tests/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif" in 10914 us
+worker 0 processed 3 jobs in 35670 us
+worker 1 processed 2 jobs in 26888 us
+WORKER 0: FINISHED using CPU in 35670 us
+WORKER 1: FINISHED using CPU in 35670 us
+0,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672.tif,read,2,toRGB,0,background,0,save background,2,RBC,0,save RBC,2,GrayNU,0,save GrayNU,2,NuMask,0,save NuMask,2,removeRBC,0,save removeRBC,2,separateNuclei,0,save separateNuclei,2,finalCleanup,0,save finalCleanup,2,write,2,
+0,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/oligoIII.1/oligoIII.1.ndpi-0000012288-0000028672.tif,1212,712575,712588,755472,755478,897429,897429,919483,919490,1431623,1431623,1451326,1451333,3398012,3398012,3418013,3418017,4669240,4669240,4689415,4689421,5836609,5836609,5858076,5858081,10302206,10302206,10322599,10322607,11921012,11921012,12001745,12005696,712575,
+0,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192.tif,read,2,toRGB,0,background,0,save background,2,RBC,0,save RBC,2,GrayNU,0,save GrayNU,2,NuMask,0,save NuMask,2,removeRBC,0,save removeRBC,2,separateNuclei,0,save separateNuclei,2,finalCleanup,0,save finalCleanup,2,write,2,
+0,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/oligoastroIII.1/oligoastroIII.1.ndpi-0000053248-0000008192.tif,12055512,12807436,12807441,12842929,12842936,12977840,12977840,13002946,13002953,13499333,13499333,13518768,13518775,15269793,15269793,15290712,15290717,16706676,16706676,16726643,16726649,17998087,17998087,18018739,18018743,22718701,22718701,22739518,22739524,24621490,24621490,24701910,24705659,12807436,
+0,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif,read,2,toRGB,0,background,0,save background,2,RBC,0,save RBC,2,GrayNU,0,save GrayNU,2,NuMask,0,save NuMask,2,removeRBC,0,save removeRBC,2,separateNuclei,0,save separateNuclei,2,finalCleanup,0,save finalCleanup,2,write,2,
+0,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/astroII.1/astroII.1.ndpi-0000008192-0000008192.tif,24755449,25279885,25279890,25317413,25317420,25455662,25455662,25481587,25481596,25984620,25984620,26004340,26004346,27853987,27853987,27873700,27873705,28941406,28941406,28960921,28960928,29964311,29964311,29984162,29984168,34111595,34111595,34131870,34131876,35541074,35541074,35620747,35624326,25279885,
+1,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/normal.3/normal.3.ndpi-0000028672-0000012288.tif,read,2,toRGB,0,background,0,save background,2,RBC,0,save RBC,2,GrayNU,0,save GrayNU,2,NuMask,0,save NuMask,2,removeRBC,0,save removeRBC,2,separateNuclei,0,save separateNuclei,2,finalCleanup,0,save finalCleanup,2,write,2,
+1,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/normal.3/normal.3.ndpi-0000028672-0000012288.tif,12958212,13799862,13799867,13839291,13839298,13984085,13984085,14009755,14009763,14541739,14541739,14562293,14562299,18289102,18289102,18310774,18310780,19513238,19513238,19534147,19534154,20622572,20622572,20644054,20644059,25180470,25180470,25202567,25202572,26746167,26746167,26832200,26836236,13799862,
+1,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif,read,2,toRGB,0,background,0,save background,2,RBC,0,save RBC,2,GrayNU,0,save GrayNU,2,NuMask,0,save NuMask,2,removeRBC,0,save removeRBC,2,separateNuclei,0,save separateNuclei,2,finalCleanup,0,save finalCleanup,2,write,2,
+1,yellowstone,/home/tcpan/PhD/path/Data/segmentation-tests/gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif,2308,653124,653137,698828,698835,849454,849454,872187,872194,1423459,1423459,1445034,1445041,3272175,3272175,3293897,3293901,4602484,4602484,4624016,4624022,5843157,5843157,5866395,5866400,10610869,10610869,10633531,10633539,12336269,12336269,12706589,12710684,653124,
+
+MANAGER 2 : FINISHED in 35670 us
