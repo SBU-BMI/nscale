@@ -32,7 +32,7 @@ private:
 
 public:
 
-	SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, std::vector<int> &selStages);
+	SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages);
 	virtual ~SCIOIntermediateResultWriter();
 
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage);

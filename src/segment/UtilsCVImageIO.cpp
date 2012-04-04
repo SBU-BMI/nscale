@@ -72,7 +72,7 @@ namespace cv {
 	};
 
 
-	IntermediateResultWriter::IntermediateResultWriter(const std::string &pref, const std::string &suf, std::vector<int> &selStages) {
+	IntermediateResultWriter::IntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages) {
 		prefix.assign(pref);
 		suffix.assign(suf);
 		selectedStages = selStages;

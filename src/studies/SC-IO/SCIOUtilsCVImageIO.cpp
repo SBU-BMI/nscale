@@ -72,7 +72,7 @@ namespace cv {
 	};
 
 
-	SCIOIntermediateResultWriter::SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, std::vector<int> &selStages) {
+	SCIOIntermediateResultWriter::SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages) {
 		prefix.assign(pref);
 		suffix.assign(suf);
 		selectedStages = selStages;

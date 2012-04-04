@@ -23,7 +23,14 @@ using namespace cv;
 int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
 		int &compcount, int *&bbox,
 		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+
+	long long t1, t2, t3;
+	t1 = cciutils::event::timestampInUS();
+	// first split.
 	Mat input = imread(in);
+	t2 = cciutils::event::timestampInUS();
+	logsession->log(cciutils::event(0, std::string("read"), t1, t2, std::string(), cciutils::event::FILE_IO));
+
 	if (!input.data) return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
 	Mat output;
@@ -31,8 +38,12 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 	int status = ::nscale::SCIOHistologicalEntities::segmentNuclei(input, output, compcount, bbox, logsession, iresHandler);
 	input.release();
 
-	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS)
+	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
+		t1 = cciutils::event::timestampInUS();
+		// first split.
 		imwrite(out, output);
+		logsession->log(cciutils::event(100, std::string("write"), t1, t2, std::string(), cciutils::event::FILE_IO));
+	}
 	output.release();
 
 	return status;

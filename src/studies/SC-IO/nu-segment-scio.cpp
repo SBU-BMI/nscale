@@ -34,23 +34,70 @@ using namespace cv;
 
 
 
-
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir);
+void printUsage(char **argv);
+void parseStages(const char *stagestr, std::vector<int> &stages);
+int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session);
+void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, const std::vector<int> &stages);
 
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir) {
+void printUsage(char **argv) {
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir [imagecount] [stages,...] [cpu [numThreads] | gpu [numThreads] [id]] " << std::endl;
+	std::cout << "\t<image_filename | image_dir>: either an image filename or an image directory" << std::endl;
+	std::cout << "\tmask_dir: output directory" << std::endl;
+	std::cout << "\timagecount: number of images to process.  -1 means all images." << std::endl;
+	std::cout << "\tstages: the stages to capture.  syntax is a comma separated ranges.  Range could be a single value or a dash (-) separated range.  range is of form [...) " << std::endl;
+	std::cout << "\tcpu [numThreads]: use CPU computation.  number of threads relevant if compiled with OpenMP" << std::endl;
+	std::cout << "\tgpu [numThreads] [id]]: use GPU for computation.  number of threads relevant if compile with OpenMP.  id is the device ID." << std::endl;
+}
+
+void parseStages(const char* stagestr, std::vector<int> &stages) {
+	const char *newpos = strchr(stagestr, ',');
+	// parse  (newpos is pointing to ',', so don't count that.)
+	int length = (newpos == NULL ? strlen(stagestr) : newpos - stagestr);
+	char *token = new char[length + 1];
+	memset(token, 0, length + 1);
+	strncpy(token, stagestr, length);
+
+	char *rangeSep = strchr(token, '-');
+	if (rangeSep == NULL) stages.push_back(atoi(token));
+	else {
+		*rangeSep = 0;  // create a separator
+		int start = atoi(token);
+		int end = atoi(rangeSep + 1);
+
+		for (int s = start; s < end; ++s) {
+			stages.push_back(s);
+		}
+	}
+
+	delete [] token;
+
+	if (newpos != NULL) {
+		// recurse
+		parseStages(newpos + 1, stages);
+	}
+}
+
+int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		printUsage(argv);
 		return -1;
 	}
 	imageName.assign(argv[1]);
 	outDir.assign(argv[2]);
-	const char* mode = argc > 4 ? argv[4] : "cpu";
+	if (argc > 3) imageCount = atoi(argv[3]);
+	if (argc > 4) {
+		parseStages(argv[4], stages);
+	} else {
+		for (int stage = 0; stage <= 200; ++stage) {
+			stages.push_back(stage);
+		}
+	}
+	const char* mode = argc > 5 ? argv[5] : "cpu";
 
 	int threadCount;
-	if (argc > 5) threadCount = atoi(argv[5]);
+	if (argc > 6) threadCount = atoi(argv[6]);
 	else threadCount = 1;
 
 #if defined (WITH_MPI)
@@ -67,13 +114,6 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 		modecode = cciutils::DEVICE_CPU;
 		// get core count
 
-
-	} else if (strcasecmp(mode, "mcore") == 0) {
-//		modecode = cciutils::DEVICE_MCORE;
-		// get core count
-		modecode = cciutils::DEVICE_CPU;
-
-
 	} else if (strcasecmp(mode, "gpu") == 0) {
 		modecode = cciutils::DEVICE_GPU;
 		// get device count
@@ -85,14 +125,19 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 #if defined (_OPENMP)
 	omp_set_num_threads(1);
 #endif
-		if (argc > 6) {
-			gpu::setDevice(atoi(argv[6]));
+		if (argc > 7) {
+			gpu::setDevice(atoi(argv[7]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		printUsage(argv);
 		return -1;
 	}
+
+	for (int i = 0; i < stages.size(); i++) {
+		printf("%d ", stages[i]);
+	}
+	printf("\n");
 
 	return 0;
 }
@@ -138,17 +183,12 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 
 
 
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session) {
+void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, const std::vector<int> &stages) {
 	// compute
 
 	int status;
 	int *bbox = NULL;
 	int compcount;
-
-   	std::vector<int> stages;
-	for (int stage = 0; stage <= 200; ++stage) {
-		stages.push_back(stage);
-	}
 
 	FileUtils fu(".mask.pbm");
 	std::string fmask(mask);
@@ -184,8 +224,8 @@ void compute(const char *input, const char *mask, const char *output, const int 
 #if defined (WITH_MPI)
 MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank);
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir);
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir, int imageCount);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages);
 
 
 // initialize MPI
@@ -204,7 +244,7 @@ MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &host
 }
 
 // not necessary to create a new comm object
-MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank ) {
+MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank) {
 
 	int rank, size;
 	MPI_Comm_size(comm_world, &size);
@@ -246,7 +286,7 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir) {
+void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir, int imageCount) {
 	// first get the list of files to process
    	std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
@@ -262,7 +302,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	// now start the loop to listen for messages
 	int curr = 0;
-	int total = filenames.size();
+	int total = (imageCount == -1) ? filenames.size() : (imageCount > filenames.size() ? filenames.size() : imageCount);
 	MPI_Status status;
 	int worker_id;
 	char ready;
@@ -390,7 +430,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	free(recbuf);
 }
 
-void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname) {
+void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	int outputSize;
@@ -441,7 +481,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
 			session = logger->getSession(std::string(input));
-			compute(input, mask, output, modecode, session);
+			compute(input, mask, output, modecode, session, stages);
 			// now do some work
 
 			t1 = cciutils::ClockGetTime();
@@ -494,10 +534,12 @@ int main (int argc, char **argv){
 
 	printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
 
+   	std::vector<int> stages;
+
 	// parse the input
-	int modecode;
+	int modecode, imageCount;
 	std::string imageName, outDir, hostname;
-	int status = parseInput(argc, argv, modecode, imageName, outDir);
+	int status = parseInput(argc, argv, modecode, imageName, outDir, imageCount, stages);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -528,13 +570,13 @@ int main (int argc, char **argv){
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
-		manager_process(comm_world, manager_rank, worker_size, imageName, outDir);
+		manager_process(comm_world, manager_rank, worker_size, imageName, outDir, imageCount);
 		t2 = cciutils::ClockGetTime();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 	} else {
 		// worker bees
-		worker_process(comm_world, manager_rank, rank, modecode, hostname);
+		worker_process(comm_world, manager_rank, rank, modecode, hostname, stages);
 		t2 = cciutils::ClockGetTime();
 		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
@@ -551,10 +593,13 @@ int main (int argc, char **argv){
     int main (int argc, char **argv){
     	printf("NOT compiled with MPI.  Using OPENMP if CPU, or GPU (multiple streams)\n");
 
-    	// parse the input
-    	int modecode;
+
+       	std::vector<int> stages;
+
+       	// parse the input
+    	int modecode, imageCount;
     	std::string imageName, outDir, hostname;
-    	int status = parseInput(argc, argv, modecode, imageName, outDir);
+    	int status = parseInput(argc, argv, modecode, imageName, outDir, imageCount, stages);
     	if (status != 0) return status;
 
     	uint64_t t0 = 0, t1 = 0, t2 = 0;
@@ -571,7 +616,7 @@ int main (int argc, char **argv){
     	t1 = cciutils::ClockGetTime();
     	printf("file read took %lu us\n", t1 - t0);
 
-    	int total = filenames.size();
+    	int total = (imageCount == -1) ? filenames.size() : (imageCount > filenames.size() ? filenames.size() : imageCount);
     	int i = 0;
 
     	// openmp bag of task
@@ -585,7 +630,7 @@ int main (int argc, char **argv){
 	
         	while (i < total) {
 			session = logger->getSession(filenames[i]);
-        		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session);
+        		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages);
         		printf("processed %s\n", filenames[i].c_str());
         		++i;
         	}
@@ -611,7 +656,7 @@ int main (int argc, char **argv){
 #pragma omp task firstprivate(ti, session) shared(filenames, seg_output, bounds_output, modecode)
     				{
 //        				printf("t i: %d, %d \n", i, ti);
-    					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode, session);
+    					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode, session, stages);
     	        		printf("processed %s\n", filenames[ti].c_str());
     				}
     				i++;
@@ -631,7 +676,7 @@ int main (int argc, char **argv){
     	printf("not omp\n");
     	while (i < total) {
 		session = logger->getSession(filenames[i]);
-    		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session);
+    		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages);
     		printf("processed %s\n", filenames[i].c_str());
     		++i;
     	}

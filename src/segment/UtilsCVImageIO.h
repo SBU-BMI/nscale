@@ -47,7 +47,7 @@ private:
 
 public:
 
-	IntermediateResultWriter(const std::string &pref, const std::string &suf, std::vector<int> &selStages);
+	IntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages);
 	virtual ~IntermediateResultWriter();
 
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage);
