@@ -12,17 +12,18 @@
 #include <sys/time.h>
 #include <sstream>
 #include <tr1/unordered_map>
+#include <vector>
 
 
 namespace cciutils {
 
 class event {
 public:
-	static const int COMPUTE = 0;
-	static const int MEM_IO = 1;
-	static const int FILE_IO = 2;
-	static const int NETWORK_IO = 3;
-	static const int OTHER = -1;
+	static const int COMPUTE;
+	static const int MEM_IO;
+	static const int FILE_IO;
+	static const int NETWORK_IO;
+	static const int OTHER;
 
 	event(const int &_id, const std::string &_name, const long long &_start, const long long &_end, const std::string &_annotation,
 			const int &_type = -1) :

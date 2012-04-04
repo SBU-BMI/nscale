@@ -14,7 +14,7 @@ link_directories(${Segmentation_SOURCE_DIR})
 
 
 # Source files used by Segmentation
-set(libsrcs SCIOHistologicalEntities.cpp )
+set(libsrcs SCIOUtilsLogger.cpp SCIOHistologicalEntities.cpp )
 set(gpulibsrcs SCIOUtilsCVImageIO.cpp SCIOHistologicalEntitiesGPU.cpp)
 
 #include_directories(${Segmentation_SOURCE_DIR}/cuda)
