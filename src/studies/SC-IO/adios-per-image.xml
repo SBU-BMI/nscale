@@ -1,0 +1,22 @@
+<adios-config host-language="C">
+    <adios-group name="source" coordination-communicator="comm">
+	<var name="imageName" type="string"/>
+	<var name="imgXSize" type="integer" />
+	<var name="imgYSize" type="integer" />
+        <var name="tileXSize" type="integer"/>
+	<var name="tileYSize" type="integer"/>
+        <var name="tileXOffset" type="integer"/>
+	<var name="tileYOffset" type="integer"/>
+	<var name="encoding" type="string" />
+	<global-bounds dimensions="imgXSize,imgYSize,3" offsets="tileXOffset,tileYOffset,0" >
+		<var name="tile" type="unsigned byte" dimensions="tileXSize,tileYSize,3"/>
+	</global-bounds>
+	<attribute name="recorded date" path="/source" value="Sep 19, 2008" type="string"/>
+<!-- conditional writing of a variable -->
+        <!-- gwrite src="if (want_x) {" />
+            <var name="x" type="integer" dimensions="NX"/>
+        <gwrite src="}" / -->
+    </adios-group>
+    <method group="source" method="MPI"/>
+    <buffer size-MB="128" allocate-time="now"/>
+</adios-config>

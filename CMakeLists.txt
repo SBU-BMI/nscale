@@ -57,7 +57,7 @@ endif()
 find_package( OpenCV REQUIRED )
 
 #### CUDA
-set(WITH_CUDA ON CACHE BOOL "Include NVidia Cuda Runtime support")
+set(WITH_CUDA OFF CACHE BOOL "Include NVidia Cuda Runtime support")
 if(WITH_CUDA)
     find_package(CUDA 4.0)
     
