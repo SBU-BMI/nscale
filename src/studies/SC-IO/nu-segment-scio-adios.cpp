@@ -426,6 +426,12 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 		}
 	}
 
+	// when we come out of the loop, some processes have done more and some less.
+	// the total should be within "threshold" of each other -
+
+
+
+
 	// now do collective io.
 	MPI_Barrier(comm_world);
 

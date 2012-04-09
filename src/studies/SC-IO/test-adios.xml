@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<adios-config host-language="C">
+    <adios-group name="source" coordination-communicator="comm_worker" >
+		<var name="x" type="integer" />
+    </adios-group>
+    <adios-group name="source2" coordination-communicator="comm_worker" >
+		<var name="total" type="integer" />
+		<var name="offset" type="integer" />
+		<var name="size" type="integer" />
+		<global-bounds dimensions="total" offsets="offset">
+       		<var name="values" type="integer" dimensions="size"/>
+    	</global-bounds>
+    </adios-group>
+    <adios-group name="source3" coordination-communicator="comm_worker" time-index="iter" >
+		<var name="total" type="integer" />
+		<var name="offset" type="integer" />
+		<var name="size" type="integer" />
+		<global-bounds dimensions="total" offsets="offset">
+       		<var name="values" type="integer" dimensions="iter,size"/>
+    	</global-bounds>
+    </adios-group>
+    <method group="source" method="MPI"/>
+    <method group="source2" method="MPI"/>
+    <method group="source3" method="MPI"/>
+    <buffer size-MB="128" allocate-time="now"/>
+</adios-config>

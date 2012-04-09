@@ -31,7 +31,7 @@ public:
 	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm);
 	virtual ~ADIOSManager();
 
-	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf, const bool newfile, const std::string &_group_name, std::vector<int> &selStages, int _local_rank, MPI_Comm *_local_comm);
+	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf, const bool _newfile, const std::string &_group_name, std::vector<int> &selStages, int _local_rank, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
 };
 
@@ -39,7 +39,7 @@ public:
 
 class SCIOADIOSWriter {
 
-	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf, const bool newfile, const std::string &_group_name, std::vector<int> &selStages, int _local_rank, MPI_Comm *_local_comm);
+	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf, const bool _newfile, const std::string &_group_name, std::vector<int> &selStages, int _local_rank, MPI_Comm *_local_comm);
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
 
 private:
