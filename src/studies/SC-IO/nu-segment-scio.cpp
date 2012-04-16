@@ -163,6 +163,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 		}
 	}
 
+	srand(0);
 	if (imageCount != -1) {
 		// randomize the file order.
 		std::random_shuffle( filenames.begin(), filenames.end() );
