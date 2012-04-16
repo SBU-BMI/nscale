@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<adios-config host-language="C">
+    <adios-group name="source" coordination-communicator="comm_worker" >
+	<var name="imageName" type="string" />
+    <var name="tileSizeX" type="integer" />
+	<var name="tileSizeY" type="integer" />
+    <var name="tileOffsetX" type="integer" />
+	<var name="tileOffsetY" type="integer" />
+	<var name="channels" type="integer" />
+	<var name="elemSize1" type="integer" />
+	<var name="cvDataType" type="integer" />
+	<var name="dataLength" type="integer" />
+	<var name="encoding" type="string" />
+	<var name="id" type="string" />
+	<var name="tile" type="unsigned byte" dimensions="dataLength" />
+	<attribute name="image name" path="/source"  var="imageName" />
+	<attribute name="tile x" path="/source"  var="tileOffsetX" />
+	<attribute name="tile y" path="/source"  var="tileOffsetY" />
+    </adios-group>
+    <method group="source" method="MPI"/>
+    <buffer size-MB="128" allocate-time="now"/>
+</adios-config>
