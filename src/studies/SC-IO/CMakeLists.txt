@@ -70,7 +70,7 @@ endif(ADIOS_FOUND)
 
 
 
-set(programs nu-segment-scio nu-segment-scio-adios test-adios test-mpi test-threads)
+set(programs nu-segment-scio nu-segment-scio-adios test/test-adios)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
@@ -98,6 +98,13 @@ set(ADIOS_XML_DIR ${CMAKE_BINARY_DIR}/adios_xml)
 #message("adios xml dir = ${ADIOS_XML_DIR}")
 make_directory(${ADIOS_XML_DIR})
 foreach(ADIOS_XML ${ADIOS_XMLS})
-	#message("copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
+	message("copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
 	configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML} ${ADIOS_XML_DIR}/${ADIOS_XML} COPY_ONLY)
 endforeach(ADIOS_XML)
+
+FILE(GLOB ADIOS_XMLS2 RELATIVE ${PROJECT_SOURCE_DIR}/test "test/*.xml" )
+#message("adios xml dir = ${ADIOS_XML_DIR}")
+foreach(ADIOS_XML2 ${ADIOS_XMLS2})
+		message("copy from ${PROJECT_SOURCE_DIR}/test/${ADIOS_XML2} to ${ADIOS_XML_DIR}/${ADIOS_XML2}")
+	configure_file(	${PROJECT_SOURCE_DIR}/test/${ADIOS_XML2} ${ADIOS_XML_DIR}/${ADIOS_XML2} COPY_ONLY)
+endforeach(ADIOS_XML2)

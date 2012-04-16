@@ -83,7 +83,8 @@ namespace cv {
 		selectedStages.clear();
 	}
 
-	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::Mat& intermediate, const int stage) {
+	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::Mat& intermediate, const int stage,
+			const char *_image_name, const int _offsetX, const int _offsetY) {
 		if (!selected(stage)) return;
 
 		if (intermediate.type() == CV_8UC1 || intermediate.type() == CV_8UC3 ||
@@ -99,7 +100,8 @@ namespace cv {
 
 #if defined (HAVE_CUDA)
 
-	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage) {
+	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
+			const char *_image_name, const int _offsetX, const int _offsetY) {
 		if (!selected(stage)) return;
 		// first download the data
 		::cv::Mat output(intermediate.size(), intermediate.type());
@@ -108,7 +110,8 @@ namespace cv {
 		output.release();
 	}
 #else
-	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage) { throw_nogpu(); }
+	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
+			const char *_image_name, const int _offsetX, const int _offsetY) { throw_nogpu(); }
 #endif
 
 

@@ -26,10 +26,14 @@ public:
 
 	virtual ~IntermediateResultHandler() {};
 
-	// write out with raw
-	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage) {};
+	virtual int persist() = 0;
 
-	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage) {};
+	// write out with raw
+	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0) = 0;
+
+	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0) = 0;
 
 };
 
@@ -50,9 +54,13 @@ public:
 	IntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages);
 	virtual ~IntermediateResultWriter();
 
-	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage);
+	virtual int persist() { return -1; };
 
-	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage);
+	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0);
+
+	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0);
 
 };
 

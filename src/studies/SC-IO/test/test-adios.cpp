@@ -257,6 +257,46 @@ int main (int argc, char **argv) {
 			free(values);
 		}
 
+		// different amount of data in global array
+		err = adios_open(&adios_handle, "source4", filename, "a", &comm_worker);
+		if (err != 0) printf("ERROR: adios error code on open: %d \n", err);
+
+		printf("adios handle %ld\n", adios_handle);
+
+		size = worker_rank + 1;
+		// get the size info from other workers
+		offset = 0, total=0;
+		MPI_Scan(&size, &offset, 1, MPI_INT, MPI_SUM, comm_worker);
+		offset -= size;
+		MPI_Allreduce(&size, &total, 1, MPI_INT, MPI_SUM, comm_worker);
+		values = (int*)malloc(size * sizeof(int));
+		for (int i = 0; i < size; ++i) {
+			values[i] = rank;
+		}
+		printf("size %d, total %d, offset %d\n", size, total, offset);
+
+
+		err = adios_group_size (adios_handle, 4 * 3 + size * 2 * 4, &total_size);
+		if (err != 0) printf("ERROR: adios error code on groupsize: %d \n", err);
+		printf("adios total size = %lu\n", total_size);
+
+		err = adios_write (adios_handle, "size", &size);
+		if (err != 0) printf("ERROR: adios error code on write: %d \n", err);
+		err = adios_write (adios_handle, "offset", &offset);
+		if (err != 0) printf("ERROR: adios error code on write: %d \n", err);
+		err = adios_write (adios_handle, "total", &total);
+		if (err != 0) printf("ERROR: adios error code on write: %d \n", err);
+		err = adios_write (adios_handle, "values", values);
+		if (err != 0) printf("ERROR: adios error code on write: %d \n", err);
+		err = adios_write (adios_handle, "values2", values);
+		if (err != 0) printf("ERROR: adios error code on write: %d \n", err);
+
+		err = adios_close(adios_handle);
+		if (err != 0) printf("ERROR: adios error code on close: %d \n", err);
+		MPI_Barrier(comm_worker);
+
+		free(values);
+
 		free(filename);
 
 	}

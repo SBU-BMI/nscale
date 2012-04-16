@@ -4,7 +4,6 @@ project( SCIORuntime )
 set(SCIORuntime_VERSION_MAJOR 1)
 set(SCIORuntime_VERSION_MINOR 0)
 
-
 # Make sure the compiler can find the includes
 include_directories(${Runtime_SOURCE_DIR})
 

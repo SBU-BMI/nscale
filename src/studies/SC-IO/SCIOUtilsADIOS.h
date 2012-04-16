@@ -12,13 +12,22 @@
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
-#include "adios.h"
 #include "mpi.h"
 #include <vector>
+#include "UtilsCVImageIO.h"
+
 
 namespace cciutils {
 
 class SCIOADIOSWriter;
+
+struct Tile {
+public:
+	std::string image_name;
+	int x_offset;
+	int y_offset;
+	::cv::Mat tile;
+};
 
 class ADIOSManager {
 private:
@@ -31,15 +40,19 @@ public:
 	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm);
 	virtual ~ADIOSManager();
 
-	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf, const bool _newfile, const std::string &_group_name, std::vector<int> &selStages, int _local_rank, MPI_Comm *_local_comm);
+	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
+			const bool _newfile, const std::string &_group_name, std::vector<int> &selStages,
+			int _local_rank, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
 };
 
 
 
-class SCIOADIOSWriter {
+class SCIOADIOSWriter : public cv::IntermediateResultHandler {
 
-	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf, const bool _newfile, const std::string &_group_name, std::vector<int> &selStages, int _local_rank, MPI_Comm *_local_comm);
+	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
+			const bool _newfile, const std::string &_group_name, std::vector<int> &selStages,
+			int _local_rank, MPI_Comm *_local_comm);
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
 
 private:
@@ -49,25 +62,32 @@ private:
     std::string filename;
 
     int local_count;
-    bool hasData;
     bool newfile;
+    int buffer_size;
+
+    std::vector<Tile> tile_cache;
 
 	MPI_Comm *local_comm;
 	int local_rank;
 
+protected:
 	bool selected(const int stage);
 
-	SCIOADIOSWriter() : local_count(0), hasData(false) {};
-	virtual ~SCIOADIOSWriter() {};
-
-public:
+	SCIOADIOSWriter() : local_count(0) {};
+	virtual ~SCIOADIOSWriter();
 
 	virtual int open();
 	virtual int close();
 
-	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage, const char *image_name, const int offsetX, const int offsetY);
+public:
 
-	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage);
+	virtual int persist();
+
+	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
+			const char *_image_name, const int _offsetX, const int _offsetY);
+
+	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
+			const char *_image_name, const int _offsetX, const int _offsetY);
 
 };
 

@@ -17,6 +17,6 @@
 	<attribute name="tile x" path="/source"  var="tileOffsetX" />
 	<attribute name="tile y" path="/source"  var="tileOffsetY" />
     </adios-group>
-    <method group="source" method="MPI" iteration="4"/>
-    <buffer size-MB="512" allocate-time="now"/>
+    <method group="source" method="MPI"/>
+    <buffer size-MB="128" allocate-time="now"/>
 </adios-config>
