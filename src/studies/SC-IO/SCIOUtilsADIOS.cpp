@@ -47,6 +47,7 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	std::stringstream ss;
 	ss << pref << "." << suf;
 	w->filename = ss.str();
+	printf("creating file: %s\n", w->filename.c_str());
 	w->newfile = _newfile;
 	writers.push_back(w);
 	return w;

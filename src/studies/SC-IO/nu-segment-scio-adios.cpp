@@ -9,6 +9,7 @@
 #include <iostream>
 //#include <stdio.h>
 #include <vector>
+#include <queue>
 #include <string.h>
 #include "utils.h"
 #include "FileUtils.h"
@@ -218,7 +219,8 @@ MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_siz
 
 static const char MANAGER_READY = 10;
 static const char MANAGER_REQUEST_IO = 11;
-static const char MANAGER_FINISHED = 12;
+static const char MANAGER_WAIT = 12;
+static const char MANAGER_FINISHED = 13;
 static const char MANAGER_ERROR = -11;
 static const char WORKER_READY = 20;
 static const char WORKER_PROCESSING = 21;
@@ -257,14 +259,15 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	MPI_Comm_size(comm_world, &size);
 	int workerLoad[size];
-	char managerStatus[size];
+	std::vector<std::queue<char> > messages;
 	for (int i = 0; i < size; ++i) {
+		messages.push_back(std::queue<char>());
+		printf("queue size is %d\n", messages[i].size());
 		workerLoad[i] = 0;
-		managerStatus[i] = MANAGER_READY;
-//		printf("set status of manager for worker %d to %d\n", i, managerStatus[i]);
+		printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? -1 : messages[i].front()));
 	}
 	int maxWorkerLoad = 2;
-	int IOCount;
+	int IOCount = 0;
 
 	while (curr < total || IOCount > 0) {
 		usleep(1000);
@@ -278,19 +281,29 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 			if (worker_id == manager_rank) continue;
 
 			if(ready == WORKER_READY) {
-				if (managerStatus[worker_id] == MANAGER_REQUEST_IO) {
+				char mstatus;
+				if (messages[worker_id].empty()) {
+					mstatus = MANAGER_READY;
+				} else {
+					mstatus = messages[worker_id].front();
+				}
+				printf("manager status: %d \n", mstatus);
+
+				if (mstatus == MANAGER_REQUEST_IO) {
+					messages[worker_id].pop();
 
 					// tell worker that manager is ready
-					MPI_Send(managerStatus + worker_id, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
+					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 					printf("manager sent IO request to worker %d.\n", worker_id);
-					if (curr >= total) managerStatus[worker_id] = MANAGER_FINISHED;
-					else managerStatus[worker_id] = MANAGER_READY;
+//					if (curr >= total) messages[worker_id].push(MANAGER_WAIT);
+//					else messages[worker_id].push(MANAGER_READY);
 					--IOCount;
 
-				} else {
+				} else if (mstatus == MANAGER_READY ){
+
 					// tell worker that manager is ready
-					printf("manager sening work %d to %d.\n", *(managerStatus + worker_id), worker_id);
-					MPI_Send(managerStatus + worker_id, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
+					printf("manager sening work %d to %d.\n", mstatus, worker_id);
+					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 
 					//				printf("manager signal transfer\n");
 	/* send real data */
@@ -321,23 +334,29 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					delete [] output;
 
 					++workerLoad[worker_id];
-					if (workerLoad[worker_id] == maxWorkerLoad) {
+					++curr;
+					if (curr >= total) {
+						// at end.  tell everyone to wait for the remaining IO to complete
+
+						for (int i = 0; i < size; ++i) {
+							messages[i].push(MANAGER_WAIT);
+						}
+						printf("current queue content = %d at back\n", messages[worker_id].back());
+					} else if (workerLoad[worker_id] == maxWorkerLoad) {
 						// first worker to be assigned max number of tiles
 						// now do IO
 						for (int i = 0; i < size; ++i) {
 							workerLoad[i] = 0;
-							managerStatus[i] = MANAGER_REQUEST_IO;
+							messages[i].push(MANAGER_REQUEST_IO);
 						}
-						IOCount = worker_size;
-					}
-					++curr;
-					if (curr >= total) {
-						for (int i = 0; i < size; ++i) {
-							if (managerStatus[i] != MANAGER_REQUEST_IO) {
-								managerStatus[i] = MANAGER_FINISHED;
-							}
-						}
-					}
+						IOCount += worker_size;
+						printf("current queue content = %d at back\n", messages[worker_id].back());
+					} // else ready state.  don't change it.
+				} else {  // wait state.
+
+					// tell worker to wait
+					printf("manager sening work %d to %d.\n", mstatus, worker_id);
+					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 				}
 			}
 
@@ -364,7 +383,8 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 			if (worker_id == manager_rank) continue;
 
 			if(ready == WORKER_READY) {
-				MPI_Send(managerStatus + worker_id, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
+				char mstatus = MANAGER_FINISHED;
+				MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 //				printf("manager signal finished\n");
 				--active_workers;
 			}
@@ -483,6 +503,8 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			// do some IO.
 			printf("manager-initiated IO for worker %d \n", rank);
 			writer->persist();
+		} else if (flag == MANAGER_WAIT) {
+			usleep(10000);
 		}
 	}
 
@@ -554,6 +576,10 @@ int main (int argc, char **argv){
 		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
 		return -4;
 	}
+	std::vector<int> stages;
+	for (int stage = 100; stage <= 100; ++stage) {
+		stages.push_back(stage);
+	}
 
 
 	if (size == 1) {
@@ -621,10 +647,6 @@ int main (int argc, char **argv){
 		MPI_Comm comm_worker = init_workers(comm_world, manager_rank, worker_size, worker_rank);
 
 
-		std::vector<int> stages;
-		for (int stage = 100; stage <= 100; ++stage) {
-			stages.push_back(stage);
-		}
 
 
 		uint64_t t1 = 0, t2 = 0;
