@@ -7,6 +7,7 @@ set(SCIOSegmentation_VERSION_MINOR 0)
 #### ADIOS
 if (MPI_FOUND)
 	set(WITH_ADIOS OFF CACHE BOOL "Build with ADIOS support")
+	# TODO:  call adios_config at some directory, parse the output to get the ADIOS C flags and LD flags.  save and use later. 
 	if (WITH_ADIOS)
 	    find_path(ADIOS_INCLUDE_DIR adios.h
 		HINTS /usr/include /usr/local/include /usr/local/share/include /opt/local/include /usr/local/share/adios/include
