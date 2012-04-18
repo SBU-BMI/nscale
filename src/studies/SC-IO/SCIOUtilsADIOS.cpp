@@ -111,26 +111,39 @@ int SCIOADIOSWriter::persist() {
 	int err;
 	uint64_t total_size;
 
+	long chunk_size = tile_cache.size();
+	long chunk_total = 0;
+	long chunk_offset = 0;
+
+	// get the size info from other workers
+	MPI_Scan(&chunk_size, &chunk_offset, 1, MPI_LONG, MPI_SUM, *local_comm);
+	chunk_offset -= chunk_size;
+	MPI_Allreduce(&chunk_size, &chunk_total, 1, MPI_LONG, MPI_SUM, *local_comm);
+
+	printf("chunk size: %ld of total %ld at offset %ld\n", chunk_size, chunk_total, chunk_offset);
+
+	// get the total_count from last iteration.
+	long total_count = 0;
+	MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM, *local_comm);
+	local_count += chunk_size;
+	printf("total count: %ld\n", total_count);
+
+
 	if (tile_cache.size() <= 0) {
+		long chunk_data_size = 0;
+
+		long chunk_data_total = 0;
+		long chunk_data_offset = 0;
+		MPI_Scan(&chunk_data_size, &chunk_data_offset, 1, MPI_LONG, MPI_SUM, *local_comm);
+		chunk_data_offset -= chunk_data_size;
+		MPI_Allreduce(&chunk_data_size, &chunk_data_total, 1, MPI_LONG, MPI_SUM, *local_comm);
+
+		printf("chunk data: size = %ld of total %ld at offset %ld\n", chunk_data_size, chunk_data_total, chunk_data_offset);
+
 		err = adios_group_size (adios_handle, 0, &total_size);
 	} else {
-		long chunk_size = tile_cache.size();
-		long chunk_total = 0;
-		long chunk_offset = 0;
 
-		// get the size info from other workers
-		MPI_Scan(&chunk_size, &chunk_offset, 1, MPI_LONG, MPI_SUM, *local_comm);
-		chunk_offset -= chunk_size;
-		MPI_Allreduce(&chunk_size, &chunk_total, 1, MPI_LONG, MPI_SUM, *local_comm);
 
-		printf("chunk size: %ld of total %ld at offset %ld\n", chunk_size, chunk_total, chunk_offset);
-
-		// get the total_count from last iteration.
-		long total_count = 0;
-		MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM, *local_comm);
-		local_count += chunk_size;
-
-		printf("total count: %ld\n", total_count);
 
 		int imageNameLen = 12;
 
@@ -185,18 +198,15 @@ int SCIOADIOSWriter::persist() {
 
 		printf("chunk data: size = %ld of total %ld at offset %ld\n", chunk_data_size, chunk_data_total, chunk_data_offset);
 
-
 		//copy data into new buffer
 		unsigned char *tiles = (unsigned char*)malloc(chunk_data_size);
 		for (int i = 0; i < chunk_size; ++i) {
 			memcpy(tiles + tile_offset[i], tile_cache[i].tile.datastart, tile_size[i]);
 		}
 
-
 		int err = adios_group_size (adios_handle,
 				3*8 + 4 + (imageNameLen + 7*4 + 3 + 3*8) * chunk_size +  3*8 + chunk_data_size,
 				&total_size);
-
 
 		adios_write(adios_handle, "chunk_total", &chunk_total);
 		adios_write(adios_handle, "chunk_offset", &chunk_offset);

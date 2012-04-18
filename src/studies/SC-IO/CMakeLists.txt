@@ -18,6 +18,7 @@ if (MPI_FOUND)
 		include_directories(${ADIOS_INCLUDE_DIR})
 		link_directories(${ADIOS_LIBRARY_DIR})
 	    set(ADIOS_LIBRARIES "m;mxml;pthread;adios")
+	    # also need to have hdf5, hdf5_hl, netcdf...
 	    set(ADIOS_FOUND 1)
 	else(WITH_ADIOS)
 	    set(ADIOS_FOUND 0)
