@@ -82,6 +82,9 @@ protected:
 public:
 
 	virtual int persist();
+	virtual int currentLoad() {
+		return tile_cache.size();
+	}
 
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
 			const char *_image_name, const int _offsetX, const int _offsetY);

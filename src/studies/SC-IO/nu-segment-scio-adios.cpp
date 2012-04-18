@@ -247,7 +247,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	int total = filenames.size();
 	MPI_Status status;
 	int worker_id;
-	char ready;
+	int worker_status[3];
 	char *input;
 	char *mask;
 	char *output;
@@ -256,6 +256,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	int outputlen;
 	int hasMessage;
 	int size;
+	int ioiter = 0;
 
 	MPI_Comm_size(comm_world, &size);
 	int workerLoad[size];
@@ -276,11 +277,23 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		if (hasMessage != 0) {
 /* where is it coming from */
 			worker_id = status.MPI_SOURCE;
-			MPI_Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world, &status);
+			MPI_Recv(&worker_status, 3, MPI_INT, worker_id, TAG_CONTROL, comm_world, &status);
 //			printf("manager received request from worker %d\n",worker_id);
 			if (worker_id == manager_rank) continue;
 
-			if(ready == WORKER_READY) {
+			if(worker_status[0] == WORKER_READY) {
+
+				// first find out what the load is
+				if (worker_status[1] >= maxWorkerLoad && worker_status[2] == ioiter) {
+					// set everyone to do IO.
+					for (int i = 0; i < size; ++i) {
+						messages[i].push_front(MANAGER_REQUEST_IO);
+					}
+					IOCount += worker_size;
+					++ioiter;
+					printf("current queue content = %d at back\n", messages[worker_id].front());
+				}
+
 				char mstatus;
 				if (messages[worker_id].empty()) {
 					mstatus = MANAGER_READY;
@@ -292,7 +305,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				if (mstatus == MANAGER_REQUEST_IO) {
 					messages[worker_id].pop_front();
 
-					// tell worker that manager is ready
+					// tell worker to do IO.
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 					printf("manager sent IO request to worker %d.\n", worker_id);
 //					if (curr >= total) messages[worker_id].push(MANAGER_WAIT);
@@ -333,7 +346,6 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					delete [] mask;
 					delete [] output;
 
-					++workerLoad[worker_id];
 					++curr;
 					if (curr >= total) {
 						// at end.  tell everyone to wait for the remaining IO to complete
@@ -342,15 +354,6 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 							messages[i].push_back(MANAGER_WAIT);
 						}
 						printf("current queue content = %d at back\n", messages[worker_id].back());
-					} else if (workerLoad[worker_id] >= maxWorkerLoad) {
-						// first worker to be assigned max number of tiles
-						// now do IO
-						for (int i = 0; i < size; ++i) {
-							workerLoad[i] = 0;
-							messages[i].push_front(MANAGER_REQUEST_IO);
-						}
-						IOCount += worker_size;
-						printf("current queue content = %d at back\n", messages[worker_id].front());
 					} // else ready state.  don't change it.
 				} else {  // wait state.
 
@@ -378,11 +381,11 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		if (hasMessage != 0) {
 		/* where is it coming from */
 			worker_id=status.MPI_SOURCE;
-			MPI_Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world, &status);
+			MPI_Recv(&worker_status, 3, MPI::INT, worker_id, TAG_CONTROL, comm_world, &status);
 //			printf("manager received request from worker %d\n",worker_id);
 			if (worker_id == manager_rank) continue;
 
-			if(ready == WORKER_READY) {
+			if(worker_status[0] == WORKER_READY) {
 				char mstatus = MANAGER_FINISHED;
 				MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 //				printf("manager signal finished\n");
@@ -434,7 +437,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 }
 
 void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const MPI_Comm &comm_worker, const int modecode, const std::string &hostname, cciutils::SCIOADIOSWriter *writer) {
-	char flag = MANAGER_READY;
+	int flag = MANAGER_READY;
 	int inputSize;
 	int outputSize;
 	int maskSize;
@@ -451,18 +454,24 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	MPI_Barrier(comm_worker); // testing only
 
 	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
-	char workerStatus = WORKER_READY;
+	int workerStatus[3];
+	workerStatus[0] = WORKER_READY;
+	workerStatus[1] = 0;
+	workerStatus[2] = iocount;
 	cciutils::SCIOLogSession *session;
 	bool first = true;
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
 		t0 = cciutils::ClockGetTime();
 
+		if (writer != NULL) workerStatus[1] = writer->currentLoad();
+		workerStatus[2] = iocount;
+
 		// tell the manager - ready
-		MPI_Send(&workerStatus, 1, MPI::CHAR, manager_rank, TAG_CONTROL, comm_world);
+		MPI_Send(&workerStatus, 3, MPI_INT, manager_rank, TAG_CONTROL, comm_world);
 //		printf("worker %d signal ready\n", rank);
 		// get the manager status
-		MPI_Recv(&flag, 1, MPI::CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
+		MPI_Recv(&flag, 1, MPI_CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
 //		printf("worker %d received manager status %d\n", rank, flag);
 
 
