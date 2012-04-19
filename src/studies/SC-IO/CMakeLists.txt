@@ -71,8 +71,7 @@ endif(ADIOS_FOUND)
 
 
 
-
-set(programs nu-segment-scio nu-segment-scio-adios test/test-adios)
+set(programs nu-segment-scio)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
@@ -80,18 +79,29 @@ foreach(program ${programs})
 	# Link the executable to the Features Computation library
 	target_link_libraries(${program} scio-segment segment ${OpenCV_LIBS})
 
-	if (ADIOS_FOUND)
+	if(MPI_FOUND)
+  		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI") 
+  		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
+		target_link_libraries(${program} ${MPI_LIBRARIES})
+	endif(MPI_FOUND)
+endforeach(program)
+
+
+if (ADIOS_FOUND)
+
+set(programs nu-segment-scio-adios)
+foreach(program ${programs})
+	# Add an executable to be built from the files listed
+	add_executable(${program} ${program}.cpp)
+
+	# Link the executable to the Features Computation library
+	target_link_libraries(${program} scio-segment segment ${OpenCV_LIBS})
+
 		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI -DWITH_ADIOS")
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
 		target_link_libraries(${program} scio-adios ${ADIOS_LIBRARIES} ${MPI_LIBRARIES})
-	else(ADIOS_FOUND)
-		if(MPI_FOUND)
-	  		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI") 
-	  		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
-			target_link_libraries(${program} ${MPI_LIBRARIES})
-		endif(MPI_FOUND)
-	endif(ADIOS_FOUND)
 endforeach(program)
+endif(ADIOS_FOUND)
 
 
 ### copy over the adios xml files
@@ -104,9 +114,6 @@ foreach(ADIOS_XML ${ADIOS_XMLS})
 	configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML} ${ADIOS_XML_DIR}/${ADIOS_XML} COPY_ONLY)
 endforeach(ADIOS_XML)
 
-FILE(GLOB ADIOS_XMLS2 RELATIVE ${PROJECT_SOURCE_DIR}/test "test/*.xml" )
-#message("adios xml dir = ${ADIOS_XML_DIR}")
-foreach(ADIOS_XML2 ${ADIOS_XMLS2})
-#		message("copy from ${PROJECT_SOURCE_DIR}/test/${ADIOS_XML2} to ${ADIOS_XML_DIR}/${ADIOS_XML2}")
-	configure_file(	${PROJECT_SOURCE_DIR}/test/${ADIOS_XML2} ${ADIOS_XML_DIR}/${ADIOS_XML2} COPY_ONLY)
-endforeach(ADIOS_XML2)
+
+
+add_subdirectory(test)
