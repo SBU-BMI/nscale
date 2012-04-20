@@ -1,4 +1,4 @@
-function [ concurrencyAll nodes concurrencyPerNode ] = ComputeAndIOConcurrency( header, type, startTimes, endTimes, location )
+function [ concurrencyAll loadAll nodes concurrencyPerNode loadPerNode ] = ComputeAndIOConcurrency( header, type, startTimes, endTimes, location )
 %ComputeAndIOConcurrency Compute the level of concurrency
 %   header just gives information about start and end (1xN)
 %   type specifies whether it's computations (0), IO (2), admin/idle (-1). (1xN)
@@ -8,21 +8,22 @@ function [ concurrencyAll nodes concurrencyPerNode ] = ComputeAndIOConcurrency( 
 % per node
     nodes = unique(location{:, 2});
     concurrencyPerNode = cell(length(nodes), 1);
+    loadPerNode = cell(length(nodes), 1);
     for i = 1 : length(nodes)
        %get the rows corresponding to the host
        idx = find(strcmp(location{:, 2}, nodes(i, 1)) == 1);
        nodeProcs = length(unique(location{:, 1}(idx)));  % count ranks for host
        
-       concurrencyPerNode{i, 1} = computeConcurrency(header, type, startTimes(idx, :), endTimes(idx, :), nodeProcs);
+       [concurrencyPerNode{i, 1} loadPerNode{i, 1}]= computeConcurrency(header, type, startTimes(idx, :), endTimes(idx, :), nodeProcs);
     end
 
 % all processes
     nodeProcs = length(unique(location{:, 1}));  % count the unique ranks.
-    concurrencyAll  = computeConcurrency(header, type, startTimes, endTimes, nodeProcs);
+    [concurrencyAll loadAll]  = computeConcurrency(header, type, startTimes, endTimes, nodeProcs);
 
 end
 
-function [ output ] = computeConcurrency(header, type, stime, etime, cpuCount)
+function [ output load ] = computeConcurrency(header, type, stime, etime, cpuCount)
     alltimes = reshape([stime; etime], 1, size(stime, 1) * size(stime, 2) + size(etime, 1) * size(etime, 2));
     alltimes = unique(alltimes);
     numEvents = length(alltimes);
@@ -91,15 +92,16 @@ function [ output ] = computeConcurrency(header, type, stime, etime, cpuCount)
        concurrency(:, i) = concurrency(:, i-1) + concurrency(:, i); 
     end
     
-    duration = timestamps(1,end) - timestamps(1,1);
-    intervals = timestamps(1,2:end) - timestamps(1, 1:end-1);
-    totaltime = dot(double(concurrency(3,1:end-1), intervals);
-    averageIO = double(totaltime) / double(duration)
-    nodetimeaverageIO = averageIO / double(cpuCount)
-    totaltime = dot(concurrency(2,1:end-1), intervals);
-    averageCompute = double(totaltime) / double(duration)
-    nodetimeaverageCompute = averageCompute / double(cpuCount)
-    
+    if (computeAverage == 1)
+        duration = double(timestamps(1,end) - timestamps(1,1));
+        intervals = double(timestamps(1,2:end) - timestamps(1, 1:end-1));
+        totaltime = dot(double(concurrency(3,1:end-1)), intervals);
+        averageIO = totaltime / duration
+        nodetimeaverageIO = averageIO / double(cpuCount)
+        totaltime = dot(double(concurrency(2,1:end-1)), intervals);
+        averageCompute = totaltime / duration
+        nodetimeaverageCompute = averageCompute / double(cpuCount)
+    end
     
     % turn into intervals
     t2 = zeros(1, size(timestamps, 2) * 2 - 1);
