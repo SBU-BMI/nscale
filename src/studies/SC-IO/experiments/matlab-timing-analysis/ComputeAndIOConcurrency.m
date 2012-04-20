@@ -97,12 +97,13 @@ function [ output load ] = computeConcurrency(header, type, stime, etime, cpuCou
     duration = double(timestamps(1,end) - timestamps(1,1));
     intervals = double(timestamps(1,2:end) - timestamps(1, 1:end-1));
     totaltime = dot(double(concurrency(3,1:end-1)), intervals);
-    load = zeros(4, 1, 'double');
+    load = zeros(5, 1, 'double');
     load(2, 1) = totaltime / duration;
-    load(4, 1) = averageIO / double(cpuCount);
+    load(4, 1) = load(2,1) / double(cpuCount);
     totaltime = dot(double(concurrency(2,1:end-1)), intervals);
     load(1, 1) = totaltime / duration;
-    load(3, 1) = averageCompute / double(cpuCount);
+    load(3, 1) = load(1,1) / double(cpuCount);
+    load(5,1) = duration;
     
     % turn into intervals
     t2 = zeros(1, size(timestamps, 2) * 2 - 1);
