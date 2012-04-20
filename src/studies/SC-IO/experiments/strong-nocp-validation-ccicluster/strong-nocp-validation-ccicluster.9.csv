@@ -1,0 +1,20 @@
+
+[node39:17733] *** Process received signal ***
+[node39:17733] Signal: Segmentation fault (11)
+[node39:17733] Signal code: Address not mapped (1)
+[node39:17733] Failing at address: (nil)
+ERROR: can't open /data/tcpan/output/scio-val-mpi/20X_4096x4096_tiles/oligoIII.1/oligoIII.1.ndpi-0000069632-0000012288-100.32SC1.raw to write
+[node39:17733] [ 0] /lib64/libpthread.so.0 [0x388100eb70]
+[node39:17733] [ 1] /lib64/libc.so.6(fwrite+0x34) [0x38804622f4]
+[node39:17733] [ 2] /data/tcpan/src/nscale-bin/lib/libsegment.so(_ZN8cciutils2cv24IntermediateResultWriter10imwriteRawERKN2cv3MatEi+0x35e) [0x7ff57117352e]
+[node39:17733] [ 3] /data/tcpan/src/nscale-bin/lib/libsegment.so(_ZN8cciutils2cv24IntermediateResultWriter16saveIntermediateERKN2cv3MatEiPKcii+0x5f) [0x7ff571173adf]
+[node39:17733] [ 4] /data/tcpan/src/nscale-bin/lib/libscio-segment.so(_ZN6nscale24SCIOHistologicalEntities13segmentNucleiERKSsS2_RiRPiPN8cciutils14SCIOLogSessionEPNS6_2cv25IntermediateResultHandlerE+0x6d0) [0x7ff57138b740]
+[node39:17733] [ 5] /data/tcpan/src/nscale-bin/bin/nu-segment-scio.exe(_Z7computePKcS0_S0_iPN8cciutils14SCIOLogSessionERKSt6vectorIiSaIiEE+0x1ff) [0x40b03f]
+[node39:17733] [ 6] /data/tcpan/src/nscale-bin/bin/nu-segment-scio.exe(_Z14worker_processRKP19ompi_communicator_tiiiRKSsRKSt6vectorIiSaIiEE+0x47a) [0x40d39a]
+[node39:17733] [ 7] /data/tcpan/src/nscale-bin/bin/nu-segment-scio.exe(main+0x175) [0x40dc85]
+[node39:17733] [ 8] /lib64/libc.so.6(__libc_start_main+0xf4) [0x388041d9b4]
+[node39:17733] [ 9] /data/tcpan/src/nscale-bin/bin/nu-segment-scio.exe(__gxx_personality_v0+0x2b1) [0x40a719]
+[node39:17733] *** End of error message ***
+--------------------------------------------------------------------------
+mpirun noticed that process rank 6 with PID 17733 on node node39.clus.cci.emory.edu exited on signal 11 (Segmentation fault).
+--------------------------------------------------------------------------
