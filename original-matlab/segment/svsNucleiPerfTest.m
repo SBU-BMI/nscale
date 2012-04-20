@@ -1,4 +1,4 @@
-function nuclei=svsNuclei(impath,filename,resultpath, folder,tile)
+function nuclei=svsNucleiPerfTest(impath,filename,resultpath, folder,tile)
     if nargin==0
         image = {'astroII.1/astroII.1.ndpi-0000008192-0000008192.tif',...
             'gbm2.1/gbm2.1.ndpi-0000004096-0000004096.tif',...
@@ -13,7 +13,7 @@ function nuclei=svsNuclei(impath,filename,resultpath, folder,tile)
         for i = 1:length(image)
 %	for i = 1
             filename=image{i};
-            svsNuclei(impath, filename, resultpath, 0, 0)
+            svsNucleiPerfTest(impath, filename, resultpath, 0, 0)
         end
         return
     end
@@ -71,8 +71,8 @@ function nuclei=svsNuclei(impath,filename,resultpath, folder,tile)
     end
 
     tic;
-    [f,L] = segNucleiMorphMeanshift(I);
-    t=toc;
+    [f,L] = segNucleiMorphMeanshiftPerf(I);
+    t=toc
 
 
 
@@ -118,7 +118,7 @@ function nuclei=svsNuclei(impath,filename,resultpath, folder,tile)
 end
 
 
-function [f,L] = segNucleiMorphMeanshift(color_img)
+function [f,L] = segNucleiMorphMeanshiftPerf(color_img)
     f = [];
 
     r = color_img( :, :, 1);
