@@ -35,6 +35,34 @@ include_directories(${Segmentation_SOURCE_DIR})
 link_directories(${Segmentation_SOURCE_DIR})
 
 
+if(ADIOS_FOUND)
+	### copy over the adios xml files
+	### and generate c source from ADIOS_XML files
+	FILE(GLOB ADIOS_XMLS RELATIVE ${PROJECT_SOURCE_DIR} "*.xml" )
+	set(ADIOS_XML_DIR ${CMAKE_BINARY_DIR}/adios_xml)
+	#message("adios xml dir = ${ADIOS_XML_DIR}")
+	make_directory(${ADIOS_XML_DIR})
+	foreach(ADIOS_XML ${ADIOS_XMLS})
+		message("copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
+		configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML} ${ADIOS_XML_DIR}/${ADIOS_XML} COPY_ONLY)
+	
+	  execute_process(
+	    COMMAND python ${ADIOS_LIBRARY_DIR}/../bin/gpp.py ${PROJECT_SOURCE_DIR}/${ADIOS_XML}
+	    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	  ) 
+	
+	endforeach(ADIOS_XML)
+	
+	FILE(GLOB ADIOS_CHS RELATIVE ${CMAKE_CURRENT_BINARY_DIR} "*.ch" )
+
+	# add several header fields thare are normally not installed with adios
+	include_directories(${PROJECT_SOURCE_DIR}/adios-include)
+
+
+endif(ADIOS_FOUND)
+
+
+
 #### Segmentation code
 
 # Source files used by Segmentation
@@ -67,6 +95,8 @@ if (ADIOS_FOUND)
 		set_target_properties(${adios_libname} PROPERTIES COMPILE_FLAGS "-DHAVE_ADIOS -fPIC")
 	endif(CUDA_FOUND)
 	target_link_libraries(${adios_libname} segment ${ADIOS_LIBRARIES} ${OpenCV_LIBS})
+	include_directories(${CMAKE_CURRENT_BINARY_DIR})
+	
 endif(ADIOS_FOUND)
 
 
@@ -89,30 +119,19 @@ endforeach(program)
 
 if (ADIOS_FOUND)
 
-set(programs nu-segment-scio-adios)
-foreach(program ${programs})
-	# Add an executable to be built from the files listed
-	add_executable(${program} ${program}.cpp)
-
-	# Link the executable to the Features Computation library
-	target_link_libraries(${program} scio-segment segment ${OpenCV_LIBS})
-
-		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI -DWITH_ADIOS")
-  		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
-		target_link_libraries(${program} scio-adios ${ADIOS_LIBRARIES} ${MPI_LIBRARIES})
-endforeach(program)
+	set(programs nu-segment-scio-adios)
+	foreach(program ${programs})
+		# Add an executable to be built from the files listed
+		add_executable(${program} ${program}.cpp)
+	
+		# Link the executable to the Features Computation library
+		target_link_libraries(${program} scio-segment segment ${OpenCV_LIBS})
+	
+			set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI -DWITH_ADIOS")
+	  		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
+			target_link_libraries(${program} scio-adios ${ADIOS_LIBRARIES} ${MPI_LIBRARIES})
+	endforeach(program)
 endif(ADIOS_FOUND)
-
-
-### copy over the adios xml files
-FILE(GLOB ADIOS_XMLS RELATIVE ${PROJECT_SOURCE_DIR} "*.xml" )
-set(ADIOS_XML_DIR ${CMAKE_BINARY_DIR}/adios_xml)
-#message("adios xml dir = ${ADIOS_XML_DIR}")
-make_directory(${ADIOS_XML_DIR})
-foreach(ADIOS_XML ${ADIOS_XMLS})
-#	message("copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
-	configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML} ${ADIOS_XML_DIR}/${ADIOS_XML} COPY_ONLY)
-endforeach(ADIOS_XML)
 
 
 

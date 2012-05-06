@@ -164,7 +164,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 #if defined (WITH_MPI)
 MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank);
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::vector<std::string> &filenames, std::vector<std::string > &seg_output, std::vector<std::string> &bounds_output);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, cciutils::SCIOADIOSWriter *writer);
 
 
@@ -191,27 +191,14 @@ MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_siz
 	MPI_Comm_rank(comm_world, &rank);
 	
 	// create new group from old group
-	worker_size = size - 1;
-	int *workers = (int*) malloc(worker_size * sizeof(int));
-	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
-		if (id == managerid) ++id;  // skip the manager id
-		workers[i] = id;
-	}
-	// get old group
-	MPI_Group world_group;
-	MPI_Comm_group ( comm_world, &world_group );
-
-	MPI_Group worker_group;
-	MPI_Group_incl ( world_group, worker_size, workers, &worker_group );
-	free(workers);
-	
 	MPI_Comm comm_worker;
-	MPI_Comm_create(comm_world, worker_group, &comm_worker);
+	MPI_Comm_split(comm_world, (rank == managerid ? 1 : 0), rank, &comm_worker);
 	
 	if (rank != managerid) {
 		MPI_Comm_size(comm_worker, &worker_size);
-	    MPI_Comm_rank(comm_worker, &worker_rank);
+		MPI_Comm_rank(comm_worker, &worker_rank);
 	} else {
+		worker_size = size-1;
 		worker_rank = -1;
 	}
 	return comm_worker;
@@ -228,23 +215,18 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir) {
-	// first get the list of files to process
-   	std::vector<std::string> filenames;
-	std::vector<std::string> seg_output;
-	std::vector<std::string> bounds_output;
+void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size,
+	std::vector<std::string> &filenames, std::vector<std::string> &seg_output,
+	std::vector<std::string> &bounds_output	) {
 	uint64_t t1, t0;
 
-	t0 = cciutils::ClockGetTime();
-	getFiles(maskName, outDir, filenames, seg_output, bounds_output);
-
-	t1 = cciutils::ClockGetTime();
-	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
 	MPI_Barrier(comm_world);
 
 	// now start the loop to listen for messages
 	int curr = 0;
 	int total = filenames.size();
+	printf("total = %d\n", total);	
+
 	MPI_Status status;
 	int worker_id;
 	int worker_status[3];
@@ -265,13 +247,13 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		messages.push_back(std::deque<char>());
 		printf("queue size is %d\n", messages[i].size());
 		workerLoad[i] = 0;
-		printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? -1 : messages[i].front()));
+		printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? 10 : messages[i].front()));
 	}
 	int maxWorkerLoad = 2;
 	int IOCount = 0;
 
 	while (curr < total || IOCount > 0) {
-		usleep(1000);
+		//usleep(1000);
 
 		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
 		if (hasMessage != 0) {
@@ -291,7 +273,8 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					}
 					IOCount += worker_size;
 					++ioiter;
-					printf("current queue content = %d at back\n", messages[worker_id].front());
+					printf("current queue content = %d at front\n", messages[worker_id].front());
+
 				}
 
 				char mstatus;
@@ -315,7 +298,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				} else if (mstatus == MANAGER_READY ){
 
 					// tell worker that manager is ready
-					printf("manager sening work %d to %d.\n", mstatus, worker_id);
+					printf("manager sending work %d to %d.\n", mstatus, worker_id);
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 
 					//				printf("manager signal transfer\n");
@@ -358,7 +341,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				} else {  // wait state.
 
 					// tell worker to wait
-					printf("manager sening work %d to %d.\n", mstatus, worker_id);
+					printf("manager sending message %d to %d.\n", mstatus, worker_id);
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 				}
 			}
@@ -374,8 +357,9 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 /* tell everyone to quit */
 	int active_workers = worker_size;
+	printf("active_worker count = %d\n", active_workers);
 	while (active_workers > 0) {
-		usleep(1000);
+		//usleep(1000);
 
 		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
 		if (hasMessage != 0) {
@@ -388,7 +372,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 			if(worker_status[0] == WORKER_READY) {
 				char mstatus = MANAGER_FINISHED;
 				MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
-//				printf("manager signal finished\n");
+				printf("manager signal finished\n");
 				--active_workers;
 			}
 		}
@@ -469,10 +453,10 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 		// tell the manager - ready
 		MPI_Send(&workerStatus, 3, MPI_INT, manager_rank, TAG_CONTROL, comm_world);
-//		printf("worker %d signal ready\n", rank);
+		printf("worker %d signal ready\n", rank);
 		// get the manager status
 		MPI_Recv(&flag, 1, MPI_CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
-//		printf("worker %d received manager status %d\n", rank, flag);
+		printf("worker %d received manager status %d\n", rank, flag);
 
 
 		if (flag == MANAGER_READY) {
@@ -482,9 +466,9 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			MPI_Recv(&outputSize, 1, MPI::INT, manager_rank, TAG_METADATA, comm_world, &status);
 
 			// allocate the buffers
-			input = new char[inputSize];
-			mask = new char[maskSize];
-			output = new char[outputSize];
+			input = (char *)malloc(inputSize);
+			mask = (char *)malloc(maskSize);
+			output = (char *)malloc(outputSize);
 			memset(input, 0, inputSize * sizeof(char));
 			memset(mask, 0, maskSize * sizeof(char));
 			memset(output, 0, outputSize * sizeof(char));
@@ -506,9 +490,9 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
-			delete [] input;
-			delete [] mask;
-			delete [] output;
+			free(input);
+			free(mask);
+			free(output);
 
 		} else if (flag == MANAGER_REQUEST_IO) {
 			// do some IO.
@@ -516,7 +500,11 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			writer->persist();
 			++iocount;
 		} else if (flag == MANAGER_WAIT) {
-			usleep(10000);
+			printf("manager told worker %d to wait\n", rank);
+			usleep(100);
+		} else {
+			printf("manager send message %d to worker %d\n", flag, rank);
+			usleep(100);
 		}
 	}
 
@@ -580,7 +568,9 @@ int main (int argc, char **argv){
 	int rank, size, worker_size, worker_rank, manager_rank;
 	MPI_Comm comm_world = init_mpi(argc, argv, size, rank, hostname);
 
-	if (rank == 0) {
+	manager_rank = size - 1;
+
+	if (rank == manager_rank) {
 		printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
 	}
 
@@ -593,38 +583,43 @@ int main (int argc, char **argv){
 		stages.push_back(stage);
 	}
 
-
-	if (size == 1) {
-		std::vector<int> stages;
-		for (int stage = 100; stage <= 100; ++stage) {
-			stages.push_back(stage);
-		}
-
-		uint64_t t1 = 0, t2 = 0;
-		t1 = cciutils::ClockGetTime();
-
-
-    	// first get the list of files to process
+	// get the input files and broadcast the count to all
+	long total = 0;
+	// first get the list of files to process
        	std::vector<std::string> filenames;
     	std::vector<std::string> seg_output;
     	std::vector<std::string> bounds_output;
 
-    	t1 = cciutils::ClockGetTime();
-    	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
+	// first process gathers the filesnames
+	uint64_t t1 = 0, t2 = 0;
+	if (rank == manager_rank) {
+    		t1 = cciutils::ClockGetTime();
+	    	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
 
-    	t2 = cciutils::ClockGetTime();
-    	printf("file read took %lu us\n", t2 - t1);
+    		t2 = cciutils::ClockGetTime();
+	    	printf("file read took %lu us\n", t2 - t1);
 
-    	int total = filenames.size();
-    	int i = 0;
+		total = filenames.size();
+	}
+	// then if MPI, broadcast it
+	if (size > 1) {
+		MPI_Bcast(&total, 1, MPI_INT, 0, comm_world);
+	}
 
+	
 
-		cciutils::ADIOSManager *manager = new cciutils::ADIOSManager("adios_xml/adios-all-to-one-globalarray.xml", rank, &comm_world);
+	/* now perform the computation
+	*/
+	cciutils::ADIOSManager *manager = new cciutils::ADIOSManager("adios_xml/image-tiles-globalarray.xml", rank, &comm_world);
+	if (size == 1) {
+
+	    	int i = 0;
+
 
 		// worker bees.  set to overwrite (third param set to true).
-		cciutils::SCIOADIOSWriter *writer = manager->allocateWriter(outDir, std::string("bp"), true, std::string("source"),
-				stages, worker_rank, &comm_world);
-
+		cciutils::SCIOADIOSWriter *writer = manager->allocateWriter(outDir, std::string("bp"), true, 
+		stages, total, total * (long)1024, total * (long)(4096 * 4096 * 4),
+				rank, &comm_world);
 
    		cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(0, std::string("localhost"));
 		cciutils::SCIOLogSession *session;
@@ -644,51 +639,43 @@ int main (int argc, char **argv){
 		for (int i = 0; i < timings.size(); i++) {
 			printf("%s\n", timings[i].c_str());
 		}
-       	delete logger;
+		delete logger;
 
 		manager->freeWriter(writer);
 
-		delete manager;
 	} else {
 
 		// initialize the worker comm object
-		worker_size = size - 1;
-		manager_rank = size - 1;
 
-		// NOT NEEDED
+		// used by adios
 		MPI_Comm comm_worker = init_workers(comm_world, manager_rank, worker_size, worker_rank);
 
-
-
-
-		uint64_t t1 = 0, t2 = 0;
 		t1 = cciutils::ClockGetTime();
-
-		cciutils::ADIOSManager *manager = new cciutils::ADIOSManager("adios_xml/adios-all-to-one-globalarray.xml", rank, &comm_world);
 
 		// decide based on rank of worker which way to process
 		if (rank == manager_rank) {
 			// manager thread
-			manager_process(comm_world, manager_rank, worker_size, imageName, outDir);
+			manager_process(comm_world, manager_rank, worker_size, filenames, seg_output, bounds_output);
 			t2 = cciutils::ClockGetTime();
 			printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 		} else {
 			// worker bees.  set to overwrite (third param set to true).
-			cciutils::SCIOADIOSWriter *writer = manager->allocateWriter(outDir, std::string("bp"), true, std::string("source"),
-					stages, worker_rank, &comm_worker);
+			cciutils::SCIOADIOSWriter *writer = manager->allocateWriter(outDir, std::string("bp"), true, 
+				stages, total, total * (long)1024, total * (long)(4096 * 4096 * 4),
+					worker_rank, &comm_worker);
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer);
 			t2 = cciutils::ClockGetTime();
 			printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
-
 			manager->freeWriter(writer);
 
 		}
+		MPI_Comm_free(&comm_worker);
 
-		delete manager;
 	}
+	delete manager;
 	
 
 	MPI_Barrier(comm_world);
@@ -701,7 +688,7 @@ int main (int argc, char **argv){
 #else
 
     int main (int argc, char **argv){
-    	printf("NOT compiled with MPI.  Using OPENMP if CPU, or GPU (multiple streams)\n");
+    	printf("NOT compiled with MPI.  only works with MPI right now\n");
 }
 #endif
 

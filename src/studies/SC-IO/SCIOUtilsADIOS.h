@@ -41,30 +41,42 @@ public:
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _newfile, const std::string &_group_name, std::vector<int> &selStages,
+			const bool _newfile, std::vector<int> &selStages, long mx_tileinfo_count, long mx_imagename_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
 };
 
 
+#define ENC_RAW 1
 
 class SCIOADIOSWriter : public cv::IntermediateResultHandler {
 
 	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _newfile, const std::string &_group_name, std::vector<int> &selStages,
+			const bool _newfile, std::vector<int> &selStages, long mx_tileinfo_count, long mx_imagename_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
 
 private:
     std::vector<int> selectedStages;
     int64_t adios_handle;
-    std::string group_name;
     std::string filename;
 
-    int local_count;
-    bool newfile;
-    int buffer_size;
+    // tracking how much has a process been writing out.
+    long pg_tile_bytes;
+    long pg_tileInfo_count;
+    long pg_imageName_bytes;
 
+    // tracking how much has been written out TOTAL at the end of each step from all processes 
+    long tileInfo_total;
+    long tile_total;
+    long imageName_total; 
+
+    // set the capacity of the adios arrays
+    long tileInfo_capacity;
+    long tile_capacity;
+    long imageName_capacity;
+
+    bool newfile;
     std::vector<Tile> tile_cache;
 
 	MPI_Comm *local_comm;
@@ -73,11 +85,13 @@ private:
 protected:
 	bool selected(const int stage);
 
-	SCIOADIOSWriter() : local_count(0) {};
+	SCIOADIOSWriter() : tileInfo_total(0), tile_total(0), imageName_total(0),
+		pg_tile_bytes(0), pg_tileInfo_count(0), pg_imageName_bytes(0),
+		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0) {};
 	virtual ~SCIOADIOSWriter();
 
-	virtual int open();
-	virtual int close();
+	virtual int open(const char* groupName);
+	virtual int close(uint32_t time_index = 0);
 
 public:
 

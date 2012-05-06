@@ -4,6 +4,7 @@
 #include <sstream>
 #include "gpu_utils.h"
 #include "adios.h"
+#include "adios_internals.h"
 
 namespace cciutils {
 
@@ -33,8 +34,10 @@ ADIOSManager::~ADIOSManager() {
 }
 
 SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
-		const bool _newfile, const std::string &_group_name,
-		std::vector<int> &selStages, int _local_rank, MPI_Comm *_local_comm) {
+		const bool _newfile,
+		std::vector<int> &selStages,long mx_tileinfo_count, long mx_imagename_bytes, long mx_tile_bytes,
+ int _local_rank, MPI_Comm *_local_comm) {
+
 
 	SCIOADIOSWriter *w = new SCIOADIOSWriter();
 
@@ -42,7 +45,10 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	std::sort(w->selectedStages.begin(), w->selectedStages.end());
 	w->local_rank = _local_rank;
 	w->local_comm = _local_comm;
-	w->group_name = _group_name;
+
+	w->tile_capacity = mx_tile_bytes;
+	w->imageName_capacity = mx_imagename_bytes;
+	w->tileInfo_capacity = mx_tileinfo_count;
 
 	std::stringstream ss;
 	ss << pref << "." << suf;
@@ -82,19 +88,24 @@ SCIOADIOSWriter::~SCIOADIOSWriter() {
 }
 
 
-int SCIOADIOSWriter::open() {
+int SCIOADIOSWriter::open(const char* groupName) {
 	int err;
 	if (newfile) {
-		err = adios_open(&adios_handle, group_name.c_str(), filename.c_str(), "w", local_comm);
+		err = adios_open(&adios_handle, groupName, filename.c_str(), "w", local_comm);
 		newfile = false;
 	} else {
-		err = adios_open(&adios_handle, group_name.c_str(), filename.c_str(), "a", local_comm);
+		err = adios_open(&adios_handle, groupName, filename.c_str(), "a", local_comm);
 	}
 	return err;
 }
 
-int SCIOADIOSWriter::close() {
-
+int SCIOADIOSWriter::close(uint32_t time_index) {
+	// if time_index is not specified, then let ADIOS handle it.
+	if (time_index > 0) {
+        	struct adios_file_struct * fd = (struct adios_file_struct *) adios_handle;
+        	struct adios_group_struct *gd = (struct adios_group_struct *) fd->group;
+		gd->time_index = time_index;
+	}
 	int err = adios_close(adios_handle);
 	return err;
 }
@@ -105,141 +116,179 @@ int SCIOADIOSWriter::persist() {
 	// prepare the data.
 	// all the data should be continuous now.
 
-	open();
 	printf("size of tile_cache is %d\n", tile_cache.size());
 
 	int err;
-	uint64_t total_size;
-
-	long chunk_size = tile_cache.size();
-	long chunk_total = 0;
-	long chunk_offset = 0;
-
-	// get the size info from other workers
-	MPI_Scan(&chunk_size, &chunk_offset, 1, MPI_LONG, MPI_SUM, *local_comm);
-	chunk_offset -= chunk_size;
-	MPI_Allreduce(&chunk_size, &chunk_total, 1, MPI_LONG, MPI_SUM, *local_comm);
-
-	printf("chunk size: %ld of total %ld at offset %ld\n", chunk_size, chunk_total, chunk_offset);
-
-	// get the total_count from last iteration.
-	long total_count = 0;
-	MPI_Allreduce(&local_count, &total_count, 1, MPI_LONG, MPI_SUM, *local_comm);
-	local_count += chunk_size;
-	printf("total count: %ld\n", total_count);
+	uint64_t adios_groupsize, adios_totalsize;
 
 
-	if (tile_cache.size() <= 0) {
-		long chunk_data_size = 0;
-
-		long chunk_data_total = 0;
-		long chunk_data_offset = 0;
-		MPI_Scan(&chunk_data_size, &chunk_data_offset, 1, MPI_LONG, MPI_SUM, *local_comm);
-		chunk_data_offset -= chunk_data_size;
-		MPI_Allreduce(&chunk_data_size, &chunk_data_total, 1, MPI_LONG, MPI_SUM, *local_comm);
-
-		printf("chunk data: size = %ld of total %ld at offset %ld\n", chunk_data_size, chunk_data_total, chunk_data_offset);
-
-		err = adios_group_size (adios_handle, 0, &total_size);
-	} else {
+	/**
+	*  first set up the index variables.
+	*/
+	long tileInfo_pg_size = tile_cache.size();
+	long tile_pg_size = 0;
+	long imageName_pg_size = 0;
+	// capacity variables already set.
 
 
+	/**
+	* gather specific data for the tile in the process
+	*/
+	uint8_t *tiles = NULL;
+	char *imageNames = NULL;
+	int *tileOffsetX, *tileOffsetY, *tileSizeX, *tileSizeY, *channels,
+		*elemSize1, *cvDataType, *encoding;
+	long *imageName_offset, *imageName_size, *tile_offset, *tile_size;
 
-		int imageNameLen = 12;
+	if (tile_cache.size() > 0) {
 
-		char imageNames[imageNameLen * chunk_size];
-		memset(imageNames, 0, imageNameLen * chunk_size);
-		int tileOffsetX[chunk_size];
-		int tileOffsetY[chunk_size];
-		char encoding[3 * chunk_size];
-		memset(encoding, 0, 3 * chunk_size);
+		/** initialize storage
+		*/ 
+		tileOffsetX = (int *)malloc(tile_cache.size() * sizeof(int));
+		tileOffsetY = (int *)malloc(tile_cache.size() * sizeof(int));
+		tileSizeX = (int *)malloc(tile_cache.size() * sizeof(int));
+		tileSizeY = (int *)malloc(tile_cache.size() * sizeof(int));
+		channels = (int *)malloc(tile_cache.size() * sizeof(int));
+		elemSize1 = (int *)malloc(tile_cache.size() * sizeof(int));
+		cvDataType = (int *)malloc(tile_cache.size() * sizeof(int));
+		encoding = (int *)malloc(tile_cache.size() * sizeof(int));
+		
+		imageName_size = (long*) malloc(tile_cache.size() * sizeof(long));
+		imageName_offset = (long*) malloc(tile_cache.size() * sizeof(long));
+		tile_size = (long*) malloc(tile_cache.size() * sizeof(long));
+		tile_offset = (long*) malloc(tile_cache.size() * sizeof(long));
 
-		int tileSizeX[chunk_size];
-		int tileSizeY[chunk_size];
-		int channels[chunk_size];
-		int elemSize1[chunk_size];
-		int cvDataType[chunk_size];
 
-		long tile_size[chunk_size];
-		long id[chunk_size];
-
-		long tile_offset[chunk_size];
-		tile_offset[0] = 0;
-
-		for (int i = 0; i < chunk_size; ++i) {
-			strncpy(imageNames + i * imageNameLen, tile_cache[i].image_name.c_str(), imageNameLen);
+		/**  get tile metadata
+		*/
+		for (int i = 0; i < tile_cache.size(); ++i) {
+			
 			tileOffsetX[i] = tile_cache[i].x_offset;
 			tileOffsetY[i] = tile_cache[i].y_offset;
-			strncpy(encoding + i * 3, "raw", 3);
-
+	
 			::cv::Mat tm = tile_cache[i].tile;
 			tileSizeX[i] = tm.cols;
 			tileSizeY[i] = tm.rows;
 			channels[i] = tm.channels();
 			elemSize1[i] = tm.elemSize1();
 			cvDataType[i] = tm.type();
+			
+			encoding[i] = ENC_RAW;
+
+			imageName_size[i] = tile_cache[i].image_name.size();
 			tile_size[i] = tm.dataend - tm.datastart;
-			id[i] = i + chunk_offset + total_count;
 
-
-			// exclusive scan.
-			if (i > 0) tile_offset[i] = tile_offset[i-1] + tile_size[i-1];
-			printf("id = %ld, size = %ld at offset %ld\n", id[i], tile_size[i], tile_offset[i]);
+			// update the offset (within the group for this time step)
+			// to the size so far.
+			// need to update to global coord later.
+			imageName_offset[i] = imageName_pg_size;
+			tile_offset[i] = tile_pg_size;
+			
+			// update the process group totals
+			imageName_pg_size += imageName_size[i];
+			tile_pg_size += tile_size[i];
 		}
 
 
-		long chunk_data_size = tile_offset[chunk_size - 1] + tile_size[chunk_size - 1];
-
-		long chunk_data_total;
-		long chunk_data_offset;
-		MPI_Scan(&chunk_data_size, &chunk_data_offset, 1, MPI_LONG, MPI_SUM, *local_comm);
-		chunk_data_offset -= chunk_data_size;
-		MPI_Allreduce(&chunk_data_size, &chunk_data_total, 1, MPI_LONG, MPI_SUM, *local_comm);
-
-		printf("chunk data: size = %ld of total %ld at offset %ld\n", chunk_data_size, chunk_data_total, chunk_data_offset);
-
-		//copy data into new buffer
-		unsigned char *tiles = (unsigned char*)malloc(chunk_data_size);
-		for (int i = 0; i < chunk_size; ++i) {
+		/** now allocate the space for tile and for imagename
+			and then get the data.
+		*/
+		imageNames = (char *)malloc(imageName_pg_size);
+		memset(imageNames, 0, imageName_pg_size);
+		tiles = (uint8_t *)malloc(tile_pg_size);
+		memset(tiles, 0, tile_pg_size);
+		
+		for (int i = 0; i < tile_cache.size(); ++i) {
+			strncpy(imageNames + imageName_offset[i], tile_cache[i].image_name.c_str(), imageName_size[i]);
 			memcpy(tiles + tile_offset[i], tile_cache[i].tile.datastart, tile_size[i]);
-		}
-
-		int err = adios_group_size (adios_handle,
-				3*8 + 4 + (imageNameLen + 7*4 + 3 + 3*8) * chunk_size +  3*8 + chunk_data_size,
-				&total_size);
-
-		adios_write(adios_handle, "chunk_total", &chunk_total);
-		adios_write(adios_handle, "chunk_offset", &chunk_offset);
-		adios_write(adios_handle, "chunk_size", &chunk_size);
-		adios_write(adios_handle, "imageNameLen", &imageNameLen);
-		adios_write(adios_handle, "imageName", imageNames);
-		adios_write(adios_handle, "tileSizeX", tileSizeX);
-		adios_write(adios_handle, "tileSizeY", tileSizeY);
-		adios_write(adios_handle, "tileOffsetX", tileOffsetX);
-		adios_write(adios_handle, "tileOffsetY", tileOffsetY);
-		adios_write(adios_handle, "channels", channels);
-		adios_write(adios_handle, "elemSize1", elemSize1);
-		adios_write(adios_handle, "cvDataType", cvDataType);
-		adios_write(adios_handle, "encoding", encoding);
-		adios_write(adios_handle, "id", id);
-		adios_write(adios_handle, "tile_offset", tile_offset);
-		adios_write(adios_handle, "tile_size", tile_size);
-
-		adios_write(adios_handle, "chunk_data_total", &chunk_data_total);
-		adios_write(adios_handle, "chunk_data_offset", &chunk_data_offset);
-		adios_write(adios_handle, "chunk_data_size", &chunk_data_size);
-
-		adios_write(adios_handle, "tiles", tiles);
-
-		free(tiles);
-
-
+		}	
 
 	}
-	close();  // uses matcache.size();
 
+	/**
+	* compute the offset for each step, in global array coordinates
+	*/
+	long pg_sizes[3];
+	pg_sizes[0] = tileInfo_pg_size;
+	pg_sizes[1] = imageName_pg_size;
+	pg_sizes[2] = tile_pg_size;
+	long pg_offsets[3];
+	pg_offsets[0] = 0;
+	pg_offsets[1] = 0;
+	pg_offsets[2] = 0;
+	MPI_Scan(pg_sizes, pg_offsets, 3, MPI_LONG, MPI_SUM, *local_comm);
+	long tileInfo_pg_offset = pg_offsets[0] - tileInfo_pg_size + this->tileInfo_total;
+	long imageName_pg_offset = pg_offsets[1] - imageName_pg_size + this->imageName_total;
+	long tile_pg_offset = pg_offsets[2] - tile_pg_size + this->tile_total;
+	// update the offsets within the process group
+	for (int i = 0; i < tile_cache.size(); ++ i) {
+		imageName_offset[i] += imageName_pg_offset;
+		tile_offset[i] += tile_pg_offset;
+	}
+
+
+	/**
+	* compute the total written out within this step, then update global total
+	*/
+	long step_totals[3];
+	step_totals[0] = 0;
+	step_totals[1] = 0;
+	step_totals[2] = 0;
+	// get the max inclusive scan result from all workers
+	MPI_Allreduce(pg_sizes, step_totals, 3, MPI_LONG, MPI_SUM, *local_comm);
+	this->tileInfo_total += step_totals[0];
+	this->imageName_total += step_totals[1];
+	this->tile_total += step_totals[2];
+
+
+	/** tracking information for this process	
+	*/
+	this->pg_tileInfo_count += tileInfo_pg_size;
+	this->pg_imageName_bytes += imageName_pg_size;
+	this->pg_tile_bytes += tile_pg_size;
+
+
+	printf("chunk size: %ld of total %ld at offset %ld\n", tileInfo_pg_size, tileInfo_capacity, tileInfo_pg_offset);
+
+
+	/**  write out the TileInfo group 
+	*/
+	open("tileInfo");
+	if (tile_cache.size() <= 0) {
+		err = adios_group_size (adios_handle, 0, &adios_totalsize);
+
+	} else {
+#include "gwrite_tileInfo.ch"
+
+	}
+	close(1);  // uses matcache.size();
+
+
+
+	/** then write out the tileCount group
+	*/
+	open("tileCount");
+#include "gwrite_tileCount.ch"
+	close(0);
+
+	/** now clean up
+	*/
+	free(tileOffsetX);
+	free(tileOffsetY);
+	free(tileSizeX);
+	free(tileSizeY);
+	free(channels);
+	free(elemSize1);
+	free(cvDataType);
+	free(encoding);
+	free(imageName_offset);
+	free(imageName_size);
+	free(tile_offset);
+	free(tile_size);
+	free(imageNames);
+	free(tiles);
+	
 	tile_cache.clear();
-
 
 }
 
