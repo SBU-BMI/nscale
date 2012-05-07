@@ -84,7 +84,7 @@ namespace cv {
 	}
 
 	void IntermediateResultWriter::saveIntermediate(const ::cv::Mat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY) {
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 		if (!selected(stage)) return;
 
 		if (intermediate.type() == CV_8UC1 || intermediate.type() == CV_8UC3 ||
@@ -101,7 +101,7 @@ namespace cv {
 #if defined (HAVE_CUDA)
 
 	void IntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY) {
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 		if (!selected(stage)) return;
 		// first download the data
 		::cv::Mat output(intermediate.size(), intermediate.type());
@@ -111,7 +111,7 @@ namespace cv {
 	}
 #else
 	void IntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY) { throw_nogpu(); }
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) { throw_nogpu(); }
 #endif
 
 

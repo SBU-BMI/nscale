@@ -225,7 +225,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	// now start the loop to listen for messages
 	int curr = 0;
 	int total = filenames.size();
-	printf("total = %d\n", total);	
+	// printf("total = %d\n", total);
 
 	MPI_Status status;
 	int worker_id;
@@ -245,9 +245,9 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	std::vector<std::deque<char> > messages;
 	for (int i = 0; i < size; ++i) {
 		messages.push_back(std::deque<char>());
-		printf("queue size is %d\n", messages[i].size());
+		//printf("queue size is %ld\n", messages[i].size());
 		workerLoad[i] = 0;
-		printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? 10 : messages[i].front()));
+		//printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? 10 : messages[i].front()));
 	}
 	int maxWorkerLoad = 2;
 	int IOCount = 0;
@@ -273,7 +273,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					}
 					IOCount += worker_size;
 					++ioiter;
-					printf("current queue content = %d at front\n", messages[worker_id].front());
+					//printf("current queue content = %d at front\n", messages[worker_id].front());
 
 				}
 
@@ -283,7 +283,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				} else {
 					mstatus = messages[worker_id].front();
 				}
-				printf("manager status: %d \n", mstatus);
+				//printf("manager status: %d \n", mstatus);
 
 				if (mstatus == MANAGER_REQUEST_IO) {
 					messages[worker_id].pop_front();
@@ -336,7 +336,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 						for (int i = 0; i < size; ++i) {
 							messages[i].push_back(MANAGER_WAIT);
 						}
-						printf("current queue content = %d at back\n", messages[worker_id].back());
+						//printf("current queue content = %d at back\n", messages[worker_id].back());
 					} // else ready state.  don't change it.
 				} else {  // wait state.
 
@@ -357,7 +357,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 /* tell everyone to quit */
 	int active_workers = worker_size;
-	printf("active_worker count = %d\n", active_workers);
+	//printf("active_worker count = %d\n", active_workers);
 	while (active_workers > 0) {
 		//usleep(1000);
 
@@ -434,7 +434,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 	MPI_Barrier(comm_world);
 	uint64_t t0, t1;
-	printf("worker %d ready\n", rank);
+	//printf("worker %d ready\n", rank);
 	MPI_Barrier(comm_worker); // testing only
 
 	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
@@ -453,7 +453,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 		// tell the manager - ready
 		MPI_Send(&workerStatus, 3, MPI_INT, manager_rank, TAG_CONTROL, comm_world);
-		printf("worker %d signal ready\n", rank);
+		//printf("worker %d signal ready\n", rank);
 		// get the manager status
 		MPI_Recv(&flag, 1, MPI_CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
 		printf("worker %d received manager status %d\n", rank, flag);
@@ -516,9 +516,10 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	// manager is now done.  now do IO again
 	printf("worker-initiated IO for worker %d \n", rank);
 	writer->persist();
-
+	printf("written out data %d \n", rank);
 	// last tiles were just written.  now add teh count informaton
 	writer->persistCountInfo();
+	printf("written out data count %d \n", rank);
 
 
 
@@ -601,13 +602,14 @@ int main (int argc, char **argv){
 	    	printf("file read took %lu us\n", t2 - t1);
 
 		total = filenames.size();
+		printf("TOTAL FILES = %ld\n", total);
 	}
 	// then if MPI, broadcast it
 	if (size > 1) {
 		MPI_Bcast(&total, 1, MPI_INT, manager_rank, comm_world);
 	}
 
-printf("TOTAL FILES = %d\n", total);	
+
 
 	/* now perform the computation
 	*/
@@ -619,7 +621,7 @@ printf("TOTAL FILES = %d\n", total);
 
 		// worker bees.  set to overwrite (third param set to true).
 		cciutils::SCIOADIOSWriter *writer = manager->allocateWriter(outDir, std::string("bp"), true, 
-		stages, total, total * (long)1024, total * (long)(4096 * 4096 * 4),
+		stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 				rank, &comm_world);
 
    		cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(0, std::string("localhost"));
@@ -663,7 +665,7 @@ printf("TOTAL FILES = %d\n", total);
 		} else {
 			// worker bees.  set to overwrite (third param set to true).
 			cciutils::SCIOADIOSWriter *writer = manager->allocateWriter(outDir, std::string("bp"), true, 
-				stages, total, total * (long)1024, total * (long)(4096 * 4096 * 4),
+				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 					worker_rank, &comm_worker);
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer);

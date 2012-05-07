@@ -26,6 +26,7 @@ public:
 	std::string image_name;
 	int x_offset;
 	int y_offset;
+	std::string source_tile_file_name;
 	::cv::Mat tile;
 };
 
@@ -41,7 +42,8 @@ public:
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _newfile, std::vector<int> &selStages, long mx_tileinfo_count, long mx_imagename_bytes, long mx_tile_bytes,
+			const bool _newfile, std::vector<int> &selStages,
+			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
 };
@@ -52,7 +54,8 @@ public:
 class SCIOADIOSWriter : public cv::IntermediateResultHandler {
 
 	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _newfile, std::vector<int> &selStages, long mx_tileinfo_count, long mx_imagename_bytes, long mx_tile_bytes,
+			const bool _newfile, std::vector<int> &selStages,
+			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
 
@@ -62,19 +65,22 @@ private:
     std::string filename;
 
     // tracking how much has a process been writing out.
-    long pg_tile_bytes;
     long pg_tileInfo_count;
     long pg_imageName_bytes;
+    long pg_sourceTileFile_bytes;
+    long pg_tile_bytes;
 
     // tracking how much has been written out TOTAL at the end of each step from all processes 
     long tileInfo_total;
-    long tile_total;
     long imageName_total; 
+    long sourceTileFile_total;
+    long tile_total;
 
     // set the capacity of the adios arrays
     long tileInfo_capacity;
-    long tile_capacity;
     long imageName_capacity;
+    long sourceTileFile_capacity;
+    long tile_capacity;
 
     bool newfile;
     std::vector<Tile> tile_cache;
@@ -85,9 +91,9 @@ private:
 protected:
 	bool selected(const int stage);
 
-	SCIOADIOSWriter() : tileInfo_total(0), tile_total(0), imageName_total(0),
-		pg_tile_bytes(0), pg_tileInfo_count(0), pg_imageName_bytes(0),
-		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0) {};
+	SCIOADIOSWriter() : tileInfo_total(0), tile_total(0), imageName_total(0), sourceTileFile_total(0),
+		pg_tile_bytes(0), pg_tileInfo_count(0), pg_imageName_bytes(0), pg_sourceTileFile_bytes(0),
+		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0), sourceTileFile_capacity(0) {};
 	virtual ~SCIOADIOSWriter();
 
 	virtual int open(const char* groupName);
@@ -102,10 +108,10 @@ public:
 	}
 
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY);
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name);
 
 	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY);
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name);
 
 };
 

@@ -310,7 +310,7 @@ int main (int argc, char **argv) {
 		bytes_read = adios_read_var(g, "values", &start, &count, ival);
 
 
-		printf ("worker rank %d: [%lld:%lld]\n\t", worker_rank, start, count);
+		printf ("worker rank %d: [%lu:%lu]\n\t", worker_rank, start, count);
 		for (int i = 0; i < count; i++) {
 			printf ("%d ", *((int *)ival + i));
 		 }
@@ -421,7 +421,7 @@ int main (int argc, char **argv) {
 		bytes_read = adios_read_var(g, "values", start2d, count2d, ival);
 
 
-		printf ("worker rank %d: [%lld:%lld]\n\t", worker_rank, start, count);
+		printf ("worker rank %d: [%lu:%lu]\n\t", worker_rank, start, count);
 		for (int it = 0; it < v->dims[datadim]; ++it) {
 			printf("\ttime %d: \n", it);
 			for (int i = 0; i < count; i++) {
@@ -594,7 +594,7 @@ int main (int argc, char **argv) {
 		// READ A REGULAR ARRAY
 		v = adios_inq_var(g, "values");
 
-		printf("Size is : %d\n", v->dims[0]);
+		printf("Size is : %lu\n", v->dims[0]);
 
 		/* use fewer redaers to read the global array back */
 		//slice_size = v->dims[0] / worker_size;  // each read at least these many
@@ -619,7 +619,7 @@ int main (int argc, char **argv) {
 
 		bytes_read = adios_read_var(g, "values", &start, &count, ival);
 
-		printf ("worker rank %d: [%lld:%lld] values \n\t", rank2, start, count);
+		printf ("worker rank %d: [%lu:%lu] values \n\t", rank2, start, count);
 		for (int i = 0; i < count; i++) {
 			printf ("%d ", *((int *)ival + i));
 		 }
@@ -653,7 +653,7 @@ int main (int argc, char **argv) {
 
 		bytes_read = adios_read_var(g, "values2", &start, &count, ival);
 
-		printf ("worker rank %d: [%lld:%lld] values 2\n\t", rank2, start, count);
+		printf ("worker rank %d: [%lu:%lu] values 2\n\t", rank2, start, count);
 		for (int i = 0; i < count; i++) {
 			printf ("%d ", *((int *)ival + i));
 		 }
@@ -768,7 +768,7 @@ int main (int argc, char **argv) {
 
 		bytes_read = adios_read_var(g, "strval", start2d, count2d, ival);
 
-		printf ("worker rank %d: [%lld:%lld] values \n", worker_rank, start, count);
+		printf ("worker rank %d: [%lu:%lu] values \n", worker_rank, start, count);
 		char str[v->dims[1] + 1];
 		for (int i = 0; i < count; i++) {
 			strncpy(str, (char *)ival + i * v->dims[1], v->dims[1]);

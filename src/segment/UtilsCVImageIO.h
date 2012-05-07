@@ -30,10 +30,10 @@ public:
 
 	// write out with raw
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
-			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0) = 0;
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL) = 0;
 
 	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0) = 0;
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL) = 0;
 
 };
 
@@ -57,10 +57,10 @@ public:
 	virtual int persist() { return -1; };
 
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
-			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0);
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL);
 
 	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0);
+			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL);
 
 };
 

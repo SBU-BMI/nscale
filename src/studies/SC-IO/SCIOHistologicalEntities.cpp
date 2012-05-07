@@ -66,7 +66,7 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 		t1 = ::cciutils::event::timestampInUS();
 		// first split.
 		//imwrite(out, output);
-		iresHandler->saveIntermediate(output, 100, imagename.c_str(), tilex, tiley);
+		iresHandler->saveIntermediate(output, 100, imagename.c_str(), tilex, tiley, in.c_str());
 		t2 = ::cciutils::event::timestampInUS();
 		logsession->log(cciutils::event(100, std::string("write"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
 	}
