@@ -517,7 +517,8 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	printf("worker-initiated IO for worker %d \n", rank);
 	writer->persist();
 
-
+	// last tiles were just written.  now add teh count informaton
+	writer->persistCountInfo();
 
 
 
@@ -603,10 +604,10 @@ int main (int argc, char **argv){
 	}
 	// then if MPI, broadcast it
 	if (size > 1) {
-		MPI_Bcast(&total, 1, MPI_INT, 0, comm_world);
+		MPI_Bcast(&total, 1, MPI_INT, manager_rank, comm_world);
 	}
 
-	
+printf("TOTAL FILES = %d\n", total);	
 
 	/* now perform the computation
 	*/

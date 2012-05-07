@@ -96,6 +96,7 @@ protected:
 public:
 
 	virtual int persist();
+	virtual int persistCountInfo();
 	virtual int currentLoad() {
 		return tile_cache.size();
 	}

@@ -550,14 +550,16 @@ int main (int argc, char **argv) {
 
 		values = (int*)malloc(size * sizeof(int));
 		for (int i = 0; i < size; ++i) {
-			values[i] = rank + size;
+			values[i] = rank + i;
 		}
 //		printf("size %d, total %d, offset %d\n", size, total, offset);
 		values2 = values;
 
 #include "gwrite_source4.ch"
 //		printf("TIME INDEX 2 before close %u \n", gd->time_index);
-
+               printf("rank %d, group id %u, membercount %u, offset %lu, timeindex %u, proc id %u\n", worker_rank, gd->id, gd->member_count, gd->group_offset, gd->time_index, gd->process_id);
+                printf("rank %d, file datasize %lu, writesizebytes %lu, pgstart %lu, baseoffset %lu, offset %lu, bytewritten %lu, bufsize %lu\n", worker_rank, fd->data_size, fd->write_size_bytes, fd->pg_start_in_file, fd->base_offset, fd->offset, fd->bytes_written, fd->buffer_size);
+  
 		gd->time_index = 1;
 		printf("TIME INDEX modified %u \n", gd->time_index);
 		err = adios_close(adios_handle);
@@ -567,10 +569,17 @@ int main (int argc, char **argv) {
 
 		MPI_Barrier(comm_worker);
 
-
-
+		MPI_Comm comm2;
+		MPI_Comm_split(comm_worker, (worker_rank > 0? 1 : 0), worker_rank, &comm2);
+		int rank2, size2;
+		
 		if (worker_rank == 0) printf("READING source 4\n");
-		f = adios_fopen(filename, comm_worker);
+		if (worker_rank > 0) {
+
+		MPI_Comm_rank(comm2, &rank2);
+		MPI_Comm_size(comm2, &size2);
+
+		f = adios_fopen(filename, comm2);
 		if (f == NULL) {
 			printf("can't open file %s\n", adios_errmsg());
 			return -1;
@@ -591,14 +600,14 @@ int main (int argc, char **argv) {
 		//slice_size = v->dims[0] / worker_size;  // each read at least these many
 		//remainder = v->dims[0] % worker_size;  // what's left
 
-		slice_size = 15 / worker_size;  // each read at least these many
-		remainder = 15 % worker_size;  // what's left
+		slice_size = 15 / size2;  // each read at least these many
+		remainder = 15 % size2;  // what's left
 
 		if ( worker_rank < remainder ) {
-			start = (slice_size + 1) * worker_rank;
+			start = (slice_size + 1) * rank2;
 			count = slice_size + 1;
 		} else {
-			start = slice_size * worker_rank + remainder;
+			start = slice_size * rank2 + remainder;
 			count = slice_size;
 		}
 
@@ -610,7 +619,7 @@ int main (int argc, char **argv) {
 
 		bytes_read = adios_read_var(g, "values", &start, &count, ival);
 
-		printf ("worker rank %d: [%lld:%lld] values \n\t", worker_rank, start, count);
+		printf ("worker rank %d: [%lld:%lld] values \n\t", rank2, start, count);
 		for (int i = 0; i < count; i++) {
 			printf ("%d ", *((int *)ival + i));
 		 }
@@ -625,14 +634,14 @@ int main (int argc, char **argv) {
 		/* use fewer redaers to read the global array back */
 //		slice_size = v->dims[0] / worker_size;  // each read at least these many
 //		remainder = v->dims[0] % worker_size;  // what's left
-		slice_size = 15 / worker_size;  // each read at least these many
-		remainder = 15 % worker_size;  // what's left
+		slice_size = 15 / size2;  // each read at least these many
+		remainder = 15 % size2;  // what's left
 
 		if ( worker_rank < remainder ) {
-			start = (slice_size + 1) * worker_rank;
+			start = (slice_size + 1) * rank2;
 			count = slice_size + 1;
 		} else {
-			start = slice_size * worker_rank + remainder;
+			start = slice_size * rank2 + remainder;
 			count = slice_size;
 		}
 
@@ -644,7 +653,7 @@ int main (int argc, char **argv) {
 
 		bytes_read = adios_read_var(g, "values2", &start, &count, ival);
 
-		printf ("worker rank %d: [%lld:%lld] values 2\n\t", worker_rank, start, count);
+		printf ("worker rank %d: [%lld:%lld] values 2\n\t", rank2, start, count);
 		for (int i = 0; i < count; i++) {
 			printf ("%d ", *((int *)ival + i));
 		 }
@@ -656,6 +665,9 @@ int main (int argc, char **argv) {
 
 		adios_gclose (g);
 		 adios_fclose (f);
+}
+		MPI_Barrier(comm2);
+		MPI_Comm_free(&comm2);
 			MPI_Barrier(comm_worker);
 
 		free(filename);

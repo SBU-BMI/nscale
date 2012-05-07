@@ -46,7 +46,7 @@ FILE(GLOB ADIOS_CHS RELATIVE ${CMAKE_CURRENT_BINARY_DIR} "*.ch" )
 include_directories(${PROJECT_SOURCE_DIR}/../adios-include)
 
 
-set(programs test-adios test-adios-read)
+set(programs test-adios)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)

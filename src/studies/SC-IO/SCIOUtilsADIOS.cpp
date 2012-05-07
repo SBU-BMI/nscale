@@ -35,7 +35,7 @@ ADIOSManager::~ADIOSManager() {
 
 SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
 		const bool _newfile,
-		std::vector<int> &selStages,long mx_tileinfo_count, long mx_imagename_bytes, long mx_tile_bytes,
+		std::vector<int> &selStages, const long mx_tileinfo_count, const long mx_imagename_bytes, const long mx_tile_bytes,
  int _local_rank, MPI_Comm *_local_comm) {
 
 
@@ -49,6 +49,8 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	w->tile_capacity = mx_tile_bytes;
 	w->imageName_capacity = mx_imagename_bytes;
 	w->tileInfo_capacity = mx_tileinfo_count;
+
+	printf("INITIALIZED with tileinfo %d, imagename %d, tile %d\n", w->tileInfo_capacity, w->imageName_capacity, w->tile_capacity);
 
 	std::stringstream ss;
 	ss << pref << "." << suf;
@@ -101,10 +103,15 @@ int SCIOADIOSWriter::open(const char* groupName) {
 
 int SCIOADIOSWriter::close(uint32_t time_index) {
 	// if time_index is not specified, then let ADIOS handle it.
-	if (time_index > 0) {
         	struct adios_file_struct * fd = (struct adios_file_struct *) adios_handle;
         	struct adios_group_struct *gd = (struct adios_group_struct *) fd->group;
+		
+		printf("rank %d, group name %s, id %u, membercount %u, offset %lu, timeindex %u, proc id %u\n", local_rank, gd->name, gd->id, gd->member_count, gd->group_offset, gd->time_index, gd->process_id);
+		printf("rank %d, file datasize %lu, writesizebytes %lu, pgstart %lu, baseoffset %lu, offset %lu, bytewritten %lu, bufsize %lu\n", local_rank, fd->data_size, fd->write_size_bytes, fd->pg_start_in_file, fd->base_offset, fd->offset, fd->bytes_written, fd->buffer_size); 
+	if (time_index > 0) {
 		gd->time_index = time_index;
+
+		
 	}
 	int err = adios_close(adios_handle);
 	return err;
@@ -116,7 +123,7 @@ int SCIOADIOSWriter::persist() {
 	// prepare the data.
 	// all the data should be continuous now.
 
-	printf("size of tile_cache is %d\n", tile_cache.size());
+	printf("size of tile_cache is %lu\n", tile_cache.size());
 
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
@@ -134,7 +141,7 @@ int SCIOADIOSWriter::persist() {
 	/**
 	* gather specific data for the tile in the process
 	*/
-	uint8_t *tiles = NULL;
+	unsigned char *tiles = NULL;
 	char *imageNames = NULL;
 	int *tileOffsetX, *tileOffsetY, *tileSizeX, *tileSizeY, *channels,
 		*elemSize1, *cvDataType, *encoding;
@@ -175,8 +182,9 @@ int SCIOADIOSWriter::persist() {
 			
 			encoding[i] = ENC_RAW;
 
-			imageName_size[i] = tile_cache[i].image_name.size();
-			tile_size[i] = tm.dataend - tm.datastart;
+			imageName_size[i] = (long)(tile_cache[i].image_name.size());
+			tile_size[i] = (long)(tm.dataend) - (long)(tm.datastart);
+//			tile_size[i] = 0;
 
 			// update the offset (within the group for this time step)
 			// to the size so far.
@@ -187,6 +195,9 @@ int SCIOADIOSWriter::persist() {
 			// update the process group totals
 			imageName_pg_size += imageName_size[i];
 			tile_pg_size += tile_size[i];
+
+
+			printf("rank %d tile %d offset %dx%d, size %dx%dx%d, elemSize %d type %d encoding %d, tile bytes %ld at %ld, imagename %ld at %ld\n", local_rank, i, tileOffsetX[i], tileOffsetY[i], tileSizeX[i], tileSizeY[i], channels[i], elemSize1[i], cvDataType[i], encoding[i], tile_size[i], tile_offset[i], imageName_size[i], imageName_offset[i]);
 		}
 
 
@@ -195,7 +206,7 @@ int SCIOADIOSWriter::persist() {
 		*/
 		imageNames = (char *)malloc(imageName_pg_size);
 		memset(imageNames, 0, imageName_pg_size);
-		tiles = (uint8_t *)malloc(tile_pg_size);
+		tiles = (unsigned char *)malloc(tile_pg_size);
 		memset(tiles, 0, tile_pg_size);
 		
 		for (int i = 0; i < tile_cache.size(); ++i) {
@@ -224,6 +235,7 @@ int SCIOADIOSWriter::persist() {
 	for (int i = 0; i < tile_cache.size(); ++ i) {
 		imageName_offset[i] += imageName_pg_offset;
 		tile_offset[i] += tile_pg_offset;
+			printf("globally shifted.  rank %d tile %d offset %dx%d, size %dx%dx%d, elemSize %d type %d encoding %d, tile bytes %ld at %ld, imagename %ld at %ld\n", local_rank, i, tileOffsetX[i], tileOffsetY[i], tileSizeX[i], tileSizeY[i], channels[i], elemSize1[i], cvDataType[i], encoding[i], tile_size[i], tile_offset[i], imageName_size[i], imageName_offset[i]);
 	}
 
 
@@ -246,7 +258,7 @@ int SCIOADIOSWriter::persist() {
 	this->pg_tileInfo_count += tileInfo_pg_size;
 	this->pg_imageName_bytes += imageName_pg_size;
 	this->pg_tile_bytes += tile_pg_size;
-
+printf("totals %ld, %ld, %ld, proc %d total %ld, %ld, %ld\n", this->tileInfo_total, this->imageName_total, this->tile_total, local_rank, this->pg_tileInfo_count, this->pg_imageName_bytes, this->pg_tile_bytes);
 
 	printf("chunk size: %ld of total %ld at offset %ld\n", tileInfo_pg_size, tileInfo_capacity, tileInfo_pg_offset);
 
@@ -264,12 +276,6 @@ int SCIOADIOSWriter::persist() {
 	close(1);  // uses matcache.size();
 
 
-
-	/** then write out the tileCount group
-	*/
-	open("tileCount");
-#include "gwrite_tileCount.ch"
-	close(0);
 
 	/** now clean up
 	*/
@@ -290,6 +296,19 @@ int SCIOADIOSWriter::persist() {
 	
 	tile_cache.clear();
 
+	return 0;
+}
+
+int SCIOADIOSWriter::persistCountInfo() {
+	/** then write out the tileCount group
+	*/
+	uint64_t adios_groupsize, adios_totalsize;
+
+	open("tileCount");
+#include "gwrite_tileCount.ch"
+	close(0);
+
+	return 0;
 }
 
 

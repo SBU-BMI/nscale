@@ -23,7 +23,7 @@
 		<var name="imageName_pg_offset" type="long" />
 		<var name="imageName_pg_size" type="long" />
 	    <global-bounds dimensions="imageName_capacity" offsets="imageName_pg_offset">
-			<var name="imageNames" type="unsigned byte" dimensions="imageName_pg_size" />
+			<var name="imageNames" type="byte" dimensions="imageName_pg_size" />
 	    </global-bounds>
 
 	   	<var name="tile_capacity" type="long" />

@@ -119,7 +119,7 @@ endforeach(program)
 
 if (ADIOS_FOUND)
 
-	set(programs nu-segment-scio-adios)
+	set(programs nu-segment-scio-adios nu-features-adios)
 	foreach(program ${programs})
 		# Add an executable to be built from the files listed
 		add_executable(${program} ${program}.cpp)
