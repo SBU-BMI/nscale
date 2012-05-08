@@ -263,6 +263,11 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 //			printf("manager received request from worker %d\n",worker_id);
 			if (worker_id == manager_rank) continue;
 
+			if (curr % 100 == 0) {
+				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
+			}
+
+
 			if(worker_status[0] == WORKER_READY) {
 
 				// first find out what the load is
@@ -289,8 +294,8 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					messages[worker_id].pop_front();
 
 					// tell worker to do IO.
+//					printf("manager sent IO request to worker %d for io iter.\n", worker_id);
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
-					printf("manager sent IO request to worker %d.\n", worker_id);
 //					if (curr >= total) messages[worker_id].push(MANAGER_WAIT);
 //					else messages[worker_id].push(MANAGER_READY);
 					--IOCount;
@@ -298,7 +303,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				} else if (mstatus == MANAGER_READY ){
 
 					// tell worker that manager is ready
-					printf("manager sending work %d to %d.\n", mstatus, worker_id);
+					//printf("manager sending work %d to %d.\n", mstatus, worker_id);
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 
 					//				printf("manager signal transfer\n");
@@ -346,10 +351,6 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				}
 			}
 
-			if (curr % 100 == 1) {
-				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
-			}
-
 		}
 	}
 
@@ -372,13 +373,13 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 			if(worker_status[0] == WORKER_READY) {
 				char mstatus = MANAGER_FINISHED;
 				MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
-				printf("manager signal finished\n");
+				printf("manager signal finished to %d\n", worker_id);
 				--active_workers;
 			}
 		}
 	}
 
-	printf("MANAGER waiting for MPI sync\n");
+	//printf("MANAGER waiting for MPI sync\n");
 	// now all child processes will be doing the collective IO
 
 	MPI_Barrier(comm_world);
@@ -411,7 +412,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
 
-	printf("%s\n", logdata);
+	//printf("%s\n", logdata);
 
 
 	free(logdata);
@@ -456,7 +457,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 		//printf("worker %d signal ready\n", rank);
 		// get the manager status
 		MPI_Recv(&flag, 1, MPI_CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
-		printf("worker %d received manager status %d\n", rank, flag);
+		//printf("worker %d received manager status %d\n", rank, flag);
 
 
 		if (flag == MANAGER_READY) {
@@ -508,18 +509,18 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 		}
 	}
 
-	printf("WORKER %d waiting for MPI barrier\n", rank);
+	// printf("WORKER %d waiting for MPI barrier\n", rank);
 
 	// now do collective io.
 	MPI_Barrier(comm_world);
 
 	// manager is now done.  now do IO again
-	printf("worker-initiated IO for worker %d \n", rank);
+	printf("worker %d final IO \n", rank);
 	writer->persist();
-	printf("written out data %d \n", rank);
+	// printf("written out data %d \n", rank);
 	// last tiles were just written.  now add teh count informaton
 	writer->persistCountInfo();
-	printf("written out data count %d \n", rank);
+	//printf("written out data count %d \n", rank);
 
 
 
@@ -572,9 +573,9 @@ int main (int argc, char **argv){
 
 	manager_rank = size - 1;
 
-	if (rank == manager_rank) {
-		printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
-	}
+//	if (rank == manager_rank) {
+//		printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
+//	}
 
 	if (modecode == cciutils::DEVICE_GPU) {
 		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");

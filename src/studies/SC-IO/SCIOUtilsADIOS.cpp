@@ -154,7 +154,6 @@ int SCIOADIOSWriter::persist() {
 		*sourceTileFile_offset, *sourceTileFile_size,
 		*tile_offset, *tile_size;
 
-	printf("here 1 rank %d\n", local_rank);
 	if (tile_cache.size() > 0) {
 
 		/** initialize storage
@@ -219,19 +218,19 @@ int SCIOADIOSWriter::persist() {
 		*/
 		imageName = (char *)malloc(imageName_pg_size);
 		memset(imageName, 0, imageName_pg_size);
-		sourceTileFile = (char *)malloc(sourceTileFile_pg_size);
-		memset(sourceTileFile, 0, sourceTileFile_pg_size);
+		sourceTileFile = (char *)malloc(sourceTileFile_pg_size + 1);
+		memset(sourceTileFile, 0, sourceTileFile_pg_size + 1);
 		tile = (unsigned char *)malloc(tile_pg_size);
 		memset(tile, 0, tile_pg_size);
 		
 		for (int i = 0; i < tile_cache.size(); ++i) {
 			strncpy(imageName + imageName_offset[i], tile_cache[i].image_name.c_str(), imageName_size[i]);
+			//printf("filename cp'ed %s\n", tile_cache[i].source_tile_file_name.c_str());
 			strncpy(sourceTileFile + sourceTileFile_offset[i], tile_cache[i].source_tile_file_name.c_str(), sourceTileFile_size[i]);
 			memcpy(tile + tile_offset[i], tile_cache[i].tile.datastart, tile_size[i]);
-		}	
-
+		}
+		//printf("all filenames together %s\n", sourceTileFile);
 	}
-	printf("here 2 rank %d\n", local_rank);
 
 	/**
 	* compute the offset for each step, in global array coordinates
@@ -262,7 +261,6 @@ int SCIOADIOSWriter::persist() {
 //				tile_offset[i], imageName_size[i], imageName_offset[i], sourceTileFile_size[i], sourceTileFile_offset[i]);
 	}
 
-	printf("here 3 rank %d\n", local_rank);
 
 	/**
 	* compute the total written out within this step, then update global total
@@ -290,7 +288,6 @@ int SCIOADIOSWriter::persist() {
 
 	//printf("chunk size: %ld of total %ld at offset %ld\n", tileInfo_pg_size, tileInfo_capacity, tileInfo_pg_offset);
 
-	printf("here 4 rank %d\n", local_rank);
 
 	/**  write out the TileInfo group 
 	*/
@@ -304,7 +301,6 @@ int SCIOADIOSWriter::persist() {
 	}
 	close(1);  // uses matcache.size();
 
-	printf("here 5 rank %d\n", local_rank);
 
 
 	/** now clean up
@@ -329,7 +325,6 @@ int SCIOADIOSWriter::persist() {
 		free(tile);
 	}
 	tile_cache.clear();
-	printf("here 6 rank %d\n", local_rank);
 
 	return 0;
 }

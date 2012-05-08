@@ -54,5 +54,5 @@
     </adios-group>
     <method group="tileCount" method="MPI"/>
     <method group="tileInfo" method="MPI"/>
-    <buffer size-MB="520" allocate-time="now"/>
+    <buffer size-MB="150" allocate-time="now"/>
 </adios-config>
