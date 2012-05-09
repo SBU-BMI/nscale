@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<adios-config host-language="C">
+    <adios-group name="nuFeatureInfo" coordination-communicator="comm_worker" >
+
+	    <var name="nuFeatureInfo_capacity" type="long" />
+		<var name="nuFeatureInfo_pg_offset" type="long" />
+		<var name="nuFeatureInfo_pg_size" type="long" />
+	    <var name="feature_count" type="integer" />
+	    <var name="ndims" type="integer" />
+	    <global-bounds dimensions="nuFeatureInfo_capacity,ndims" offsets="nuFeatureInfo_pg_offset,0">
+		    <var name="boundingBoxOffset" type="float" dimensions="nuFeatureInfo_pg_size,ndims" />
+		    <var name="boundingBoxSize" type="float" dimensions="nuFeatureInfo_pg_size,ndims" />
+			<var name="centroid" type="float" dimensions="nuFeatureInfo_pg_size,ndims" />
+	    </global-bounds>
+	    <global-bounds dimensions="nuFeatureInfo_capacity" offsets="nuFeatureInfo_pg_offset">
+			<var name="imageName_offset" type="long" dimensions="nuFeatureInfo_pg_size" />
+			<var name="imageName_size" type="long" dimensions="nuFeatureInfo_pg_size" />
+	    </global-bounds>
+	    <global-bounds dimensions="nuFeatureInfo_capacity,feature_count" offsets="nuFeatureInfo_pg_offset,0">
+			<var name="feature" type="float" dimensions="nuFeatureInfo_pg_size,feature_count" />
+	    </global-bounds>
+
+	   	<var name="imageName_capacity" type="long" />
+		<var name="imageName_pg_offset" type="long" />
+		<var name="imageName_pg_size" type="long" />
+	    <global-bounds dimensions="imageName_capacity" offsets="imageName_pg_offset">
+			<var name="imageName" type="byte" dimensions="imageName_pg_size" />
+	    </global-bounds>
+	    
+    </adios-group>
+    <adios-group name="nuFeatureDims" coordination-communicator="comm_worker">
+		<var name="imageName_capacity" type="long" />
+		<var name="imageName_total" type="long" />
+		<var name="nuFeatureInfo_capacity" type="long" />
+		<var name="nuFeatureInfo_total" type="long" />
+		<var name="ndims" type="integer" />
+		<var name="feature_count" type="integer" />
+    </adios-group>
+    <method group="nuFeatureDims" method="MPI"/>
+    <method group="nuFeatureInfo" method="MPI"/>
+    <buffer size-MB="150" allocate-time="now"/>
+</adios-config>

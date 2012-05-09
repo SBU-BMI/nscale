@@ -10,20 +10,24 @@
 #include "mpi.h"
 #include <cstdlib>
 #include <string>
+#include <algorithm>
 #include "adios_read.h"
 #include "adios.h"
+#include "adios_internals.h"
 #include "opencv2/opencv.hpp"
 #include "RegionalMorphologyAnalysis.h"
 #include "PixelOperations.h"
 
 
-void readData(ADIOS_GROUP *g,const  uint64_t *start, const uint64_t *count, const int rank, void* &tiledata, ::cv::Mat &img, char* &sourceTileFiledata) {
-	int tileOffsetX, tileOffsetY;
+void readData(ADIOS_GROUP *g,const  uint64_t *start, const uint64_t *count, const int rank, void* &tiledata, ::cv::Mat &img,
+		char* &sourceTileFiledata, int &tileOffsetX, int &tileOffsetY, char* &imageName, long &imageName_offset, long &imageName_size) {
+
 	int tileSizeX, tileSizeY, channels, elemSize1, cvDataType, encoding;
 	uint64_t sourceTileFile_offset, sourceTileFile_size, tile_offset, tile_size;
 	uint64_t bytes_read = 0;
 
 	// read the metadata.
+	// TODO:  tileoffset, etc should be a 1xcount array.
 	bytes_read = adios_read_var(g, "tileOffsetX", start, count, &tileOffsetX);
 	bytes_read = adios_read_var(g, "tileOffsetY", start, count, &tileOffsetY);
 	bytes_read = adios_read_var(g, "tileSizeX", start, count, &tileSizeX);
@@ -34,6 +38,8 @@ void readData(ADIOS_GROUP *g,const  uint64_t *start, const uint64_t *count, cons
 	bytes_read = adios_read_var(g, "encoding", start, count, &encoding);
 	bytes_read = adios_read_var(g, "sourceTileFile_offset", start, count, &sourceTileFile_offset);
 	bytes_read = adios_read_var(g, "sourceTileFile_size", start, count, &sourceTileFile_size);
+	bytes_read = adios_read_var(g, "imageName_offset", start, count, &imageName_offset);
+	bytes_read = adios_read_var(g, "imageName_size", start, count, &imageName_size);
 	bytes_read = adios_read_var(g, "tile_offset", start, count, &tile_offset);
 	bytes_read = adios_read_var(g, "tile_size", start, count, &tile_size);
 	// printf("tile info at rank %d: at %dx%d, %dx%dx%d, elem %d, cvType %d, encoding %d, sourcetile %ld at %ld, bytes %ld at %ld\n", rank, tileOffsetX, tileOffsetY, tileSizeX, tileSizeY, channels, elemSize1, cvDataType, encoding, sourceTileFile_size, sourceTileFile_offset, tile_size, tile_offset);
@@ -46,6 +52,17 @@ void readData(ADIOS_GROUP *g,const  uint64_t *start, const uint64_t *count, cons
 	bytes_read = adios_read_var(g, "sourceTileFile", &sourceTileFile_offset, &sourceTileFile_size, sourceTileFiledata);
 	//printf ("rank %d requested read %ld bytes at offset %ld, actual read %ld bytes\n", rank, sourceTileFile_size, sourceTileFile_offset, bytes_read);
 	//printf("source tilefile : %s\n", sourceTileFiledata);
+
+	// read the tile
+	// TODO: may be able to reuse memory.
+	imageName = (char*)malloc(imageName_size + 1);
+	memset(imageName, 0, imageName_size + 1);
+	uint64_t istart = imageName_offset;
+	uint64_t isize = imageName_size;
+	bytes_read = adios_read_var(g, "imageName", &istart, &isize, imageName);
+	//printf ("rank %d requested read %ld bytes at offset %ld, actual read %ld bytes\n", rank, sourceTileFile_size, sourceTileFile_offset, bytes_read);
+	//printf("source tilefile : %s\n", sourceTileFiledata);
+
 
 	tiledata = malloc(tile_size);
 	memset(tiledata, 0, tile_size);
@@ -60,7 +77,7 @@ void readData(ADIOS_GROUP *g,const  uint64_t *start, const uint64_t *count, cons
 }
 
 
-std::vector<std::vector<float> > computeFeatures(::cv::Mat image, ::cv::Mat mask) {
+void computeFeatures(::cv::Mat image, ::cv::Mat mask, std::vector<std::vector<float> > &features) {
 	::cv::Mat maskMat = mask > 0;
 
 	IplImage originalImageMask(maskMat);
@@ -156,7 +173,6 @@ std::vector<std::vector<float> > computeFeatures(::cv::Mat image, ::cv::Mat mask
 	M.release();
 	b.release();
 
-	std::vector<std::vector<float> > features;
 	for (int i = 0; i < nucleiFeatures.size(); ++i) {
 		std::vector<float> v;
 		v.insert(v.end(), nucleiFeatures[i].begin(), nucleiFeatures[i].end());
@@ -173,12 +189,6 @@ std::vector<std::vector<float> > computeFeatures(::cv::Mat image, ::cv::Mat mask
 	cytoplasmFeatures_G.clear();
 	cytoplasmFeatures_H.clear();
 	cytoplasmFeatures_E.clear();
-
-	return features;
-}
-
-void writeFeatures(std::vector<std::vector<float> > &features, const char* bpfile) {
-
 }
 
 
@@ -239,6 +249,11 @@ int main (int argc, char **argv) {
 	if (rank == 0) printf("sourceTileFile total = %ld \n", sourceTileFile_total);
 	adios_free_varinfo(v);
 
+	v = adios_inq_var(gc, "imageName_total");
+	long imageName_total = *((long *)(v->value));
+	if (rank == 0) printf("imageName total = %ld \n", imageName_total);
+	adios_free_varinfo(v);
+
 	v = adios_inq_var(gc, "tile_total");
 	long tile_total = *((long *)(v->value));
 	if (rank == 0) 	printf("tile total = %ld \n", tile_total );
@@ -247,12 +262,16 @@ int main (int argc, char **argv) {
 	adios_gclose(gc);
 	
 	// now partition the space and try to read the content
-//	uint64_t slice_size = tileInfo_total / size;  // each read at least these many
-//	uint64_t remainder = tileInfo_total % size;  // what's left
+	uint64_t remainder = tileInfo_total % size;  // what's left
+	uint64_t mpi_tileInfo_total = remainder > 0 ? tileInfo_total - remainder + size : tileInfo_total;  // each read at least these many
+
 //	if (rank == 0) printf("slice_size %d, number of slices %lu, remainder %lu\n", size, slice_size, remainder);
 
 	// each iteration reads 1 per process
 	uint64_t start, count = 1;
+
+
+
 
 	// then open the tileCount group to get some data.
 	ADIOS_GROUP *g = adios_gopen(fc, "tileInfo");
@@ -267,58 +286,176 @@ int main (int argc, char **argv) {
 //	printf("RANK %d tileSizeX ndims %d dim n-1 %ld time dim %d\n", rank, v->ndim, v->dims[v->ndim-1], v->timedim);
 //	adios_free_varinfo(v2);
 
+
 	void *tiledata = NULL;
 	char *sourceTileFiledata = NULL;
 	char fn[256];
-	for (uint64_t i = rank; i < tileInfo_total; i += size) {
-		start = i;
+	std::vector<std::vector<float> > features;
+	bool newfile = true;
+	int err;
+	int64_t adios_handle;
+	uint64_t adios_groupsize, adios_totalsize;
 
-		// read data and convert to cv MAT
-		::cv::Mat mask;
-		readData(g, &start, &count, rank, tiledata, mask, sourceTileFiledata);
-		if (! mask.data) {
-			printf("can't read image mask\n");
-			return -1;
+	int tileOffsetX, tileOffsetY;
+
+	long nuFeatureInfo_capacity = std::numeric_limits<long>::max();
+	long nuFeatureInfo_pg_offset = 0;
+	long nuFeatureInfo_pg_size = 0;
+	long nuFeatureInfo_total = 0;
+	int feature_count = 74;
+	int ndims = 2;
+	float *boundingBoxOffset;
+	float *boundingBoxSize;
+	float *centroid;
+	long *imageName_offset;  // replicate for each nu
+	long *imageName_size;    // replicate for each nu
+	float *feature;
+
+	long imageName_capacity = imageName_total;
+	long imageName_pg_offset = 0; // get from the input.  just copy it over.
+	long imageName_pg_size = 0; // get from the input.  just copy it over.
+	char *imageName;  // get from the input.  just copy it over.
+
+	long nuFeatureInfo_step_total;
+
+	int pos;
+
+	adios_init("adios_xmls/nu-features-globalarray.xml");
+
+	features.clear();
+	for (uint64_t i = rank; i < mpi_tileInfo_total; i += size ) {
+
+		if (i < tileInfo_total) {  // only compute if there is something to compute....
+			start = i;
+			// read data and convert to cv MAT
+			::cv::Mat mask;
+			readData(g, &start, &count, rank, tiledata, mask, sourceTileFiledata,
+					tileOffsetX, tileOffsetY, imageName, imageName_pg_offset, imageName_pg_size);
+			if (! mask.data) {
+				printf("can't read image mask\n");
+				return -1;
+			}
+
+			// also read the source tile image.
+			printf("read input = %s\n", sourceTileFiledata);
+			::cv::Mat img = ::cv::imread(sourceTileFiledata);
+			free(sourceTileFiledata);
+			if (! img.data) {
+				printf("can't read original image\n");
+				return -2;
+			}
+
+
+			// do some computation
+			computeFeatures(img, mask, features);
+
+			// release images
+			img.release();
+			//printf("tiledata pointer %lu\n", (uint64_t)tiledata);
+			mask.release();
+			free(tiledata);
 		}
 
-
-
-		// also read the source tile image.
-		printf("read input = %s\n", sourceTileFiledata);
-		::cv::Mat img = ::cv::imread(sourceTileFiledata);
-		free(sourceTileFiledata);
-		if (! img.data) {
-			printf("can't read original image\n");
-			return -2;
-		}
-
-
-		// do some computation
-		std::vector<std::vector<float> > features = computeFeatures(img, mask);
-
-		// release images
-		img.release();
-		//printf("tiledata pointer %lu\n", (uint64_t)tiledata);
-		mask.release();
-		free(tiledata);
-
-
-		// do output
+		// everyone has to write for adios.
 		printf("RANK %d id %lu number of nuclei %lu feature size %lu\n", rank, i, features.size(), (features.size() > 0) ? features[0].size() : 0);
 
-		// clear features.
+		// can I have a read file and a write file open at the same time?
+		// set up the output variables
+
+		if (features.size() > 0) {
+
+			// now the features
+			nuFeatureInfo_pg_size = features.size();
+
+			// allocate the member
+			boundingBoxOffset = (float *)malloc(nuFeatureInfo_pg_size * ndims * sizeof(float));
+			boundingBoxSize = (float *)malloc(nuFeatureInfo_pg_size * ndims * sizeof(float));
+			centroid = (float*)malloc(nuFeatureInfo_pg_size * ndims * sizeof(float));
+			// image name is not changed.  just copied.
+			imageName_offset = (long *)malloc(nuFeatureInfo_pg_size * sizeof(long));
+			imageName_size = (long *)malloc(nuFeatureInfo_pg_size * sizeof(long));
+			feature = (float *)malloc(nuFeatureInfo_pg_size * feature_count * sizeof(float));
+
+			// now populate
+			fill(imageName_offset, imageName_offset+nuFeatureInfo_pg_size, imageName_pg_offset);
+			fill(imageName_size, imageName_offset+nuFeatureInfo_pg_size, imageName_pg_size);
+			for (long j = 0; j < nuFeatureInfo_pg_size; ++j) {
+
+				copy(features[j].begin(), features[j].begin() + ndims, boundingBoxOffset + j *ndims);
+				*(boundingBoxOffset + j * ndims) += tileOffsetX;
+				*(boundingBoxOffset + j * ndims + 1) += tileOffsetY;
+
+				copy(features[j].begin() + ndims, features[j].begin() + 2*ndims, boundingBoxSize + j *ndims);
+				copy(features[j].begin() + 2*ndims, features[j].begin() + 3*ndims, centroid + j *ndims);
+				*(centroid + j * ndims) += tileOffsetX;
+				*(centroid + j * ndims + 1) += tileOffsetY;
+
+				copy(features[j].begin() + 3*ndims, features[j].end(), feature + j * feature_count);
+			}
+		}
+
+		/**
+		* compute the offset for each step, in global array coordinates
+		*/
+		// offset within timestep
+		MPI_Scan(&nuFeatureInfo_pg_size, &nuFeatureInfo_pg_offset, 1, MPI_LONG, MPI_SUM, comm_world);
+		// offset in global coord
+		nuFeatureInfo_pg_offset = nuFeatureInfo_pg_offset - nuFeatureInfo_pg_size + nuFeatureInfo_total;
+		// number of nuclei in this timestep
+		MPI_Allreduce(&nuFeatureInfo_pg_size, &nuFeatureInfo_step_total, 1, MPI_LONG, MPI_SUM, comm_world);
+		// all nuclei so far
+		nuFeatureInfo_total += nuFeatureInfo_step_total;
+
+		// WRITE OUT
+		if (newfile) {
+			err = adios_open(&adios_handle, "nuFeatureInfo", argv[3], "w", &comm_world);
+			newfile = false;
+		} else {
+			err = adios_open(&adios_handle, "nuFeatureInfo", argv[3], "a", &comm_world);
+		}
+
+		// do the actual write
+		if (nuFeatureInfo_pg_size <= 0) {
+			err = adios_group_size (adios_handle, 0, &adios_totalsize);
+
+		} else {
+	#include "gwrite_nuFeatureInfo.ch"
+
+		}
+
+		// close the file and flush.
+		// if time_index is not specified, then let ADIOS handle it.
+	    struct adios_file_struct * fd = (struct adios_file_struct *) adios_handle;
+	    struct adios_group_struct *gd = (struct adios_group_struct *) fd->group;
+		gd->time_index = 1;
+		err = adios_close(adios_handle);
+
+		// once written, clear the feature vector and get ready for next.
+		if (features.size() > 0) {
+			free(boundingBoxOffset);
+			free(boundingBoxSize);
+			free(centroid);
+			free(imageName_offset);
+			free(imageName_size);
+			free(feature);
+			free(imageName);
+
+		}
+
 		features.clear();
+		nuFeatureInfo_pg_size = 0;
+		nuFeatureInfo_pg_offset = 0;
 	}
+
+	// and now write out the counts (actual size used.)
+
 
 	// TODO: reads appears to be async - not all need to participate.  - opportunity for dynamic reads.
 	// or is this the right way of doing things?
 	// TODO: use a more dynamic array with dynamic number of dimensions for offset, size.
-
 	adios_gclose(g);
-
-
 	adios_fclose(fc);
-
+	adios_finalize(rank);
 
 	MPI_Barrier(comm_world);
 	MPI_Finalize();

@@ -216,8 +216,8 @@ int SCIOADIOSWriter::persist() {
 		/** now allocate the space for tile and for imagename
 			and then get the data.
 		*/
-		imageName = (char *)malloc(imageName_pg_size);
-		memset(imageName, 0, imageName_pg_size);
+		imageName = (char *)malloc(imageName_pg_size + 1);
+		memset(imageName, 0, imageName_pg_size + 1);
 		sourceTileFile = (char *)malloc(sourceTileFile_pg_size + 1);
 		memset(sourceTileFile, 0, sourceTileFile_pg_size + 1);
 		tile = (unsigned char *)malloc(tile_pg_size);
