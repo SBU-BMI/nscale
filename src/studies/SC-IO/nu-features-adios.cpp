@@ -260,7 +260,8 @@ int main (int argc, char **argv) {
 	adios_free_varinfo(v);
 	
 	adios_gclose(gc);
-	
+	adios_fclose(fc);	
+
 	// now partition the space and try to read the content
 	uint64_t remainder = tileInfo_total % size;  // what's left
 	uint64_t mpi_tileInfo_total = remainder > 0 ? tileInfo_total - remainder + size : tileInfo_total;  // each read at least these many
@@ -272,13 +273,6 @@ int main (int argc, char **argv) {
 
 
 
-
-	// then open the tileCount group to get some data.
-	ADIOS_GROUP *g = adios_gopen(fc, "tileInfo");
-	if (g == NULL) {
-		printf("%s\n", adios_errmsg());
-		return -1;
-	}
 
 //	// for some reason, it's still trying to compute time based characteristics.   but then adios crashes.
 //	ADIOS_VARINFO *v2 = adios_inq_var(g, "tileSizeX");
@@ -320,17 +314,34 @@ int main (int argc, char **argv) {
 
 	int pos;
 
-	adios_init("adios_xmls/nu-features-globalarray.xml");
+	adios_init("adios_xml/nu-features-globalarray.xml");
 
 	features.clear();
 	for (uint64_t i = rank; i < mpi_tileInfo_total; i += size ) {
+
+
+		fc = adios_fopen(filename, comm_world);
+		if (fc == NULL) {
+			printf("%s\n", adios_errmsg());
+			return -1;
+		}
+		// then open the tileCount group to get some data.
+		ADIOS_GROUP *g = adios_gopen(fc, "tileInfo");
+		if (g == NULL) {
+			printf("%s\n", adios_errmsg());
+			return -1;
+		}
 
 		if (i < tileInfo_total) {  // only compute if there is something to compute....
 			start = i;
 			// read data and convert to cv MAT
 			::cv::Mat mask;
+
 			readData(g, &start, &count, rank, tiledata, mask, sourceTileFiledata,
 					tileOffsetX, tileOffsetY, imageName, imageName_pg_offset, imageName_pg_size);
+
+
+
 			if (! mask.data) {
 				printf("can't read image mask\n");
 				return -1;
@@ -355,7 +366,9 @@ int main (int argc, char **argv) {
 			mask.release();
 			free(tiledata);
 		}
-
+		adios_gclose(g);
+		adios_fclose(fc);
+	
 		// everyone has to write for adios.
 		printf("RANK %d id %lu number of nuclei %lu feature size %lu\n", rank, i, features.size(), (features.size() > 0) ? features[0].size() : 0);
 
@@ -378,7 +391,7 @@ int main (int argc, char **argv) {
 
 			// now populate
 			fill(imageName_offset, imageName_offset+nuFeatureInfo_pg_size, imageName_pg_offset);
-			fill(imageName_size, imageName_offset+nuFeatureInfo_pg_size, imageName_pg_size);
+			fill(imageName_size, imageName_size+nuFeatureInfo_pg_size, imageName_pg_size);
 			for (long j = 0; j < nuFeatureInfo_pg_size; ++j) {
 
 				copy(features[j].begin(), features[j].begin() + ndims, boundingBoxOffset + j *ndims);
@@ -408,6 +421,7 @@ int main (int argc, char **argv) {
 
 		// WRITE OUT
 		if (newfile) {
+			printf("RANK %d adios handle %ld, filename %s\n", rank, adios_handle, argv[3]);
 			err = adios_open(&adios_handle, "nuFeatureInfo", argv[3], "w", &comm_world);
 			newfile = false;
 		} else {
@@ -448,13 +462,22 @@ int main (int argc, char **argv) {
 	}
 
 	// and now write out the counts (actual size used.)
+	if (newfile) {
+		printf("RANK %d adios handle %ld, filename %s\n", rank, adios_handle, argv[3]);
+		err = adios_open(&adios_handle, "nuFeatureDims", argv[3], "w", &comm_world);
+		newfile = false;
+	} else {
+		err = adios_open(&adios_handle, "nuFeatureDims", argv[3], "a", &comm_world);
+	}
+
+#include "gwrite_nuFeatureDims.ch"
+	err = adios_close(adios_handle);
+
 
 
 	// TODO: reads appears to be async - not all need to participate.  - opportunity for dynamic reads.
 	// or is this the right way of doing things?
 	// TODO: use a more dynamic array with dynamic number of dimensions for offset, size.
-	adios_gclose(g);
-	adios_fclose(fc);
 	adios_finalize(rank);
 
 	MPI_Barrier(comm_world);
