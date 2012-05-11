@@ -528,6 +528,25 @@ int* Operators::buildHistogram256CPU(const cv::Mat& labeledMask, const cv::Mat& 
 	return hist;
 }
 
+int* Operators::buildHistogram256CPUObjMask(const cv::Mat& objMask, const cv::Mat& grayImage,  int minx,  int maxx,  int miny,  int maxy,  int label) {
+
+	int *hist = (int *)calloc(256, sizeof(int));;
+	const int *objImgPtr;
+	const unsigned char* grayImagePtr;
+
+	for(int y = miny; y <= maxy; y++){
+		objImgPtr =  objMask.ptr<int>(y-miny);
+		grayImagePtr = grayImage.ptr<unsigned char>(y);
+
+		for(int x = minx; x <= maxx; x++){
+			if(objImgPtr[x-minx] == label){
+				hist[grayImagePtr[x]]++;
+			}
+		}
+	}
+	return hist;
+}
+
 // Assuming n > 0
 int rndint(float n)//round float to the nearest integer
 {

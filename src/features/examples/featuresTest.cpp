@@ -7,6 +7,7 @@
 #include <dirent.h>
 
 #include "ObjFeatures.h"
+#include "CytoplasmCalc.h"
 #include "HistologicalEntities.h"
 
 using namespace cv;
@@ -22,11 +23,14 @@ int main (int argc, char **argv){
 	int *bbox;
 	uint64_t t1, t0;
 
-	gpu::setDevice(2);
-
 	nscale::HistologicalEntities::segmentNuclei(inputImg, labeledImage, compCount, bbox);
 //	int* objsArea = nscale::ObjFeatures::area((const int *)bbox, compCount, labeledImage);
 //	free(objsArea);
+
+	t0 = cciutils::ClockGetTime();
+	int* cytoplasmBB = nscale::CytoplasmCalc::calcCytoplasm(bbox, compCount, labeledImage);
+	t1 = cciutils::ClockGetTime();
+	std::cout << "CytoplasmMaskCalc = "<< t1-t0 <<std::endl;
 
 	vector<cv::Mat> bgr;
 	split(inputImg, bgr);
@@ -34,25 +38,42 @@ int main (int argc, char **argv){
 	float* intensityFeatures = nscale::ObjFeatures::intensityFeatures(bbox, compCount, labeledImage, bgr[0]);
 	t1 = cciutils::ClockGetTime();
 
-	std::cout << "IntensityFeaturesTime = "<< t1-t0 <<std::endl;
+	std::cout << "NucleiIntensityFeaturesTime = "<< t1-t0 <<std::endl;
 	free(intensityFeatures);
+
+	t0 = cciutils::ClockGetTime();
+	float* cytoIntensityFeatures = nscale::ObjFeatures::cytoIntensityFeatures(cytoplasmBB, compCount, bgr[0]);
+	t1 = cciutils::ClockGetTime();
+
+	std::cout << "CytoIntensityFeaturesTime = "<< t1-t0 <<std::endl;
+	free(cytoIntensityFeatures);
+
 
 	t0 = cciutils::ClockGetTime();
 	float* h_gradientFeatures = nscale::ObjFeatures::gradientFeatures(bbox, compCount, labeledImage, bgr[0]);
 	t1 = cciutils::ClockGetTime();
-	std::cout << "GradientFeaturesTimeCPU = "<< t1-t0 <<std::endl;
-//	for(int i = 0; i < 12; i++){
-//		cout << "GradFeature id["<<i<<"] = "<< h_gradientFeatures[i]<<endl;
-//	}
-//	cout << "gradFeatures id=0 "<<h_gradientFeatures[0]<< " "<<h_gradientFeatures[1]<< " "<<h_gradientFeatures[2]<< " "<<h_gradientFeatures[3]<<endl;
+	std::cout << "NucleiGradientFeaturesTimeCPU = "<< t1-t0 <<std::endl;
 	free(h_gradientFeatures);
+
+
+	t0 = cciutils::ClockGetTime();
+	float* h_cytoGradientFeatures = nscale::ObjFeatures::cytoGradientFeatures(cytoplasmBB, compCount, bgr[0]);
+	t1 = cciutils::ClockGetTime();
+	std::cout << "CytoGradientFeaturesTimeCPU = "<< t1-t0 <<std::endl;
+	free(h_cytoGradientFeatures);
+
 
 	t0 = cciutils::ClockGetTime();
 	float* h_cannyFeatures = nscale::ObjFeatures::cannyFeatures(bbox, compCount, labeledImage, bgr[0]);
 	t1 = cciutils::ClockGetTime();
-	std::cout << "CannyFeaturesTimeCPU = "<< t1-t0 <<std::endl;
-
+	std::cout << "NucleiCannyFeaturesTimeCPU = "<< t1-t0 <<std::endl;
 	free(h_cannyFeatures);
+
+	t0 = cciutils::ClockGetTime();
+	float* h_cytoCannyFeatures = nscale::ObjFeatures::cytoCannyFeatures(cytoplasmBB, compCount, bgr[0]);
+	t1 = cciutils::ClockGetTime();
+	std::cout << "CytoCannyFeaturesTimeCPU = "<< t1-t0 <<std::endl;
+	free(h_cytoCannyFeatures);
 
 #if defined(HAVE_CUDA)
 	Stream stream;
@@ -107,6 +128,9 @@ int main (int argc, char **argv){
 
 
 	free(bbox);
+	if(cytoplasmBB != NULL){
+		free(cytoplasmBB);
+	}
 
 
 

@@ -2,11 +2,11 @@
 #include <limits>
 
 
-#define HIST_BINS					256
+#define HIST_BINS			256
 #define THREAD_N_BLOCK_INTENSITY	32
 #define N_INTENSITY_FEATURES		8
-#define N_GRADIENT_FEATURES			6
-#define N_CANNY_FEATURES			2	
+#define N_GRADIENT_FEATURES		6
+#define N_CANNY_FEATURES		2	
 
 namespace nscale {
 
@@ -82,6 +82,58 @@ int* calcHist256Caller(const cv::gpu::PtrStep_<int> labeledImg, cv::gpu::PtrStep
 
 	return d_components_hist;
 }
+
+__global__ void histCalcCytoKernel(PtrStep_<unsigned char> grayImage, int *bbInfo, int numComponents, int* d_components_hist)
+{
+	int blobId = blockIdx.x;
+	int dataOffset = bbInfo[blobId*5];
+	int minx = bbInfo[blobId*5 + 1];
+	int miny = bbInfo[blobId*5 + 2];
+	int width = bbInfo[blobId*5 + 3];
+	int height = bbInfo[blobId*5 + 4];
+	int label = 255;
+	char *dataAddress = ((char*)(bbInfo))+dataOffset;
+
+	int hist_offset = blobId * HIST_BINS;
+
+	for(int pos=threadIdx.x; pos < (HIST_BINS); pos+=blockDim.x){
+		d_components_hist[hist_offset+pos] = 0;
+	}
+	__syncthreads();
+
+	// Each thread takes care of one line of the blob
+	for(int i = threadIdx.x; i < height; i+=blockDim.x){
+		for(int j = 0; j < width; j++){
+			if( dataAddress[i*width+j] == label){
+				int data = grayImage.ptr(i+miny)[j+minx];
+				atomicAdd(&d_components_hist[hist_offset + data],1);
+			}
+		}
+	}
+}
+
+
+
+
+// build a histogram for each component in the image described using bbInfo
+int* calcHist256CytoBBCaller(cv::gpu::PtrStep_<unsigned char> grayImage, int *bbInfo, int numComponents, cudaStream_t stream)
+{
+	int *d_components_hist;
+	dim3 grid(numComponents);
+	dim3 threads(THREAD_N_BLOCK_INTENSITY);
+
+	cudaMalloc( (void**)&d_components_hist, HIST_BINS * sizeof( int ) * numComponents );
+
+	histCalcCytoKernel<<<grid, threads, 0, stream>>>(grayImage, bbInfo, numComponents, d_components_hist);
+
+ 	cudaGetLastError() ;
+	if (stream == 0)
+        	cudaDeviceSynchronize();
+
+	return d_components_hist;
+}
+
+
 __global__ void calcFeaturesHistKernel(int *hist, int numHists, float *output){
 	// calcuate the id of the blob of which this thread calcualtes the features
 	int histId=blockIdx.x * THREAD_N_BLOCK_INTENSITY + threadIdx.x;
