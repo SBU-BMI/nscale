@@ -32,13 +32,13 @@ float* ObjFeatures::gradientFeatures(const int* boundingBoxesInfo, int compCount
 float* ObjFeatures::cannyFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& labeledMask, const cv::gpu::GpuMat& grayImage, cv::gpu::Stream& stream) {
 	CV_Error(CV_GpuNotSupported, "The called functionality is disabled for current build or platform");}
 
-float* cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream){
+float* ObjFeatures::cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream){
 	CV_Error(CV_GpuNotSupported, "The called functionality is disabled for current build or platform"); }
 
-float* cytoGradientFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream){
+float* ObjFeatures::cytoGradientFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream){
 	CV_Error(CV_GpuNotSupported, "The called functionality is disabled for current build or platform"); }
 
-float* cytoCannyFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream){
+float* ObjFeatures::cytoCannyFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream){
 	CV_Error(CV_GpuNotSupported, "The called functionality is disabled for current build or platform"); }
 
 #else
@@ -63,13 +63,21 @@ float* ObjFeatures::intensityFeatures(const int* boundingBoxesInfo, int compCoun
 	return cpu_features;
 
 }
-float* cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& grayImage, cv::gpu::Stream& stream){
+float* ObjFeatures::cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& grayImage, cv::gpu::Stream& stream){
 
 	int* g_hist = nscale::gpu::calcHist256CytoBBCaller(grayImage, (int*)boundingBoxesInfo, compCount, StreamAccessor::getStream(stream) );
 
 	float* g_features = (float*)nscale::gpu::cudaMallocCaller(sizeof(float) * compCount * nscale::ObjFeatures::N_INTENSITY_FEATURES );
 
 	nscale::gpu::calcFeaturesFromHist256Caller(g_hist,compCount, g_features, StreamAccessor::getStream(stream));
+
+	// download hist for debugging only
+//	int* h_temp_host = (int*) malloc( sizeof(int) * 256 );
+//	nscale::gpu::cudaDownloadCaller(h_temp_host, g_hist, sizeof(int)*256);
+//	for(int j = 0; j < 256; j++){
+//			printf("gpu_hist[%d]=%d\n", j%256, h_temp_host[j]);
+//	}
+//	free(h_temp_host);
 
 	// alloc space in the CPU to store features
 	float *cpu_features = (float*)malloc(sizeof(float) * nscale::ObjFeatures::N_INTENSITY_FEATURES * compCount);
@@ -199,7 +207,7 @@ float* ObjFeatures::cannyFeatures(const int* boundingBoxesInfo, int compCount,
 		const cv::gpu::GpuMat& labeledMask, const cv::gpu::GpuMat& grayImage, cv::gpu::Stream& stream) {
 
 	cv::gpu::GpuMat cannyRes(grayImage.size(), grayImage.type());
-//	cv::gpu::Canny(grayImage, cannyRes, 70.0, 90.0, 5);
+	cv::gpu::Canny(grayImage, cannyRes, 70.0, 90.0, 5);
 
 	// Calculate histogram from Canny results for each object
 	int* g_hist = nscale::gpu::calcHist256Caller(labeledMask, cannyRes, (int*)boundingBoxesInfo, compCount, StreamAccessor::getStream(stream) );
@@ -231,7 +239,7 @@ float* ObjFeatures::cannyFeatures(const int* boundingBoxesInfo, int compCount,
 float* ObjFeatures::cytoCannyFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& grayImage, cv::gpu::Stream& stream) {
 
 	cv::gpu::GpuMat cannyRes(grayImage.size(), grayImage.type());
-//	cv::gpu::Canny(grayImage, cannyRes, 70.0, 90.0, 5);
+	cv::gpu::Canny(grayImage, cannyRes, 70.0, 90.0, 5);
 
 	// Calculate histogram from Canny results for each object
 	int* g_hist = nscale::gpu::calcHist256CytoBBCaller(cannyRes, (int*)boundingBoxesInfo, compCount, StreamAccessor::getStream(stream) );

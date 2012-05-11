@@ -49,7 +49,7 @@ CvRect getCytoplasmBounds(CvSize tileSize, CvRect bounding_box,  int delta){
 }
 
 
-int* CytoplasmCalc::calcCytoplasm(const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask) {
+int* CytoplasmCalc::calcCytoplasm(int &cytoDataSizeRet, const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask) {
 //	| offsetToData | x | y | width | height |
 	int* cytoplasmBoundingBoxes = NULL;
 
@@ -97,7 +97,7 @@ int* CytoplasmCalc::calcCytoplasm(const int* boundingBoxesInfo, int compCount, c
 		memcpy(aux, cytoplasmBoundingBoxes, sizeof(int)*5*compCount);
 		free(cytoplasmBoundingBoxes);
 		cytoplasmBoundingBoxes = aux;
-
+		cytoDataSizeRet = cytoplasmDataSize;
 		// Realloc to store cytoplasm masks as well
 	//	cytoplasmBoundingBoxes = (int*) realloc(cytoplasmBoundingBoxes, cytoplasmDataSize);
 
@@ -144,7 +144,7 @@ int* CytoplasmCalc::calcCytoplasm(const int* boundingBoxesInfo, int compCount, c
 					}	
 				} 
 			}
-//			if(i==100){
+//			if(i==0){
 //				imwrite("mask.tif", cytoMask);
 // 				namedWindow( "Gray image", CV_WINDOW_AUTOSIZE );
 // 				imshow( "Gray image", cytoMask );
@@ -194,7 +194,7 @@ int* CytoplasmCalc::calcCytoplasm(const int* boundingBoxesInfo, int compCount, c
 					}	
 				} 
 			}
-//			if(i==100){
+//			if(i==0){
 //				imwrite("cytoMask.tif", cytoMask);
 //				imshow( "CytoFinal", cytoMask );
 //				waitKey(0);

@@ -58,9 +58,11 @@ float* ObjFeatures::cytoIntensityFeatures(const int* boundingBoxesInfo, int comp
 			// Create a Mat header point to the data we allocate
 			cv::Mat objMask(height, width, CV_8UC1, dataAddress );
 
-			int* compHist = Operators::buildHistogram256CPUObjMask(objMask, grayImage, minx, maxx, miny, maxy, label);
-
-//			if(i == 0 || i == 1){
+			int* compHist = Operators::buildHistogram256CPUObjMask(objMask, grayImage, minx, maxx, miny, maxy, label, i);
+//			if(i == 0){
+//				printf("Label = %d\n", label);
+//			}
+//			if(i == 0 ){
 //				for(int j = 0; j < 256; j++){
 //					printf("hist[%d]=%d\n", j, compHist[j]);
 //				}
@@ -184,7 +186,7 @@ float* ObjFeatures::cytoGradientFeatures(const int* boundingBoxesInfo, int compC
 			// Create a Mat header point to the data we allocate
 			cv::Mat objMask(height, width, CV_8UC1, dataAddress );
 
-			int* compHist = Operators::buildHistogram256CPUObjMask(objMask, gradientMat, minx, maxx, miny, maxy, label);
+			int* compHist = Operators::buildHistogram256CPUObjMask(objMask, gradientMat, minx, maxx, miny, maxy, label, i);
 
 
 //			if(i == 0 || i == 1){
@@ -265,7 +267,7 @@ float* ObjFeatures::cytoCannyFeatures(const int* boundingBoxesInfo, int compCoun
 			// Create a Mat header point to the data we allocate
 			cv::Mat objMask(height, width, CV_8UC1, dataAddress );
 
-			int* compHist = Operators::buildHistogram256CPUObjMask(objMask, cannyRes, minx, maxx, miny, maxy, label);
+			int* compHist = Operators::buildHistogram256CPUObjMask(objMask, cannyRes, minx, maxx, miny, maxy, label, i);
 
 			cannyFeatures[0 + ObjFeatures::N_CANNY_FEATURES * i] = Operators::calcNonZeroFromHistogram(compHist, 256);
 			cannyFeatures[1 + ObjFeatures::N_CANNY_FEATURES * i] = Operators::calcMeanFromHistogram(compHist, 256);

@@ -18,7 +18,7 @@ namespace nscale{
 
 class CytoplasmCalc {
 public:
-	static int* calcCytoplasm(const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask);
+	static int* calcCytoplasm(int& cytoDataSize, const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask);
 
 };
 

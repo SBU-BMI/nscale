@@ -1,7 +1,7 @@
 #include "opencv2/gpu/devmem2d.hpp"
 #include "cutil.h"
 #include <cuda_runtime.h>
-
+#include <stdio.h>
 
 namespace nscale { 
 namespace gpu {

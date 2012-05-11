@@ -92,7 +92,7 @@ __global__ void histCalcCytoKernel(PtrStep_<unsigned char> grayImage, int *bbInf
 	int width = bbInfo[blobId*5 + 3];
 	int height = bbInfo[blobId*5 + 4];
 	int label = 255;
-	char *dataAddress = ((char*)(bbInfo))+dataOffset;
+	unsigned char *dataAddress = ((unsigned char*)(bbInfo))+dataOffset;
 
 	int hist_offset = blobId * HIST_BINS;
 

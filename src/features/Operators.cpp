@@ -528,14 +528,14 @@ int* Operators::buildHistogram256CPU(const cv::Mat& labeledMask, const cv::Mat& 
 	return hist;
 }
 
-int* Operators::buildHistogram256CPUObjMask(const cv::Mat& objMask, const cv::Mat& grayImage,  int minx,  int maxx,  int miny,  int maxy,  int label) {
+int* Operators::buildHistogram256CPUObjMask(const cv::Mat& objMask, const cv::Mat& grayImage,  int minx,  int maxx,  int miny,  int maxy,  int label, int id) {
 
 	int *hist = (int *)calloc(256, sizeof(int));;
-	const int *objImgPtr;
+	const unsigned char *objImgPtr;
 	const unsigned char* grayImagePtr;
 
 	for(int y = miny; y <= maxy; y++){
-		objImgPtr =  objMask.ptr<int>(y-miny);
+		objImgPtr =  objMask.ptr<unsigned char>(y-miny);
 		grayImagePtr = grayImage.ptr<unsigned char>(y);
 
 		for(int x = minx; x <= maxx; x++){
@@ -543,6 +543,7 @@ int* Operators::buildHistogram256CPUObjMask(const cv::Mat& objMask, const cv::Ma
 				hist[grayImagePtr[x]]++;
 			}
 		}
+		
 	}
 	return hist;
 }
