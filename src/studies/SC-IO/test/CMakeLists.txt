@@ -9,7 +9,7 @@ project(SCIOTest)
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
-	if(MPI_FOUND)
+if(MPI_FOUND)
 set(programs test-mpi)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
@@ -21,9 +21,9 @@ foreach(program ${programs})
 		target_link_libraries(${program} ${MPI_LIBRARIES})
 endforeach(program)
 
-	endif(MPI_FOUND)
+endif(MPI_FOUND)
 
-	if(ADIOS_FOUND)
+if(ADIOS_FOUND)
 
 
 ### copy over the adios xml files
@@ -54,7 +54,7 @@ foreach(program ${programs})
 	# Link the executable to the Segmentation library
 		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI -DWITH_ADIOS")
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
-		target_link_libraries(${program} scio-adios ${ADIOS_LIBRARIES} ${MPI_LIBRARIES})
+		target_link_libraries(${program} scio-adios nu-io ${ADIOS_LIBRARIES} ${MPI_LIBRARIES})
 	include_directories(${adios_libname} ${CMAKE_CURRENT_BINARY_DIR})
 
 endforeach(program)

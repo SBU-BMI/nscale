@@ -15,7 +15,7 @@
 #include "mpi.h"
 #include <vector>
 #include "UtilsCVImageIO.h"
-
+#include "SCIOUtilsLogger.h"
 
 namespace cciutils {
 
@@ -36,9 +36,10 @@ private:
 	int rank;
 
 	std::vector<SCIOADIOSWriter *> writers;
+	cciutils::SCIOLogSession * logsession;
 
 public:
-	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm);
+	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session);
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
@@ -87,13 +88,15 @@ private:
 
 	MPI_Comm *local_comm;
 	int local_rank;
+	cciutils::SCIOLogSession *logsession;
 
 protected:
 	bool selected(const int stage);
 
 	SCIOADIOSWriter() : tileInfo_total(0), tile_total(0), imageName_total(0), sourceTileFile_total(0),
 		pg_tile_bytes(0), pg_tileInfo_count(0), pg_imageName_bytes(0), pg_sourceTileFile_bytes(0),
-		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0), sourceTileFile_capacity(0) {};
+		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0), sourceTileFile_capacity(0),
+		logsession(NULL) {};
 	virtual ~SCIOADIOSWriter();
 
 	virtual int open(const char* groupName);
@@ -113,6 +116,9 @@ public:
 	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
 			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name);
 
+	virtual void setLogSession(cciutils::SCIOLogSession *_logsession) {
+		this->logsession = _logsession;
+	}
 };
 
 

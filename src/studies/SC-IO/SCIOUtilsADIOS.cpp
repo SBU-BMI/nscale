@@ -8,27 +8,38 @@
 
 namespace cciutils {
 
-ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm) {
+ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession *session ) {
 	rank = _rank;
 	comm = _comm;
-
+	logsession = session;
+	long long t1 = ::cciutils::event::timestampInUS();
 	adios_init(configfilename);
+
 	writers.clear();
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios init"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+
 }
 
 ADIOSManager::~ADIOSManager() {
 //	printf("cleaning up manager %d\n", rank);
 	// close all the entries in writer
+	long long t1 = ::cciutils::event::timestampInUS();
+
 	for (std::vector<SCIOADIOSWriter *>::iterator iter = writers.begin();
 			iter != writers.end(); ++iter) {
 //		printf("%d found a writer\n", rank);
 		freeWriter(*iter);
 		iter = writers.begin();
 	}
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS Writer Clear"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
 //	printf("cleaned up manager %d\n", rank);
-
+	t1 = ::cciutils::event::timestampInUS();
 	adios_finalize(rank);
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS finalize"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
 //	printf("finished cleaning up %d\n", rank);
 
 }
@@ -60,7 +71,7 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	w->newfile = _newfile;
 	writers.push_back(w);
 
-	printf("INITIALIZED %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->filename.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
+	if (w->local_rank == 0) printf("INITIALIZED %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->filename.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
 
 	return w;
 }
@@ -96,16 +107,23 @@ SCIOADIOSWriter::~SCIOADIOSWriter() {
 
 int SCIOADIOSWriter::open(const char* groupName) {
 	int err;
+	long long t1 = ::cciutils::event::timestampInUS();
+
 	if (newfile) {
 		err = adios_open(&adios_handle, groupName, filename.c_str(), "w", local_comm);
 		newfile = false;
 	} else {
 		err = adios_open(&adios_handle, groupName, filename.c_str(), "a", local_comm);
 	}
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios open"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+
 	return err;
 }
 
 int SCIOADIOSWriter::close(uint32_t time_index) {
+	long long t1 = ::cciutils::event::timestampInUS();
+
 	// if time_index is not specified, then let ADIOS handle it.
     struct adios_file_struct * fd = (struct adios_file_struct *) adios_handle;
     struct adios_group_struct *gd = (struct adios_group_struct *) fd->group;
@@ -117,6 +135,10 @@ int SCIOADIOSWriter::close(uint32_t time_index) {
 	}
 
 	int err = adios_close(adios_handle);
+
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+
 	return err;
 }
 
@@ -127,6 +149,7 @@ int SCIOADIOSWriter::persist() {
 	// all the data should be continuous now.
 
 	printf("size of tile_cache is %lu for rank %d \n", tile_cache.size(), local_rank);
+	long long t1 = ::cciutils::event::timestampInUS();
 
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
@@ -154,8 +177,13 @@ int SCIOADIOSWriter::persist() {
 		*sourceTileFile_offset, *sourceTileFile_size,
 		*tile_offset, *tile_size;
 
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO define vars"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
+
 	if (tile_cache.size() > 0) {
 
+		t1 = ::cciutils::event::timestampInUS();
 		/** initialize storage
 		*/ 
 		tileOffsetX = (int *)malloc(tile_cache.size() * sizeof(int));
@@ -174,6 +202,11 @@ int SCIOADIOSWriter::persist() {
 		tile_size = (long*) malloc(tile_cache.size() * sizeof(long));
 		tile_offset = (long*) malloc(tile_cache.size() * sizeof(long));
 
+		t2 = ::cciutils::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO malloc vars"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
+
+		t1 = ::cciutils::event::timestampInUS();
 
 		/**  get tile metadata
 		*/
@@ -211,7 +244,10 @@ int SCIOADIOSWriter::persist() {
 
 //			printf("rank %d tile %d offset %dx%d, size %dx%dx%d, elemSize %d type %d encoding %d, tile bytes %ld at %ld, imagename %ld at %ld\n", local_rank, i, tileOffsetX[i], tileOffsetY[i], tileSizeX[i], tileSizeY[i], nChannels[i], elemSize1[i], cvDataType[i], encoding[i], tile_size[i], tile_offset[i], imageName_size[i], imageName_offset[i]);
 		}
+		t2 = ::cciutils::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO tile metadata"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
+		t1 = ::cciutils::event::timestampInUS();
 
 		/** now allocate the space for tile and for imagename
 			and then get the data.
@@ -230,11 +266,16 @@ int SCIOADIOSWriter::persist() {
 			memcpy(tile + tile_offset[i], tile_cache[i].tile.datastart, tile_size[i]);
 		}
 		//printf("all filenames together %s\n", sourceTileFile);
+		t2 = ::cciutils::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO tile data"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
 	}
 
 	/**
 	* compute the offset for each step, in global array coordinates
 	*/
+	t1 = ::cciutils::event::timestampInUS();
+
 	long pg_sizes[4];
 	pg_sizes[0] = tileInfo_pg_size;
 	pg_sizes[1] = imageName_pg_size;
@@ -261,6 +302,9 @@ int SCIOADIOSWriter::persist() {
 //				tile_offset[i], imageName_size[i], imageName_offset[i], sourceTileFile_size[i], sourceTileFile_offset[i]);
 	}
 
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI scan"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+	t1 = ::cciutils::event::timestampInUS();
 
 	/**
 	* compute the total written out within this step, then update global total
@@ -288,10 +332,15 @@ int SCIOADIOSWriter::persist() {
 
 	//printf("chunk size: %ld of total %ld at offset %ld\n", tileInfo_pg_size, tileInfo_capacity, tileInfo_pg_offset);
 
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI allreduce"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 
 	/**  write out the TileInfo group 
 	*/
 	open("tileInfo");
+	t1 = ::cciutils::event::timestampInUS();
+
 	if (tile_cache.size() <= 0) {
 		err = adios_group_size (adios_handle, 0, &adios_totalsize);
 
@@ -299,12 +348,17 @@ int SCIOADIOSWriter::persist() {
 #include "gwrite_tileInfo.ch"
 
 	}
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+
 	close(1);  // uses matcache.size();
 
 
 
 	/** now clean up
 	*/
+	t1 = ::cciutils::event::timestampInUS();
+
 	if (tile_cache.size() > 0) {
 		free(tileOffsetX);
 		free(tileOffsetY);
@@ -325,6 +379,8 @@ int SCIOADIOSWriter::persist() {
 		free(tile);
 	}
 	tile_cache.clear();
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO var clear"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
 	return 0;
 }
@@ -335,7 +391,11 @@ int SCIOADIOSWriter::persistCountInfo() {
 	uint64_t adios_groupsize, adios_totalsize;
 
 	open("tileCount");
+	long long t1 = ::cciutils::event::timestampInUS();
 #include "gwrite_tileCount.ch"
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE Summary"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+
 	close(0);
 
 	return 0;
@@ -345,6 +405,8 @@ int SCIOADIOSWriter::persistCountInfo() {
 void SCIOADIOSWriter::saveIntermediate(const ::cv::Mat& intermediate, const int stage,
 		const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 	if (!selected(stage)) return;
+
+	long long t1 = ::cciutils::event::timestampInUS();
 
 	unsigned char *data;
 
@@ -362,6 +424,8 @@ void SCIOADIOSWriter::saveIntermediate(const ::cv::Mat& intermediate, const int 
 
 	// next add to cache
 	tile_cache.push_back(t);
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO Buffer"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
 }
 
@@ -371,10 +435,19 @@ void SCIOADIOSWriter::saveIntermediate(const ::cv::Mat& intermediate, const int 
 			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 		if (!selected(stage)) return;
 		// first download the data
+		long long t1 = ::cciutils::event::timestampInUS();
+
 		::cv::Mat output(intermediate.size(), intermediate.type());
 		intermediate.download(output);
+		long long t2 = ::cciutils::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO GPU Download"), t1, t2, std::string(), ::cciutils::event::GPU_MEM_IO));
 		saveIntermediate(output, stage, _image_name, _offsetX, _offsetY, _source_tile_file_name);
+		t1 = ::cciutils::event::timestampInUS();
+
 		output.release();
+		t2 = ::cciutils::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO GPU clear"), t1, t2, std::string(), ::cciutils::event::GPU_MEM_IO));
+
 	}
 #else
 	void SCIOADIOSWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,

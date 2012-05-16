@@ -64,22 +64,21 @@ endif(ADIOS_FOUND)
 
 
 #### Segmentation code
-
-# Source files used by Segmentation
-set(libsrcs SCIOUtilsLogger.cpp SCIOHistologicalEntities.cpp )
-set(gpulibsrcs SCIOUtilsCVImageIO.cpp SCIOHistologicalEntitiesGPU.cpp)
-
-set(libname scio-segment)
+#### ADIOS code
+set(io_libsrcs SCIOUtilsLogger.cpp)
+set(io_gpulibsrcs SCIOUtilsCVImageIO.cpp)
+set(io_libname nu-io)
 # Add rule to generate execution engine, as a shared library (.so)
 if(CUDA_FOUND)
-	cuda_add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
-	set_target_properties(${libname} PROPERTIES COMPILE_FLAGS -DHAVE_CUDA) 
+	cuda_add_library("${io_libname}" SHARED ${io_gpulibsrcs} ${io_libsrcs})
+	set_target_properties(${io_libname} PROPERTIES COMPILE_FLAGS "-DHAVE_CUDA -DHAVE_ADIOS -fPIC") 
 else(CUDA_FOUND)
-	add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
+	add_library("${io_libname}" SHARED ${io_gpulibsrcs} ${io_libsrcs})
+	set_target_properties(${io_libname} PROPERTIES COMPILE_FLAGS "-DHAVE_ADIOS -fPIC")
 endif(CUDA_FOUND)
-# Link opencv stuff to the execution engine
-target_link_libraries("${libname}" segment ${OpenCV_LIBS})
-
+target_link_libraries(${io_libname} segment ${OpenCV_LIBS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+	
 
 
 #### ADIOS code
@@ -94,10 +93,28 @@ if (ADIOS_FOUND)
 		add_library("${adios_libname}" SHARED ${adios_gpulibsrcs})
 		set_target_properties(${adios_libname} PROPERTIES COMPILE_FLAGS "-DHAVE_ADIOS -fPIC")
 	endif(CUDA_FOUND)
-	target_link_libraries(${adios_libname} segment ${ADIOS_LIBRARIES} ${OpenCV_LIBS})
+	target_link_libraries(${adios_libname} segment nu-io ${ADIOS_LIBRARIES} ${OpenCV_LIBS})
 	include_directories(${CMAKE_CURRENT_BINARY_DIR})
 	
 endif(ADIOS_FOUND)
+
+
+# Source files used by Segmentation
+set(libsrcs SCIOHistologicalEntities.cpp )
+set(gpulibsrcs SCIOHistologicalEntitiesGPU.cpp)
+set(libname scio-segment)
+# Add rule to generate execution engine, as a shared library (.so)
+if(CUDA_FOUND)
+	cuda_add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
+	set_target_properties(${libname} PROPERTIES COMPILE_FLAGS -DHAVE_CUDA) 
+else(CUDA_FOUND)
+	add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
+endif(CUDA_FOUND)
+# Link opencv stuff to the execution engine
+target_link_libraries("${libname}" segment nu-io ${OpenCV_LIBS})
+
+
+
 
 
 
@@ -107,7 +124,7 @@ foreach(program ${programs})
 	add_executable(${program} ${program}.cpp)
 
 	# Link the executable to the Features Computation library
-	target_link_libraries(${program} scio-segment segment ${OpenCV_LIBS})
+	target_link_libraries(${program} scio-segment segment nu-io ${OpenCV_LIBS})
 
 	if(MPI_FOUND)
   		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI") 
@@ -125,7 +142,7 @@ if (ADIOS_FOUND)
 		add_executable(${program} ${program}.cpp)
 	
 		# Link the executable to the Features Computation library
-		target_link_libraries(${program} scio-segment segment ${OpenCV_LIBS})
+		target_link_libraries(${program} scio-segment segment nu-io ${OpenCV_LIBS})
 	
 		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI -DWITH_ADIOS")
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
@@ -144,11 +161,11 @@ if (ADIOS_FOUND)
 		
 	
 		# Link the executable to the Features Computation library
-		target_link_libraries(${program} features segment ${OpenCV_LIBS})
+		target_link_libraries(${program} features segment nu-io ${OpenCV_LIBS})
 	
 		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DWITH_MPI -DWITH_ADIOS")
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
-		target_link_libraries(${program} scio-adios ${ADIOS_LIBRARIES} ${MPI_LIBRARIES})
+		target_link_libraries(${program} scio-adios scio-segment ${ADIOS_LIBRARIES} ${MPI_LIBRARIES})
 	endforeach(program)
 
 endif(ADIOS_FOUND)
