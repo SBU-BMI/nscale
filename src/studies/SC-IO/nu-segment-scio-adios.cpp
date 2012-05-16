@@ -384,7 +384,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				} else {  // wait state.
 
 					// tell worker to wait
-					printf("manager sending message %d to %d.\n", mstatus, worker_id);
+					//printf("manager sending message %d to %d.\n", mstatus, worker_id);
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 					t3 = ::cciutils::event::timestampInUS();
 					if (session != NULL) session->log(cciutils::event(90, std::string("manager sent wait"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
@@ -429,7 +429,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 			if(worker_status[0] == WORKER_READY) {
 				char mstatus = MANAGER_FINISHED;
 				MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
-				printf("manager signal finished to %d\n", worker_id);
+				//printf("manager signal finished to %d\n", worker_id);
 				--active_workers;
 				t3 = ::cciutils::event::timestampInUS();
 				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent END"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
@@ -608,7 +608,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			if (writer) writer->persist();
 			++iocount;
 		} else if (flag == MANAGER_WAIT) {
-			printf("manager told worker %d to wait\n", rank);
+			//printf("manager told worker %d to wait\n", rank);
 			t2 = ::cciutils::event::timestampInUS();
 
 			usleep(100);
@@ -616,13 +616,13 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			if (session != NULL) session->log(cciutils::event(90, std::string("worker wait"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 		} else if (flag == MANAGER_FINISHED) {
-			printf("manager told worker %d finished\n", rank);
+			//printf("manager told worker %d finished\n", rank);
 			t2 = ::cciutils::event::timestampInUS();
 			t3 = ::cciutils::event::timestampInUS();
 			if (session != NULL) session->log(cciutils::event(90, std::string("manager finished"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 		} else {
-			printf("manager send message %d to worker %d\n", flag, rank);
+			printf("manager send unknown message %d to worker %d\n", flag, rank);
 			t2 = ::cciutils::event::timestampInUS();
 			usleep(100);
 			t3 = ::cciutils::event::timestampInUS();
@@ -633,7 +633,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	// printf("WORKER %d waiting for MPI barrier\n", rank);
 
 	// manager is now done.  now do IO again
-	printf("worker %d final IO \n", rank);
+	//printf("worker %d final IO \n", rank);
 	// per node
 	session = logger->getSession(hostname);
 	if (writer) writer->setLogSession(session);
