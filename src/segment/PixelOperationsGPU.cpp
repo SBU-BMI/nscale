@@ -11,10 +11,10 @@
 #include "gpu_utils.h"
 
 
-//#define HAVE_CUDA
+//#define WITH_CUDA
 
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 #include "opencv2/gpu/stream_accessor.hpp"
 #include "cuda/pixel-ops.cuh"
 #endif
@@ -29,7 +29,7 @@ namespace gpu {
 
 
 
-#if !defined (HAVE_CUDA)
+#if !defined (WITH_CUDA)
 template <typename T>
 GpuMat PixelOperations::invert(const GpuMat& img, Stream& stream) { throw_nogpu(); }
 template <typename T>

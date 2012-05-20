@@ -5,7 +5,7 @@ NVCC_INCLUDE=-I/usr/local/cuda/include
 CUDA_LIBS= -L/usr/local/cuda/lib64 -lcudart
 
 CXXFLAGS	+= ${NVCC_INCLUDE}
-CXXFLAGS	+= -DHAVE_CUDA
+CXXFLAGS	+= -DWITH_CUDA
 LDFLAGS		+= ${CUDA_LIBS}
 
 

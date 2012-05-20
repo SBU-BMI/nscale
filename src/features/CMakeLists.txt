@@ -15,10 +15,9 @@ include_directories(${FeaturesAll_SOURCE_DIR}/cuda)
 include_directories(${Segmentation_SOURCE_DIR})
 
 set(libname featuresAll)
-
 if(CUDA_FOUND)
 	cuda_add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs} ${cudalibsrcs})
-	set_target_properties(${libname} PROPERTIES COMPILE_FLAGS -DHAVE_CUDA) 
+	set_target_properties(${libname} PROPERTIES COMPILE_DEFINITIONS "WITH_CUDA") 
 else(CUDA_FOUND)
 	add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
 endif(CUDA_FOUND)

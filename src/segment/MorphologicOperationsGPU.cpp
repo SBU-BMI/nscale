@@ -18,9 +18,9 @@
 #include "PixelOperations.h"
 #include "NeighborOperations.h"
 
-//#define HAVE_CUDA
+//#define WITH_CUDA
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 #include "opencv2/gpu/stream_accessor.hpp"
 #include "cuda/imreconstruct_int_kernel.cuh"
 #include "cuda/imreconstruct_float_kernel.cuh"
@@ -64,7 +64,7 @@ inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::q
 
 
 
-#if !defined (HAVE_CUDA)
+#if !defined (WITH_CUDA)
 
 template <typename T>
 GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}

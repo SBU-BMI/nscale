@@ -333,7 +333,7 @@ void compute(const char *dirname, std::string &outdir, std::string &runid) {
 	getFiles(dirname, filenames);
 	herr_t hstatus;
 	
-	printf("here:  %s, with %d files\n", dirname, filenames.size());
+	printf("here:  %s, with %lu files\n", dirname, filenames.size());
 
 	// open the first file to get some information
 	if (filenames.empty()) return;

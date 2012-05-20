@@ -98,7 +98,7 @@ namespace cv {
 		}
 	}
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 
 	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
 			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {

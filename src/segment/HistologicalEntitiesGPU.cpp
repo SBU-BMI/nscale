@@ -14,9 +14,9 @@
 #include "opencv2/gpu/gpu.hpp"
 #include "NeighborOperations.h"
 
-//#define HAVE_CUDA
+//#define WITH_CUDA
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 #include "ccl_uf.cuh"
 #include "opencv2/gpu/stream_accessor.hpp"
 #endif
@@ -32,7 +32,7 @@ using namespace cv::gpu;
 
 
 
-#if !defined (HAVE_CUDA)
+#if !defined (WITH_CUDA)
 GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,

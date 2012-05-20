@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 2.8)
 
 PROJECT( NSCALE )
 # The version number
-set(NSCALE_VERSION_MAJOR 1)
-set(NSCALE_VERSION_MINOR 0)
+set(NSCALE_VERSION_MAJOR 1 CACHE INTERNAL "major version")
+set(NSCALE_VERSION_MINOR 0 CACHE INTERNAL "minor version")
 
-message(STATUS "CMAKE binary dir location: ${CMAKE_BINARY_DIR}")
-message(STATUS "PROJECT binary dir location: ${PROJECT_BINARY_DIR}")
+#message(STATUS "CMAKE binary dir location: ${CMAKE_BINARY_DIR}")
+#message(STATUS "PROJECT binary dir location: ${PROJECT_BINARY_DIR}")
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING
@@ -18,7 +18,7 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 # Add these standard paths to the search paths for FIND_LIBRARY
 # to find libraries from these locations first
 if(UNIX)
-    set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /lib /usr/lib)
+    set(CMAKE_LIBRARY_PATH "${CMAKE_LIBRARY_PATH} /lib /usr/lib")
 endif()
 
 
@@ -55,58 +55,46 @@ endif()
 
 #### OpenCV
 find_package( OpenCV REQUIRED )
-
+#message(STATUS "openCV lib = ${OpenCV_LIBS}")
 #### CUDA
-set(WITH_CUDA OFF CACHE BOOL "Include NVidia Cuda Runtime support")
-if(WITH_CUDA)
+set(USE_CUDA OFF CACHE BOOL "Include NVidia Cuda Runtime support")
+if(USE_CUDA)
     find_package(CUDA 4.0)
     
     if(CUDA_FOUND) 		
         message(STATUS "CUDA detected: " ${CUDA_VERSION})
 
         # These vars will be processed in other scripts
-     	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --use_fast_math -arch=sm_20 -DPREFIX_SUM)
+     	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "--use_fast_math -arch=sm_20 -DPREFIX_SUM")
      #	set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -G)  # too slow...
-       set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -DTHRUST_DEBUG)
+       set(CUDA_NVCC_FLAGS_DEBUG "${CUDA_NVCC_FLAGS_DEBUG} -DTHRUST_DEBUG")
         message(STATUS "CUDA NVCC target flags: ${CUDA_NVCC_FLAGS}")
-		add_definitions( -DHAVE_CUDA )
+	add_definitions( -DWITH_CUDA )
     endif(CUDA_FOUND)
-else(WITH_CUDA)
+else(USE_CUDA)
 	set(CUDA_FOUND 0)
-endif(WITH_CUDA)
+endif(USE_CUDA)
 
 # Find threads package which is linked to the execution engine library
 find_package( Threads REQUIRED )
 
 #### MPI
-set(WITH_MPI OFF CACHE BOOL "Build with MPI support")
-if (WITH_MPI)
+set(USE_MPI OFF CACHE BOOL "Build with MPI support")
+if (USE_MPI)
 	find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH})
-else(WITH_MPI)
+else(USE_MPI)
 	set(MPI_FOUND 0)
-endif(WITH_MPI)
+endif(USE_MPI)
 
 #### OpenMP
-set(WITH_OPENMP OFF CACHE BOOL "Build with OpenMP support")
-if (WITH_OPENMP)
+set(USE_OPENMP OFF CACHE BOOL "Build with OpenMP support")
+if (USE_OPENMP)
     include(FindOpenMP)
     
 	 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 	 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif(WITH_OPENMP)
-
-
-#### HDF5
-find_package(HDF5 REQUIRED)
-if (HDF5_FOUND)
-	include_directories(${HDF5_INCLUDE_DIRS})
-	add_definitions(${HDF5_DEFINITIONS})
-	message(STATUS "HDF5LIBRARY_DIRS flags: ${HDF5_LIBRARY_DIRS}")
-	message(STATUS "HDF5LIBRARY_DIRS include: ${HDF5_INCLUDE_DIRS}")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -L${HDF5_LIBRARY_DIRS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${HDF5_LIBRARY_DIRS}")
-endif(HDF5_FOUND)
+endif(USE_OPENMP)
 
 
 

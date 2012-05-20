@@ -18,7 +18,7 @@
 #include <stdio.h>
 
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 #include "opencv2/gpu/gpu.hpp"
 #include "opencv2/gpu/stream_accessor.hpp"
 #endif
@@ -152,7 +152,7 @@ int main (int argc, char **argv){
 	watermask.release();
 
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 	// gpu version of watershed
 	//Stream stream;
 	GpuMat g_distance2, g_watermask, g_seg_big;

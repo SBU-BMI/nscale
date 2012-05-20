@@ -46,10 +46,12 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     cols = uint64(ceil(double(mx) / double(pixelWidth)));
     
     % allocate norm-events
-    norm_events = zeros(p, cols, length(allEventTypes), 'double');
+	norm_events = cell(p, 1);   
+% 	norm_events = zeros(p, cols, length(allEventTypes), 'double');
     
     % generate the norm_events
     for i = 1:p
+	norm_events{i} = sparse(cols, length(allEventTypes));
         type = proc_events{i, 5};
         [blah typeIdx] = ismember(type, allEventTypes);
         startt = proc_events{i, 6};
@@ -65,34 +67,34 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
         for j = 1:length(type)
             % if start and end in the same bucket, mark with duration
            if startt_bucket(j) == endt_bucket(j)
-               norm_events(i, startt_bucket(j), typeIdx(j)) = ...
-                   norm_events(i, startt_bucket(j), typeIdx(j)) + endt(j) - startt(j);
+               norm_events{i}(startt_bucket(j), typeIdx(j)) = ...
+                   norm_events{i}(startt_bucket(j), typeIdx(j)) + endt(j) - startt(j);
            else
                % do the start first
-               norm_events(i, startt_bucket(j), typeIdx(j)) = ...
-                   norm_events(i, startt_bucket(j), typeIdx(j)) + start_bucket_end(j) - startt(j);
+               norm_events{i}(startt_bucket(j), typeIdx(j)) = ...
+                   norm_events{i}(startt_bucket(j), typeIdx(j)) + start_bucket_end(j) - startt(j);
                % then do the end
-               norm_events(i, endt_bucket(j), typeIdx(j)) = ...
-                    norm_events(i, endt_bucket(j), typeIdx(j)) + endt(j) - end_bucket_start(j);
+               norm_events{i}(endt_bucket(j), typeIdx(j)) = ...
+                    norm_events{i}(endt_bucket(j), typeIdx(j)) + endt(j) - end_bucket_start(j);
             
                % then do in between
                if endt_bucket(j) > (startt_bucket(j) + 1)
-                    norm_events(i, startt_bucket(j)+1 : endt_bucket(j)-1, typeIdx(j)) = ...
-                        norm_events(i, startt_bucket(j)+1 : endt_bucket(j)-1, typeIdx(j)) + pixelWidth;
+                    norm_events{i}(startt_bucket(j)+1 : endt_bucket(j)-1, typeIdx(j)) = ...
+                        norm_events{i}(startt_bucket(j)+1 : endt_bucket(j)-1, typeIdx(j)) + pixelWidth;
                end
            end 
         end
+    	norm_events{i} = norm_events{i} / double(pixelWidth);
     end
     % normalize
-    norm_events = norm_events / double(pixelWidth);
+    %norm_events = norm_events / double(pixelWidth);
     
     % allocate the image
     hsvimg = ones(p * (barWidth + 1), cols, 3, 'double');
     
     % convert norm_events to hsv img
     for i = 1:p
-        weights = reshape(norm_events(i, :, :), size(norm_events, 2), size(norm_events, 3));
-        bar1 = weights * colorMapCart(:, 1:2);
+        bar1 = norm_events{i} * colorMapCart(:, 1:2);
         [bar1(:, 1) bar1(:, 2)] = cart2pol(bar1(:, 1), bar1(:,2)); % angle in radian again
         r0 = (i - 1) * (barWidth + 1) + 1;
         r1 = i * (barWidth + 1) - 1;
@@ -110,7 +112,10 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     axis image;
     title('process activities: BLACK:unknown; GREEN:compute; BLUE:mem IO; RED:file IO; CYAN:network IO; MAGENTA:network wait; YELLOW:MPI msg');
 
-    sum_events = reshape(sum(norm_events, 1), size(norm_events, 2), size(norm_events,3));
+    sum_events = sparse(size(norm_events{1});
+	for i = 1:p	
+		sum_events = sum_events + norm_events{i};
+	end
     subplot(2,1,2);
     axis tight;
     plot(sum_events(:, 1), '--k'); hold on;

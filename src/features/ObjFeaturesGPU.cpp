@@ -9,7 +9,7 @@
 #include "opencv2/gpu/gpu.hpp"
 //#include "opencv2/gpu/devmem2d.hpp"
 
-#if defined(HAVE_CUDA)
+#if defined(WITH_CUDA)
 
 #include "opencv2/gpu/stream_accessor.hpp"
 #include "cuda/hist-ops.cuh"
@@ -22,7 +22,7 @@ namespace gpu{
 
 using namespace cv::gpu;
 
-#if !defined (HAVE_CUDA)
+#if !defined (WITH_CUDA)
 float* ObjFeatures::intensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& labeledMask, const cv::gpu::GpuMat& grayImage, cv::gpu::Stream& stream){	
 	CV_Error(CV_GpuNotSupported, "The called functionality is disabled for current build or platform"); }
 

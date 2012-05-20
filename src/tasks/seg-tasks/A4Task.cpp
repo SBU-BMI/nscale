@@ -35,7 +35,7 @@ bool A4Task::run(int procType, int tid) {
 
 	printf("A4\n");
 
-#if !defined (HAVE_CUDA)
+#if !defined (WITH_CUDA)
 	procType = ExecEngineConstants::CPU;
 #endif
 

@@ -38,7 +38,7 @@ bool B2Task::run(int procType, int tid) {
 
 	printf("B2\n");
 
-#if !defined (HAVE_CUDA)
+#if !defined (WITH_CUDA)
 	procType = ExecEngineConstants::CPU;
 #endif
 

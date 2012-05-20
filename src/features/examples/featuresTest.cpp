@@ -77,7 +77,7 @@ int main (int argc, char **argv){
 	std::cout << "CytoCannyFeaturesTimeCPU = "<< t1-t0 <<std::endl;
 	free(h_cytoCannyFeatures);
 
-#if defined(HAVE_CUDA)
+#if defined(WITH_CUDA)
 	Stream stream;
 	GpuMat g_labeledImage;
 	GpuMat g_gray;

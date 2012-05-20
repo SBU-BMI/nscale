@@ -11,7 +11,7 @@
 #include "gpu_utils.h"
 
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 #include "opencv2/gpu/stream_accessor.hpp"
 #include "cuda/neighbor-ops.cuh"
 #endif
@@ -25,7 +25,7 @@ namespace gpu {
 using namespace cv::gpu;
 
 
-#if !defined (HAVE_CUDA)
+#if !defined (WITH_CUDA)
 template <typename T>
 GpuMat NeighborOperations::border(const GpuMat& img, T background, int connectivity, Stream& stream) { throw_nogpu(); }
 

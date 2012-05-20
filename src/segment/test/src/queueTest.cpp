@@ -7,7 +7,7 @@
 #include "stdio.h"
 #include <sys/time.h>
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 
 #include "cuda/queue.cuh"
 

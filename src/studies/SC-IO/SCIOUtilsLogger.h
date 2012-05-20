@@ -14,6 +14,14 @@
 #include <tr1/unordered_map>
 #include <vector>
 #include <cmath>
+#include <iostream>
+#include <string.h>
+#include <cstdlib>
+
+#if defined (WITH_MPI)
+#include "mpi.h"
+#endif
+
 
 namespace cciutils {
 
@@ -339,6 +347,90 @@ public :
 		}
 		return output;
 	}
+	virtual void write(const std::string &prefix) {
+	        std::vector<std::string> timings = this->toOneLineStrings();
+        	std::stringstream ss;
+	        for (int i = 0; i < timings.size(); i++) {
+        	        ss << timings[i] << std::endl;
+	        }
+ 
+		std::stringstream fss;
+		fss << prefix << "-" << id << ".csv";
+
+		std::ofstream ofs2(fss.str().c_str());
+        	ofs2 << ss.str() << std::endl;
+	        ofs2.close();
+	}
+
+#if defined (WITH_MPI)
+	virtual void writeCollectively(const std::string &prefix, const int &rank, const int &manager_rank, MPI_Comm &comm_world) {
+	int size;
+	MPI_Comm_size(comm_world, &size);
+
+
+        // now do a collective io for the log
+        std::vector<std::string> timings = this->toOneLineStrings();
+        std::stringstream ss;
+        for (int i = 0; i < timings.size(); i++) {
+                ss << timings[i] << std::endl;
+        }
+        std::string logstr = ss.str();
+        int logsize = logstr.size();
+
+        char *sendlog = (char *)malloc(sizeof(char) * logsize + 1);
+        memset(sendlog, 0, sizeof(char) * logsize + 1);
+        strncpy(sendlog, logstr.c_str(), logsize);
+        ss.str(std::string());
+
+        int *recbuf = NULL;
+
+	if (rank == manager_rank)
+		recbuf = (int *) malloc(size * sizeof(int));
+	
+        // now send the thing to manager
+        //      first gather sizes
+        MPI_Gather(&logsize, 1, MPI_INT, recbuf, 1, MPI_INT, manager_rank, comm_world);
+
+
+        //      then gatherv the messages.
+        char *logdata = NULL;
+        int * displbuf = NULL;
+ 
+
+        if (rank == manager_rank) {
+		// then perform exclusive prefix sum to get the displacement and the total length
+		displbuf = (int *) malloc(size * sizeof(int));
+		displbuf[0] = 0;
+        	for (int i = 1; i < size; i++) {
+                	displbuf[i] = displbuf[i-1] + recbuf[i-1];
+	        }
+        	int logtotalsize = displbuf[size - 1] + recbuf[size - 1];
+
+	        logdata = (char*) malloc(logtotalsize * sizeof(char) + 1);
+        	memset(logdata, 0, logtotalsize * sizeof(char) + 1);
+
+	}		
+        MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
+
+
+        free(sendlog);
+
+	if (rank == manager_rank) {
+        	free(recbuf);
+	        free(displbuf);
+        
+		std::stringstream fss;
+		fss << prefix << ".csv";
+
+		std::ofstream ofs2(fss.str().c_str());
+        	ofs2 << logdata << std::endl;
+	        ofs2.close();
+
+        	//printf("%s\n", logdata);
+		free(logdata);
+	}
+}
+#endif
 
 private :
 	int id;

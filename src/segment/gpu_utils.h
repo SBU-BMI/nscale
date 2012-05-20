@@ -13,15 +13,15 @@
 // can't use a namespace here.  the macro from core.hpp uses relative namespace.
 	// from openCV gpu precomp.h
 
-#if defined(HAVE_CUDA)
+#if defined(WITH_CUDA)
 
     static inline void throw_nogpu() { CV_Error(CV_GpuNotSupported, "The called functionality is disabled for current build or platform"); }
 
-#else /* defined(HAVE_CUDA) */
+#else /* defined(WITH_CUDA) */
 
     static inline void throw_nogpu() { CV_Error(CV_GpuNotSupported, "The library is compiled without GPU support"); }
 
-#endif /* defined(HAVE_CUDA) */
+#endif /* defined(WITH_CUDA) */
 
 #endif /* UTILS_H_ */
 

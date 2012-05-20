@@ -107,13 +107,13 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 		temp = futils.replaceExt(filenames[i], ".tif", ".mask.pbm");
 		temp = futils.replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
+	//	futils.mkdirs(tempdir);
 		seg_output.push_back(temp);
 		// generate the bounds output file name
 		temp = futils.replaceExt(filenames[i], ".tif", ".bounds.csv");
 		temp = futils.replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
+	//	futils.mkdirs(tempdir);
 		bounds_output.push_back(temp);
 	}
 
@@ -226,7 +226,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	uint64_t t1, t0;
 
 	MPI_Barrier(comm_world);
-	cciutils::SCIOLogSession *session = logger->getSession(hostname);
+	cciutils::SCIOLogSession *session = logger->getSession("m");
 
 	// now start the loop to listen for messages
 	int curr = 0;
@@ -446,7 +446,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	MPI_Barrier(comm_world);
 
-
+/*
 	// now do a collective io for the log
 	std::vector<std::string> timings = logger->toOneLineStrings();
 	std::stringstream ss;
@@ -501,7 +501,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 
 	free(logdata);
-
+*/
 }
 
 void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank,
@@ -530,7 +530,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	workerStatus[2] = iocount;
 	cciutils::SCIOLogSession *session;
 	// per node
-	if (logger) session = logger->getSession(hostname);
+	if (logger) session = logger->getSession("w");
 	if (writer) writer->setLogSession(session);
 	bool first = true;
 
@@ -583,7 +583,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			// per tile
 			// session = logger->getSession(std::string(input));
 			// per node
-			session = logger->getSession(hostname);
+			session = logger->getSession("w");
 			if (writer) writer->setLogSession(session);
 			compute(input, mask, output, modecode, session, writer);
 			// now do some work
@@ -602,7 +602,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			printf("iter %d manager-initiated IO for worker %d \n", iocount, rank);
 
 			// per node
-			session = logger->getSession(hostname);
+			session = logger->getSession("w");
 			if (writer) writer->setLogSession(session);
 
 			if (writer) writer->persist();
@@ -635,7 +635,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	// manager is now done.  now do IO again
 	//printf("worker %d final IO \n", rank);
 	// per node
-	session = logger->getSession(hostname);
+	session = logger->getSession("w");
 	if (writer) writer->setLogSession(session);
 	if (writer) writer->persist();
 	// printf("written out data %d \n", rank);
@@ -646,7 +646,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	// now do collective io.
 	MPI_Barrier(comm_world);
 
-
+/*
 	// and do the logging.
 	std::vector<std::string> timings = logger->toOneLineStrings();
 	std::stringstream ss;
@@ -674,7 +674,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	ss.str(std::string());
 	
 	free(sendlog);
-
+*/
 
 }
 
@@ -738,7 +738,14 @@ int main (int argc, char **argv){
 	/* now perform the computation
 	*/
 	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
-	cciutils::SCIOLogSession *session = logger->getSession(hostname);
+	cciutils::SCIOLogSession *session;
+	if (size == 1)
+		session = logger->getSession("w");
+	else 
+		if (rank == manager_rank)
+			session = logger->getSession("m");
+		else
+			session = logger->getSession("w");
 	cciutils::ADIOSManager *iomanager = new cciutils::ADIOSManager("adios_xml/image-tiles-globalarray.xml", rank, &comm_world, session);
 	if (size == 1) {
 
@@ -757,7 +764,7 @@ int main (int argc, char **argv){
 			// per tile:
 			// session = logger->getSession(filenames[i]);
 			// per node
-			session = logger->getSession(hostname);
+			session = logger->getSession("w");
 			if (writer) writer->setLogSession(session);
 
 			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, writer);
@@ -773,13 +780,8 @@ int main (int argc, char **argv){
 
 		iomanager->freeWriter(writer);
 
-
-		std::vector<std::string> timings = logger->toOneLineStrings();
-
-		for (int i = 0; i < timings.size(); i++) {
-			printf("%s\n", timings[i].c_str());
-		}
-
+		logger->write(outDir);
+	
 
 	} else {
 
@@ -811,6 +813,8 @@ int main (int argc, char **argv){
 
 		}
 		MPI_Comm_free(&comm_worker);
+
+		logger->writeCollectively(outDir, rank, manager_rank, comm_world);
 
 	}
 	delete iomanager;
