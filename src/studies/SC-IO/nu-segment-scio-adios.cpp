@@ -25,16 +25,21 @@ using namespace cv;
 
 
 
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir);
+int parseInput(int argc, char **argv, int &modecode, std::string &workingDir, std::string &imageName, std::string &outDir);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
 void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, cciutils::SCIOADIOSWriter *writer);
 
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir) {
+int parseInput(int argc, char **argv, int &modecode, std::string &workingDir, std::string &imageName, std::string &outDir) {
 	if (argc < 4) {
 		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
 		return -1;
 	}
+
+	std::string executable(argv[0]);
+	FileUtils futils;
+	workingDir.assign(futils.getDir(executable));
+
 	imageName.assign(argv[1]);
 	outDir.assign(argv[2]);
 	const char* mode = argc > 4 ? argv[4] : "cpu";
@@ -686,8 +691,8 @@ int main (int argc, char **argv){
 
 	// parse the input
 	int modecode;
-	std::string imageName, outDir, hostname;
-	int status = parseInput(argc, argv, modecode, imageName, outDir);
+	std::string imageName, outDir, hostname, workingDir;
+	int status = parseInput(argc, argv, modecode, workingDir, imageName, outDir);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -746,7 +751,11 @@ int main (int argc, char **argv){
 			session = logger->getSession("m");
 		else
 			session = logger->getSession("w");
-	cciutils::ADIOSManager *iomanager = new cciutils::ADIOSManager("adios_xml/image-tiles-globalarray.xml", rank, &comm_world, session);
+
+	std::string adios_config = workingDir;
+	adios_config.append("/../adios_xml/image-tiles-globalarray.xml");
+
+	cciutils::ADIOSManager *iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session);
 	if (size == 1) {
 
 	    int i = 0;
