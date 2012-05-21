@@ -69,6 +69,7 @@ public:
 	//  operators per obj
 	static int* buildHistogram256CPU( const cv::Mat& labeledMask, const cv::Mat& grayImage, int minx,  int maxx,  int miny,  int maxy,  int label );
 
+	static int* buildHistogram256CPUObjMask( const cv::Mat& objMask, const cv::Mat& grayImage, int minx,  int maxx,  int miny,  int maxy, int label, int id );
 
 };
 

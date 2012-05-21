@@ -84,9 +84,12 @@ namespace cv {
 	}
 
 	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::Mat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY) {
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 		if (!selected(stage)) return;
 
+		uint64_t t1, t2;
+
+		t1 = cciutils::event::timestampInUS();
 		if (intermediate.type() == CV_8UC1 || intermediate.type() == CV_8UC3 ||
 				intermediate.type() == CV_8SC1 || intermediate.type() == CV_8SC3) {
 
@@ -96,12 +99,14 @@ namespace cv {
 		} else {
 			imwriteRaw(intermediate, stage);
 		}
+		t2 = cciutils::event::timestampInUS();
+		if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
 	}
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 
 	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY) {
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 		if (!selected(stage)) return;
 		// first download the data
 		::cv::Mat output(intermediate.size(), intermediate.type());
@@ -111,7 +116,7 @@ namespace cv {
 	}
 #else
 	void SCIOIntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY) { throw_nogpu(); }
+			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) { throw_nogpu(); }
 #endif
 
 

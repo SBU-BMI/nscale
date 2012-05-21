@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<adios-config host-language="C">
+    <adios-group name="tileInfo" coordination-communicator="comm_worker" >
+	    <var name="tileInfo_capacity" type="long" />
+		<var name="tileInfo_pg_offset" type="long" />
+		<var name="tileInfo_pg_size" type="long" />
+	    <global-bounds dimensions="tileInfo_capacity" offsets="tileInfo_pg_offset">
+		    <var name="tileOffsetX" type="integer" dimensions="tileInfo_pg_size" />
+			<var name="tileOffsetY" type="integer" dimensions="tileInfo_pg_size" />
+		    <var name="tileSizeX" type="integer" dimensions="tileInfo_pg_size" />
+			<var name="tileSizeY" type="integer" dimensions="tileInfo_pg_size" />
+			<var name="nChannels" type="integer" dimensions="tileInfo_pg_size" />
+			<var name="elemSize1" type="integer" dimensions="tileInfo_pg_size" />
+			<var name="cvDataType" type="integer" dimensions="tileInfo_pg_size" />
+			<var name="encoding" type="integer" dimensions="tileInfo_pg_size" />
+			<var name="imageName_offset" type="long" dimensions="tileInfo_pg_size" />
+			<var name="imageName_size" type="long" dimensions="tileInfo_pg_size" />
+			<var name="sourceTileFile_offset" type="long" dimensions="tileInfo_pg_size" />
+			<var name="sourceTileFile_size" type="long" dimensions="tileInfo_pg_size" />
+			<var name="tile_offset" type="long" dimensions="tileInfo_pg_size" />
+			<var name="tile_size" type="long" dimensions="tileInfo_pg_size" />
+	    </global-bounds>
+
+	   	<var name="imageName_capacity" type="long" />
+		<var name="imageName_pg_offset" type="long" />
+		<var name="imageName_pg_size" type="long" />
+	    <global-bounds dimensions="imageName_capacity" offsets="imageName_pg_offset">
+			<var name="imageName" type="byte" dimensions="imageName_pg_size" />
+	    </global-bounds>
+
+	   	<var name="sourceTileFile_capacity" type="long" />
+		<var name="sourceTileFile_pg_offset" type="long" />
+		<var name="sourceTileFile_pg_size" type="long" />
+	    <global-bounds dimensions="sourceTileFile_capacity" offsets="sourceTileFile_pg_offset">
+			<var name="sourceTileFile" type="byte" dimensions="sourceTileFile_pg_size" />
+	    </global-bounds>
+
+	   	<var name="tile_capacity" type="long" />
+		<var name="tile_pg_offset" type="long" />
+		<var name="tile_pg_size" type="long" />
+	    <global-bounds dimensions="tile_capacity" offsets="tile_pg_offset">
+			<var name="tile" type="unsigned byte" dimensions="tile_pg_size" />
+	    </global-bounds>
+    </adios-group>
+    <adios-group name="tileCount" coordination-communicator="comm_worker">
+	 	<var name="tileInfo_capacity" type="long" />
+		<var name="tileInfo_total" type="long" />
+		<var name="imageName_capacity" type="long" />
+		<var name="imageName_total" type="long" />
+		<var name="sourceTileFile_capacity" type="long" />
+		<var name="sourceTileFile_total" type="long" />
+		<var name="tile_capacity" type="long" />
+		<var name="tile_total" type="long" />
+    </adios-group>
+    <method group="tileCount" method="MPI"/>
+    <method group="tileInfo" method="MPI"/>
+    <buffer size-MB="150" allocate-time="now"/>
+</adios-config>

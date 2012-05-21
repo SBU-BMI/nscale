@@ -108,7 +108,7 @@ int main (int argc, char **argv){
 //	std::cout << "bwselect4 took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-bwselected4.pbm", bwselected2);
 //
-//#if defined (HAVE_CUDA)
+//#if defined (WITH_CUDA)
 //	GpuMat g_imfillinput(imfillinput.size(), imfillinput.type());
 //	Stream stream;
 //	stream.enqueueUpload(imfillinput, g_imfillinput);

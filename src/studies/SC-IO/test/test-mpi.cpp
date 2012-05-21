@@ -32,25 +32,12 @@ int main (int argc, char **argv) {
 
     // init sub communicator
 	// create new group from old group
-	int worker_size = size - 1;
 	int managerid = 0;
-	int *workers = (int*) malloc(worker_size * sizeof(int));
-	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
-		if (id == managerid) ++id;  // skip the manager id
-		workers[i] = id;
-	}
-	// get old group
-	MPI_Group world_group;
-	MPI_Comm_group ( comm_world, &world_group );
-
-	MPI_Group worker_group;
-	MPI_Group_incl ( world_group, worker_size, workers, &worker_group );
-	free(workers);
 
 	MPI_Comm comm_worker;
-	MPI_Comm_create(comm_world, worker_group, &comm_worker);
+	MPI_Comm_split(comm_world, (rank == managerid ? 1 : 0), rank, &comm_worker);
 	
-	int worker_rank;
+	int worker_rank, worker_size;
 	if (rank != managerid) {
 		MPI_Comm_size(comm_worker, &worker_size);
 	    MPI_Comm_rank(comm_worker, &worker_rank);
@@ -83,5 +70,6 @@ int main (int argc, char **argv) {
 
 	
 
+	MPI_Comm_free(&comm_worker);
 	MPI_Finalize();
 }

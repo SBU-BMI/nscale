@@ -55,7 +55,7 @@ int main (int argc, char **argv){
 	Mat recon, recon2;
 	uint64_t t1, t2;
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 	Stream stream;
 	GpuMat g_marker, g_marker1;
 	GpuMat g_mask, g_mask1, g_recon;
@@ -73,7 +73,7 @@ int main (int argc, char **argv){
 	marker.convertTo(markerInt, CV_32SC1, 1, 0);
 	mask.convertTo(maskInt, CV_32SC1, 1, 0);
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 	GpuMat g_marker_int, g_mask_int;
 	stream.enqueueUpload(markerInt, g_marker_int);
 	stream.enqueueUpload(maskInt, g_mask_int);
@@ -87,7 +87,7 @@ int main (int argc, char **argv){
 	std::cout << "cpu recon int took " << t2-t1 << "ms" << std::endl;
 	//imwrite("test/out-reconint.ppm", recon);
 
-#if defined (HAVE_CUDA)
+#if defined (WITH_CUDA)
 	t1 = cciutils::ClockGetTime();
 	GpuMat g_recon_int = nscale::gpu::imreconstruct<int>(g_marker_int, g_mask_int, 8, stream);
 	stream.waitForCompletion();
