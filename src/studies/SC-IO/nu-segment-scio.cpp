@@ -204,8 +204,8 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	std::string prefix = fu.replaceExt(fmask, ".mask.pbm", "");
 	std::string suffix;
 	suffix.assign(".mask.pbm");
-	::cciutils::cv::IntermediateResultHandler *iwrite = new ::cciutils::cv::IntermediateResultWriter(prefix, suffix, stages);
-
+	::cciutils::cv::SCIOIntermediateResultWriter *iwrite = new ::cciutils::cv::SCIOIntermediateResultWriter(prefix, suffix, stages);
+	iwrite->setLogSession(session);
 
 	if (modecode == cciutils::DEVICE_GPU ) {
 		nscale::gpu::SCIOHistologicalEntities *seg2 = new nscale::gpu::SCIOHistologicalEntities(std::string(input));
@@ -232,8 +232,8 @@ void compute(const char *input, const char *mask, const char *output, const int 
 #if defined (WITH_MPI)
 MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank);
-void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir, const int imageCount);
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages);
+void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir, const int imageCount, ::cciutils::SCIOLogSession *session);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cciutils::SCIOLogSession *session);
 
 
 // initialize MPI
@@ -259,27 +259,14 @@ MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_siz
 	MPI_Comm_rank(comm_world, &rank);
 	
 	// create new group from old group
-	worker_size = size - 1;
-	int *workers = (int*) malloc(worker_size * sizeof(int));
-	for (int i = 0, id = 0; i < worker_size; ++i, ++id) {
-		if (id == managerid) ++id;  // skip the manager id
-		workers[i] = id;
-	}
-	// get old group
-	MPI_Group world_group;
-	MPI_Comm_group ( comm_world, &world_group );
-
-	MPI_Group worker_group;
-	MPI_Group_incl ( world_group, worker_size, workers, &worker_group );
-	free(workers);
-	
 	MPI_Comm comm_worker;
-	MPI_Comm_create(comm_world, worker_group, &comm_worker);
+	MPI_Comm_split(comm_world, (rank == managerid ? 1 : 0), rank, &comm_worker);
 	
 	if (rank != managerid) {
 		MPI_Comm_size(comm_worker, &worker_size);
-	    	MPI_Comm_rank(comm_worker, &worker_rank);
+		MPI_Comm_rank(comm_worker, &worker_rank);
 	} else {
+		worker_size = size-1;
 		worker_rank = -1;
 	}
 	return comm_worker;
@@ -294,7 +281,7 @@ static const char WORKER_ERROR = -21;
 static const int TAG_CONTROL = 0;
 static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
-void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir, const int imageCount) {
+void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &outDir, const int imageCount, ::cciutils::SCIOLogSession *session) {
 	// first get the list of files to process
    	std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
@@ -322,24 +309,52 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	int outputlen;
 	int hasMessage;
 	char managerStatus;
+
+	long long t3, t2;
+
+	t2 = ::cciutils::event::timestampInUS();
+
 	while (curr < total) {
-		usleep(1000);
+		//usleep(1000);
 
 		managerStatus = MANAGER_READY;
 
 		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
+
+
 		if (hasMessage != 0) {
+
+			t3 = ::cciutils::event::timestampInUS();
+			if (session != NULL) session->log(cciutils::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+
+			t2 = ::cciutils::event::timestampInUS();
+
+
 /* where is it coming from */
 			worker_id = status.MPI_SOURCE;
 			MPI_Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world, &status);
 //			printf("manager received request from worker %d\n",worker_id);
+			t3 = ::cciutils::event::timestampInUS();
+			if (session != NULL) session->log(cciutils::event(90, std::string("manager received msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+
 			if (worker_id == manager_rank) continue;
 
+			if (curr % 100 == 0) {
+				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
+			}
+
 			if(ready == WORKER_READY) {
+				t2 = ::cciutils::event::timestampInUS();
+
 				// tell worker that manager is ready
 				MPI_Send(&managerStatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 //				printf("manager signal transfer\n");
 /* send real data */
+				t3 = ::cciutils::event::timestampInUS();
+				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent ready"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
+				t2 = ::cciutils::event::timestampInUS();
+
+
 				inputlen = filenames[curr].size() + 1;  // add one to create the zero-terminated string
 				masklen = seg_output[curr].size() + 1;
 				outputlen = bounds_output[curr].size() + 1;
@@ -367,11 +382,13 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				delete [] mask;
 				delete [] output;
 
+				t3 = ::cciutils::event::timestampInUS();
+				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+
 			}
 
-			if (curr % 100 == 1) {
-				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
-			}
+			t2 = ::cciutils::event::timestampInUS();
+
 
 		}
 	}
@@ -380,11 +397,19 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	managerStatus = MANAGER_FINISHED;
 /* tell everyone to quit */
 	int active_workers = worker_size;
+	t2 = ::cciutils::event::timestampInUS();
+
 	while (active_workers > 0) {
-		usleep(1000);
+		//usleep(1000);
+
 
 		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
 		if (hasMessage != 0) {
+			t3 = ::cciutils::event::timestampInUS();
+			if (session != NULL) session->log(cciutils::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+
+			t2 = ::cciutils::event::timestampInUS();
+
 		/* where is it coming from */
 			worker_id=status.MPI_SOURCE;
 			MPI_Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world, &status);
@@ -395,50 +420,21 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				MPI_Send(&managerStatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 //				printf("manager signal finished\n");
 				--active_workers;
+				t3 = ::cciutils::event::timestampInUS();
+				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent END"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
+
 			}
+
+			t2 = ::cciutils::event::timestampInUS();
+
 		}
 	}
 
 	MPI_Barrier(comm_world);
 
-
-	// now do a collective io for the log
-	int logsize = 0;
-	int world_size;
-	MPI_Comm_size(comm_world, &world_size);
-
-	int *recbuf = (int *) malloc(world_size * sizeof(int));
-
-	// now send the thing to manager
-	// 	first gather sizes
-	MPI_Gather(&logsize, 1, MPI_INT, recbuf, 1, MPI_INT, manager_rank, comm_world);
-	
-	// then perform exclusive prefix sum to get the displacement and the total length
-	int *displbuf = (int *) malloc(world_size * sizeof(int));
-	displbuf[0] = 0;
-	for (int i = 1; i < world_size; i++) {
-		displbuf[i] = displbuf[i-1] + recbuf[i-1];	
-	}
-	int logtotalsize = displbuf[world_size - 1] + recbuf[world_size - 1];
-	
-	char *logdata = (char*) malloc(logtotalsize * sizeof(char) + 1);
-	memset(logdata, 0, logtotalsize * sizeof(char) + 1);
-	
-	char *sendlog = (char*) malloc(sizeof(char))	;
-	sendlog[0] = 0;
-
-	MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
-
-	printf("%s\n", logdata);
-
-
-	free(logdata);
-
-	free(displbuf);
-	free(recbuf);
 }
 
-void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages) {
+void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cciutils::SCIOLogSession *session) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	int outputSize;
@@ -452,9 +448,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	uint64_t t0, t1, t2, t3;
 	printf("worker %d ready\n", rank);
 
-	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
 	char workerStatus = WORKER_READY;
-	cciutils::SCIOLogSession *session;
 
 	int count = 0;
 
@@ -462,13 +456,18 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
 		t0 = cciutils::ClockGetTime();
 
+		t2 = ::cciutils::event::timestampInUS();
+
 		// tell the manager - ready
 		MPI_Send(&workerStatus, 1, MPI::CHAR, manager_rank, TAG_CONTROL, comm_world);
 //		printf("worker %d signal ready\n", rank);
 		// get the manager status
 		MPI_Recv(&flag, 1, MPI::CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
 //		printf("worker %d received manager status %d\n", rank, flag);
+		t3 = ::cciutils::event::timestampInUS();
+		if (session != NULL) session->log(cciutils::event(90, std::string("worker message"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
 
+		t2 = ::cciutils::event::timestampInUS();
 		if (flag == MANAGER_READY) {
 			// get data from manager
 			MPI_Recv(&inputSize, 1, MPI::INT, manager_rank, TAG_METADATA, comm_world, &status);
@@ -487,11 +486,12 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			MPI_Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA, comm_world, &status);
 			MPI_Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA, comm_world, &status);
 			MPI_Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA, comm_world, &status);
+			t3 = ::cciutils::event::timestampInUS();
+			if (session != NULL) session->log(cciutils::event(90, std::string("worker get work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
 
 			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
-			session = logger->getSession(std::string(input));
 			compute(input, mask, output, modecode, session, stages);
 			++count;
 			// now do some work
@@ -507,45 +507,17 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 		}
 	}
-	t3 = cciutils::ClockGetTime();
 
 	// now do collective io.
 	MPI_Barrier(comm_world);
 	printf("worker %d processed %d jobs in %lu us\n", rank, count, t3 - t2);
 
-	std::vector<std::string> timings = logger->toStrings();
-	std::stringstream ss;
-	for (int i = 0; i < timings.size(); i++) {
-		ss << timings[i] << std::endl;	
-	}
-	std::string logstr = ss.str();
-	int logsize = logstr.size();
-	
-	int *recbuf = NULL;
 
-	// now send the thing to manager
-	// 	first gather sizes
-	MPI_Gather(&logsize, 1, MPI_INT, recbuf, 1, MPI_INT, manager_rank, comm_world);
-
-	// 	then gatherv the messages.
-	char *sendlog = (char *)malloc(sizeof(char) * logstr.size() + 1);
-	memset(sendlog, 0, sizeof(char) * logstr.size() + 1);
-	strncpy(sendlog, logstr.c_str(), logstr.size());
-
-	char *logdata = NULL;
-	int * displbuf = NULL;
-	MPI_Gatherv(sendlog, logsize, MPI_CHAR, logdata, recbuf, displbuf, MPI_CHAR, manager_rank, comm_world);
-
-	ss.str(std::string());
-	
-	free(sendlog);
-
-	delete logger;
 }
 
 int main (int argc, char **argv){
 
-	printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
+//	printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
 
    	std::vector<int> stages;
 
@@ -556,46 +528,109 @@ int main (int argc, char **argv){
 	if (status != 0) return status;
 
 	// set up mpi
-	int rank, size, worker_size, worker_rank, manager_rank;
+	int rank = 0, size = 1, worker_size, worker_rank = 0, manager_rank;
+	// initialize the worker comm object
+	worker_size = size;
+	manager_rank = size - 1;
+
 	MPI_Comm comm_world = init_mpi(argc, argv, size, rank, hostname);
-
-
-	if (size == 1) {
-		printf("ERROR:  this program can only be run with 2 or more MPI nodes.  The head node does not process data\n");
-		return -4;
-	}
 
 	if (modecode == cciutils::DEVICE_GPU) {
 		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
 		return -4;
 	}
 
-	// initialize the worker comm object
-	worker_size = size - 1;
-	manager_rank = size - 1;
+	// get the input files and broadcast the count to all
+	long total = 0;
+	// first get the list of files to process
+       	std::vector<std::string> filenames;
+    	std::vector<std::string> seg_output;
+    	std::vector<std::string> bounds_output;
 
-	// NOT NEEDED
-	MPI_Comm comm_worker = init_workers(comm_world, manager_rank, worker_size, worker_rank);
-
+	// first process gathers the filesnames
 	uint64_t t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
-
-	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
-		// manager thread
-		manager_process(comm_world, manager_rank, worker_size, imageName, outDir, imageCount);
-		t2 = cciutils::ClockGetTime();
-		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
+		t1 = cciutils::ClockGetTime();
+		getFiles(imageName, outDir, filenames, seg_output, bounds_output, imageCount);
 
-	} else {
-		// worker bees
-		worker_process(comm_world, manager_rank, rank, modecode, hostname, stages);
+		t2 = cciutils::ClockGetTime();
+		printf("file read took %lu us\n", t2 - t1);
+
+		total = filenames.size();
+		printf("TOTAL FILES = %ld\n", total);
+	}
+
+
+	// then if MPI, broadcast it
+	if (size > 1) {
+		MPI_Bcast(&total, 1, MPI_INT, manager_rank, comm_world);
+	}
+
+	/* now perform the computation
+	*/
+	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
+	cciutils::SCIOLogSession *session;
+	if (size == 1)
+		session = logger->getSession("w");
+	else
+		if (rank == manager_rank)
+			session = logger->getSession("m");
+		else
+			session = logger->getSession("w");
+
+	if (size == 1) {
+
+	    int i = 0;
+
+		t1 = cciutils::ClockGetTime();
+
+		while (i < total) {
+			// per tile:
+			// session = logger->getSession(filenames[i]);
+			// per node
+			session = logger->getSession("w");
+
+			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages);
+
+			printf("processed %s\n", filenames[i].c_str());
+			++i;
+
+		}
 		t2 = cciutils::ClockGetTime();
 		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
+		logger->write(outDir);
+
+	} else {
+		MPI_Comm comm_worker = init_workers(comm_world, manager_rank, worker_size, worker_rank);
+
+
+		t1 = cciutils::ClockGetTime();
+
+		// decide based on rank of worker which way to process
+		if (rank == manager_rank) {
+			// manager thread
+			manager_process(comm_world, manager_rank, worker_size, imageName, outDir, imageCount, session);
+			t2 = cciutils::ClockGetTime();
+			printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
+
+		} else {
+			// worker bees
+			worker_process(comm_world, manager_rank, rank, modecode, hostname, stages, session);
+			t2 = cciutils::ClockGetTime();
+			printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
+
+		}
+		MPI_Comm_free(&comm_worker);
+
+		logger->writeCollectively(outDir, rank, manager_rank, comm_world);
+
 	}
+	delete logger;
+
 	MPI_Barrier(comm_world);
 	MPI_Finalize();
+
 	exit(0);
 
 }
@@ -603,7 +638,7 @@ int main (int argc, char **argv){
 
 #else
 
-    int main (int argc, char **argv){
+/*    int main (int argc, char **argv){
     	printf("NOT compiled with MPI.  Using OPENMP if CPU, or GPU (multiple streams)\n");
 
 
@@ -639,23 +674,23 @@ int main (int argc, char **argv){
     	if (omp_get_max_threads() == 1) {
         	printf("1 omp thread\n");
     		cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(0, std::string("localhost"));
-		cciutils::SCIOLogSession *session;
+    		cciutils::SCIOLogSession *session;
 	
         	while (i < total) {
-			session = logger->getSession(filenames[i]);
+        		session = logger->getSession("w");
         		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages);
         		printf("processed %s\n", filenames[i].c_str());
         		++i;
         	}
-		std::vector<std::string> timings = logger->toStrings();
-		for (int i = 0; i < timings.size(); i++) {
-			printf("%s\n", timings[i].c_str());	
-		}
+			std::vector<std::string> timings = logger->toStrings();
+			for (int i = 0; i < timings.size(); i++) {
+				printf("%s\n", timings[i].c_str());
+			}
         	delete logger;
 
     	} else {
         	printf("omp %d\n", omp_get_max_threads());
-		cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(omp_get_thread_num(), std::string("localhost"));
+        	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(omp_get_thread_num(), std::string("localhost"));
 #pragma omp parallel
     	{
 #pragma omp single private(i)
@@ -665,7 +700,7 @@ int main (int argc, char **argv){
     			while (i < total) {
     				int ti = i;
     				// has to use firstprivate - private does not work.
-				cciutils::SCIOLogSession *session = logger->getSession(filenames[ti]);
+    				cciutils::SCIOLogSession *session = logger->getSession("w");
 #pragma omp task firstprivate(ti, session) shared(filenames, seg_output, bounds_output, modecode)
     				{
 //        				printf("t i: %d, %d \n", i, ti);
@@ -688,20 +723,24 @@ int main (int argc, char **argv){
 	cciutils::SCIOLogSession *session;
     	printf("not omp\n");
     	while (i < total) {
-		session = logger->getSession(filenames[i]);
+		session = logger->getSession("w");
     		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages);
     		printf("processed %s\n", filenames[i].c_str());
     		++i;
     	}
-	std::vector<std::string> timings = logger->toStrings();
-	for (int i = 0; i < timings.size(); i++) {
-		printf("%s\n", timings[i].c_str());	
-	}
-    	delete logger;
+		std::vector<std::string> timings = logger->toStrings();
+		for (int i = 0; i < timings.size(); i++) {
+			printf("%s\n", timings[i].c_str());
+		}
+		delete logger;
 #endif
 		t2 = cciutils::ClockGetTime();
 		printf("FINISHED in %lu us\n", t2 - t1);
 
     	return 0;
+    }
+    */
+    int main (int argc, char **argv){
+    	printf("NOT compiled with MPI.  only works with MPI right now\n");
     }
 #endif

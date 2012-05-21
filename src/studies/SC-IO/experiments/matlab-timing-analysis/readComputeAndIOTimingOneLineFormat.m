@@ -16,9 +16,13 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename )
         temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64', 'delimiter', ',');
 
         proc_events = [proc_events; temp1, temp2];
+        clear temp1;
+        clear temp2;
         tline = fgetl(fid);
         i = i+1;
     end
+    clear tline;
+    clear i;
     fclose(fid);
     
 end

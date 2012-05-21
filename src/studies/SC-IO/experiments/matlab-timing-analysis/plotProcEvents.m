@@ -1,4 +1,4 @@
-function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth)
+function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname)
 %plotTiming draws an image that represents the different activities in MPI
 %   The function first parses the data and generate a normalized event map
 %   with dimension p x ((max t - min t)/pixelWidth) x eventTypes.  This has
@@ -31,6 +31,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     % XY positions on colorwheel.
     colorMapCart = colorMap;
     [colorMapCart(:, 1) colorMapCart(:, 2)] = pol2cart(colorMap(:, 1), colorMap(:, 2));
+    colorMapCart(find(abs(colorMapCart) < eps)) = 0;
     
     % get global min and max
     mn = inf;
@@ -43,7 +44,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
 
 
     % get the number of pixels
-    cols = uint64(ceil(double(mx) / double(pixelWidth)));
+    cols = ceil(double(mx) / double(pixelWidth));
     
     % allocate norm-events
 	norm_events = cell(p, 1);   
@@ -51,20 +52,21 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     
     % generate the norm_events
     for i = 1:p
-	norm_events{i} = sparse(cols, length(allEventTypes));
-        type = proc_events{i, 5};
-        [blah typeIdx] = ismember(type, allEventTypes);
-        startt = proc_events{i, 6};
-        endt = proc_events{i, 7};
+        norm_events{i} = sparse(cols, length(allEventTypes));
+        types = proc_events{i, 5};
+        [blah typeIdx] = ismember(types, allEventTypes);
+        clear blah;
+        startt = double(proc_events{i, 6});
+        endt = double(proc_events{i, 7});
         
-        startt_bucket = uint64(ceil(double(startt) / double(pixelWidth)));
-        endt_bucket = uint64(ceil(double(endt) / double(pixelWidth)));
+        startt_bucket = ceil(double(startt) / double(pixelWidth));
+        endt_bucket = ceil(double(endt) / double(pixelWidth));
         
         start_bucket_end = startt_bucket * pixelWidth;
         end_bucket_start = (endt_bucket - 1) * pixelWidth;
         
         % process the buckets
-        for j = 1:length(type)
+        for j = 1:length(types)
             % if start and end in the same bucket, mark with duration
            if startt_bucket(j) == endt_bucket(j)
                norm_events{i}(startt_bucket(j), typeIdx(j)) = ...
@@ -85,39 +87,65 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
            end 
         end
     	norm_events{i} = norm_events{i} / double(pixelWidth);
+        
+        clear types;
+        clear startt;
+        clear endt;
+        clear startt_bucket;
+        clear endt_bucket;
+        clear start_bucket_end;
+        clear end_bucket_start;
+        
     end
     % normalize
     %norm_events = norm_events / double(pixelWidth);
     
     % allocate the image
-    hsvimg = ones(p * (barWidth + 1), cols, 3, 'double');
+    img = zeros(p * (barWidth + 1), cols, 3, 'double');
     
     % convert norm_events to hsv img
     for i = 1:p
-        bar1 = norm_events{i} * colorMapCart(:, 1:2);
-        [bar1(:, 1) bar1(:, 2)] = cart2pol(bar1(:, 1), bar1(:,2)); % angle in radian again
+        % get weighted sum of colors
+        bar1 = norm_events{i} * colorMapCart;
+        
+        % convert from cartesian to polar coord (radians )
+        [bar1(:, 1) bar1(:, 2)] = cart2pol(bar1(:, 1), bar1(:,2));
+        
+        % angle is between -pi and pi. (function uses atan2)
+        bar1(:, 1) = bar1(:, 1) / (2.0 * pi);  % convert to -1/2 to 1/2
+        idx = find(bar1(:,1) < 0);
+        bar1(idx, 1) = bar1(idx, 1) + 1.0;  % convert to 0 to 1, via a "mod"
+        bar1(find(abs(bar1(:,1)) < eps), 1) = 0;
+        bar1(find(abs(bar1(:,1) - 1.0) < eps), 1) = 1;
+        
+        % convert hsvimg to rgb
+        bar1 = hsv2rgb(bar1);
+        bar1(find(abs(bar1) < eps)) = 0;
+        bar1(find(abs(bar1 - 1.0) < eps)) = 1;
+        
+        
         r0 = (i - 1) * (barWidth + 1) + 1;
         r1 = i * (barWidth + 1) - 1;
-        hsvimg(r0:r1, :, 1:2) = ...
+        img(r0:r1, :, :) = ...
             repmat(reshape(bar1, 1, size(bar1, 1), size(bar1, 2)), [barWidth, 1, 1]);
+        clear bar1;
+        clear r0;
+        clear r1;
     end
     
-    hsvimg(:, :, 1) = hsvimg(:, :, 1) / (2.0 * pi);  % between 0 and 1.
-    % convert hsvimg to rgb
-    img = hsv2rgb(hsvimg);
     
-    figure; subplot(2,1,1);
+    fig = figure;
+    subplot(2,1,1);
     imshow(img);
     axis on;
-    axis image;
+    %axis image;
     title('process activities: BLACK:unknown; GREEN:compute; BLUE:mem IO; RED:file IO; CYAN:network IO; MAGENTA:network wait; YELLOW:MPI msg');
 
-    sum_events = sparse(size(norm_events{1});
+    sum_events = sparse(size(norm_events{1}, 1), size(norm_events{1}, 2));
 	for i = 1:p	
 		sum_events = sum_events + norm_events{i};
 	end
     subplot(2,1,2);
-    axis tight;
     plot(sum_events(:, 1), '--k'); hold on;
     plot(sum_events(:, 2), '-g'); hold on;
     plot(sum_events(:, 3), ':b'); hold on;
@@ -126,7 +154,9 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     plot(sum_events(:, 6), ':b'); hold on;
     plot(sum_events(:, 7), ':m'); hold on;
     plot(sum_events(:, 8), ':y');
-
+    axis tight;
+    clear sum_events;
     
+    print(fig, '-dtiff', figname);
 end
 
