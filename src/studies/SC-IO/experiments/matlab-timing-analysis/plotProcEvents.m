@@ -138,7 +138,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     subplot(2,1,1);
     imshow(img);
     axis on;
-    %axis image;
+    axis normal;
     title('process activities: BLACK:unknown; GREEN:compute; BLUE:mem IO; RED:file IO; CYAN:network IO; MAGENTA:network wait; YELLOW:MPI msg');
 
     sum_events = sparse(size(norm_events{1}, 1), size(norm_events{1}, 2));
