@@ -7,11 +7,17 @@
 #include "SCIOUtilsLogger.h"
 
 const int ::cciutils::event::COMPUTE = 0;
-const int ::cciutils::event::MEM_IO = 1;
-const int ::cciutils::event::FILE_IO = 2;
-const int ::cciutils::event::NETWORK_IO = 3;
-const int ::cciutils::event::GPU_MEM_IO = 4;
-const int ::cciutils::event::NETWORK_WAIT = 5;
-const int ::cciutils::event::NETWORK_MSG = 6;
+const int ::cciutils::event::MEM_IO = 11;
+const int ::cciutils::event::GPU_MEM_IO = 12;
+const int ::cciutils::event::NETWORK_IO = 21;
+const int ::cciutils::event::NETWORK_WAIT = 22;
+const int ::cciutils::event::FILE_I = 31;
+const int ::cciutils::event::FILE_O = 32;
+const int ::cciutils::event::ADIOS_INIT = 41;
+const int ::cciutils::event::ADIOS_OPEN = 42;
+const int ::cciutils::event::ADIOS_ALLOC = 43;
+const int ::cciutils::event::ADIOS_WRITE = 44;
+const int ::cciutils::event::ADIOS_CLOSE = 45;
+const int ::cciutils::event::ADIOS_FINALIZE = 46;
 const int ::cciutils::event::OTHER = -1;
 

@@ -335,7 +335,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 			MPI_Recv(&ready, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world, &status);
 //			printf("manager received request from worker %d\n",worker_id);
 			t3 = ::cciutils::event::timestampInUS();
-			if (session != NULL) session->log(cciutils::event(90, std::string("manager received msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+			if (session != NULL) session->log(cciutils::event(90, std::string("manager received msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 			if (worker_id == manager_rank) continue;
 
@@ -351,7 +351,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 //				printf("manager signal transfer\n");
 /* send real data */
 				t3 = ::cciutils::event::timestampInUS();
-				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent ready"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
+				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent ready"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
 				t2 = ::cciutils::event::timestampInUS();
 
 
@@ -421,7 +421,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 //				printf("manager signal finished\n");
 				--active_workers;
 				t3 = ::cciutils::event::timestampInUS();
-				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent END"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
+				if (session != NULL) session->log(cciutils::event(90, std::string("manager sent END"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
 
 			}
 
@@ -465,7 +465,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 		MPI_Recv(&flag, 1, MPI::CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
 //		printf("worker %d received manager status %d\n", rank, flag);
 		t3 = ::cciutils::event::timestampInUS();
-		if (session != NULL) session->log(cciutils::event(90, std::string("worker message"), t2, t3, std::string(), ::cciutils::event::NETWORK_MSG));
+		if (session != NULL) session->log(cciutils::event(90, std::string("worker message"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 		t2 = ::cciutils::event::timestampInUS();
 		if (flag == MANAGER_READY) {

@@ -29,11 +29,17 @@ class event {
 public:
 	static const int COMPUTE;
 	static const int MEM_IO;
-	static const int FILE_IO;
-	static const int NETWORK_IO;
 	static const int GPU_MEM_IO;
+	static const int NETWORK_IO;
 	static const int NETWORK_WAIT;
-	static const int NETWORK_MSG;
+	static const int FILE_I;
+	static const int FILE_O;
+	static const int ADIOS_INIT;
+	static const int ADIOS_OPEN;
+	static const int ADIOS_ALLOC;
+	static const int ADIOS_WRITE;
+	static const int ADIOS_CLOSE;
+	static const int ADIOS_FINALIZE;
 	static const int OTHER;
 
 	event(const int &_id, const std::string &_name, const long long &_start, const long long &_end, const std::string &_annotation,

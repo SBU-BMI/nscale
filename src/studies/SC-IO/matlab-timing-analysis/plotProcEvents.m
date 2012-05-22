@@ -16,31 +16,40 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
 %   
 %   Each horizontal bar is one process, each pixel is some time interval.
 %   
+    p = size(proc_events,1);
+
+    % get global min and max and the unique events
+    mn = inf;
+    mx = 0;
+    for i = 1:p 
+	   mn = min([mn, min(proc_events{i, 6})]);
+       mx = max([mx, max(proc_events{i, 7})]);
+    end
 
     % hardcode the event types - total of 8 types
-    allEventTypes = -1:1:6;  % values are -1 to 6
-    colorMap = [0, 0, 0; ...                    % unknown type, -1, black
-                120.0, 1.0, 1.0; ...      % compute, 0, green
-                240.0, 1.0, 1.0; ...      % mem IO, 1, blue
-                0, 1.0, 1.0; ...                % file io, 2, red
-                180.0, 1.0, 1.0; ...      % network io, 3, cyan
-                240.0, 1.0, 1.0; ...      % GPU mem io, 4, blue
-                300.0, 1.0, 1.0; ...      % network wait, 5, magenta
-                60.0, 1.0, 1.0];           % network msg, 6, yellow
+    allEventTypes = [-1 0 11 12 21 22 31 32 41 42 43 44 45 46]';
+    colorMap = [0, 0, 0; ...                    % OTHER, -1, black
+                120.0, 0.4, 1.0; ...      % COMPUTE, 0, green
+                240.0, 0.4, 1.0; ...      % MEM_IO, 11, blue
+                240.0, 0.4, 1.0; ...      % GPU_MEM_IO, 12, blue
+                180.0, 0.4, 1.0; ...      % NETWORK_IO, 21, cyan
+                300.0, 0.4, 1.0; ...      % NETWORK_WAIT, 22, magenta
+                60.0, 0.4, 1.0; ...       % FILE_I, 31, yellow
+                0.0, 0.4, 1.0; ...        % FILE_O, 32, red
+                180.0, 1.0, 1.0; ...      % ADIOS_INIT, 41, cyan
+                300.0, 1.0, 1.0; ...      % ADIOS_OPEN, 42, magenta
+                240.0, 1.0, 1.0; ...      % ADIOS_ALLOC, 43, blue
+                60.0, 1.0, 1.0; ...       % ADIOS_WRITE, 44, yellow
+                0.0, 1.0, 1.0; ...        % ADIOS_CLOSE, 45, red
+                120.0, 1.0, 1.0; ...      % ADIOS_FINALIZE, 46, green
+	];
     colorMap(:, 1) = colorMap(:, 1) / 180.0 * pi;  % in radian
     % XY positions on colorwheel.
     colorMapCart = colorMap;
     [colorMapCart(:, 1) colorMapCart(:, 2)] = pol2cart(colorMap(:, 1), colorMap(:, 2));
     colorMapCart(find(abs(colorMapCart) < eps)) = 0;
     
-    % get global min and max
-    mn = inf;
-    mx = 0;
-    p = size(proc_events,1);
-    for i = 1:p 
-       mn = min([mn, min(proc_events{i, 6})]);
-       mx = max([mx, max(proc_events{i, 7})]);
-    end
+
 
 
     % get the number of pixels
@@ -140,7 +149,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     imshow(img);
     axis on;
     axis normal;
-    title('process activities: BLACK:unknown; GREEN:compute; BLUE:mem IO; RED:file IO; CYAN:network IO; MAGENTA:network wait; YELLOW:MPI msg');
+    title('process activities: (BLACK:unknown) (GREEN:COMPUTE,ADIOS_FINALIZE) (BLUE:MEM_IO,ADIOS_ALLOC); RED:(FILE_O,ADIOS_CLOSE) (CYAN:NET_IO,ADIOS_INIT) (MAGENTA:NET_WAIT,ADIOS_OPEN) (YELLOW:FILE_I,ADIOS_WRITE)');
 
     sum_events = sparse(size(norm_events{1}, 1), size(norm_events{1}, 2));
 	for i = 1:p	
@@ -148,13 +157,19 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
 	end
     subplot(2,1,2);
     plot(sum_events(:, 1), '--k'); hold on;
-    plot(sum_events(:, 2), '-g'); hold on;
+    plot(sum_events(:, 2), '-.g'); hold on;
     plot(sum_events(:, 3), ':b'); hold on;
-    plot(sum_events(:, 4), '-r'); hold on;
-    plot(sum_events(:, 5), '-c'); hold on;
-    plot(sum_events(:, 6), ':b'); hold on;
-    plot(sum_events(:, 7), ':m'); hold on;
-    plot(sum_events(:, 8), ':y');
+    plot(sum_events(:, 4), ':b'); hold on;
+    plot(sum_events(:, 5), '-.c'); hold on;
+    plot(sum_events(:, 6), ':m'); hold on;
+    plot(sum_events(:, 7), ':y'); hold on;
+    plot(sum_events(:, 8), '-.r'); hold on;
+    plot(sum_events(:, 9), '-c'); hold on;
+    plot(sum_events(:, 10), '-m'); hold on;
+    plot(sum_events(:, 11), '-b'); hold on;
+    plot(sum_events(:, 12), '-y'); hold on;
+    plot(sum_events(:, 13), '-r'); hold on;
+    plot(sum_events(:, 14), '-g'); hold on;
     axis tight;
     clear sum_events;
     

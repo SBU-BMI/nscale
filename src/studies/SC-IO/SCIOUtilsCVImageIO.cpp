@@ -100,7 +100,7 @@ namespace cv {
 			imwriteRaw(intermediate, stage);
 		}
 		t2 = cciutils::event::timestampInUS();
-		if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+		if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(), ::cciutils::event::FILE_O));
 	}
 
 #if defined (WITH_CUDA)

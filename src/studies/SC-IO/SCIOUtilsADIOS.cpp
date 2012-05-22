@@ -14,10 +14,13 @@ ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_com
 	logsession = session;
 	long long t1 = ::cciutils::event::timestampInUS();
 	adios_init(configfilename);
-
-	writers.clear();
 	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios init"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios init"), t1, t2, std::string(), ::cciutils::event::ADIOS_INIT));
+
+	t1 = ::cciutils::event::timestampInUS();
+	writers.clear();
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("clear Writers"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
 }
 
@@ -39,7 +42,7 @@ ADIOSManager::~ADIOSManager() {
 	t1 = ::cciutils::event::timestampInUS();
 	adios_finalize(rank);
 	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS finalize"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS finalize"), t1, t2, std::string(), ::cciutils::event::ADIOS_FINALIZE));
 //	printf("finished cleaning up %d\n", rank);
 
 }
@@ -116,7 +119,7 @@ int SCIOADIOSWriter::open(const char* groupName) {
 		err = adios_open(&adios_handle, groupName, filename.c_str(), "a", local_comm);
 	}
 	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios open"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios open"), t1, t2, std::string(), ::cciutils::event::ADIOS_OPEN));
 
 	return err;
 }
@@ -137,7 +140,7 @@ int SCIOADIOSWriter::close(uint32_t time_index) {
 	int err = adios_close(adios_handle);
 
 	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(), ::cciutils::event::ADIOS_CLOSE));
 
 	return err;
 }
@@ -349,7 +352,7 @@ int SCIOADIOSWriter::persist() {
 
 	}
 	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE"), t1, t2, std::string(), ::cciutils::event::ADIOS_WRITE));
 
 	close(1);  // uses matcache.size();
 
@@ -394,7 +397,7 @@ int SCIOADIOSWriter::persistCountInfo() {
 	long long t1 = ::cciutils::event::timestampInUS();
 #include "gwrite_tileCount.ch"
 	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE Summary"), t1, t2, std::string(), ::cciutils::event::FILE_IO));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE Summary"), t1, t2, std::string(), ::cciutils::event::ADIOS_WRITE));
 
 	close(0);
 
