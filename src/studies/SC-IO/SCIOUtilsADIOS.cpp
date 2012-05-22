@@ -48,7 +48,7 @@ ADIOSManager::~ADIOSManager() {
 }
 
 SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
-		const bool _newfile,
+		const bool _appendInTime, const bool _newfile,
 		std::vector<int> &selStages,
 		const long mx_tileinfo_count, const long mx_imagename_bytes,
 		const long mx_sourcetilefile_bytes, const long mx_tile_bytes,
@@ -67,14 +67,16 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	w->sourceTileFile_capacity = mx_sourcetilefile_bytes;
 	w->tileInfo_capacity = mx_tileinfo_count;
 
+	w->prefix = pref;
+	w->suffix = suf;
 
-	std::stringstream ss;
-	ss << pref << "." << suf;
-	w->filename = ss.str();
+
+	w->write_session_id = 0;
 	w->newfile = _newfile;
+	w->appendInTime = _appendInTime;
 	writers.push_back(w);
 
-	if (w->local_rank == 0) printf("INITIALIZED %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->filename.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
+	if (w->local_rank == 0) printf("INITIALIZED %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
 
 	return w;
 }
@@ -112,11 +114,19 @@ int SCIOADIOSWriter::open(const char* groupName) {
 	int err;
 	long long t1 = ::cciutils::event::timestampInUS();
 
-	if (newfile) {
-		err = adios_open(&adios_handle, groupName, filename.c_str(), "w", local_comm);
-		newfile = false;
+	this->write_session_id++;
+	std::stringstream ss;
+	if (this->appendInTime == true) {
+		ss << this->prefix << "." << this->suffix;
+		if (newfile) {
+			err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", local_comm);
+			newfile = false;
+		} else {
+			err = adios_open(&adios_handle, groupName, ss.str().c_str(), "a", local_comm);
+		}
 	} else {
-		err = adios_open(&adios_handle, groupName, filename.c_str(), "a", local_comm);
+		ss << this->prefix << "/t-" << this->write_session_id << "." << this->suffix;
+		err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", local_comm);
 	}
 	long long t2 = ::cciutils::event::timestampInUS();
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios open"), t1, t2, std::string(), ::cciutils::event::ADIOS_OPEN));

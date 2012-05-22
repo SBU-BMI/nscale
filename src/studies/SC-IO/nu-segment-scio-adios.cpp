@@ -266,7 +266,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		workerLoad[i] = 0;
 		//printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? 10 : messages[i].front()));
 	}
-	int maxWorkerLoad = 7;
+	int maxWorkerLoad = 3;
 	int IOCount = 0;
 	long long t2, t3;
 
@@ -763,6 +763,10 @@ int main (int argc, char **argv){
 	adios_config.append(iocode);
 	adios_config.append(".xml");
 
+	bool appendInTime = true;
+	if (strcmp(iocode.c_str(), "MPI_AMR") == 0) appendInTime = false;
+	bool overwrite = true;
+
 	cciutils::ADIOSManager *iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session);
 	if (size == 1) {
 
@@ -771,7 +775,7 @@ int main (int argc, char **argv){
 
 		// worker bees.  set to overwrite (third param set to true).
 
-		cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), true,
+		cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
 				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 				rank, &comm_world);
 
@@ -821,7 +825,7 @@ int main (int argc, char **argv){
 
 		} else {
 			// worker bees.  set to overwrite (third param set to true).
-			cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), true,
+			cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
 				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 					worker_rank, &comm_worker);
 

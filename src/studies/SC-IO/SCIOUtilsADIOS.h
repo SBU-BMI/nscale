@@ -43,7 +43,7 @@ public:
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _newfile, std::vector<int> &selStages,
+			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
@@ -55,7 +55,7 @@ public:
 class SCIOADIOSWriter : public cv::IntermediateResultHandler {
 
 	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _newfile, std::vector<int> &selStages,
+			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
@@ -83,8 +83,12 @@ private:
     long sourceTileFile_capacity;
     long tile_capacity;
 
+    std::string prefix;
+    std::string suffix;
     bool newfile;
+    bool appendInTime;
     std::vector<Tile> tile_cache;
+    uint32_t write_session_id;
 
 	MPI_Comm *local_comm;
 	int local_rank;
