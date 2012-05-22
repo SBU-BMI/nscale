@@ -26,20 +26,33 @@ if(ADIOS_FOUND)
 
 	
 	### copy over the adios xml files
-	FILE(GLOB ADIOS_XMLS RELATIVE ${PROJECT_SOURCE_DIR} "*.xml" )
+	FILE(GLOB ADIOS_XMLS_IN RELATIVE ${PROJECT_SOURCE_DIR} "*.xml.in" )
 	set(ADIOS_XML_DIR ${CMAKE_BINARY_DIR}/adios_xml)
 	#message("adios xml dir = ${ADIOS_XML_DIR}")
 	make_directory(${ADIOS_XML_DIR})
-	foreach(ADIOS_XML ${ADIOS_XMLS})
-	#	message("copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
-		configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML} ${ADIOS_XML_DIR}/${ADIOS_XML} COPY_ONLY)
-		
-		  execute_process(
-	    COMMAND python ${ADIOS_DIR}/bin/gpp.py ${PROJECT_SOURCE_DIR}/${ADIOS_XML}
+	
+	# create a list of suffixes.
+	set(ADIOS_TRANSPORTS NULL POSIX MPI_LUSTRE MPI_AMR MPI)
+
+	foreach(ADIOS_XML_IN ${ADIOS_XMLS_IN})
+		# generate the xml files for different transports
+		foreach (ADIOS_TRANSPORT ${ADIOS_TRANSPORTS})
+			string(REPLACE ".xml.in" "-${ADIOS_TRANSPORT}.xml" ADIOS_XML ${ADIOS_XML_IN})
+			# then replace the transport variables.
+			message(STATUS "copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML_IN} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
+			configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML_IN} ${ADIOS_XML_DIR}/${ADIOS_XML} @ONLY)	
+		endforeach(ADIOS_TRANSPORT)
+
+	  # then use the last defined ADIOS_XML with the python script to generate the c include files.
+	  execute_process(
+	    COMMAND python ${ADIOS_DIR}/bin/gpp.py ${ADIOS_XML_DIR}/${ADIOS_XML}
 	    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	  ) 
-		
-	endforeach(ADIOS_XML)
+	  )
+
+	endforeach(ADIOS_XML_IN)
+
+
+
 	FILE(GLOB ADIOS_CHS RELATIVE ${CMAKE_CURRENT_BINARY_DIR} "*.ch" )
 	
 	include_directories(${PROJECT_SOURCE_DIR}/../adios-include)

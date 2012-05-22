@@ -87,32 +87,41 @@ link_directories(${Segmentation_SOURCE_DIR})
 if(ADIOS_FOUND)
 	### copy over the adios xml files
 	### and generate c source from ADIOS_XML files
-	FILE(GLOB ADIOS_XMLS RELATIVE ${PROJECT_SOURCE_DIR} "*.xml" )
+	FILE(GLOB ADIOS_XMLS_IN RELATIVE ${PROJECT_SOURCE_DIR} "*.xml.in" )
 	set(ADIOS_XML_DIR ${CMAKE_BINARY_DIR}/adios_xml)
 	#message("adios xml dir = ${ADIOS_XML_DIR}")
 	make_directory(${ADIOS_XML_DIR})
 
+	# at this point, we need to have LD_LIBRARY_PATH set in order for the adios_lint (and gpp.py) to work.
+	# this appears not to work.  so we would need to set this in the LD_LIBRARY_PATH in the bashrc script.
 #	string(REPLACE ";" ":" ADIOS_LD_DIRS ${ADIOS_LIB_DIRS})
 #	set(ENV{LD_LIBRARY_PATH} "$ENV{LD_LIBRARY_PATH}:${ADIOS_LD_DIRS}")
 
-	# at this point, we need to have LD_LIBRARY_PATH set in order for the adios_lint (and gpp.py) to work.
+	# create a list of suffixes.
+	set(ADIOS_TRANSPORTS NULL POSIX MPI_LUSTRE MPI_AMR MPI)
 
-	foreach(ADIOS_XML ${ADIOS_XMLS})
-		message(STATUS "copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
-		configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML} ${ADIOS_XML_DIR}/${ADIOS_XML} COPY_ONLY)
-	
+	foreach(ADIOS_XML_IN ${ADIOS_XMLS_IN})
+		# generate the xml files for different transports
+		foreach (ADIOS_TRANSPORT ${ADIOS_TRANSPORTS})
+			string(REPLACE ".xml.in" "-${ADIOS_TRANSPORT}.xml" ADIOS_XML ${ADIOS_XML_IN})
+			# then replace the transport variables.
+			message(STATUS "copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML_IN} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
+			configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML_IN} ${ADIOS_XML_DIR}/${ADIOS_XML} @ONLY)	
+		endforeach(ADIOS_TRANSPORT)
+
+	  # then use the last defined ADIOS_XML with the python script to generate the c include files.
 	  execute_process(
-	    COMMAND python ${ADIOS_DIR}/bin/gpp.py ${PROJECT_SOURCE_DIR}/${ADIOS_XML}
+	    COMMAND python ${ADIOS_DIR}/bin/gpp.py ${ADIOS_XML_DIR}/${ADIOS_XML}
 	    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	  ) 
-	
-	endforeach(ADIOS_XML)
-	
+	  )
+
+	endforeach(ADIOS_XML_IN)
+
+	# collect all the generated .ch files.	
 	FILE(GLOB ADIOS_CHS RELATIVE ${CMAKE_CURRENT_BINARY_DIR} "*.ch" )
 
-	# add several header fields thare are normally not installed with adios
+	# add several header fields that are normally not installed with adios
 	include_directories(${PROJECT_SOURCE_DIR}/adios-include)
-
 
 endif(ADIOS_FOUND)
 

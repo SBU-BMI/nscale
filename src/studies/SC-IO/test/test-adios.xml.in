@@ -37,11 +37,11 @@
        		<var name="strval" type="byte" dimensions="count,maxstrlen"/>
     	</global-bounds>
     </adios-group>
-    <method group="source" method="MPI"/>
-    <method group="source2" method="MPI"/>
-    <method group="source3" method="MPI"/>
-    <method group="source4" method="MPI"/>
-       <method group="source5" method="MPI"/>
+    <method group="source" method="@ADIOS_TRANSPORT@"/>
+    <method group="source2" method="@ADIOS_TRANSPORT@"/>
+    <method group="source3" method="@ADIOS_TRANSPORT@"/>
+    <method group="source4" method="@ADIOS_TRANSPORT@"/>
+    <method group="source5" method="@ADIOS_TRANSPORT@"/>
     
     <buffer size-MB="128" allocate-time="now"/>
 </adios-config>

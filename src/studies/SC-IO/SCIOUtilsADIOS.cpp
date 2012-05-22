@@ -148,7 +148,7 @@ int SCIOADIOSWriter::persist() {
 	// prepare the data.
 	// all the data should be continuous now.
 
-	printf("worker %d writing out %lu tiles to ADIOS\n", local_rank, tile_cache.size());
+	//printf("worker %d writing out %lu tiles to ADIOS\n", local_rank, tile_cache.size());
 	long long t1 = ::cciutils::event::timestampInUS();
 
 	int err;

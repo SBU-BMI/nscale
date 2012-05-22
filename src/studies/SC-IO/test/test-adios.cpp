@@ -90,7 +90,7 @@ int main (int argc, char **argv) {
 
 
 	// now do another test with comm_worker only
-	int err = adios_init("adios_xml/test-adios.xml");
+	int err = adios_init("adios_xml/test-adios-MPI.xml");
 	if (err != 1) printf("ERROR: adios error code on init: %d \n", err);
 
 	if (worker_rank >= 0) {

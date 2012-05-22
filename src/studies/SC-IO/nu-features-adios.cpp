@@ -17,6 +17,7 @@
 #include "opencv2/opencv.hpp"
 #include "RegionalMorphologyAnalysis.h"
 #include "PixelOperations.h"
+#include "FileUtils.h"
 
 
 void readData(ADIOS_GROUP *g,const  uint64_t *start, const uint64_t *count, const int rank, void* &tiledata, ::cv::Mat &img,
@@ -195,10 +196,30 @@ void computeFeatures(::cv::Mat image, ::cv::Mat mask, std::vector<std::vector<fl
 int main (int argc, char **argv) {
 
 
-	if (argc < 4) {
-		printf("usage: %s maskfilename rgbfilename outdirname", argv[0]);
+	if (argc < 5) {
+		printf("usage: %s maskfilename rgbfilename outdirname <NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR>", argv[0]);
 		return -1;
 	}
+
+	std::string executable(argv[0]);
+	FileUtils futils;
+	std::string workingDir;
+	workingDir.assign(futils.getDir(executable));
+
+	std::string iocode;
+	if (argc > 4 && strcmp(argv[4], "NULL") != 0 &&
+			strcmp(argv[4], "POSIX") != 0 &&
+			strcmp(argv[4], "MPI") != 0 &&
+			strcmp(argv[4], "MPI_LUSTRE") != 0 &&
+			strcmp(argv[4], "MPI_AMR") != 0) {
+		printf("usage: %s maskfilename rgbfilename outdirname <NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR>", argv[0]);
+		return -1;
+
+	} else {
+		iocode.assign(argv[4]);
+	}
+
+
 
 	// init MPI
 	int ierr = MPI_Init(&argc, &argv);
@@ -314,7 +335,14 @@ int main (int argc, char **argv) {
 
 	int pos;
 
-	adios_init("adios_xml/nu-features-globalarray.xml");
+
+	std::string adios_config = workingDir;
+	adios_config.append("/../adios_xml/nu-features-globalarray-");
+	adios_config.append(iocode);
+	adios_config.append(".xml");
+
+
+	adios_init(adios_config.c_str());
 
 	features.clear();
 	for (uint64_t i = rank; i < mpi_tileInfo_total; i += size ) {

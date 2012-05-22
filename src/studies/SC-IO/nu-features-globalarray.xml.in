@@ -36,7 +36,7 @@
 		<var name="ndims" type="integer" />
 		<var name="feature_count" type="integer" />
     </adios-group>
-    <method group="nuFeatureDims" method="MPI"/>
-    <method group="nuFeatureInfo" method="MPI"/>
+    <method group="nuFeatureDims" method="@ADIOS_TRANSPORT@"/>
+    <method group="nuFeatureInfo" method="@ADIOS_TRANSPORT@"/>
     <buffer size-MB="150" allocate-time="now"/>
 </adios-config>

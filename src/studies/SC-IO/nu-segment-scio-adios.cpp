@@ -25,14 +25,14 @@ using namespace cv;
 
 
 
-int parseInput(int argc, char **argv, int &modecode, std::string &workingDir, std::string &imageName, std::string &outDir);
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, std::string &workingDir, std::string &imageName, std::string &outDir);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
 void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, cciutils::SCIOADIOSWriter *writer);
 
-int parseInput(int argc, char **argv, int &modecode, std::string &workingDir, std::string &imageName, std::string &outDir) {
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, std::string &workingDir, std::string &imageName, std::string &outDir) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR> [cpu [threads] | gpu [threads] [id]]" << std::endl;
 		return -1;
 	}
 
@@ -42,6 +42,21 @@ int parseInput(int argc, char **argv, int &modecode, std::string &workingDir, st
 
 	imageName.assign(argv[1]);
 	outDir.assign(argv[2]);
+
+	if (argc > 3 && strcmp(argv[3], "NULL") != 0 &&
+			strcmp(argv[3], "POSIX") != 0 &&
+			strcmp(argv[3], "MPI") != 0 &&
+			strcmp(argv[3], "MPI_LUSTRE") != 0 &&
+			strcmp(argv[3], "MPI_AMR") != 0) {
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR> [cpu [threads] | gpu [threads] [id]]" << std::endl;
+		return -1;
+
+	} else {
+		iocode.assign(argv[3]);
+	}
+
+
+
 	const char* mode = argc > 4 ? argv[4] : "cpu";
 
 	int threadCount;
@@ -52,19 +67,10 @@ int parseInput(int argc, char **argv, int &modecode, std::string &workingDir, st
 	threadCount = 1;
 #endif
 
-//	printf("number of threads: %d\n", threadCount);
-
 
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
 		// get core count
-
-
-	} else if (strcasecmp(mode, "mcore") == 0) {
-//		modecode = cciutils::DEVICE_MCORE;
-		// get core count
-		modecode = cciutils::DEVICE_CPU;
-
 
 	} else if (strcasecmp(mode, "gpu") == 0) {
 		modecode = cciutils::DEVICE_GPU;
@@ -79,7 +85,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &workingDir, st
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR> [cpu [threads] | gpu [threads] [id]]" << std::endl;
 		return -1;
 	}
 
@@ -260,7 +266,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		workerLoad[i] = 0;
 		//printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? 10 : messages[i].front()));
 	}
-	int maxWorkerLoad = 2;
+	int maxWorkerLoad = 7;
 	int IOCount = 0;
 	long long t2, t3;
 
@@ -595,7 +601,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 			t1 = cciutils::ClockGetTime();
 //			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
-			printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
+//			printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
 			free(input);
@@ -604,7 +610,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 		} else if (flag == MANAGER_REQUEST_IO) {
 			// do some IO.
-			printf("iter %d manager-initiated IO for worker %d \n", iocount, rank);
+			//printf("iter %d manager-initiated IO for worker %d \n", iocount, rank);
 
 			// per node
 			session = logger->getSession("w");
@@ -627,7 +633,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			if (session != NULL) session->log(cciutils::event(90, std::string("manager finished"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 		} else {
-			printf("manager send unknown message %d to worker %d\n", flag, rank);
+			//printf("manager send unknown message %d to worker %d\n", flag, rank);
 			t2 = ::cciutils::event::timestampInUS();
 			usleep(100);
 			t3 = ::cciutils::event::timestampInUS();
@@ -691,8 +697,8 @@ int main (int argc, char **argv){
 
 	// parse the input
 	int modecode;
-	std::string imageName, outDir, hostname, workingDir;
-	int status = parseInput(argc, argv, modecode, workingDir, imageName, outDir);
+	std::string imageName, outDir, hostname, workingDir, iocode;
+	int status = parseInput(argc, argv, modecode, iocode, workingDir, imageName, outDir);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -753,7 +759,9 @@ int main (int argc, char **argv){
 			session = logger->getSession("w");
 
 	std::string adios_config = workingDir;
-	adios_config.append("/../adios_xml/image-tiles-globalarray.xml");
+	adios_config.append("/../adios_xml/image-tiles-globalarray-");
+	adios_config.append(iocode);
+	adios_config.append(".xml");
 
 	cciutils::ADIOSManager *iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session);
 	if (size == 1) {
@@ -789,7 +797,10 @@ int main (int argc, char **argv){
 
 		iomanager->freeWriter(writer);
 
-		logger->write(outDir);
+		std::string logfile(outDir);
+		logfile.append("-");
+		logfile.append(iocode);
+		logger->write(logfile);
 	
 
 	} else {
@@ -823,7 +834,10 @@ int main (int argc, char **argv){
 		}
 		MPI_Comm_free(&comm_worker);
 
-		logger->writeCollectively(outDir, rank, manager_rank, comm_world);
+		std::string logfile(outDir);
+		logfile.append("-");
+		logfile.append(iocode);
+		logger->writeCollectively(logfile, rank, manager_rank, comm_world);
 
 	}
 	delete iomanager;

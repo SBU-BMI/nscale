@@ -136,10 +136,10 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 		return -1;
 	}
 
-	std::ostream_iterator< int > output( std::cout, " " );
-	std::cout << "Selected stages: ";
-	std::copy( stages.begin(), stages.end(), output );
-	std::cout << std::endl;
+//	std::ostream_iterator< int > output( std::cout, " " );
+//	std::cout << "Selected stages: ";
+//	std::copy( stages.begin(), stages.end(), output );
+//	std::cout << std::endl;
 
 	return 0;
 }
@@ -445,14 +445,14 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	MPI_Status status;
 
 	MPI_Barrier(comm_world);
-	uint64_t t0, t1, t2, t3;
-	printf("worker %d ready\n", rank);
+	uint64_t t0, t1, t2, t3, t4, t5;
+	//printf("worker %d ready\n", rank);
 
 	char workerStatus = WORKER_READY;
 
 	int count = 0;
 
-	t2 = cciutils::ClockGetTime();
+	t4 = cciutils::ClockGetTime();
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
 		t0 = cciutils::ClockGetTime();
 
@@ -498,7 +498,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 			t1 = cciutils::ClockGetTime();
 //			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
-			printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
+			//printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
 			delete [] input;
@@ -507,10 +507,11 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 
 		}
 	}
+	t5 = cciutils::ClockGetTime();
 
 	// now do collective io.
 	MPI_Barrier(comm_world);
-	printf("worker %d processed %d jobs in %lu us\n", rank, count, t3 - t2);
+	printf("worker %d processed %d jobs in %lu us\n", rank, count, t5 - t4);
 
 
 }
@@ -592,12 +593,12 @@ int main (int argc, char **argv){
 
 			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages);
 
-			printf("processed %s\n", filenames[i].c_str());
+			//printf("processed %s\n", filenames[i].c_str());
 			++i;
 
 		}
 		t2 = cciutils::ClockGetTime();
-		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
+		//printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
 		logger->write(outDir);
 
@@ -618,7 +619,7 @@ int main (int argc, char **argv){
 			// worker bees
 			worker_process(comm_world, manager_rank, rank, modecode, hostname, stages, session);
 			t2 = cciutils::ClockGetTime();
-			printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
+			//printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
 		}
 		MPI_Comm_free(&comm_worker);

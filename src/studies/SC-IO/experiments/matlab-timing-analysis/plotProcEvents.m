@@ -1,4 +1,4 @@
-function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname)
+function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname_prefix)
 %plotTiming draws an image that represents the different activities in MPI
 %   The function first parses the data and generate a normalized event map
 %   with dimension p x ((max t - min t)/pixelWidth) x eventTypes.  This has
@@ -133,6 +133,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
         clear r1;
     end
     
+    imwrite(img, [figname_prefix '.tif'], 'tiff');
     
     fig = figure;
     subplot(2,1,1);
@@ -157,6 +158,6 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     axis tight;
     clear sum_events;
     
-    print(fig, '-dtiff', figname);
+    print(fig, '-dtiff', [figname_prefix '.fig.tif']);
 end
 

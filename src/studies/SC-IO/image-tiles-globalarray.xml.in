@@ -52,7 +52,7 @@
 		<var name="tile_capacity" type="long" />
 		<var name="tile_total" type="long" />
     </adios-group>
-    <method group="tileCount" method="MPI"/>
-    <method group="tileInfo" method="MPI"/>
-    <buffer size-MB="150" allocate-time="now"/>
+    <method group="tileCount" method="@ADIOS_TRANSPORT@"/>
+    <method group="tileInfo" method="@ADIOS_TRANSPORT@"/>
+    <buffer size-MB="512" allocate-time="now"/>
 </adios-config>
