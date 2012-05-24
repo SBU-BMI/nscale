@@ -54,7 +54,7 @@ public:
 		std::stringstream ss;
 		ss << std::fixed << "[" << id << "]" << eventtype << "=\t" << name << ":\t" << starttime;
 		if (endtime != -1)
-			ss << "\t-\t" << endtime << "\t=\t" << (endtime - starttime);
+			ss << "\t-\t" << endtime << "\t=\t" << (endtime - starttime + 1);
 		else
 			ss << "\t\t\t\t";
 		ss << "\t" << annotation;
@@ -160,7 +160,7 @@ public :
 
 		std::string ename = e.getName();
 		int etype = e.getType();
-		long long duration = e.getEnd() - e.getStart();
+		long long duration = e.getEnd() - e.getStart() + 1;
 		countByEventName[ename] += 1;
 		sumDurationByEventName[ename] += duration;
 		sumSquareDurationByEventName[ename] += duration * duration;
@@ -176,7 +176,7 @@ public :
 
 		for (int i = 0; i < events.size(); ++i) {
 			ss1 << events[i].getName() << "," << events[i].getType() << ",";
-			ss2 << (events[i].getStart() - start) << "," << (events[i].getEnd() - start) << ",";
+			ss2 << (events[i].getStart() - start + 1) << "," << (events[i].getEnd() - start + 1) << ",";
 		}
 		header.assign(ss1.str());
 		value.assign(ss2.str());
@@ -187,7 +187,7 @@ public :
 		ss1 << "pid," << id << ",hostName," << name << ",sessionName," << session_name << "," << std::fixed;
 
 		for (int i = 0; i < events.size(); ++i) {
-			ss1 << events[i].getName() << "," << events[i].getType() << "," << (events[i].getStart() - start) << "," << (events[i].getEnd() - start) << ",";
+			ss1 << events[i].getName() << "," << events[i].getType() << "," << (events[i].getStart() - start + 1) << "," << (events[i].getEnd() - start + 1) << ",";
 		}
 		value.assign(ss1.str());
 	};

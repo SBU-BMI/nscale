@@ -106,7 +106,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 	threadCount = 1;
 #endif
 
-	printf("number of threads: %d\n", threadCount);
+	//printf("number of threads: %d\n", threadCount);
 
 #if defined (_OPENMP)
 	omp_set_num_threads(threadCount);

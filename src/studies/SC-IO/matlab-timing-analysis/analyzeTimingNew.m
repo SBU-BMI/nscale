@@ -1,66 +1,150 @@
 clear all;
 
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland/posix-tcga_small'
+timeInterval = 20000; % 20 millisec
+procWidth = 20;
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/posix-tcga_small'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 50, 10000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland/adios-tcga_small-NULL'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-NULL'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 50, 10000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland/adios-tcga_small-POSIX'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-POSIX'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 50, 10000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland/adios-tcga_small-MPI'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 50, 10000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland/adios-tcga_small-MPI_LUSTRE'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI_LUSTRE'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 50, 10000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland/adios-tcga_small-MPI_AMR'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI_AMR'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 50, 10000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-
+clear all;
 
 
 
+timeInterval = 20000; % 20 millisec
+procWidth = 20;
 
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/posix-seg-tests'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/posix-tcga_small'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 300, 1000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-NULL'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-NULL'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 300, 1000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-POSIX'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-POSIX'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 300, 1000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-MPI'
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI'
 proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, 300, 1000, prefix);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-pack;
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI_LUSTRE'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI_AMR'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+clear all;
+
+
+
+timeInterval = 100000; % 100 millisec
+procWidth = 20;
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/posix-tcga'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-NULL'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-POSIX'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+% prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-MPI'
+% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+% 
+% prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-MPI_LUSTRE'
+% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+% 
+% prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-MPI_AMR'
+% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+clear all;
+
+timeInterval = 100000; % 100 millisec
+procWidth = 20;
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/posix-tcga'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-NULL'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-POSIX'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI_LUSTRE'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI_AMR'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+clear all;
+
+
+
+% timeInterval = 1000; % 1 millisec
+% procWidth = 300;
+% 
+% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/posix-seg-tests'
+% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+% 
+% clear all;
+% 
+% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-NULL'
+% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+% 
+% clear all;
+% 
+% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-POSIX'
+% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+% 
+% clear all;
+% 
+% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-MPI'
+% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+% 
+% clear all;
