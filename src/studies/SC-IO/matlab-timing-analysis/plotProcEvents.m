@@ -227,9 +227,9 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     set(fig, 'ResizeFcn', {@rescaleAxes, sa2, pixelWidth});
     % limit panning and zooming.
     z = zoom;
-    setAxesZoomMotion(h,sa2,'horizontal');
+    setAxesZoomMotion(z,sa2,'horizontal');
     p = pan;
-    setAxesPanMotion(h,sa2,'horizontal');
+    setAxesPanMotion(p,sa2,'horizontal');
     linkaxes([sa1 sa2], 'x');
     
     clear sum_events;
