@@ -119,8 +119,11 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
         clear end_bucket_start;
         
     end
-    % normalize
-    %norm_events = norm_events / double(pixelWidth);
+    sum_events = sparse(size(norm_events{1}, 1), size(norm_events{1}, 2));
+	for i = 1:p	
+		sum_events = sum_events + norm_events{i};
+    end
+
     
     % allocate the image
     img = zeros(p, cols, 3, 'uint8');
@@ -223,10 +226,10 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     % handle window resizing
     set(fig, 'ResizeFcn', {@rescaleAxes, sa2, pixelWidth});
     % limit panning and zooming.
-    zoom off;
-    zoom xon;
-    pan off;
-    pan xon;
+    z = zoom;
+    setAxesZoomMotion(h,sa2,'horizontal');
+    p = pan;
+    setAxesPanMotion(h,sa2,'horizontal');
     linkaxes([sa1 sa2], 'x');
     
     clear sum_events;

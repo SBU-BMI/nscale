@@ -53,7 +53,10 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 	// first split.
 	Mat input = imread(in);
 	t2 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("read"), t1, t2, std::string(), ::cciutils::event::FILE_I));
+	char len[21];  // max length of uint64 is 20 digits
+	memset(len, 0, 21);
+	sprintf(len, "%lu", (long)(input.dataend) - (long)(input.datastart));
+	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("read"), t1, t2, std::string(len), ::cciutils::event::FILE_I));
 
 	if (!input.data) return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
@@ -64,7 +67,7 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 	input.release();
 
 	t2 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
+	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
 	if (iresHandler == NULL) printf("iresHandler is null why?\n");
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
@@ -99,7 +102,7 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	std::vector<Mat> bgr;
 	split(img, bgr);
 	t2 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(10, std::string("toRGB"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
+	if (logsession != NULL) logsession->log(cciutils::event(10, std::string("toRGB"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
 
 	// then check background
 	t1 = ::cciutils::event::timestampInUS();
@@ -114,8 +117,8 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	if (iresHandler != NULL) iresHandler->saveIntermediate(bg, 20);
 	bg.release();	
 	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(20, std::string("background"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
-	if (logsession != NULL) logsession->log(cciutils::event(21, std::string("save background"), t2, t3, std::string(), ::cciutils::event::FILE_O));
+	if (logsession != NULL) logsession->log(cciutils::event(20, std::string("background"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cciutils::event(21, std::string("save background"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
 
 	if (ratio >= 0.99) {
 		bgr[0].release();
@@ -142,8 +145,8 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	t2 = ::cciutils::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(rbc, 30);
 	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(30, std::string("RBC"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
-	if (logsession != NULL) logsession->log(cciutils::event(31, std::string("save RBC"), t2, t3, std::string(), ::cciutils::event::FILE_O));
+	if (logsession != NULL) logsession->log(cciutils::event(30, std::string("RBC"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cciutils::event(31, std::string("save RBC"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
 
 	// and separately find the gray scale candidates
 	t1 = ::cciutils::event::timestampInUS();
@@ -156,8 +159,8 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	t2 = ::cciutils::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(grayNu, 40);
 	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(40, std::string("GrayNU"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
-	if (logsession != NULL) logsession->log(cciutils::event(41, std::string("save GrayNU"), t2, t3, std::string(), ::cciutils::event::FILE_O));
+	if (logsession != NULL) logsession->log(cciutils::event(40, std::string("GrayNU"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cciutils::event(41, std::string("save GrayNU"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		grayNu.release();
@@ -180,8 +183,8 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	t2 = ::cciutils::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(binNu, 50);
 	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(50, std::string("NuMask"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
-	if (logsession != NULL) logsession->log(cciutils::event(51, std::string("save NuMask"), t2, t3, std::string(), ::cciutils::event::FILE_O));
+	if (logsession != NULL) logsession->log(cciutils::event(50, std::string("NuMask"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cciutils::event(51, std::string("save NuMask"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		binNu.release();
@@ -203,8 +206,8 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	t2 = ::cciutils::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(seg_norbc, 60);
 	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(60, std::string("removeRBC"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
-	if (logsession != NULL) logsession->log(cciutils::event(61, std::string("save removeRBC"), t2, t3, std::string(), ::cciutils::event::FILE_O));
+	if (logsession != NULL) logsession->log(cciutils::event(60, std::string("removeRBC"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cciutils::event(61, std::string("save removeRBC"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		seg_norbc.release();
@@ -220,8 +223,8 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	t2 = ::cciutils::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(seg_nonoverlap, 70);
 	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(70, std::string("separateNuclei"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
-	if (logsession != NULL) logsession->log(cciutils::event(71, std::string("save separateNuclei"), t2, t3, std::string(), ::cciutils::event::FILE_O));
+	if (logsession != NULL) logsession->log(cciutils::event(70, std::string("separateNuclei"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cciutils::event(71, std::string("save separateNuclei"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		seg_nonoverlap.release();
@@ -239,8 +242,8 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	t2 = ::cciutils::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(output, 80);
 	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(80, std::string("finalCleanup"), t1, t2, std::string(), ::cciutils::event::COMPUTE));
-	if (logsession != NULL) logsession->log(cciutils::event(81, std::string("save finalCleanup"), t2, t3, std::string(), ::cciutils::event::FILE_O));
+	if (logsession != NULL) logsession->log(cciutils::event(80, std::string("finalCleanup"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cciutils::event(81, std::string("save finalCleanup"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
 	return status;
 
 }

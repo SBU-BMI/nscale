@@ -100,7 +100,11 @@ namespace cv {
 			imwriteRaw(intermediate, stage);
 		}
 		t2 = cciutils::event::timestampInUS();
-		if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(), ::cciutils::event::FILE_O));
+		char len[21];  // max length of uint64 is 20 digits
+		memset(len, 0, 21);
+		sprintf(len, "%lu", (long)(intermediate.dataend) - (long)(intermediate.datastart));
+
+		if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(len), ::cciutils::event::FILE_O));
 	}
 
 #if defined (WITH_CUDA)

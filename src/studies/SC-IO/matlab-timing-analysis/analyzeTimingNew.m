@@ -122,29 +122,29 @@ clear all;
 
 
 
-% timeInterval = 1000; % 1 millisec
-% procWidth = 300;
-% 
-% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/posix-seg-tests'
-% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-% 
-% clear all;
-% 
-% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-NULL'
-% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-% 
-% clear all;
-% 
-% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-POSIX'
-% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-% 
-% clear all;
-% 
-% prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-MPI'
-% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-% 
-% clear all;
+timeInterval = 1000; % 1 millisec
+procWidth = 300;
+
+prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/posix-seg-tests'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+clear all;
+
+prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-NULL'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+clear all;
+
+prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-POSIX'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+clear all;
+
+prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-MPI'
+proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+
+clear all;

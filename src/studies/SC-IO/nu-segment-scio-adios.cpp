@@ -266,7 +266,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		workerLoad[i] = 0;
 		//printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? 10 : messages[i].front()));
 	}
-	int maxWorkerLoad = 3;
+	int maxWorkerLoad = 7;
 	int IOCount = 0;
 	long long t2, t3;
 

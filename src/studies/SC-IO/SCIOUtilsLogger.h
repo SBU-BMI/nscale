@@ -79,6 +79,9 @@ public:
 	virtual std::string getName() const {
 		return name;
 	}
+	virtual std::string getAnnotation() const {
+		return annotation;
+	}
 	int getType() const {
 		return eventtype;
 	}
@@ -187,7 +190,7 @@ public :
 		ss1 << "pid," << id << ",hostName," << name << ",sessionName," << session_name << "," << std::fixed;
 
 		for (int i = 0; i < events.size(); ++i) {
-			ss1 << events[i].getName() << "," << events[i].getType() << "," << (events[i].getStart() - start + 1) << "," << (events[i].getEnd() - start + 1) << ",";
+			ss1 << events[i].getName() << "," << events[i].getType() << "," << (events[i].getStart() - start + 1) << "," << (events[i].getEnd() - start + 1) << "," << events[i].getAnnotation() << ",";
 		}
 		value.assign(ss1.str());
 	};
@@ -354,17 +357,17 @@ public :
 		return output;
 	}
 	virtual void write(const std::string &prefix) {
-	        std::vector<std::string> timings = this->toOneLineStrings();
-        	std::stringstream ss;
-	        for (int i = 0; i < timings.size(); i++) {
-        	        ss << timings[i] << std::endl;
-	        }
+		std::vector<std::string> timings = this->toOneLineStrings();
+		std::stringstream ss;
+		for (int i = 0; i < timings.size(); i++) {
+				ss << timings[i] << std::endl;
+		}
  
 		std::stringstream fss;
 		fss << prefix << "-" << id << ".csv";
 
 		std::ofstream ofs2(fss.str().c_str());
-        	ofs2 << ss.str() << std::endl;
+        	ofs2 << "v2" << std::endl << ss.str() << std::endl;
 	        ofs2.close();
 	}
 
@@ -429,7 +432,7 @@ public :
 		fss << prefix << ".csv";
 
 		std::ofstream ofs2(fss.str().c_str());
-        	ofs2 << logdata << std::endl;
+        	ofs2 << "v2" << std::endl << logdata << std::endl;
 	        ofs2.close();
 
         	//printf("%s\n", logdata);

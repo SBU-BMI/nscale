@@ -104,7 +104,7 @@ protected:
 	virtual ~SCIOADIOSWriter();
 
 	virtual int open(const char* groupName);
-	virtual int close(uint32_t time_index = 0);
+	virtual int close(uint32_t time_index = 0, const uint64_t &datalen = 0);
 
 public:
 
