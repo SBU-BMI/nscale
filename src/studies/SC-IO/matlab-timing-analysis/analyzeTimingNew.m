@@ -1,199 +1,144 @@
-clear all;
-
-timeInterval = 20000; % 20 millisec
-procWidth = 20;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/posix-tcga_small'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-NULL'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-POSIX'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI_LUSTRE'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI_AMR'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
+close all;
 clear all;
 
 
+allEventTypes = [-1 0 11 12 21 22 31 32 41 42 43 44 45 46]';
+colorMap = [0, 0, 0; ...                    % OTHER, -1, black
+            120.0, 0.4, 1.0; ...      % COMPUTE, 0, green
+            240.0, 0.4, 1.0; ...      % MEM_IO, 11, blue
+            240.0, 0.4, 1.0; ...      % GPU_MEM_IO, 12, blue
+            180.0, 0.4, 1.0; ...      % NETWORK_IO, 21, cyan
+            300.0, 0.4, 1.0; ...      % NETWORK_WAIT, 22, magenta
+            60.0, 0.4, 1.0; ...       % FILE_I, 31, yellow
+            0.0, 0.4, 1.0; ...        % FILE_O, 32, red
+            180.0, 1.0, 1.0; ...      % ADIOS_INIT, 41, cyan
+            300.0, 1.0, 1.0; ...      % ADIOS_OPEN, 42, magenta
+            240.0, 1.0, 1.0; ...      % ADIOS_ALLOC, 43, blue
+            60.0, 1.0, 1.0; ...       % ADIOS_WRITE, 44, yellow
+            0.0, 1.0, 1.0; ...        % ADIOS_CLOSE, 45, red
+            120.0, 1.0, 1.0; ...      % ADIOS_FINALIZE, 46, green
+];
+colorMap(:, 1) = colorMap(:, 1) / 180.0 * pi;  % in radian
+allTypeNames = {'Other',...
+    'Compute',...
+    'Mem IO',...
+    'GPU mem IO', ...
+    'Network IO', ...
+    'Network wait', ...
+    'File read', ...
+    'File write', ...
+    'ADIOS init', ...
+    'ADIOS open', ...
+    'ADIOS alloc', ...
+    'ADIOS write', ...
+    'ADIOS close', ...
+    'ADIOS finalize'};
+        
 
-timeInterval = 20000; % 20 millisec
-procWidth = 20;
+close all;
+fid = fopen('/home/tcpan/PhD/path/Data/adios/yellowstone_throughput.csv', 'w');
+prefixes = { ...
+    '/home/tcpan/PhD/path/Data/adios/yellowstone/posix-seg-tests', ...
+    '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-MPI' ...
+};
+%    '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-NULL',
 
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/posix-tcga_small'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-NULL'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-POSIX'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI_LUSTRE'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI_AMR'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-clear all;
-
-
-
-timeInterval = 100000; % 100 millisec
-procWidth = 20;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/posix-tcga'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-NULL'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-POSIX'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-% prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-MPI'
-% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-% 
-% prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-MPI_LUSTRE'
-% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-% 
-% prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga/adios-tcga-MPI_AMR'
-% proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-% [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-clear all;
-
-timeInterval = 100000; % 100 millisec
-procWidth = 20;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/posix-tcga'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-NULL'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-POSIX'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI_LUSTRE'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI_AMR'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-
-clear all;
-
-
-
-timeInterval = 100000; % 100 millisec
-procWidth = 20;
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3/posix-tcga'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-if size(proc_events, 2) == 8
-    [sampled_events, sum_events, data_sizes, sum_data] = summarize(proc_events, timeInterval);
-end
-    
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3/adios-tcga-NULL'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-if size(proc_events, 2) == 8
-    [sampled_events, sum_events, data_sizes, sum_data] = summarize(proc_events, timeInterval);
-end
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3/adios-tcga-POSIX'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-if size(proc_events, 2) == 8
-    [sampled_events, sum_events, data_sizes, sum_data] = summarize(proc_events, timeInterval);
-end
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3/adios-tcga-MPI'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-if size(proc_events, 2) == 8
-    [sampled_events, sum_events, data_sizes, sum_data] = summarize(proc_events, timeInterval);
-end
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3/adios-tcga-MPI_LUSTRE'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-if size(proc_events, 2) == 8
-    [sampled_events, sum_events, data_sizes, sum_data] = summarize(proc_events, timeInterval);
-end
-
-prefix = '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3/adios-tcga-MPI_AMR'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
-if size(proc_events, 2) == 8
-    [sampled_events, sum_events, data_sizes, sum_data] = summarize(proc_events, timeInterval);
-end
-
-clear all;
-
-
-
-timeInterval = 1000; % 1 millisec
+timeInterval = 1000; % 100 millisec
 procWidth = 300;
 
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/posix-seg-tests'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+for i = 1:length(prefixes)
+    prefix = prefixes{i};
+    proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+    plotProcEvents(proc_events, procWidth, timeInterval, prefix, allEventTypes, colorMap);
+    fprintf(fid, '%s\n', prefix);
+    summarize(proc_events, timeInterval, fid, 'w', allEventTypes, allTypeNames);
+end
 
-clear all;
+fclose(fid);
 
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-NULL'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
 
-clear all;
+close all;
+fid = fopen('/home/tcpan/PhD/path/Data/adios/tcga_small_throughput.csv', 'w');
+prefixes = { ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/posix-tcga_small', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-NULL', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI_LUSTRE', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small1/adios-tcga_small-MPI_AMR', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/posix-tcga_small', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-NULL', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI_LUSTRE', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small2/adios-tcga_small-MPI_AMR', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small3-throughput/posix-tcga_small', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small3-throughput/adios-tcga_small-NULL', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small3-throughput/adios-tcga_small-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small3-throughput/adios-tcga_small-MPI', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small3-throughput/adios-tcga_small-MPI_LUSTRE', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga-small3-throughput/adios-tcga_small-MPI_AMR' ...
+};
 
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-POSIX'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+timeInterval = 20000; % 20 millisec
+procWidth = 20;
 
-clear all;
+for i = 1:length(prefixes)
+    prefix = prefixes{i};
+    proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+    [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix, allEventTypes, colorMap);
+    fprintf(fid, '%s\n', prefix);
+    summarize(proc_events, timeInterval, fid, 'w', allEventTypes, allTypeNames);
+end
 
-prefix = '/home/tcpan/PhD/path/Data/adios/yellowstone/adios-seg-tests-MPI'
-proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
-[img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix);
+fclose(fid);
 
-clear all;
+
+
+close all;
+fid = fopen('/home/tcpan/PhD/path/Data/adios/tcga_throughput.csv', 'w');
+prefixes = { ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga1/posix-tcga', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga1/adios-tcga-NULL', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga1/adios-tcga-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/posix-tcga', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-NULL', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI_LUSTRE', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga2/adios-tcga-MPI_AMR', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3-throughput/posix-tcga', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3-throughput/adios-tcga-NULL', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3-throughput/adios-tcga-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3-throughput/adios-tcga-MPI', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3-throughput/adios-tcga-MPI_LUSTRE', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3-throughput/adios-tcga-MPI_AMR', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR/posix-tcga', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR/adios-tcga-NULL', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR/adios-tcga-POSIX', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR/adios-tcga-MPI', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR/adios-tcga-MPI_LUSTRE', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR/adios-tcga-MPI_AMR' ...
+};
+
+timeInterval = 100000; % 100 millisec
+procWidth = 20;
+
+for i = 1:length(prefixes)
+    prefix = prefixes{i};
+    proc_events = readComputeAndIOTimingOneLineFormat([prefix '.csv']);
+    [img norm_events] = plotProcEvents(proc_events, procWidth, timeInterval, prefix, allEventTypes, colorMap);
+    fprintf(fid, '%s\n', prefix);
+    summarize(proc_events, timeInterval, fid, 'w', allEventTypes, allTypeNames);
+end
+
+fclose(fid);
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname_prefix)
+function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname_prefix, allEventTypes, colorMap)
 %plotTiming draws an image that represents the different activities in MPI
 %   The function first parses the data and generate a normalized event map
 %   with dimension p x ((max t - min t)/pixelWidth) x eventTypes.  This has
@@ -27,23 +27,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     end
 
     % hardcode the event types - total of 8 types
-    allEventTypes = [-1 0 11 12 21 22 31 32 41 42 43 44 45 46]';
-    colorMap = [0, 0, 0; ...                    % OTHER, -1, black
-                120.0, 0.4, 1.0; ...      % COMPUTE, 0, green
-                240.0, 0.4, 1.0; ...      % MEM_IO, 11, blue
-                240.0, 0.4, 1.0; ...      % GPU_MEM_IO, 12, blue
-                180.0, 0.4, 1.0; ...      % NETWORK_IO, 21, cyan
-                300.0, 0.4, 1.0; ...      % NETWORK_WAIT, 22, magenta
-                60.0, 0.4, 1.0; ...       % FILE_I, 31, yellow
-                0.0, 0.4, 1.0; ...        % FILE_O, 32, red
-                180.0, 1.0, 1.0; ...      % ADIOS_INIT, 41, cyan
-                300.0, 1.0, 1.0; ...      % ADIOS_OPEN, 42, magenta
-                240.0, 1.0, 1.0; ...      % ADIOS_ALLOC, 43, blue
-                60.0, 1.0, 1.0; ...       % ADIOS_WRITE, 44, yellow
-                0.0, 1.0, 1.0; ...        % ADIOS_CLOSE, 45, red
-                120.0, 1.0, 1.0; ...      % ADIOS_FINALIZE, 46, green
-	];
-    colorMap(:, 1) = colorMap(:, 1) / 180.0 * pi;  % in radian
+
     % XY positions on colorwheel.
     colorMapCart = colorMap;
     [colorMapCart(:, 1) colorMapCart(:, 2)] = pol2cart(colorMap(:, 1), colorMap(:, 2));
