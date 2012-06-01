@@ -9,7 +9,7 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
         return;
     end
     
-    if (isempty(fid) | fid < 1)
+    if (isempty(fid) || fid < 1)
         fid = 1;
     end
     
@@ -229,20 +229,6 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
         % compute throughput
         maxTPIn1sec = zeros(label_count, 1);
         %avgTPAvgNode = zeros(1, unique_count);
-        avgTP = zeros(1, label_count);
-        minTP = zeros(1, label_count);
-        maxTP = zeros(1, label_count);
-        medianTP = zeros(1, label_count);
-        modeTP = zeros(1, label_count);
-
-        TPtotal = zeros(1, label_count);
-        TPmean = zeros(1, label_count);
-        TPmedian = zeros(1, label_count);
-        TPmode = zeros(1, label_count);
-        TPstdev = zeros(1, label_count);
-        TPmin = zeros(1, label_count);
-        TPmax = zeros(1, label_count);
-    
 
         % find the 1 sec interval during whick we have max IO.
         for n = 1:label_count
@@ -334,38 +320,73 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
         
         start_bucket_end = startt_bucket * sample_interval;
         end_bucket_start = (endt_bucket - 1) * sample_interval + 1;
+        start_bucket_start = (startt_bucket - 1) * sample_interval + 1;
+        end_bucket_end = endt_bucket * sample_interval;
 
         duration = double(endt - startt + 1);  % data rate per microsec.
         
         for j = 1:num_ev_names
-            ndata_proc(i, j) = sum(datasize(find(idx == j)));
+            ndata_proc(i, j) = sum(datasize(find(idx == j)),1);
         end
 
+        datarate = datasize ./ duration;
+        startdr = datarate .* double(start_bucket_end - startt + 1);
+        enddr = datarate .* double(endt - end_bucket_start + 1);
+        fulldr = datarate * double(sample_interval);
         % can't do this in more vectorized way, because of the range access
+        tmpdata = zeros(cols, num_ev_names);
         for j = 1:length(names)
+            x1 = startt_bucket(j);
+            x2 = endt_bucket(j);
+            y = idx(j);
             
            % if start and end in the same bucket, mark with duration
-           if startt_bucket(j) == endt_bucket(j)
-               ndata_sizes{i}(startt_bucket(j), idx(j)) = ...
-                   ndata_sizes{i}(startt_bucket(j), idx(j)) + datasize(j);
+           if x1 == x2
+               tmpdata(x1, y) = ...
+                   tmpdata(x1, y) + datasize(j);
            else
                % do the start first
-               t = start_bucket_end(j) - startt(j) + 1;
-               ndata_sizes{i}(startt_bucket(j), idx(j)) = ...
-                   ndata_sizes{i}(startt_bucket(j), idx(j)) + datasize(j) * double(t) / duration(j);
+               tmpdata(x1, y) = ...
+                   tmpdata(x1, y) + startdr(j);
                 % then do the end
-               t = endt(j) - end_bucket_start(j) + 1;
-               ndata_sizes{i}(endt_bucket(j), idx(j)) = ...
-                   ndata_sizes{i}(endt_bucket(j), idx(j)) + datasize(j) * double(t) / duration(j);
+               tmpdata(x2,y) = ...
+                   tmpdata(x2, y) + enddr(j);
 
                % then do in between
-               if endt_bucket(j) > (startt_bucket(j) + 1)
-                    ndata_sizes{i}(startt_bucket(j)+1 : endt_bucket(j)-1, idx(j)) = ...
-                       ndata_sizes{i}(startt_bucket(j)+1 : endt_bucket(j)-1, idx(j)) + datasize(j) * double(sample_interval) / duration(j);
+               if x2 > (x1 + 1)
+                    tmpdata(x1+1 : x2-1, y) = ...
+                       tmpdata(x1+1 : x2-1, y) + fulldr(j);
                end
            end 
         end
         
+        startdr2 = datarate .* double(startt - start_bucket_start + 1);
+        enddr2 = datarate .* double(end_bucket_end - endt + 1);
+        tmpdata = zeros(cols, num_ev_names);
+        for j = 1:length(names)
+            x1 = startt_bucket(j);
+            x2 = endt_bucket(j);
+            y = idx(j);
+            
+           % if start and end in the same bucket, mark with duration
+           if x1 == x2
+               tmpdata(x1, y) = ...
+                   tmpdata(x1, y) + datasize(j);
+           else
+               % then do in between
+                tmpdata(x1 : x2, y) = ...
+                   tmpdata(x1 : x2, y) + fulldr(j);
+
+               % do the start first
+               tmpdata(x1, y) = ...
+                   tmpdata(x1, y) - startdr2(j);
+                % then do the end
+               tmpdata(x2,y) = ...
+                   tmpdata(x2, y) - enddr2(j);
+           end 
+        end
+
+        ndata_sizes{i} = sparse(tmpdata);
     	clear idx;
         clear names;
         clear startt;
