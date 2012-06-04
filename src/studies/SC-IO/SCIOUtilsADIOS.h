@@ -34,18 +34,25 @@ class ADIOSManager {
 private:
 	MPI_Comm *comm;
 	int rank;
+	bool gapped;
 
 	std::vector<SCIOADIOSWriter *> writers;
 	cciutils::SCIOLogSession * logsession;
 
 public:
 	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session);
+	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session, bool _gapped);
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
 			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
+	virtual SCIOADIOSWriter *allocateWriterGapped(const std::string &pref, const std::string &suf,
+				const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
+				long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
+				int _chunkNumTiles, long _tileSize,
+				int _local_rank, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
 };
 
@@ -58,6 +65,12 @@ class SCIOADIOSWriter : public cv::IntermediateResultHandler {
 			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 			int _local_rank, MPI_Comm *_local_comm);
+	friend SCIOADIOSWriter* ADIOSManager::allocateWriterGapped(const std::string &pref, const std::string &suf,
+					const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
+					long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
+					int _chunkNumTiles, long _tileSize,
+					int _local_rank, MPI_Comm *_local_comm);
+
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
 
 private:
@@ -94,13 +107,18 @@ private:
 	int local_rank;
 	cciutils::SCIOLogSession *logsession;
 
+	bool gapped;
+	int chunkNumTiles;
+	long tileSize;
+
+
 protected:
 	bool selected(const int stage);
 
-	SCIOADIOSWriter() : tileInfo_total(0), tile_total(0), imageName_total(0), sourceTileFile_total(0),
+	SCIOADIOSWriter() : gapped(false), tileInfo_total(0), tile_total(0), imageName_total(0), sourceTileFile_total(0),
 		pg_tile_bytes(0), pg_tileInfo_count(0), pg_imageName_bytes(0), pg_sourceTileFile_bytes(0),
 		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0), sourceTileFile_capacity(0),
-		logsession(NULL) {};
+		logsession(NULL), tileSize(0), chunkNumTiles(0) {};
 	virtual ~SCIOADIOSWriter();
 
 	virtual int open(const char* groupName);
@@ -110,6 +128,7 @@ public:
 
 	virtual int persist();
 	virtual int persistCountInfo();
+	virtual int persist(int iter);
 	virtual int currentLoad() {
 		return tile_cache.size();
 	}

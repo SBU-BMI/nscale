@@ -32,7 +32,8 @@ void compute(const char *input, const char *mask, const char *output, const int 
 
 int parseInput(int argc, char **argv, int &modecode, std::string &iocode, std::string &workingDir, std::string &imageName, std::string &outDir) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR> [cpu [threads] | gpu [threads] [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <tranport> [cpu [threads] | gpu [threads] [id]]" << std::endl;
+		std::cout << "Transport is one of NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR" << std::endl;
 		return -1;
 	}
 
@@ -43,12 +44,19 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, std::s
 	imageName.assign(argv[1]);
 	outDir.assign(argv[2]);
 
-	if (argc > 3 && strcmp(argv[3], "NULL") != 0 &&
+	if (argc > 3 &&
+			strcmp(argv[3], "NULL") != 0 &&
 			strcmp(argv[3], "POSIX") != 0 &&
 			strcmp(argv[3], "MPI") != 0 &&
 			strcmp(argv[3], "MPI_LUSTRE") != 0 &&
-			strcmp(argv[3], "MPI_AMR") != 0) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR> [cpu [threads] | gpu [threads] [id]]" << std::endl;
+			strcmp(argv[3], "MPI_AMR") != 0 &&
+			strcmp(argv[3], "gap-NULL") != 0 &&
+			strcmp(argv[3], "gap-POSIX") != 0 &&
+			strcmp(argv[3], "gap-MPI") != 0 &&
+			strcmp(argv[3], "gap-MPI_LUSTRE") != 0 &&
+			strcmp(argv[3], "gap-MPI_AMR") != 0) {
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <tranport> [cpu [threads] | gpu [threads] [id]]" << std::endl;
+		std::cout << "Transport is one of NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR" << std::endl;
 		return -1;
 
 	} else {
@@ -179,7 +187,7 @@ MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &host
 MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank);
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size,
 		const std::string &hostname, std::vector<std::string> &filenames, std::vector<std::string > &seg_output,
-		std::vector<std::string> &bounds_output, cciutils::SCIOLogger *logger);
+		std::vector<std::string> &bounds_output, cciutils::SCIOLogger *logger, int maxWorkerLoad);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank,
 		const int modecode, const std::string &hostname, cciutils::SCIOADIOSWriter *writer, cciutils::SCIOLogger *logger);
 
@@ -233,7 +241,7 @@ static const int TAG_DATA = 1;
 static const int TAG_METADATA = 2;
 void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, const std::string &hostname,
 	std::vector<std::string> &filenames, std::vector<std::string> &seg_output,
-	std::vector<std::string> &bounds_output, cciutils::SCIOLogger *logger) {
+	std::vector<std::string> &bounds_output, cciutils::SCIOLogger *logger, int maxWorkerLoad) {
 	uint64_t t1, t0;
 
 	MPI_Barrier(comm_world);
@@ -266,7 +274,6 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		workerLoad[i] = 0;
 		//printf("set status of manager for worker %d to %d\n", i, (messages[i].empty() ? 10 : messages[i].front()));
 	}
-	int maxWorkerLoad = 7;
 	int IOCount = 0;
 	long long t2, t3;
 
@@ -600,7 +607,6 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			// now do some work
 
 			t1 = cciutils::ClockGetTime();
-//			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
 //			printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
@@ -616,7 +622,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			session = logger->getSession("w");
 			if (writer) writer->setLogSession(session);
 
-			if (writer) writer->persist();
+			if (writer) writer->persist(iocount);
 			++iocount;
 		} else if (flag == MANAGER_WAIT) {
 			//printf("manager told worker %d to wait\n", rank);
@@ -648,7 +654,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	// per node
 	session = logger->getSession("w");
 	if (writer) writer->setLogSession(session);
-	if (writer) writer->persist();
+	if (writer) writer->persist(iocount);
 	// printf("written out data %d \n", rank);
 	// last tiles were just written.  now add teh count informaton
 	if (writer) writer->persistCountInfo();
@@ -763,11 +769,21 @@ int main (int argc, char **argv){
 	adios_config.append(iocode);
 	adios_config.append(".xml");
 
+	// for testing
+	bool gapped = false;
+	if (strncmp(iocode.c_str(), "gap-", 4) == 0) gapped = true;
+
 	bool appendInTime = true;
-	if (strcmp(iocode.c_str(), "MPI_AMR") == 0) appendInTime = false;
+	if (strcmp(iocode.c_str(), "MPI_AMR") == 0 || strcmp(iocode.c_str(), "gap-MPI_AMR") == 0) appendInTime = false;
 	bool overwrite = true;
 
-	cciutils::ADIOSManager *iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session);
+	int maxBuf = 3;
+	cciutils::ADIOSManager *iomanager;
+	if (gapped)
+		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped);
+	else
+		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session);
+
 	if (size == 1) {
 
 	    int i = 0;
@@ -775,12 +791,19 @@ int main (int argc, char **argv){
 
 		// worker bees.  set to overwrite (third param set to true).
 
-		cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
+		cciutils::SCIOADIOSWriter *writer;
+		if (gapped)
+			writer = iomanager->allocateWriterGapped(outDir, std::string("bp"), appendInTime, overwrite,
+				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
+				maxBuf, 4096*4096*4,
+				rank, &comm_world);
+		else
+			writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
 				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 				rank, &comm_world);
 
 		t1 = cciutils::ClockGetTime();
-
+		int iter = 0;
 		while (i < total) {
 			// per tile:
 			// session = logger->getSession(filenames[i]);
@@ -792,13 +815,17 @@ int main (int argc, char **argv){
 
 			printf("processed %s\n", filenames[i].c_str());
 			++i;
+
+			if (i % maxBuf == 0) {
+				writer->persist(iter);
+				++iter;
+			}
 		}
 		t2 = cciutils::ClockGetTime();
 		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
-		if (writer) writer->persist();
+		if (writer) writer->persist(iter);
 		if (writer) writer->persistCountInfo();
-
 		iomanager->freeWriter(writer);
 
 		std::string logfile(outDir);
@@ -819,14 +846,21 @@ int main (int argc, char **argv){
 		// decide based on rank of worker which way to process
 		if (rank == manager_rank) {
 			// manager thread
-			manager_process(comm_world, manager_rank, worker_size, hostname, filenames, seg_output, bounds_output, logger);
+			manager_process(comm_world, manager_rank, worker_size, hostname, filenames, seg_output, bounds_output, logger, maxBuf);
 			t2 = cciutils::ClockGetTime();
 			printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 		} else {
 			// worker bees.  set to overwrite (third param set to true).
-			cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
-				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
+			cciutils::SCIOADIOSWriter *writer;
+			if (gapped)
+				writer = iomanager->allocateWriterGapped(outDir, std::string("bp"), appendInTime, overwrite,
+					stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
+					maxBuf, 4096*4096*4,
+					worker_rank, &comm_worker);
+			else
+				writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
+					stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 					worker_rank, &comm_worker);
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer, logger);

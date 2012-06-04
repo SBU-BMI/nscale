@@ -1,4 +1,4 @@
-function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname_prefix, allEventTypes, colorMap)
+function [ img norm_events ] = plotProcEvents_old( proc_events, barWidth, pixelWidth, figname_prefix, allEventTypes, colorMap)
 %plotTiming draws an image that represents the different activities in MPI
 %   The function first parses the data and generate a normalized event map
 %   with dimension p x ((max t - min t)/pixelWidth) x eventTypes.  This has
@@ -16,55 +16,101 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
 %   
 %   Each horizontal bar is one process, each pixel is some time interval.
 %   
-
-    %% check the parameters.
-
-    img = [];
-    norm_events = [];
-    
-    if (isempty(proc_events))
-        printf(2, 'ERROR: no events to process\n');
-        return;
-    end
-
     p = size(proc_events,1);
 
     % get global min and max and the unique events
+    mn = inf;
     mx = 0;
     for i = 1:p 
-	   mx = max([mx, max(proc_events{i, 7})]);
+	   mn = min([mn, min(proc_events{i, 6})]);
+       mx = max([mx, max(proc_events{i, 7})]);
     end
 
-    % now check the sampling interval
-    if (isempty(pixelWidth))
-       pixelWidth = min(mx / 50000, 1000000);
-    end
-    if (pixelWidth > 1000000)
-        printf(2, 'ERROR: sample interval should not be greater than 1000000 microseconds\n');
-        return;
-    end
+    % hardcode the event types - total of 8 types
 
     % XY positions on colorwheel.
     colorMapCart = colorMap;
     [colorMapCart(:, 1) colorMapCart(:, 2)] = pol2cart(colorMap(:, 1), colorMap(:, 2));
-    colorMapCart(abs(colorMapCart) < eps) = 0;
+    colorMapCart(find(abs(colorMapCart) < eps)) = 0;
     
+
+
 
     % get the number of pixels
     cols = ceil(double(mx) / double(pixelWidth));
-    clear mx;
     
-    
-    
-    %% RESAMPLE
     % allocate norm-events
-    [norm_events sum_events] = resampleTimeByType(proc_events, p, cols, pixelWidth, allEventTypes);
+	norm_events = cell(p, 1);   
+% 	norm_events = zeros(p, cols, length(allEventTypes), 'double');
+    
+    % generate the norm_events
+    for i = 1:p
+        norm_events{i} = sparse(cols, length(allEventTypes));
+        types = proc_events{i, 5};
+        [blah typeIdx] = ismember(types, allEventTypes);
+        clear blah;
+        startt = double(proc_events{i, 6});
+        endt = double(proc_events{i, 7});
+        
+        startt_bucket = ceil(double(startt) / double(pixelWidth));
+        endt_bucket = ceil(double(endt) / double(pixelWidth));
+        
+        start_bucket_end = startt_bucket * pixelWidth;
+        end_bucket_start = (endt_bucket - 1) * pixelWidth + 1;
+        start_bucket_start = (startt_bucket - 1) * pixelWidth + 1;
+        end_bucket_end = endt_bucket * pixelWidth;
+        
+        % can't do this in more vectorized way, because of the range access
+        for j = 1:length(types)
+%           not faster...
+%             % first mark the entire range
+%             norm_events{i}(startt_bucket(j) : endt_bucket(j), typeIdx(j)) = ...
+%                 norm_events{i}(startt_bucket(j) : endt_bucket(j), typeIdx(j)) + pixelWidth;
+%             % then remove the leading
+%             norm_events{i}(startt_bucket(j), typeIdx(j)) = ...
+%                 norm_events{i}(startt_bucket(j), typeIdx(j)) - (startt(j) - start_bucket_start(j) + 1);
+%             % then remove the trailing
+%             norm_events{i}(endt_bucket(j), typeIdx(j)) = ...
+%                 norm_events{i}(endt_bucket(j), typeIdx(j)) - (end_bucket_end(j) - endt(j) + 1);
+            
+            % if start and end in the same bucket, mark with duration
+           if startt_bucket(j) == endt_bucket(j)
+               norm_events{i}(startt_bucket(j), typeIdx(j)) = ...
+                   norm_events{i}(startt_bucket(j), typeIdx(j)) + endt(j) - startt(j) + 1;
+           else
+               % do the start first
+               norm_events{i}(startt_bucket(j), typeIdx(j)) = ...
+                   norm_events{i}(startt_bucket(j), typeIdx(j)) + start_bucket_end(j) - startt(j) + 1;
+               % then do the end
+               norm_events{i}(endt_bucket(j), typeIdx(j)) = ...
+                    norm_events{i}(endt_bucket(j), typeIdx(j)) + endt(j) - end_bucket_start(j) + 1;
+            
+               % then do in between
+               if endt_bucket(j) > (startt_bucket(j) + 1)
+                    norm_events{i}(startt_bucket(j)+1 : endt_bucket(j)-1, typeIdx(j)) = ...
+                        norm_events{i}(startt_bucket(j)+1 : endt_bucket(j)-1, typeIdx(j)) + pixelWidth;
+               end
+           end 
+         end
+    	norm_events{i} = norm_events{i} / double(pixelWidth);
+        
+        clear types;
+        clear startt;
+        clear endt;
+        clear startt_bucket;
+        clear endt_bucket;
+        clear start_bucket_end;
+        clear end_bucket_start;
+        
+    end
+    sum_events = sparse(size(norm_events{1}, 1), size(norm_events{1}, 2));
+	for i = 1:p	
+		sum_events = sum_events + norm_events{i};
+    end
 
-    %% RENDER
+    
     % allocate the image
     img = zeros(p, cols, 3, 'uint8');
-    
-    clear cols;
     
     % convert norm_events to hsv img
     for i = 1:p
@@ -78,31 +124,36 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
         bar1(:, 1) = bar1(:, 1) / (2.0 * pi);  % convert to -1/2 to 1/2
         idx = find(bar1(:,1) < 0);
         bar1(idx, 1) = bar1(idx, 1) + 1.0;  % convert to 0 to 1, via a "mod"
-        bar1(abs(bar1(:,1)) < eps, 1) = 0;
-        bar1(abs(bar1(:,1) - 1.0) < eps, 1) = 1;
-        clear idx;
+        bar1(find(abs(bar1(:,1)) < eps), 1) = 0;
+        bar1(find(abs(bar1(:,1) - 1.0) < eps), 1) = 1;
         
         % convert hsvimg to rgb
         bar1 = hsv2rgb(bar1);
-        bar1(abs(bar1) < eps) = 0;
-        bar1(abs(bar1 - 1.0) < eps) = 1;
+        bar1(find(abs(bar1) < eps)) = 0;
+        bar1(find(abs(bar1 - 1.0) < eps)) = 1;
         
         % convert from double to uint8
         bar2 = uint8(bar1 * 255.0);
+        
         clear bar1;
         
-%        r0 = (i - 1) * (barWidth + 1) + 1;
-%        r1 = i * (barWidth + 1) - 1;
+        r0 = (i - 1) * (barWidth + 1) + 1;
+        r1 = i * (barWidth + 1) - 1;
 %         img(r0:r1, :, :) = ...
 %             repmat(reshape(bar2, 1, size(bar2, 1), size(bar2, 2)), [barWidth, 1, 1]);
         img(i, :, :) = reshape(bar2, 1, size(bar2, 1), size(bar2, 2));
         clear bar2;
-%        clear r0;
-%        clear r1;
+        clear r0;
+        clear r1;
     end
-    clear colorMapCart;
     
     imwrite(img, [figname_prefix '.png'], 'png');
+
+    sum_events = sparse(size(norm_events{1}, 1), size(norm_events{1}, 2));
+	for i = 1:p	
+		sum_events = sum_events + norm_events{i};
+    end
+
     
     resolutionScaling = 3;
     % since we change the axes to reflect time values,
@@ -123,8 +174,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     axis(sf1, 'tight');
 %    xlabel(sa1, 'time (s)');
     ylabel(sa1, 'processes');
-    clear sf1;
-
+    
 %    axes('position', [.1 .1 .8 .3], 'visible', 'on'); hold on;
     
     sf2 = subplot(5,1,4:5);
@@ -148,7 +198,6 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     axis(sf2, 'tight');
     xlabel(sa2, 'time (s)');
     ylabel(sa2, 'num processes');
-    clear sf2;
 
     % remove the top graph's bottom axis,
     set(sa1,'XTickLabel','');
@@ -157,127 +206,30 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     pos2 = get(sa2, 'Position');
     pos2(4) = pos1(2) - pos2(2);
     set(sa2,'Position',pos2)
-    clear pos1;
-    clear pos2;
-        
+
     % handle window resizing
-    set(fig, 'ResizeFcn', {@rescaleAxes, sa2, pixelWidth});
+    set(fig, 'ResizeFcn', {@rescaleAxes_old, sa2, pixelWidth});
     % limit panning and zooming.
     z = zoom;
     setAxesZoomMotion(z,sa2,'horizontal');
     p = pan;
     setAxesPanMotion(p,sa2,'horizontal');
     linkaxes([sa1 sa2], 'x');
-    clear z;
-    clear p;
+    
+    clear sum_events;
     
     % FOR PAPER only - eps files are big.
     %print(fig, '-depsc2', '-tiff', [figname_prefix '.fig.eps'], '-r300');
     %print(fig, '-dtiff', [figname_prefix '.fig.tif'], '-r1200');
     set(fig, 'InvertHardCopy', 'off', 'PaperPositionMode', 'auto');
     print(fig, '-dpng', [figname_prefix '.fig.png'], ['-r' num2str(100 * resolutionScaling)]);
-
-    clear sa1;
-    clear sa2;
-    clear fig;
-       
-    clear p;
-    clear map;
-    clear sum_events;
-
+    
 end
 
-function [] = rescaleAxes(src, eventdata, sa2, pixelW)
+function [] = rescaleAxes_old(src, eventdata, sa2, pixelW)
             
     xtic = get(sa2, 'XTick');
     timetic = xtic * pixelW / 1000000;
     set(sa2, 'XTickLabel', num2str(timetic'));
-    clear xtic;
-    clear timetic;
+
 end
-
-
-function [ sampled_events sum_events ] = ...
-    resampleTimeByType(events, p, cols, sample_interval, event_types)
-    % p is number of cells (procs)
-    % mx is maximum timestamp overall;
-
-    % get the number of pixels
-    num_ev_types = length(event_types);
-    
-    % allocate norm-events
-	sampled_events = cell(p, 1);
-    
-    % generate the sampled_events
-    for i = 1:p
-
-        sampled_events{i} = sparse(cols, num_ev_types);
-        
-        types = events{i, 5};
-        startt = double(events{i, 6});
-        endt = double(events{i, 7});
-        
-        [~, idx] = ismember(types, event_types);
-        clear types;
-        
-        startt_bucket = ceil(startt / sample_interval);
-        endt_bucket = ceil(endt / sample_interval);
-        
-        start_bucket_end = startt_bucket * sample_interval;
-        end_bucket_start = (endt_bucket - 1) * sample_interval + 1;
-
-        duration = endt - startt + 1;  % data rate per microsec.
-        
-        % can't do this in more vectorized way, because of the range access
-        startdr = start_bucket_end - startt + 1;
-        enddr = endt - end_bucket_start + 1;
-        clear startt;
-        clear endt;
-        clear start_bucket_end;
-        clear end_bucket_start;
-        
-        tmp = zeros(cols, num_ev_types);
-        for j = 1:length(duration)
-            x1 = startt_bucket(j);
-            x2 = endt_bucket(j);
-            y = idx(j);
-            
-           % if start and end in the same bucket, mark with duration
-           if x1 == x2
-               tmp(x1, y) = ...
-                   tmp(x1, y) + duration(j);
-           else
-               % do the start first
-               tmp(x1, y) = ...
-                   tmp(x1, y) + startdr(j);
-                % then do the end
-               tmp(x2,y) = ...
-                   tmp(x2, y) + enddr(j);
-
-               % then do in between
-               if x2 > (x1 + 1)
-                    tmp(x1+1 : x2-1, y) = ...
-                       tmp(x1+1 : x2-1, y) + sample_interval;
-               end
-           end 
-        end
-        tmp = tmp / sample_interval;
-    	clear idx;
-        clear startt_bucket;
-        clear endt_bucket;
-        clear duration;
-        clear startdr;
-        clear enddr;
-        
-        sampled_events{i} = sparse(tmp);
-        clear tmp;
-    end
-    
-    
-    sum_events = sparse(cols, num_ev_types);
-    for i = 1:p	
-		sum_events = sum_events + sampled_events{i};
-	end
-    clear num_ev_types;
-end
-

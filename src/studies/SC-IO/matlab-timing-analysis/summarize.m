@@ -20,16 +20,13 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
     % get some information about the events
     % filter "in" the workers only.
     % also calculate the max timestamp.
-    pidx = [];
-    mx = [];
+    mx = 0;
     for i = 1:size(proc_events, 1) 
-        if strcmp(proc_type, proc_events{i,3})
-            pidx = [pidx; i];
-        end
-        mx = [mx, max(proc_events{i, 7})];  % maximum end timestamp
+        mx = max([mx, max(proc_events{i, 7})]);  % maximum end timestamp
     end
-    mx = max(mx);
+    pidx = strcmp(proc_type, cat(1, proc_events{:, 3}));
     events = proc_events(pidx, :);
+    clear pidx;
     
     % now check the sampling interval
     if (isempty(sample_interval))
@@ -51,11 +48,10 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
     for i = 1:p
         event_names = [event_names; events{i,4}];
         event_types = [event_types; events{i,5}];
-        [event_names ia ic] = unique(event_names);
+        [event_names, ia, ~] = unique(event_names);
         event_types = event_types(ia);
+        clear ia;
     end
-    clear ia;
-    clear ic;
     unique_types = unique(event_types);
     num_ev_names = size(event_names, 1);
     num_ev_types = size(unique_types, 1);
@@ -83,26 +79,29 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
         duration = events{i, 7} - events{i, 6} + 1;
         for n = 1:num_ev_names
             % compute total
-            idx = find(strcmp(event_names(n), names));
+            idx = strcmp(event_names(n), names);
             dur = duration(idx);
             ntotals(i, n) = sum(dur,1);
             ndurations{n} = [ndurations{n}; dur];
+            clear idx;
+            clear dur;
         end
+        clear names;
+        clear duration;
     end
-    clear duration;
-    clear names;
-    clear idx;
-    clear dur;
     
     if (hasDataSizes)
         [ndata_time ndata_proc ndata_sizes] = resampleDataByName(events, p, cols, sample_interval, event_names);
     else
         ndata_time = sparse(cols, num_ev_names);
         ndata_proc = zeros(p, num_ev_names);
+        ndata_sizes = cell(p, 1);
     end
         
     computeTimeStats(fid, ntotals, ndurations, mx, p, event_names, hasDataSizes, ndata_time, kernel, scaling, ndata_proc);
-    
+    clear ndata_time;
+    clear num_ev_names;
+    clear events;
     
     %% then analyze by event type
     
@@ -115,6 +114,7 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
         idx = find(event_types == unique_types(n));
         ttotals(:, n) = sum(ntotals(:, idx), 2);
         tdurations{n} = cat(1, ndurations{idx});
+        clear idx;
     end
     
     
@@ -128,20 +128,25 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
                 idx = find(event_types == unique_types(n));
                 tdata_sizes(:, n) = sum(ndata_sizes{i}(:, idx), 2);
                 tdata_proc(i, n) = sum(ndata_proc(i, idx), 2);
+                clear idx;
             end
             tdata_time = tdata_time + tdata_sizes;
+            clear tdata_sizes;
         end
-        clear id;
-        clear tdata_sizes;
     end
     
-    [lia locb] = ismember(unique_types, allEventTypes);
+   
+    [~, locb] = ismember(unique_types, allEventTypes);
     typenames = allTypeNames(locb);
-    clear lia;
     clear locb;
     computeTimeStats(fid, ttotals, tdurations, mx, p, typenames, hasDataSizes, tdata_time, kernel, scaling, tdata_proc);
 
-    
+    clear tdata_time;
+    clear tdata_proc;
+    clear ttotals;
+    clear tdurations;
+    clear typenames;
+    clear num_ev_types;
     
     %% finally analyze by user specified grouping of events
     
@@ -161,18 +166,19 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
     time_data_idx = cell(size(time_data_names));
     for i = 1:size(time_data_names, 1)
         for j = 1:size(time_data_names,2)
-            [lia locb] = ismember(time_data_names{i, j}, event_names);
-            time_data_idx{i, j} = locb;
+            [~, locb] = ismember(time_data_names{i, j}, event_names);
+            time_data_idx{i, j} = locb(locb > 0);
         end
     end
-
+    clear time_data_names;
+    
     num_comp_events = length(labels);
     
     ctotals = zeros(p, num_comp_events);
     cdurations = cell(num_comp_events, 1);
     for n = 1:num_comp_events
         
-        if (~isempty(time_data_idx{n, 1}) & ~isempty(time_data_idx{n, 2}))
+        if ~isempty(time_data_idx{n, 1}) 
             ctotals(:, n) = sum(ntotals(:, time_data_idx{n, 1}), 2);
             cdurations{n} = cat(1, ndurations{time_data_idx{n,1}});
         end
@@ -182,20 +188,43 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
     cdata_time = sparse(cols, num_comp_events);
     cdata_proc = zeros(p, num_comp_events);
     if (hasDataSizes)
-        cdata_sizes = cell(p, 1);
         for i = 1:p
-            cdata_sizes{i} = sparse(cols, num_comp_events);
+            cdata_sizes = sparse(cols, num_comp_events);
             for n = 1:num_comp_events
-                cdata_sizes{i}(:, n) = sum(ndata_sizes{i}(:, time_data_idx{n,2}), 2);
-                cdata_proc(i, n) = sum(ndata_proc(i, time_data_idx{n,2}), 2);
+                if ~isempty(time_data_idx{n, 2})
+                    cdata_sizes(:, n) = sum(ndata_sizes{i}(:, time_data_idx{n,2}), 2);
+                    cdata_proc(i, n) = sum(ndata_proc(i, time_data_idx{n,2}), 2);
+                end
             end
-            cdata_time = cdata_time + cdata_sizes{i};
+            cdata_time = cdata_time + cdata_sizes;
+            clear cdata_sizes;
         end
-        clear cdata_sizes;
     end
-
+    clear time_data_idx;
+    clear num_comp_events;
+    
     computeTimeStats(fid, ctotals, cdurations, mx, p, labels, hasDataSizes, cdata_time, kernel, scaling, cdata_proc);
 
+    clear cdata_time;
+    clear cdata_proc;
+    clear ctotals;
+    clear cdurations;
+    clear labels;
+    
+    
+    clear ntotals;
+    clear ndurations;
+    clear ndata_sizes;
+    clear ndata_proc;
+    clear event_names;
+    clear event_types;
+    clear unique_types;
+    clear p;
+    clear scaling;
+    clear cols;
+    clear kernel;
+    clear mx;
+    clear hasDataSizes;
 end
 
 function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes, data_time, kernel, scaling, data_proc) 
@@ -216,12 +245,21 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
     eventmin = zeros(label_count,1);
     eventmax = zeros(label_count,1);
     for n = 1:label_count
-        eventmean(n) = mean(durations{n});
-        eventstdev(n) = std(double(durations{n}));
-        eventmedian(n) = median(double(durations{n}));
-        eventmode(n) = mode(double(durations{n}));
-        eventmin(n) = min(durations{n});
-        eventmax(n) = max(durations{n});
+        if length(durations{n}) == 0
+            eventmean(n) = 0;
+            eventstdev(n) = 0;
+            eventmedian(n) = 0;
+            eventmode(n) = 0;
+            eventmin(n) = 0;
+            eventmax(n) = 0;            
+        else
+            eventmean(n) = mean(durations{n});
+            eventstdev(n) = std(double(durations{n}));
+            eventmedian(n) = median(double(durations{n}));
+            eventmode(n) = mode(double(durations{n}));
+            eventmin(n) = min(durations{n});
+            eventmax(n) = max(durations{n});
+        end
     end
 
     if hasDataSizes
@@ -243,6 +281,7 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
         maxTP = data_t ./ mn;
         medianTP = data_t ./ med;
         modeTP = data_t ./ mo;
+        clear data_t;
         
         tp = double(data_proc) ./ double(totals) * 1000000 * scaling;
         TPtotal = sum(tp, 1);
@@ -255,7 +294,11 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
         clear tp;
         
     end
-    
+    clear mx;
+    clear mn;
+    clear av;
+    clear med;
+    clear mo;
     
     fprintf(fid, 'Operation,TotalTime(ms),PercentTime,MeanTime,StdevTime,MedianTime,ModeTime,MinTime,MaxTime');
     if hasDataSizes
@@ -276,6 +319,20 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
                 TPtotal(n),TPmean(n),TPstdev(n),TPmedian(n),TPmode(n),...
                 TPmin(n),TPmax(n));
         end
+        
+        clear maxTPIn1sec;
+        clear avgTP;
+        clear medianTP;
+        clear modeTP;
+        clear minTP;
+        clear maxTP;
+        clear TPtotal;
+        clear TPmean;
+        clear TPstdev;
+        clear TPmedian;
+        clear TPmode;
+        clear TPmin;
+        clear TPmax;
     else 
         for n = 1:label_count
             fprintf(fid, '%s,%f,%f,%f,%f,%f,%f,%f,%f\n', ...
@@ -287,6 +344,15 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
     end
     fprintf(fid, '\n');
 
+    clear label_count;
+    clear tot;
+    clear percent;
+    clear eventmean;
+    clear eventstdev;
+    clear eventmedian;
+    clear eventmode;
+    clear eventmin;
+    clear eventmax;
 end
 
 
@@ -312,30 +378,38 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
         endt = double(events{i, 7});
         datasize = double(events{i, 8});
         
-        [blah idx] = ismember(names, event_names);
-        clear blah;
+        [~, idx] = ismember(names, event_names);
+        clear names;
         
-        startt_bucket = ceil(double(startt) / double(sample_interval));
-        endt_bucket = ceil(double(endt) / double(sample_interval));
+        startt_bucket = ceil(startt / sample_interval);
+        endt_bucket = ceil(endt / sample_interval);
         
         start_bucket_end = startt_bucket * sample_interval;
         end_bucket_start = (endt_bucket - 1) * sample_interval + 1;
-        start_bucket_start = (startt_bucket - 1) * sample_interval + 1;
-        end_bucket_end = endt_bucket * sample_interval;
 
-        duration = double(endt - startt + 1);  % data rate per microsec.
+        duration = endt - startt + 1;  % data rate per microsec.
         
         for j = 1:num_ev_names
-            ndata_proc(i, j) = sum(datasize(find(idx == j)),1);
+            ndata_proc(i, j) = sum(datasize(idx == j),1);
         end
 
-        datarate = datasize ./ duration;
-        startdr = datarate .* double(start_bucket_end - startt + 1);
-        enddr = datarate .* double(endt - end_bucket_start + 1);
-        fulldr = datarate * double(sample_interval);
+        %datarate = datasize ./ duration;
+        fulldr = (datasize * sample_interval) ./ duration;
         % can't do this in more vectorized way, because of the range access
+        
         tmpdata = zeros(cols, num_ev_names);
-        for j = 1:length(names)
+        startdr = datasize .* (start_bucket_end - startt + 1) ./ duration;
+        enddr = datasize .* (endt - end_bucket_start + 1) ./ duration;
+
+        clear startt;
+        clear endt;
+
+        clear start_bucket_end;
+        clear end_bucket_start;
+
+        clear duration;
+        
+        for j = 1:length(datasize)
             x1 = startt_bucket(j);
             x2 = endt_bucket(j);
             y = idx(j);
@@ -359,44 +433,20 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
                end
            end 
         end
-        
-        startdr2 = datarate .* double(startt - start_bucket_start + 1);
-        enddr2 = datarate .* double(end_bucket_end - endt + 1);
-        tmpdata = zeros(cols, num_ev_names);
-        for j = 1:length(names)
-            x1 = startt_bucket(j);
-            x2 = endt_bucket(j);
-            y = idx(j);
-            
-           % if start and end in the same bucket, mark with duration
-           if x1 == x2
-               tmpdata(x1, y) = ...
-                   tmpdata(x1, y) + datasize(j);
-           else
-               % then do in between
-                tmpdata(x1 : x2, y) = ...
-                   tmpdata(x1 : x2, y) + fulldr(j);
-
-               % do the start first
-               tmpdata(x1, y) = ...
-                   tmpdata(x1, y) - startdr2(j);
-                % then do the end
-               tmpdata(x2,y) = ...
-                   tmpdata(x2, y) - enddr2(j);
-           end 
-        end
-
-        ndata_sizes{i} = sparse(tmpdata);
-    	clear idx;
-        clear names;
-        clear startt;
-        clear endt;
+        clear x1;
+        clear x2;
+        clear y;
+        clear startdr;
+        clear enddr;
+        clear fulldr;
         clear startt_bucket;
         clear endt_bucket;
-        clear start_bucket_end;
-        clear end_bucket_start;
+    	clear idx;
         clear datasize;
-        clear duration;
+
+        
+        ndata_sizes{i} = sparse(tmpdata);
+        clear tmpdata;
     end
 
     
