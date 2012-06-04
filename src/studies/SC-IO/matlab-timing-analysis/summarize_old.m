@@ -315,7 +315,7 @@ function [] = summarize_old( proc_events, sample_interval, fid, proc_type, allEv
         nTPmean = mean(tp, 1);
         nTPmedian = median(tp, 1);
         nTPmode = mode(tp,1);
-        nTPstdev = std(tp, 1);
+        nTPstdev = std(tp, 0, 1);
         nTPmin = min(tp, [], 1);
         nTPmax = max(tp, [], 1);
         clear tp;
@@ -336,7 +336,7 @@ function [] = summarize_old( proc_events, sample_interval, fid, proc_type, allEv
         tTPmean = mean(tp, 1);
         tTPmedian = median(tp, 1);
         tTPmode = mode(tp,1);
-        tTPstdev = std(tp, 1);
+        tTPstdev = std(tp, 0, 1);
         tTPmin = min(tp, [], 1);
         tTPmax = max(tp, [], 1);
         clear tp;
@@ -432,7 +432,7 @@ function computeThroughput(name, data_proc, time_proc, scaling, fid)
     TPmean = mean(tp, 1);
     TPmedian = median(tp, 1);
     TPmode = mode(tp,1);
-    TPstdev = std(tp, 1);
+    TPstdev = std(tp, 0, 1);
     TPmin = min(tp, [], 1);
     TPmax = max(tp, [], 1);
     clear tp;

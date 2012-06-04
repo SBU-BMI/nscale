@@ -206,9 +206,9 @@ int SCIOADIOSWriter::persist() {
 
 	printf("worker %d writing out %lu tiles to ADIOS\n", local_rank, tile_cache.size());
 	long long t1 = ::cciutils::event::timestampInUS();
-//	MPI_Barrier(*local_comm);
+	MPI_Barrier(*local_comm);
 	long long t2 = ::cciutils::event::timestampInUS();
-//	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 
 	
@@ -494,9 +494,9 @@ int SCIOADIOSWriter::persist(int iter) {
 
 	printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", local_rank, tile_cache.size(), tileSize);
 	long long t1 = ::cciutils::event::timestampInUS();
-//	MPI_Barrier(*local_comm);
+	MPI_Barrier(*local_comm);
 	long long t2 = ::cciutils::event::timestampInUS();
-//	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 
 	

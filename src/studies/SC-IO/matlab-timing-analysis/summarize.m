@@ -288,7 +288,7 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
         TPmean = mean(tp, 1);
         TPmedian = median(tp, 1);
         TPmode = mode(tp,1);
-        TPstdev = std(tp, 1);
+        TPstdev = std(tp, 0, 1);
         TPmin = min(tp, [], 1);
         TPmax = max(tp, [], 1);
         clear tp;
