@@ -124,10 +124,10 @@ class SCIOLogSession {
 
 public :
 
-	SCIOLogSession() : id(-1), name(std::string()), session_name(std::string()), start(0LL) {};
-	SCIOLogSession(const int &_id, const std::string &_name,
+	SCIOLogSession() : id(-1), name(std::string()), group(0), session_name(std::string()), start(0LL) {};
+	SCIOLogSession(const int &_id, const std::string &_name, const int &_group,
 			const std::string &_session_name, long long &_start) :
-		id(_id), name(_name), session_name(_session_name), events(), start(_start) {
+		id(_id), name(_name), group(_group), session_name(_session_name), events(), start(_start) {
 		events.clear();
 
 		countByEventName.clear();
@@ -174,8 +174,8 @@ public :
 
 	virtual void toString(std::string &header, std::string &value) {
 		std::stringstream ss1, ss2;
-		ss1 << "pid,hostName,sessionName,";
-		ss2 << id << "," << name << "," << session_name << "," << std::fixed;
+		ss1 << "pid,hostName,group,sessionName,";
+		ss2 << id << "," << name << "," << group << "," << session_name << "," << std::fixed;
 
 		for (int i = 0; i < events.size(); ++i) {
 			ss1 << events[i].getName() << "," << events[i].getType() << ",";
@@ -187,7 +187,7 @@ public :
 
 	virtual void toOneLineString(std::string &value) {
 		std::stringstream ss1;
-		ss1 << "pid," << id << ",hostName," << name << ",sessionName," << session_name << "," << std::fixed;
+		ss1 << "pid," << id << ",hostName," << name << ",group," << group << ",sessionName," << session_name << "," << std::fixed;
 
 		for (int i = 0; i < events.size(); ++i) {
 			ss1 << events[i].getName() << "," << events[i].getType() << "," << (events[i].getStart() - start + 1) << "," << (events[i].getEnd() - start + 1) << "," << events[i].getAnnotation() << ",";
@@ -222,8 +222,8 @@ public :
 
 	virtual void toSummaryStringByName(std::string &header, std::string &value) {
 		std::stringstream ss1, ss2;
-		ss1 << "pid,hostName,sessionName,";
-		ss2 << id << "," << name << "," << session_name << "," << std::fixed;
+		ss1 << "pid,hostName,group,sessionName,";
+		ss2 << id << "," << name << "," << group << "," << session_name << "," << std::fixed;
 
 		for (std::tr1::unordered_map<std::string, long>::iterator iter= countByEventName.begin();
 				iter != countByEventName.end(); ++iter) {
@@ -236,8 +236,8 @@ public :
 	}
 	virtual void toSummaryStringByType(std::string &header, std::string &value) {
 		std::stringstream ss1, ss2;
-		ss1 << "pid,hostName,sessionName,";
-		ss2 << id << "," << name << "," << session_name << "," << std::fixed;
+		ss1 << "pid,hostName,group,sessionName,";
+		ss2 << id << "," << name << "," << group << "," << session_name << "," << std::fixed;
 
 		for (std::tr1::unordered_map<int, long>::iterator iter = countByEventType.begin();
 				iter != countByEventType.end(); ++iter) {
@@ -252,6 +252,7 @@ public :
 private :
 	int id;
 	std::string name;
+	int group;
 	std::string session_name;
 	std::vector<cciutils::event> events;
 	long long start;
@@ -276,8 +277,8 @@ class SCIOLogger {
 public :
 
 	// _id is something like mpi rank or hostname
-	SCIOLogger(const int &_id, const std::string &_name) :
-		id(_id), name(_name) {
+	SCIOLogger(const int &_id, const std::string &_name, const int &_group) :
+		id(_id), name(_name), group(_group) {
 		starttime = cciutils::event::timestampInUS();	
 	};
 
@@ -288,7 +289,7 @@ public :
 	// session id is something like a filename or image name or hostname.
 	virtual cciutils::SCIOLogSession* getSession(const std::string &session_name) {
 		if (values.find(session_name) == values.end()) {
-			cciutils::SCIOLogSession session(id, name, session_name, starttime);
+			cciutils::SCIOLogSession session(id, name, group, session_name, starttime);
 			values[session_name] = session;
 		}
 		return &(values[session_name]);
@@ -367,7 +368,7 @@ public :
 		fss << prefix << "-" << id << ".csv";
 
 		std::ofstream ofs2(fss.str().c_str());
-        	ofs2 << "v2" << std::endl << ss.str() << std::endl;
+        	ofs2 << "v2.1" << std::endl << ss.str() << std::endl;
 	        ofs2.close();
 	}
 
@@ -432,7 +433,7 @@ public :
 		fss << prefix << ".csv";
 
 		std::ofstream ofs2(fss.str().c_str());
-        	ofs2 << "v2" << std::endl << logdata << std::endl;
+        	ofs2 << "v2.1" << std::endl << logdata << std::endl;
 	        ofs2.close();
 
         	//printf("%s\n", logdata);
@@ -444,6 +445,7 @@ public :
 private :
 	int id;
 	std::string name;
+	int group;
 	long long starttime;
 
 	// image name to log map.

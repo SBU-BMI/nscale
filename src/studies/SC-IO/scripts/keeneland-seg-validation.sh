@@ -32,32 +32,32 @@ mkdir /lustre/medusa/tcpan/output/adios-validation
 which mpirun
 date
 echo "==== WARM UP ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu
 date
 echo "==== ORIG ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/posix-validation -1 0-200 cpu
 date
 echo "==== ADIOS NULL ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation NULL cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation NULL cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation NULL cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation NULL cpu -1 -1
 date
 echo "==== ADIOS POSIX ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation POSIX cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation POSIX cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation POSIX cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation POSIX cpu -1 -1
 date
 echo "==== ADIOS MPI ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI cpu -1 -1
 date
 echo "==== ADIOS MPI_LUSTRE ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_LUSTRE cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_LUSTRE cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_LUSTRE cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_LUSTRE cpu -1 -1
 date
 echo "==== ADIOS MPI_AMR ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_AMR cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_AMR cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_AMR cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/ValidationSet /lustre/medusa/tcpan/output/adios-validation MPI_AMR cpu -1 -1
 date
 
 # eof

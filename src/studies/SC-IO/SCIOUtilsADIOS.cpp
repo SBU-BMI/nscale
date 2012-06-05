@@ -8,24 +8,10 @@
 
 namespace cciutils {
 
-ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession *session ) {
-	rank = _rank;
-	comm = _comm;
-	logsession = session;
-	long long t1 = ::cciutils::event::timestampInUS();
-	adios_init(configfilename);
-	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios init"), t1, t2, std::string(), ::cciutils::event::ADIOS_INIT));
 
-	t1 = ::cciutils::event::timestampInUS();
-	writers.clear();
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("clear Writers"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
-
-}
-
-ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession *session, bool _gapped ) {
+ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession *session, bool _gapped, bool _grouped ) {
 	gapped = _gapped;
+	grouped = _grouped;
 
 	rank = _rank;
 	comm = _comm;
@@ -71,15 +57,19 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 		std::vector<int> &selStages,
 		const long mx_tileinfo_count, const long mx_imagename_bytes,
 		const long mx_sourcetilefile_bytes, const long mx_tile_bytes,
- int _local_rank, MPI_Comm *_local_comm) {
+ int _local_rank, int _local_group, MPI_Comm *_local_comm) {
 
 
 	SCIOADIOSWriter *w = new SCIOADIOSWriter();
+
+	w->grouped = grouped;
+
 
 	w->selectedStages = selStages;
 	std::sort(w->selectedStages.begin(), w->selectedStages.end());
 	w->local_rank = _local_rank;
 	w->local_comm = _local_comm;
+	w->local_group = _local_group;
 
 	w->tile_capacity = mx_tile_bytes;
 	w->imageName_capacity = mx_imagename_bytes;
@@ -107,11 +97,11 @@ SCIOADIOSWriter* ADIOSManager::allocateWriterGapped(const std::string &pref, con
 		const long mx_tileinfo_count, const long mx_imagename_bytes,
 		const long mx_sourcetilefile_bytes, const long mx_tile_bytes,
 		int _chunkNumTiles, long _tileSize,
- int _local_rank, MPI_Comm *_local_comm) {
+ int _local_rank, int _local_group, MPI_Comm *_local_comm) {
 	//printf("rank %d alloc writer gapped tilesize = %ld, numTile %d\n", _local_rank, _tileSize, _chunkNumTiles);
 
 	SCIOADIOSWriter *w = allocateWriter(pref, suf, _appendInTime, _newfile, selStages,
-			mx_tileinfo_count, mx_imagename_bytes, mx_sourcetilefile_bytes, mx_tile_bytes, _local_rank, _local_comm);
+			mx_tileinfo_count, mx_imagename_bytes, mx_sourcetilefile_bytes, mx_tile_bytes, _local_rank, _local_group, _local_comm);
 
 	w->chunkNumTiles = _chunkNumTiles;
 	w->tileSize= _tileSize;
@@ -156,7 +146,11 @@ int SCIOADIOSWriter::open(const char* groupName) {
 	this->write_session_id++;
 	std::stringstream ss;
 	if (this->appendInTime == true) {
-		ss << this->prefix << "." << this->suffix;
+		if (this->grouped)
+			ss << this->prefix << ".g" << this->local_group << "." << this->suffix;
+		else
+			ss << this->prefix << "." << this->suffix;
+
 		if (newfile) {
 			err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", local_comm);
 			newfile = false;
@@ -164,7 +158,10 @@ int SCIOADIOSWriter::open(const char* groupName) {
 			err = adios_open(&adios_handle, groupName, ss.str().c_str(), "a", local_comm);
 		}
 	} else {
-		ss << this->prefix << "/t-" << this->write_session_id << "." << this->suffix;
+		if (this->grouped)
+			ss << this->prefix << "/g" << this->local_group << "-t"<< this->write_session_id << "." << this->suffix;
+		else
+			ss << this->prefix << "/t" << this->write_session_id << "." << this->suffix;
 		err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", local_comm);
 	}
 	long long t2 = ::cciutils::event::timestampInUS();

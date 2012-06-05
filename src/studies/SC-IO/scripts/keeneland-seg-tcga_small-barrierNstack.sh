@@ -34,48 +34,48 @@ mkdir /lustre/medusa/tcpan/output/adios-tcga_small-stack
 which mpirun
 date
 echo "==== ORIG ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/posix-tcga_small -1 0-200 cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/posix-tcga_small -1 0-200 cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/posix-tcga_small -1 0-200 cpu"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/posix-tcga_small -1 0-200 cpu
 date
 echo "==== ADIOS NULL ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small NULL cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small NULL cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small NULL cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small NULL cpu -1 -1
 date
 echo "==== ADIOS NULL stack ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-NULL cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-NULL cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-NULL cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-NULL cpu -1 -1
 date
 echo "==== ADIOS POSIX ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small POSIX cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small POSIX cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small POSIX cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small POSIX cpu -1 -1
 date
 echo "==== ADIOS POSIX stack ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-POSIX cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-POSIX cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-POSIX cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-POSIX cpu -1 -1
 date
 echo "==== ADIOS MPI ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI cpu -1 -1
 date
 echo "==== ADIOS MPI stack ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI cpu -1 -1
 date
 echo "==== ADIOS MPI_LUSTRE ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_LUSTRE cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_LUSTRE cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_LUSTRE cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_LUSTRE cpu -1 -1
 date
 echo "==== ADIOS MPI_LUSTRE stack ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_LUSTRE cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_LUSTRE cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_LUSTRE cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_LUSTRE cpu -1 -1
 date
 echo "==== ADIOS MPI_AMR ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_AMR cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_AMR cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_AMR cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small MPI_AMR cpu -1 -1
 date
 echo "==== ADIOS MPI_AMR stack ===="
-echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_AMR cpu 1"
-mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_AMR cpu 1
+echo "mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_AMR cpu -1 -1"
+mpirun --mca mpi_paffinity_alone 1 /nics/c/home/tcpan/builds/nscale-keeneland-cpu/bin/nu-segment-scio-adios.exe /lustre/medusa/tcpan/bcrTCGA_small /lustre/medusa/tcpan/output/adios-tcga_small-stack gap-MPI_AMR cpu -1 -1
 date
 
 # eof

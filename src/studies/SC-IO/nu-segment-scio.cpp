@@ -569,7 +569,7 @@ int main (int argc, char **argv){
 
 	/* now perform the computation
 	*/
-	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname);
+	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname, 1);
 	cciutils::SCIOLogSession *session;
 	if (size == 1)
 		session = logger->getSession("w");

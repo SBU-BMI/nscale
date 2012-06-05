@@ -35,24 +35,24 @@ private:
 	MPI_Comm *comm;
 	int rank;
 	bool gapped;
+	bool grouped;
 
 	std::vector<SCIOADIOSWriter *> writers;
 	cciutils::SCIOLogSession * logsession;
 
 public:
-	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session);
-	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session, bool _gapped);
+	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session, bool _gapped = false, bool _groupped = true);
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
 			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
-			int _local_rank, MPI_Comm *_local_comm);
+			int _local_rank, int _local_group, MPI_Comm *_local_comm);
 	virtual SCIOADIOSWriter *allocateWriterGapped(const std::string &pref, const std::string &suf,
 				const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 				long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 				int _chunkNumTiles, long _tileSize,
-				int _local_rank, MPI_Comm *_local_comm);
+				int _local_rank, int _local_group, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
 };
 
@@ -64,12 +64,12 @@ class SCIOADIOSWriter : public cv::IntermediateResultHandler {
 	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
 			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
-			int _local_rank, MPI_Comm *_local_comm);
+			int _local_rank, int _local_group, MPI_Comm *_local_comm);
 	friend SCIOADIOSWriter* ADIOSManager::allocateWriterGapped(const std::string &pref, const std::string &suf,
 					const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 					long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 					int _chunkNumTiles, long _tileSize,
-					int _local_rank, MPI_Comm *_local_comm);
+					int _local_rank, int _local_group, MPI_Comm *_local_comm);
 
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
 
@@ -105,11 +105,14 @@ private:
 
 	MPI_Comm *local_comm;
 	int local_rank;
+	int local_group;
 	cciutils::SCIOLogSession *logsession;
 
+	bool grouped;
 	bool gapped;
 	int chunkNumTiles;
 	long tileSize;
+
 
 
 protected:
@@ -118,7 +121,7 @@ protected:
 	SCIOADIOSWriter() : gapped(false), tileInfo_total(0), tile_total(0), imageName_total(0), sourceTileFile_total(0),
 		pg_tile_bytes(0), pg_tileInfo_count(0), pg_imageName_bytes(0), pg_sourceTileFile_bytes(0),
 		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0), sourceTileFile_capacity(0),
-		logsession(NULL), tileSize(0), chunkNumTiles(0) {};
+		logsession(NULL), tileSize(0), chunkNumTiles(0), local_group(0) {};
 	virtual ~SCIOADIOSWriter();
 
 	virtual int open(const char* groupName);
