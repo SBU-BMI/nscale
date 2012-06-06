@@ -19,6 +19,12 @@
 date
 ##cd $PBS_O_WORKDIR
 
+mkdir /data/tcpan/output/adios-val-aa
+mkdir /data/tcpan/output/adios-val-11
+mkdir /data/tcpan/output/adios-val-81
+mkdir /data/tcpan/output/adios-val-86
+
+
 # run the program
 
 which mpirun

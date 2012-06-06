@@ -1,10 +1,10 @@
 project(SCIOTest)
 
 # Make sure the compiler can find the includes in the segmentation directory
-#include_directories(${SCIOSegmentation_SOURCE_DIR})
+include_directories(${SCIOSegmentation_SOURCE_DIR})
 
 # Make sure the compiler can find the library in Segmentation directory
-#link_directories(${SCIOSegmentation_SOURCE_DIR})
+link_directories(${SCIOSegmentation_SOURCE_DIR})
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
@@ -18,7 +18,7 @@ if(MPI_FOUND)
 		set_target_properties(${program} PROPERTIES COMPILE_DEFINITIONS "WITH_MPI")
   		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}") 
 	  	set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
-		target_link_libraries(${program} ${MPI_LIBRARIES})
+		target_link_libraries(${program} nu-io ${MPI_LIBRARIES})
 	endforeach(program)
 endif(MPI_FOUND)
 
