@@ -244,7 +244,7 @@ MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_siz
 				worker_group = blockid * group_interleave + rank % group_interleave;
 
 			} else {
-				// interleave of 1 means adjacent proc ids in group.
+				// interleave of 1 or less means adjacent proc ids in group.
 				// e.g. 0 .. 11 go to group 1.
 				worker_group = rank / group_size;
 			}

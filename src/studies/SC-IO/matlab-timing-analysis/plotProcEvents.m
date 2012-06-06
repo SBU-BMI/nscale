@@ -102,7 +102,8 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     end
     clear colorMapCart;
     
-    imwrite(img, [figname_prefix '.png'], 'png');
+    % commented out - don't need these right now
+    %imwrite(img, [figname_prefix '.png'], 'png');
     
     resolutionScaling = 3;
     % since we change the axes to reflect time values,
