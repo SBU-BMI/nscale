@@ -85,7 +85,7 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	w->appendInTime = _appendInTime;
 	writers.push_back(w);
 
-	if (w->local_rank == 0) printf("INITIALIZED %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
+	if (w->local_rank == 0) printf("INITIALIZED group %d for %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->local_group, pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
 
 	return w;
 }
@@ -201,7 +201,7 @@ int SCIOADIOSWriter::persist() {
 	// prepare the data.
 	// all the data should be continuous now.
 
-	printf("worker %d writing out %lu tiles to ADIOS\n", local_rank, tile_cache.size());
+	//printf("worker %d writing out %lu tiles to ADIOS\n", local_rank, tile_cache.size());
 	long long t1 = ::cciutils::event::timestampInUS();
 	MPI_Barrier(*local_comm);
 	long long t2 = ::cciutils::event::timestampInUS();
@@ -489,7 +489,7 @@ int SCIOADIOSWriter::persist(int iter) {
 	// prepare the data.
 	// all the data should be continuous now.
 
-	printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", local_rank, tile_cache.size(), tileSize);
+	//printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", local_rank, tile_cache.size(), tileSize);
 	long long t1 = ::cciutils::event::timestampInUS();
 	MPI_Barrier(*local_comm);
 	long long t2 = ::cciutils::event::timestampInUS();

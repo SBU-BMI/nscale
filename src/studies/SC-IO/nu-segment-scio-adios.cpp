@@ -373,12 +373,12 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				if (worker_status[1] >= maxWorkerLoad && worker_status[2] == groupIOIter[gid]) {
 					// set everyone in the group to do IO.
 					for (std::vector<int>::iterator iter = groupToRank[gid].begin(); iter != groupToRank[gid].end(); ++iter) {
-						printf("worker %d iterator has value %d\n", worker_id, *iter);
+//						printf("worker %d iterator has value %d\n", worker_id, *iter);
 						messages[*iter].push_front(MANAGER_REQUEST_IO);
 					}
 					IOCount += groupToRank[gid].size();
 					++groupIOIter[gid];
-					printf("current queue content = %d at front\n", messages[worker_id].front());
+//					printf("current queue content = %d at front\n", messages[worker_id].front());
 				}
 				t3 = ::cciutils::event::timestampInUS();
 				if (session != NULL) session->log(cciutils::event(90, std::string("manager queue IO"), t2, t3, std::string(), ::cciutils::event::MEM_IO));
@@ -780,7 +780,7 @@ int main (int argc, char **argv){
 
 			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, writer);
 
-			printf("processed %s\n", filenames[i].c_str());
+//			printf("processed %s\n", filenames[i].c_str());
 			++i;
 
 			if (i % maxBuf == 0) {
