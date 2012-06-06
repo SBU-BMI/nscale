@@ -362,7 +362,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 			if (worker_id == manager_rank) continue;
 
 			if (curr % 100 == 0) {
-				printf("[ MANAGER STATUS ] %d tasks remaining.\n", total - curr);
+				printf("[ MANAGER STATUS at %lld ] %d tasks remaining.\n", ::cciutils::event::timestampInUS(), total - curr);
 			}
 
 			if(worker_status[0] == WORKER_READY) {
@@ -376,6 +376,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 //						printf("worker %d iterator has value %d\n", worker_id, *iter);
 						messages[*iter].push_front(MANAGER_REQUEST_IO);
 					}
+					printf("MANAGER %d send IO request to Group %d\n", manager_rank, gid);
 					IOCount += groupToRank[gid].size();
 					++groupIOIter[gid];
 //					printf("current queue content = %d at front\n", messages[worker_id].front());
