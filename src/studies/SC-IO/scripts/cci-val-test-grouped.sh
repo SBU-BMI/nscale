@@ -41,16 +41,7 @@ mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bi
 mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-11 POSIX cpu 1 1
 mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-8a POSIX cpu 8 1
 mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-8i POSIX cpu 8 7
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-aa gap-NULL cpu -1 -1
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-11 gap-NULL cpu 1 1
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-8a gap-NULL cpu 8 1
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-8i gap-NULL cpu 8 7
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-aa gap-POSIX cpu -1 -1
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-11 gap-POSIX cpu 1 1
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-8a gap-POSIX cpu 8 1
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-8i gap-POSIX cpu 8 7
 mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-11 MPI cpu 1 1
-#mpirun -np 56 -hostfile /data/tcpan/hostfiles/oldnodes /data/tcpan/src/nscale-bin/bin/nu-segment-scio-adios.exe /data/exascale/DATA/ValidationSet /data/tcpan/output/adios-val-11 gap-MPI cpu 1 1
 
 
 # eof

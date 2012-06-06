@@ -376,7 +376,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 //						printf("worker %d iterator has value %d\n", worker_id, *iter);
 						messages[*iter].push_front(MANAGER_REQUEST_IO);
 					}
-					printf("MANAGER %d send IO request to Group %d\n", manager_rank, gid);
+					//printf("MANAGER %d send IO request to Group %d\n", manager_rank, gid);
 					IOCount += groupToRank[gid].size();
 					++groupIOIter[gid];
 //					printf("current queue content = %d at front\n", messages[worker_id].front());
