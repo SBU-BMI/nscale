@@ -296,10 +296,10 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	// send off the worker group info to the master
 	MPI_Gather(&g, 1, MPI_INT, groupids, 1, MPI_INT, manager_rank, comm_world);
 
-	printf("GROUPS: ");
-	for (int i = 0; i < size; i++)
-		printf("%d, ", groupids[i]);
-	printf("\n");
+//	printf("GROUPS: ");
+//	for (int i = 0; i < size; i++)
+//		printf("%d, ", groupids[i]);
+//	printf("\n");
 
 	MPI_Barrier(comm_world);
 
@@ -839,7 +839,7 @@ int main (int argc, char **argv){
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer, logger, worker_group);
 			t2 = cciutils::ClockGetTime();
-			printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
+			//printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
 			iomanager->freeWriter(writer);
 
