@@ -18,6 +18,10 @@ const int ::cciutils::event::ADIOS_OPEN = 42;
 const int ::cciutils::event::ADIOS_ALLOC = 43;
 const int ::cciutils::event::ADIOS_WRITE = 44;
 const int ::cciutils::event::ADIOS_CLOSE = 45;
+const int ::cciutils::event::ADIOS_BENCH_OPEN = 52;
+const int ::cciutils::event::ADIOS_BENCH_ALLOC = 53;
+const int ::cciutils::event::ADIOS_BENCH_WRITE = 54;
+const int ::cciutils::event::ADIOS_BENCH_CLOSE = 55;
 const int ::cciutils::event::ADIOS_FINALIZE = 46;
 const int ::cciutils::event::OTHER = -1;
 

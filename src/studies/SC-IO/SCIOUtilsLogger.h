@@ -39,6 +39,10 @@ public:
 	static const int ADIOS_ALLOC;
 	static const int ADIOS_WRITE;
 	static const int ADIOS_CLOSE;
+	static const int ADIOS_BENCH_OPEN;
+	static const int ADIOS_BENCH_ALLOC;
+	static const int ADIOS_BENCH_WRITE;
+	static const int ADIOS_BENCH_CLOSE;
 	static const int ADIOS_FINALIZE;
 	static const int OTHER;
 

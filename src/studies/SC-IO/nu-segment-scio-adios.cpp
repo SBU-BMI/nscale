@@ -758,16 +758,10 @@ int main (int argc, char **argv){
 
 		// worker bees.  set to overwrite (third param set to true).
 
-		cciutils::SCIOADIOSWriter *writer;
-		if (gapped)
-			writer = iomanager->allocateWriterGapped(outDir, std::string("bp"), appendInTime, overwrite,
+		cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
 				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 				maxBuf, 4096*4096*4,
-				rank, worker_group, &comm_world);
-		else
-			writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
-				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
-				rank, worker_group, &comm_world);
+				worker_group, &comm_world);
 
 		if (writer) writer->setLogSession(session);
 	
@@ -825,20 +819,18 @@ int main (int argc, char **argv){
 
 
 			// worker bees.  set to overwrite (third param set to true).
-			cciutils::SCIOADIOSWriter *writer;
-			if (gapped)
-				writer = iomanager->allocateWriterGapped(outDir, std::string("bp"), appendInTime, overwrite,
+			cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
 					stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
 					maxBuf, 4096*4096*4,
-					worker_rank, worker_group, &comm_worker);
-			else
-				writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
-					stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
-					worker_rank, worker_group, &comm_worker);
+					worker_group, &comm_worker);
+
+			writer->benchmark(0);
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer, logger, worker_group);
 			t2 = cciutils::ClockGetTime();
 			//printf("WORKER %d: FINISHED using CPU in %lu ms\n", rank, t2 - t1);
+
+			writer->benchmark(1);
 
 			iomanager->freeWriter(writer);
 

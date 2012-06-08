@@ -26,7 +26,7 @@ public:
 
 	virtual ~IntermediateResultHandler() {};
 
-	virtual int persist() = 0;
+	virtual int persist(int iter) = 0;
 
 	// write out with raw
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
@@ -54,7 +54,7 @@ public:
 	IntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages);
 	virtual ~IntermediateResultWriter();
 
-	virtual int persist() { return -1; };
+	virtual int persist(int iter) { return -1; };
 
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
 			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL);

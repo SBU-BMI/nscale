@@ -45,14 +45,10 @@ public:
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
-			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
-			int _local_rank, int _local_group, MPI_Comm *_local_comm);
-	virtual SCIOADIOSWriter *allocateWriterGapped(const std::string &pref, const std::string &suf,
 				const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 				long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 				int _chunkNumTiles, long _tileSize,
-				int _local_rank, int _local_group, MPI_Comm *_local_comm);
+				int _local_group, MPI_Comm *_local_comm);
 	virtual void freeWriter(SCIOADIOSWriter *w);
 };
 
@@ -62,14 +58,10 @@ public:
 class SCIOADIOSWriter : public cv::IntermediateResultHandler {
 
 	friend SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std::string &suf,
-			const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
-			long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
-			int _local_rank, int _local_group, MPI_Comm *_local_comm);
-	friend SCIOADIOSWriter* ADIOSManager::allocateWriterGapped(const std::string &pref, const std::string &suf,
 					const bool _appendInTime, const bool _newfile, std::vector<int> &selStages,
 					long mx_tileinfo_count, long mx_imagename_bytes, long mx_sourcetilefile_bytes, long mx_tile_bytes,
 					int _chunkNumTiles, long _tileSize,
-					int _local_rank, int _local_group, MPI_Comm *_local_comm);
+					int _local_group, MPI_Comm *_local_comm);
 
 	friend void ADIOSManager::freeWriter(SCIOADIOSWriter *w);
 
@@ -105,6 +97,7 @@ private:
 
 	MPI_Comm *local_comm;
 	int local_rank;
+	int local_size;
 	int local_group;
 	cciutils::SCIOLogSession *logsession;
 
@@ -125,16 +118,18 @@ protected:
 	virtual ~SCIOADIOSWriter();
 
 	virtual int open(const char* groupName);
-	virtual int close(uint32_t time_index = 0, const uint64_t &datalen = 0);
+	virtual int close(uint32_t time_index = 0);
+
+	virtual int persistGapped(int iter);
 
 public:
 
-	virtual int persist();
-	virtual int persistCountInfo();
 	virtual int persist(int iter);
+	virtual int persistCountInfo();
 	virtual int currentLoad() {
 		return tile_cache.size();
 	}
+	virtual int benchmark(int id);
 
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
 			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name);
