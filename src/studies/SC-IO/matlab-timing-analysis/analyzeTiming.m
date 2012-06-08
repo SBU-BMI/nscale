@@ -53,7 +53,7 @@ dirs = {...
     '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR'...
     };
     
-selections = [2];
+selections = [1];
 
 timeIntervals = [...
     1000; ...
@@ -71,7 +71,7 @@ for j = 1 : length(selections)
     
     fid = fopen([dirname, '.TP.csv'], 'w');
 
-    files = dir(fullfile(dirname, '*.csv'));
+    files = dir(fullfile(dirname, '*-2-*.csv'));
     
 
     for i = 1:length(files)

@@ -647,6 +647,7 @@ int SCIOADIOSWriter::benchmark(int id) {
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
 	ss.str(std::string());
 
+	t1 = ::cciutils::event::timestampInUS();
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
 
@@ -742,7 +743,11 @@ int SCIOADIOSWriter::benchmark(int id) {
 		ss << this->prefix << "/g" << this->local_group << ".benchmark." << this->suffix;
 	else
 		ss << this->prefix << "/benchmark." << this->suffix;
-	err = adios_open(&adios_handle, "tileInfo-gap", ss.str().c_str(), "w", local_comm);
+	if (gapped)
+		err = adios_open(&adios_handle, "tileInfo-gap", ss.str().c_str(), "w", local_comm);
+	else
+		err = adios_open(&adios_handle, "tileInfo", ss.str().c_str(), "w", local_comm);
+
 	ss.str(std::string());
 	t2 = ::cciutils::event::timestampInUS();
 	ss << "BENCH " << id << " adios open";
@@ -762,7 +767,7 @@ int SCIOADIOSWriter::benchmark(int id) {
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len), ::cciutils::event::ADIOS_WRITE));
 	ss.str(std::string());
 
-	t2 = ::cciutils::event::timestampInUS();
+	t1 = ::cciutils::event::timestampInUS();
 	close(1);  // uses matcache.size();
 	t2 = ::cciutils::event::timestampInUS();
 	ss << "BENCH " << id << " adios close";
