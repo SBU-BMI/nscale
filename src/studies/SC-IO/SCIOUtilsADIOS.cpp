@@ -85,7 +85,7 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	w->appendInTime = _appendInTime;
 	writers.push_back(w);
 
-	if (w->local_rank == 0) printf("INITIALIZED group %d for %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->local_group, pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
+//	if (w->local_rank == 0) printf("INITIALIZED group %d for %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->local_group, pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
 
 	return w;
 }

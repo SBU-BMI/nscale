@@ -296,10 +296,10 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	// send off the worker group info to the master
 	MPI_Gather(&g, 1, MPI_INT, groupids, 1, MPI_INT, manager_rank, comm_world);
 
-	printf("GROUPS: ");
-	for (int i = 0; i < size; i++)
-		printf("%d, ", groupids[i]);
-	printf("\n");
+//	printf("GROUPS: ");
+//	for (int i = 0; i < size; i++)
+//		printf("%d, ", groupids[i]);
+//	printf("\n");
 
 	MPI_Barrier(comm_world);
 
