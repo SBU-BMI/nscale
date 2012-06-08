@@ -51,15 +51,100 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     
 
     % get the number of pixels
-    cols = ceil(double(mx) / double(pixelWidth));
+    cols = ceil(double(mx) / pixelWidth);
     clear mx;
     
     
     
     %% RESAMPLE
     % allocate norm-events
-    [norm_events sum_events] = resampleTimeByType(proc_events, p, cols, pixelWidth, allEventTypes);
+    num_ev_types = length(allEventTypes);
+    sum_events = sparse(cols, num_ev_types);
+    % allocate norm-events
+    norm_events = cell(p, 1);
 
+    % inline function shares variable so don't need to copy variables.
+    function resampleTimeByType2
+        % p is number of cells (procs)
+        % mx is maximum timestamp overall;
+
+        event_types = allEventTypes;
+        sample_interval = pixelWidth;
+
+        % generate the sampled_events
+        for i = 1:p
+
+            norm_events{i} = sparse(cols, num_ev_types);
+
+            types = proc_events{i, 5};
+            startt = double(proc_events{i, 6});
+            endt = double(proc_events{i, 7});
+
+            [~, idx] = ismember(types, event_types);
+            clear types;
+
+            startt_bucket = ceil(startt / sample_interval);
+            endt_bucket = ceil(endt / sample_interval);
+
+            start_bucket_end = startt_bucket * sample_interval;
+            end_bucket_start = (endt_bucket - 1) * sample_interval + 1;
+
+            duration = endt - startt + 1;  % data rate per microsec.
+
+            % can't do this in more vectorized way, because of the range access
+            startdr = start_bucket_end - startt + 1;
+            enddr = endt - end_bucket_start + 1;
+            clear startt;
+            clear endt;
+            clear start_bucket_end;
+            clear end_bucket_start;
+
+            tmp = zeros(cols, num_ev_types);
+            for j = 1:length(duration)
+                x1 = startt_bucket(j);
+                x2 = endt_bucket(j);
+                y = idx(j);
+
+               % if start and end in the same bucket, mark with duration
+               if x1 == x2
+                   tmp(x1, y) = ...
+                       tmp(x1, y) + duration(j);
+               else
+                   % do the start first
+                   tmp(x1, y) = ...
+                       tmp(x1, y) + startdr(j);
+                    % then do the end
+                   tmp(x2,y) = ...
+                       tmp(x2, y) + enddr(j);
+
+                   % then do in between
+                   if x2 > (x1 + 1)
+                        tmp(x1+1 : x2-1, y) = ...
+                           tmp(x1+1 : x2-1, y) + sample_interval;
+                   end
+               end 
+            end
+            tmp = tmp / sample_interval;
+            clear idx;
+            clear startt_bucket;
+            clear endt_bucket;
+            clear duration;
+            clear startdr;
+            clear enddr;
+
+            norm_events{i} = sparse(tmp);
+            clear tmp;
+        end
+
+        for i = 1:p	
+            sum_events = sum_events + norm_events{i};
+        end
+        clear num_ev_types;
+    end
+    
+    %[norm_events sum_events] = resampleTimeByType(proc_events, p, cols, pixelWidth, allEventTypes);
+    resampleTimeByType2;
+    
     %% RENDER
     % allocate the image
     img = zeros(p, cols, 3, 'uint8');

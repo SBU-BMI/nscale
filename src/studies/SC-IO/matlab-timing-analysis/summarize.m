@@ -1,4 +1,4 @@
-function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventTypes, allTypeNames)
+function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes, allTypeNames)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -90,12 +90,106 @@ function [] = summarize( proc_events, sample_interval, fid, proc_type, allEventT
         clear duration;
     end
     
+    ndata_time = sparse(cols, num_ev_names);
+    ndata_proc = zeros(p, num_ev_names);
+    ndata_sizes = cell(p, 1);
+
+    % inline function shares variable so don't need to copy variables.
+    function resampleDataByName2
+        % p is number of cells (procs)
+        % mx is maximum timestamp overall;
+
+
+        % generate the sampled_events
+        for i = 1:p
+
+            ndata_sizes{i} = sparse(cols, num_ev_names);
+
+            names = events{i, 4};
+            startt = double(events{i, 6});
+            endt = double(events{i, 7});
+            datasize = double(events{i, 8});
+
+            [~, idx] = ismember(names, event_names);
+            clear names;
+
+            startt_bucket = ceil(startt / sample_interval);
+            endt_bucket = ceil(endt / sample_interval);
+
+            start_bucket_end = startt_bucket * sample_interval;
+            end_bucket_start = (endt_bucket - 1) * sample_interval + 1;
+
+            duration = endt - startt + 1;  % data rate per microsec.
+
+            for j = 1:num_ev_names
+                ndata_proc(i, j) = sum(datasize(idx == j),1);
+            end
+
+            %datarate = datasize ./ duration;
+            fulldr = (datasize * sample_interval) ./ duration;
+            % can't do this in more vectorized way, because of the range access
+
+            tmpdata = zeros(cols, num_ev_names);
+            startdr = datasize .* (start_bucket_end - startt + 1) ./ duration;
+            enddr = datasize .* (endt - end_bucket_start + 1) ./ duration;
+
+            clear startt;
+            clear endt;
+
+            clear start_bucket_end;
+            clear end_bucket_start;
+
+            clear duration;
+
+            for j = 1:length(datasize)
+                x1 = startt_bucket(j);
+                x2 = endt_bucket(j);
+                y = idx(j);
+
+               % if start and end in the same bucket, mark with duration
+               if x1 == x2
+                   tmpdata(x1, y) = ...
+                       tmpdata(x1, y) + datasize(j);
+               else
+                   % do the start first
+                   tmpdata(x1, y) = ...
+                       tmpdata(x1, y) + startdr(j);
+                    % then do the end
+                   tmpdata(x2,y) = ...
+                       tmpdata(x2, y) + enddr(j);
+
+                   % then do in between
+                   if x2 > (x1 + 1)
+                        tmpdata(x1+1 : x2-1, y) = ...
+                           tmpdata(x1+1 : x2-1, y) + fulldr(j);
+                   end
+               end 
+            end
+            clear x1;
+            clear x2;
+            clear y;
+            clear startdr;
+            clear enddr;
+            clear fulldr;
+            clear startt_bucket;
+            clear endt_bucket;
+            clear idx;
+            clear datasize;
+
+
+            ndata_sizes{i} = sparse(tmpdata);
+            clear tmpdata;
+        end
+
+        for i = 1:p	
+            ndata_time = ndata_time + ndata_sizes{i};
+        end
+        clear num_ev_names;
+    end    
+    
     if (hasDataSizes)
-        [ndata_time ndata_proc ndata_sizes] = resampleDataByName(events, p, cols, sample_interval, event_names);
-    else
-        ndata_time = sparse(cols, num_ev_names);
-        ndata_proc = zeros(p, num_ev_names);
-        ndata_sizes = cell(p, 1);
+%        [ndata_time ndata_proc ndata_sizes] = resampleDataByName(events, p, cols, sample_interval, event_names);
+        resampleDataByName2;
     end
         
     computeTimeStats(fid, ntotals, ndurations, mx, p, event_names, hasDataSizes, ndata_time, kernel, scaling, ndata_proc);

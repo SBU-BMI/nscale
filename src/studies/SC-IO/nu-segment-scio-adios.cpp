@@ -607,7 +607,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			if (session != NULL) session->log(cciutils::event(90, std::string("worker get work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
 
 			t0 = cciutils::ClockGetTime();
-//			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
+//			printf("comm time for worker %d is %lu ms\n", rank, t1 -t0);
 
 			// per tile
 			// session = logger->getSession(std::string(input));
@@ -618,7 +618,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			// now do some work
 
 			t1 = cciutils::ClockGetTime();
-			//printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
+			//printf("worker %d processed \"%s\" in %lu ms\n", rank, input, t1 - t0);
 
 			// clean up
 			free(all);
@@ -648,7 +648,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			if (session != NULL) session->log(cciutils::event(90, std::string("manager finished"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
 
 		} else {
-			printf("manager send unknown message %d to worker %d\n", flag, rank);
+			printf("WANRING manager send unknown message %d to worker %d\n", flag, rank);
 			t2 = ::cciutils::event::timestampInUS();
 			usleep(100);
 			t3 = ::cciutils::event::timestampInUS();
@@ -717,10 +717,9 @@ int main (int argc, char **argv){
 	    	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
 
     		t2 = cciutils::ClockGetTime();
-	    	printf("file read took %lu us\n", t2 - t1);
+    		total = filenames.size();
+	    	printf("FILE LISTING took %lu ms for %ld files\n", t2 - t1, total);
 
-		total = filenames.size();
-		printf("TOTAL FILES = %ld\n", total);
 	}
 	// then if MPI, broadcast it
 	if (size > 1) {
@@ -790,7 +789,7 @@ int main (int argc, char **argv){
 			}
 		}
 		t2 = cciutils::ClockGetTime();
-		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
+		printf("WORKER %d: FINISHED using CPU in %lu ms\n", rank, t2 - t1);
 
 		if (writer) writer->persist(iter);
 		if (writer) writer->persistCountInfo();
@@ -819,7 +818,7 @@ int main (int argc, char **argv){
 			// manager thread
 			manager_process(comm_world, manager_rank, worker_size, hostname, filenames, seg_output, bounds_output, logger, maxBuf, worker_group);
 			t2 = cciutils::ClockGetTime();
-			printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
+			printf("MANAGER %d : FINISHED in %lu ms\n", rank, t2 - t1);
 
 		} else {
 
@@ -839,7 +838,7 @@ int main (int argc, char **argv){
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer, logger, worker_group);
 			t2 = cciutils::ClockGetTime();
-			printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
+			//printf("WORKER %d: FINISHED using CPU in %lu ms\n", rank, t2 - t1);
 
 			iomanager->freeWriter(writer);
 
