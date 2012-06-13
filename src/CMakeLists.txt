@@ -15,3 +15,8 @@ if (SC_IO)
 endif(SC_IO)
 
 #add_subdirectory(tasks)
+
+set(RT OFF CACHE BOOL "Building VERY experimental code for MPI runtime")
+if (RT)
+	add_subdirectory(runtime)
+endif(RT)

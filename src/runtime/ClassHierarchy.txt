@@ -1,0 +1,22 @@
+some random thoughts.
+
+* Process class
+*  has deque of CommHandlers
+
+* CommHandler class
+*	have handles of Push, Pull, and transform.  support communication handling:  push/pull, from n to m (n>m, n<m, n==m)
+
+* Push and Pull are subclasses of MessageHandler
+	
+* Transformer class
+	nestable.
+	
+Customize Handler and transformer to deal with compute and IO.
+	
+	
+== Mapper (filter, select, type convert...) is a Transformer, 
+== Reducer (scan, global sum, max, other associative operations) is a Gatherer + Transformer, 
+== Comparator (inner join, intersection, complement, xor) is 2+ Gatherers + Transformer
+== Neighbor operations is a Gatherer + Transformer + Scatterer
+== Redirect (sort, including bucket sort, and other sorts?) is Transformer + Scatterer
+== outer join is 2+ Gatherer + transformer + Scatterer
