@@ -24,20 +24,20 @@ using namespace cv;
 
 
 void printUsage(char ** argv);
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir);
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
 void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, cciutils::SCIOADIOSWriter *writer);
 
 void printUsage(char **argv) {
-	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <tranport> [cpu | gpu [id]] [groupsize] [groupInterleave]" << std::endl;
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <tranport> [cpu | gpu [id]] [groupsize] [groupInterleave] [benchmark]" << std::endl;
 	std::cout << "transport is one of NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR" << std::endl;
 	std::cout << "groupsize is the size of the adios IO subgroup (default -1 means all procs).  groupInterleave (integer) is how the groups mix together.  default is 1 for no interleaving: processes in a group have contiguous process ids." << std::endl;
 	std::cout << "  groupInterleave value of less than 1 is treated as 1.  numbers greater than 1 interleaves that many groups. e.g. 1 2 3 1 2 3.  This is useful to match interleaves to node's core count." << std::endl;
 
 }
 
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir) {
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark) {
 	if (argc < 4) {
 		printUsage(argv);
 		return -1;
@@ -103,6 +103,10 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &g
 	groupInterleave = 1;
 	if (argc > i) groupInterleave = atoi(argv[i]);
 	if (groupInterleave < 1) groupInterleave = 1;
+
+	++i;
+	benchmark = false;
+	if (argc > i && strcasecmp(argv[i], "benchmark") == 0) benchmark = true;
 
 	return 0;
 }
@@ -186,7 +190,6 @@ void compute(const char *input, const char *mask, const char *output, const int 
 //
 //	free(imagename);
 }
-
 
 
 #if defined (WITH_MPI)
@@ -681,7 +684,8 @@ int main (int argc, char **argv){
 	// parse the input
 	int modecode, groupSize, groupInterleave;
 	std::string imageName, outDir, hostname, workingDir, iocode;
-	int status = parseInput(argc, argv, modecode, iocode, groupSize, groupInterleave, workingDir, imageName, outDir);
+	bool benchmark;
+	int status = parseInput(argc, argv, modecode, iocode, groupSize, groupInterleave, workingDir, imageName, outDir, benchmark);
 	if (status != 0) return status;
 
 
@@ -824,14 +828,14 @@ int main (int argc, char **argv){
 					maxBuf, 4096*4096*4,
 					worker_group, &comm_worker);
 			writer->setLogSession(session);
-			writer->benchmark(0);
+			if (benchmark) writer->benchmark(0);
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer, logger, worker_group);
 			t2 = cciutils::ClockGetTime();
 			//printf("WORKER %d: FINISHED using CPU in %lu ms\n", rank, t2 - t1);
 
 			writer->setLogSession(session);
-			writer->benchmark(1);
+			if (benchmark) writer->benchmark(1);
 
 			iomanager->freeWriter(writer);
 
