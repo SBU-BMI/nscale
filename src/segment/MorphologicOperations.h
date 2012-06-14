@@ -21,6 +21,8 @@ namespace nscale {
 template <typename T>
 cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
+template <typename T>
+Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
 
 //template <typename T>
 //cv::Mat imreconstructGeorge(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
