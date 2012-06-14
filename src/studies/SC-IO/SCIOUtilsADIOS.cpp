@@ -184,15 +184,13 @@ int SCIOADIOSWriter::persist(int iter) {
 	MPI_Barrier(*local_comm);
 	long long t2 = ::cciutils::event::timestampInUS();
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
-
-
 	
 
 
+	t1 = ::cciutils::event::timestampInUS();
 
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
-
 
 	/**
 	*  first set up the index variables.
@@ -488,7 +486,7 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 	MPI_Barrier(*local_comm);
 	long long t2 = ::cciutils::event::timestampInUS();
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
-
+	t1 = ::cciutils::event::timestampInUS();
 
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
