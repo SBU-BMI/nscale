@@ -53,6 +53,9 @@ else()
     endif()
 endif()
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+
 #### OpenCV
 find_package( OpenCV REQUIRED )
 #message(STATUS "openCV lib = ${OpenCV_LIBS}")
