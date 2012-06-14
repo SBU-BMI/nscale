@@ -16,11 +16,15 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename )
         tline = fgetl(fid);  % skip header
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %*d %*s %s', 1, 'delimiter', ',');
-            temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
+            if strcmp(temp1{3}, 'w')
+                temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
 
-            proc_events = [proc_events; temp1, temp2];
+                proc_events = [proc_events; temp1, temp2];
+                clear temp2;
+            else
+                fprintf(1, 'SKIP non worker lines\n');
+            end
             clear temp1;
-            clear temp2;
             tline = fgetl(fid);
         end        
     elseif ischar(tline) && (strcmp(tline, 'v2') == 1)
@@ -29,21 +33,29 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename )
         tline = fgetl(fid);  % skip header
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %s', 1, 'delimiter', ',');
-            temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
+            if strcmp(temp1{3}, 'w')
+                temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
 
-            proc_events = [proc_events; temp1, temp2];
+                proc_events = [proc_events; temp1, temp2];
+                clear temp2;
+            else
+                fprintf(1, 'SKIP non worker lines\n');
+            end
             clear temp1;
-            clear temp2;
             tline = fgetl(fid);
         end        
     else
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %s', 1, 'delimiter', ',');
-            temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64', 'delimiter', ',');
+            if strcmp(temp1{3}, 'w')
+                temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64', 'delimiter', ',');
 
-            proc_events = [proc_events; temp1, temp2];
+                proc_events = [proc_events; temp1, temp2];
+                clear temp2;
+            else
+                fprintf(1, 'SKIP non worker lines\n');
+            end
             clear temp1;
-            clear temp2;
             tline = fgetl(fid);
         end
     end

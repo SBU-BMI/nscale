@@ -23,7 +23,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     norm_events = [];
     
     if (isempty(proc_events))
-        printf(2, 'ERROR: no events to process\n');
+        fprintf(2, 'ERROR: no events to process\n');
         return;
     end
 
