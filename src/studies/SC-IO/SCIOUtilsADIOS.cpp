@@ -461,7 +461,7 @@ int SCIOADIOSWriter::persistCountInfo() {
 	sprintf(len, "%lu", adios_totalsize);
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE Summary"), t1, t2, std::string(len), ::cciutils::event::ADIOS_WRITE));
 
-	t2 = ::cciutils::event::timestampInUS();
+	t1 = ::cciutils::event::timestampInUS();
 	close(0);
 	t2 = ::cciutils::event::timestampInUS();
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(len), ::cciutils::event::ADIOS_CLOSE));
