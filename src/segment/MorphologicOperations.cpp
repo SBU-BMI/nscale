@@ -563,6 +563,46 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 }
 
 
+template <typename T>
+cv::Mat imreconstructOpenMP(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize){
+
+	int tileWidth=tileSize;
+	int tileHeight=tileSize;
+	int nTilesX=seeds.cols/tileWidth;
+	int nTilesY=seeds.rows/tileHeight;
+	uint64_t t1, t2; 
+	uint64_t t1_tiled = cciutils::ClockGetTime();
+
+	Mat marker_copy(seeds);
+
+//	omp_set_num_threads(8);
+#pragma omp parallel for
+	for(int tileY=0; tileY < nTilesY; tileY++){
+#pragma omp parallel for
+		for(int tileX=0; tileX < nTilesX; tileX++){
+			Mat roiMarker(marker_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight ));
+			Mat roiMask(image, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
+		
+			t1 = cciutils::ClockGetTime();
+
+			Mat reconTile = nscale::imreconstruct<T>(roiMarker, roiMask, 8);
+			reconTile.copyTo(roiMarker);
+			uint64_t t2 = cciutils::ClockGetTime();
+
+			std::cout << " Tile took " << t2-t1 << "ms" << std::endl;
+		}
+	}
+	uint64_t t2_tiled = cciutils::ClockGetTime();
+	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
+
+	t1 = cciutils::ClockGetTime();
+	Mat reconCopy = nscale::imreconstructFixTilingEffects<T>(marker_copy, image, 8, 0, 0, tileWidth);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
+
+	return reconCopy;
+}
+
 
 
 inline void propagateUchar(int *irev, int *ifwd,
@@ -1536,7 +1576,8 @@ Mat morphOpen(const Mat& image, const Mat& kernel) {
 }
 
 
-
+template Mat imreconstructOpenMP<unsigned char>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize);
+template Mat imreconstructOpenMP<float>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize);
 template Mat imreconstructFixTilingEffects<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
 template Mat imreconstructFixTilingEffects<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
 

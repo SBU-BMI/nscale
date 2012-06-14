@@ -35,7 +35,15 @@ int main (int argc, char **argv){
 	marker.copyTo(marker_copy);
 	mask.copyTo(mask_copy);
 
-	
+	// Warmup
+	Mat roiMarker(marker_copy, Rect(0,0, 10,10 ));
+	GpuMat mat(roiMarker);
+	mat.release();
+
+//#pragma omp parallel for
+//	for(int i = 0; i < 10; i++){
+//		printf("hi");
+//	}
 	Mat recon, recon2;
 	uint64_t t1, t2;
 
@@ -45,18 +53,36 @@ int main (int argc, char **argv){
 	int nTilesY=marker.rows/tileHeight;
 	
 	uint64_t t1_tiled = cciutils::ClockGetTime();
-//omp_set_num_threads(int num_threads)
+	omp_set_num_threads(8);
 
-#pragma omp parallel for
+//#pragma omp parallel for
 	for(int tileY=0; tileY < nTilesY; tileY++){
-#pragma omp parallel for
+//#pragma omp parallel for
 		for(int tileX=0; tileX < nTilesX; tileX++){
 //			std::cout <<"Rect("<< tileX*tileWidth << "," << tileY*tileHeight <<","<< tileWidth <<","<< tileHeight<< ");"<<std::endl;
+			if(tileX==0 && tileY==0){
+
+				std::cout << "NumberThreads="<< omp_get_max_threads()<<std::endl;
+			}
+
 			Mat roiMarker(marker_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight ));
 			Mat roiMask(mask_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
-			
+		
+			Stream stream;
+			GpuMat g_marker, g_mask, g_recon;
+			stream.enqueueUpload(roiMarker, g_marker);
+			stream.enqueueUpload(roiMask, g_mask);
+			stream.waitForCompletion();
+
 			t1 = cciutils::ClockGetTime();
-			Mat reconTile = nscale::imreconstruct<unsigned char>(roiMarker, roiMask, 8);
+
+			g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, 8, 1,stream);
+			std::cout << "Done up to here" <<std::endl;
+			stream.waitForCompletion();
+			Mat reconTile;
+			g_recon.download(reconTile);
+			stream.waitForCompletion();
+//			Mat reconTile = nscale::imreconstruct<unsigned char>(roiMarker, roiMask, 8);
 			reconTile.copyTo(roiMarker);
 			t2 = cciutils::ClockGetTime();
 
@@ -79,13 +105,15 @@ int main (int argc, char **argv){
 	imwrite("out-recon8.ppm", recon);
 	imwrite("out-recon8tile.ppm", marker_copy);
 
-
+	Mat reconOpenMP = nscale::imreconstructOpenMP<unsigned char>(marker, mask, 8, 512);
 
 	Mat comp = recon != reconCopy;
+	Mat openMpDiff = recon != reconOpenMP;
 
 	std::cout << "comp reconCopy= "<<countNonZero(comp) << std::endl;
-
-	imwrite("diff.ppm", comp);
+	std::cout << "comp openmp= "<<countNonZero(openMpDiff) << std::endl;
+	
+	imwrite("diff.ppm", openMpDiff);
 	return 0;
 }
 
