@@ -10,7 +10,7 @@ include_directories(${Segmentation_SOURCE_DIR})
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
-set(programs featuresTest)
+#set(programs featuresTest)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)

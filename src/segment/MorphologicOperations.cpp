@@ -394,6 +394,176 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 }
 
 
+template <typename T>
+Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize) {
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+
+
+	uint64_t t1 = cciutils::ClockGetTime();
+	Mat output(seeds.size() + Size(2,2), seeds.type());
+	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat input(image.size() + Size(2,2), image.type());
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+
+	std::cout << "Copy time="<< cciutils::ClockGetTime()-t1<<std::endl;
+
+	T pval, preval;
+	int xminus, xplus, yminus, yplus;
+	int maxx = output.cols - 1;
+	int maxy = output.rows - 1;
+	std::queue<int> xQ;
+	std::queue<int> yQ;
+	T* oPtr;
+	T* oPtrMinus;
+	T* oPtrPlus;
+	T* iPtr;
+	T* iPtrPlus;
+	T* iPtrMinus;
+
+	t1 = cciutils::ClockGetTime();
+	int nTiles = seeds.cols/tileSize;
+
+	std::cout << "nTiles="<< nTiles*nTiles << " tileSize="<<tileSize <<std::endl;
+	int count = 0;
+
+	t1 = cciutils::ClockGetTime();
+	// pass over entire image image
+	for (int y = 1; y <= maxy-1; ++y) {
+		oPtr = output.ptr<T>(y);
+		oPtrPlus = output.ptr<T>(y+1);
+		oPtrMinus = output.ptr<T>(y-1);
+		iPtr = input.ptr<T>(y);
+		iPtrPlus = input.ptr<T>(y+1);
+		iPtrMinus = input.ptr<T>(y-1);
+		int xIncrement=1;
+		for (int x = 1; x<= maxx-1; x+=xIncrement) {
+			xminus = x-1;
+			xplus = x+1;
+
+			bool candidateFound=false;
+			// capture the seeds
+			// walk through the neighbor pixels, right and down (N-(p)) only
+			pval = oPtr[x];
+
+			if ((oPtr[xplus] < min(pval, iPtr[xplus])) ||		  // right
+					(oPtrPlus[x] < min(pval, iPtrPlus[x]))||  // down
+					(oPtr[xminus] < min(pval, iPtr[xminus]))|| // left
+					(oPtrMinus[x] < min(pval, iPtrMinus[x]))   // up
+					) {
+				
+
+				xQ.push(x);
+				yQ.push(y);
+//				if(count < 10 ){
+//					std::cout << "x="<<x<<" y="<<y<<std::endl;
+//				}
+				candidateFound=true;
+				++count;
+//				continue;
+			}
+
+			if (connectivity == 8 && !candidateFound) {
+				if ((oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) || // right/down corner
+						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus])) || // left/down corner
+						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up 
+						(oPtrMinus[xminus] < min(pval, iPtrMinus[xminus])) // left/up
+				) {
+					xQ.push(x);
+					yQ.push(y);
+					++count;
+//					if(count < 10 ){
+//						std::cout << "x="<<x<<" y="<<y<<std::endl;
+//					}
+//					continue;
+				}
+			}
+
+			if( (x%(tileSize) == 0) || (y%(tileSize)==0 || y%(tileSize)==1) ){
+				xIncrement=1;
+			}else{
+//				xIncrement=1;
+				xIncrement=tileSize-1;
+			}
+
+		}
+	}
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries="<< xQ.size()<< std::endl;
+
+	// now process the queue.
+//	T qval, ival;
+	int x, y;
+	count = 0;
+	while (!(xQ.empty())) {
+		++count;
+		x = xQ.front();
+		y = yQ.front();
+		xQ.pop();
+		yQ.pop();
+		xminus = x-1;
+		xplus = x+1;
+		yminus = y-1;
+		yplus = y+1;
+
+		oPtr = output.ptr<T>(y);
+		oPtrPlus = output.ptr<T>(yplus);
+		oPtrMinus = output.ptr<T>(yminus);
+		iPtr = input.ptr<T>(y);
+		iPtrPlus = input.ptr<T>(yplus);
+		iPtrMinus = input.ptr<T>(yminus);
+
+		pval = oPtr[x];
+
+		// look at the 4 connected components
+		if (y > 0) {
+			propagate<T>(input, output, xQ, yQ, x, yminus, iPtrMinus, oPtrMinus, pval);
+		}
+		if (y < maxy) {
+			propagate<T>(input, output, xQ, yQ, x, yplus, iPtrPlus, oPtrPlus,pval);
+		}
+		if (x > 0) {
+			propagate<T>(input, output, xQ, yQ, xminus, y, iPtr, oPtr,pval);
+		}
+		if (x < maxx) {
+			propagate<T>(input, output, xQ, yQ, xplus, y, iPtr, oPtr,pval);
+		}
+
+		// now 8 connected
+		if (connectivity == 8) {
+
+			if (y > 0) {
+				if (x > 0) {
+					propagate<T>(input, output, xQ, yQ, xminus, yminus, iPtrMinus, oPtrMinus, pval);
+				}
+				if (x < maxx) {
+					propagate<T>(input, output, xQ, yQ, xplus, yminus, iPtrMinus, oPtrMinus, pval);
+				}
+
+			}
+			if (y < maxy) {
+				if (x > 0) {
+					propagate<T>(input, output, xQ, yQ, xminus, yplus, iPtrPlus, oPtrPlus,pval);
+				}
+				if (x < maxx) {
+					propagate<T>(input, output, xQ, yQ, xplus, yplus, iPtrPlus, oPtrPlus,pval);
+				}
+
+			}
+		}
+	}
+
+
+	uint64_t t3 = cciutils::ClockGetTime();
+	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
+
+
+	return output(Range(1, maxy), Range(1, maxx));
+
+}
+
+
+
 
 inline void propagateUchar(int *irev, int *ifwd,
 		int& x, int offset, unsigned char* iPtr, unsigned char* oPtr, unsigned char& pval) {
@@ -1366,6 +1536,9 @@ Mat morphOpen(const Mat& image, const Mat& kernel) {
 }
 
 
+
+template Mat imreconstructFixTilingEffects<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
+template Mat imreconstructFixTilingEffects<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
 
 //template Mat imreconstructGeorge<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
