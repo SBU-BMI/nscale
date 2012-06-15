@@ -192,11 +192,12 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     
     resolutionScaling = 3;
     % since we change the axes to reflect time values,
-    fig = figure;
+    fig = figure('visible', 'off');
+    drawnow;
     
     sf1 = subplot(5,1,1:3);
     sa1 = gca;
-    set(sa1, 'FontSize', get(sa1, 'FontSize') * resolutionScaling);
+    %set(sa1, 'FontSize', get(sa1, 'FontSize') * resolutionScaling);
 
     title(sa1, {'Process Activities',...
         '(BLACK:Unknown) (GREEN:Compute/ADIOS Finalize)', ...
@@ -215,7 +216,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     
     sf2 = subplot(5,1,4:5);
     sa2 = gca;
-    set(sa2, 'FontSize', get(sa2, 'FontSize') * resolutionScaling);
+    %set(sa2, 'FontSize', get(sa2, 'FontSize') * resolutionScaling);
     plot(sa2, sum_events(:, 1), '--k'); hold on;
     plot(sa2, sum_events(:, 2), '-.g'); hold on;
     plot(sa2, sum_events(:, 3), ':b'); hold on;
@@ -260,7 +261,10 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     % FOR PAPER only - eps files are big.
     %print(fig, '-depsc2', '-tiff', [figname_prefix '.fig.eps'], '-r300');
     %print(fig, '-dtiff', [figname_prefix '.fig.tif'], '-r1200');
-    set(fig, 'InvertHardCopy', 'off', 'PaperPositionMode', 'auto');
+    %set(fig, 'InvertHardCopy', 'off', 'PaperPositionMode', 'auto');
+    set(fig, 'InvertHardCopy', 'off');
+    set(fig, 'paperposition', [0 0 11 8.5]);
+    set(fig, 'papersize', [11 8.5]);
     print(fig, '-dpng', [figname_prefix '.fig.png'], ['-r' num2str(100 * resolutionScaling)]);
 
     clear sa1;
