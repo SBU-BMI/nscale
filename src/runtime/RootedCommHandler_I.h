@@ -13,13 +13,15 @@
 namespace cci {
 namespace rt {
 
-class RootedCommHandler_I {
+class RootedCommHandler_I : public cci::rt::CommHandler_I {
 public:
 	virtual ~RootedCommHandler_I(): public cci::rt::CommHandler_I  {
 		roots.clear();
 	}
-	RootedCommHandler_I(MPI_Comm const &_comm, std::vector<int> const &_roots) :
-		CommHandler_I(_comm), roots(_roots) {};
+	RootedCommHandler_I(MPI_Comm const &_parent_comm, int groupid, std::vector<int> const &_roots) :
+		CommHandler_I(_parent_comm, groupid), roots(_roots) {};
+
+	virtual void exchange(int &size, char* &data) = 0;
 
 private:
 	std::vector<int> roots;

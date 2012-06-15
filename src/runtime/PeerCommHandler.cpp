@@ -10,13 +10,11 @@
 namespace cci {
 namespace rt {
 
-PeerCommHandler::PeerCommHandler(MPI_Comm const &_comm) : CommHandler_I(_comm) {
-	// TODO Auto-generated constructor stub
-
+PeerCommHandler::PeerCommHandler(MPI_Comm const &_parent_comm, int groupid) :
+		CommHandler_I(_parent_comm, groupid) {
 }
 
 PeerCommHandler::~PeerCommHandler() {
-	// TODO Auto-generated destructor stub
 }
 
 } /* namespace rt */

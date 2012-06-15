@@ -6,6 +6,8 @@
  */
 
 #include "Process.h"
+#include "PullCommHandler.h"
+#include "PushCommHandler.h"
 
 #include <iostream>
 #include <string.h>
@@ -35,8 +37,6 @@ void Process::setup() {
 	// if already configured, clean up,
 	teardown();
 
-	comms = new MPI_Comm[2];
-
 	int size, rank;
 	MPI_Comm_size(comm_world, &size);
 	MPI_Comm_rank(comm_world, &rank);
@@ -47,32 +47,30 @@ void Process::setup() {
 	// partitioning is arbitrary.  let the computesize be 3/4 of whole thing.
 	// io be 1/4 of whole thing
 
-	int group;
 	MPI_Comm comm;
-	CommHandler_I *handler;
+	CommHandler_I *handler, *handler2;
 	std::vector<int> roots;
 
 	// first split into 2.
-	group = (rank % 4 == 0 ? 1 : 0);  // IO nodes have g1 = 0; compute nodes g1 = 1
-	MPI_Comm_split(comm_world, group, rank, &comm);
-
+	int g1 = (rank % 4 == 0 ? 1 : 0);  // IO nodes have g1 = 0; compute nodes g1 = 1
 	roots.clear();
 	roots.push_back(0);
-	handler = new PullCommHandler(comm, roots);
 
-//	comms.push_back(comm1);
-	comms[0] = comm1;
+	handler = new PullCommHandler(comm_world, g1, roots);
+
+	handlers.push_back(handler);
+
 
 	// then within IO group, do subgroups.
 	int group_size = 12;
 	int group_interleave = 4;
 	int comm1_size;
 	int comm1_rank;
-	MPI_Comm_size(comm1, &comm1_size);
-	MPI_Comm_rank(comm1, &comm1_rank);
+	MPI_Comm_size(handler->getComm(), &comm1_size);
+	MPI_Comm_rank(handler->getComm(), &comm1_rank);
 
 	int g2 = -1;
-	MPI_Comm comm2;
+	int io_root = 0;
 	if (g1 == 1) {
 		if (group_size == 1) {
 			g2 = comm1_rank;
@@ -91,19 +89,17 @@ void Process::setup() {
 				++g2;
 			}
 		}
-		MPI_Comm_split(comm1, g2, comm1_rank, &comm2);
-	} else {
-		comm2 = MPI_COMM_NULL;
+		handler2 = new PushCommHandler(handler->getComm(), g2, roots)
+		handlers.push_back(handler2);
 	}
 
-	//comms.push_back(comm2);
-	comms[1] = comm2;
 
-	printf("ranks = %d, g1 = %d, Comm1 = %u, g2 = %d, Comm2 = %u\n", rank, g1, comms[0], g2, comms[1]);
+
+	printf("ranks = %d, g1 = %d, Comm1 = %u, g2 = %d, Comm2 = %u\n", rank, g1, handler->getComm(), g2, handler2->getComm());
 
 	int v = rank;
 	int w;
-	MPI_Allreduce(&v, &w, 1, MPI_INT, MPI_SUM, comm1);
+	MPI_Allreduce(&v, &w, 1, MPI_INT, MPI_SUM, handler->getComm());
 	printf("ranks = %d, g1 = %d, val = %d\n", rank, g1, w);
 }
 
@@ -130,20 +126,20 @@ void Process::teardown() {
 	// clean up all the communicators.
 
 
-	for (int i = 0; i < 2; i++) {
-		if (comms[i] != MPI_COMM_NULL) MPI_Comm_free(comms + i);
-		else printf("null comm \n");
-	}
-	delete [] comms;
+//	for (int i = 0; i < 2; i++) {
+//		if (comms[i] != MPI_COMM_NULL) MPI_Comm_free(comms + i);
+//		else printf("null comm \n");
+//	}
+//	delete [] comms;
 
 //	for (int i = comms.size() - 1; i >= 0; --i) {
 //		if (comms[i] != MPI_COMM_NULL) MPI_Comm_free(&comms[i]);
 //	}
 
-//	for (int i = 0; i < handlers.size(); ++i) {
-//		delete handlers[i];
-//	}
-//	handlers.clear();
+	for (int i = 0; i < handlers.size(); ++i) {
+		delete handlers[i];
+	}
+	handlers.clear();
 	configured = false;
 }
 

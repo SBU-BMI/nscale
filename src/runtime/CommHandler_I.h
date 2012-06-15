@@ -22,15 +22,23 @@ namespace rt {
  */
 class CommHandler_I {
 public:
-	CommHandler_I(MPI_Comm const &_parent_comm, ) {};
+	CommHandler_I(MPI_Comm const &_parent_comm, int _gid) :
+		parent_comm(_parent_comm), groupid(_gid) {
+		int rank;
+		MPI_Comm_rank(parent_comm, &rank);
+		MPI_Comm_split(parent_comm, groupid, rank, &comm);
+
+	};
 	virtual ~CommHandler_I() {
 		MPI_Comm_free(&comm);
 	};
 
 	virtual void exchange(int &size, char* &data) = 0;
 
+	MPI_Comm &getComm() { return comm; };
 private:
-	MPI_Comm comm;
+	MPI_Comm parent_comm,comm;
+	int groupid;
 
 };
 

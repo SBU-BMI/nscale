@@ -46,7 +46,6 @@ private:
 	 */
 	std::vector<Activity_I *> activities;
 	std::vector<CommHandler_I *> handlers;
-	MPI_Comm *comms;
 
 	MPI_Comm comm_world;
 	char hostname[256];

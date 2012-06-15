@@ -15,7 +15,7 @@ namespace rt {
 
 class PeerCommHandler: public cci::rt::CommHandler_I {
 public:
-	PeerCommHandler(MPI_Comm const &_comm) ;
+	PeerCommHandler(MPI_Comm const &_parent_comm, int groupid);
 	virtual ~PeerCommHandler();
 };
 

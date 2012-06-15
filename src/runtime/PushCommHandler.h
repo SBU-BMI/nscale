@@ -15,8 +15,10 @@ namespace rt {
 
 class PushCommHandler: public cci::rt::RootedCommHandler_I {
 public:
-	PushCommHandler(MPI_Comm const &_comm, std::vector<int> const &_roots);
+	PushCommHandler(MPI_Comm const &_parent_comm, int groupid, std::vector<int> const &_roots);
 	virtual ~PushCommHandler();
+
+	virtual void exchange(int &size, char* &data);
 };
 
 } /* namespace rt */
