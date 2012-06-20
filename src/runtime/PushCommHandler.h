@@ -1,26 +1,27 @@
 /*
- * PushCommHandler.h
+ * PushCommunicator.h
  *
  *  Created on: Jun 13, 2012
  *      Author: tcpan
  */
 
-#ifndef PUSHCOMMHANDLER_H_
-#define PUSHCOMMHANDLER_H_
+#ifndef PUSHCommunicator_H_
+#define PUSHCommunicator_H_
 
-#include "RootedCommHandler_I.h"
+#include "RootedCommunicator_I.h"
 
 namespace cci {
 namespace rt {
 
-class PushCommHandler: public cci::rt::RootedCommHandler_I {
+class PushCommunicator: public cci::rt::RootedCommunicator_I {
 public:
-	PushCommHandler(MPI_Comm const &_parent_comm, int groupid, std::vector<int> const &_roots);
-	virtual ~PushCommHandler();
+	PushCommunicator(MPI_Comm const * _parent_comm, int const _gid, std::vector<int> _roots);
+	virtual ~PushCommunicator();
 
-	virtual void exchange(int &size, char* &data);
+	virtual int exchange(int &size, char* &data);
+
 };
 
 } /* namespace rt */
 } /* namespace cci */
-#endif /* PUSHCOMMHANDLER_H_ */
+#endif /* PUSHCommunicator_H_ */

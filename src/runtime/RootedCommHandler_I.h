@@ -1,33 +1,43 @@
 /*
- * RootedCommHandler_I.h
+ * RootedCommunicator_I.h
  *
  *  Created on: Jun 13, 2012
  *      Author: tcpan
  */
 
-#ifndef ROOTEDCOMMHANDLER_I_H_
-#define ROOTEDCOMMHANDLER_I_H_
+#ifndef ROOTEDCommunicator_I_H_
+#define ROOTEDCommunicator_I_H_
 
-#include "CommHandler_I.h"
+#include "Communicator_I.h"
+#include <vector>
+#include <algorithm>
 
 namespace cci {
 namespace rt {
 
-class RootedCommHandler_I : public cci::rt::CommHandler_I {
+class RootedCommunicator_I : public cci::rt::Communicator_I {
 public:
-	virtual ~RootedCommHandler_I(): public cci::rt::CommHandler_I  {
+	virtual ~RootedCommunicator_I()  {
+		//printf("RootedCommunicator destructor called\n");
+
 		roots.clear();
-	}
-	RootedCommHandler_I(MPI_Comm const &_parent_comm, int groupid, std::vector<int> const &_roots) :
-		CommHandler_I(_parent_comm, groupid), roots(_roots) {};
+	};
+	RootedCommunicator_I(MPI_Comm const * _parent_comm, int const _gid, std::vector<int> _roots) :
+		Communicator_I(_parent_comm, _gid), roots(_roots) {
+		std::sort(roots.begin(), roots.end());
+		isRoot = std::binary_search(roots.begin(), roots.end(), rank);
+		printf("rank: %d is root? %s\n ", pcomm_rank, (isRoot ? "true" : "false"));
+	};
 
-	virtual void exchange(int &size, char* &data) = 0;
+	virtual int exchange(int &size, char* &data) = 0;
+	virtual bool isListener() { return isRoot; };
 
-private:
+protected:
 	std::vector<int> roots;
+	bool isRoot;
 
 };
 
 } /* namespace rt */
 } /* namespace cci */
-#endif /* ROOTEDCOMMHANDLER_I_H_ */
+#endif /* ROOTEDCommunicator_I_H_ */

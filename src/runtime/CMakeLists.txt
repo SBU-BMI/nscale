@@ -14,7 +14,7 @@ link_directories(${Runtime_SOURCE_DIR})
 #### Runtime code
 
 # Source files used by Runtime
-set(libsrcs Process.cpp )
+set(libsrcs Process.cpp PullCommHandler.cpp PushCommHandler.cpp Save.cpp Assign.cpp Segment.cpp Activity.cpp Debug.cpp)
 
 set(libname runtime)
 # Add rule to generate execution engine, as a shared library (.so)

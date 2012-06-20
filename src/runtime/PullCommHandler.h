@@ -1,26 +1,27 @@
 /*
- * PullCommHandler.h
+ * PullCommunicator.h
  *
  *  Created on: Jun 13, 2012
  *      Author: tcpan
  */
 
-#ifndef PULLCOMMHANDLER_H_
-#define PULLCOMMHANDLER_H_
+#ifndef PULLCommunicator_H_
+#define PULLCommunicator_H_
 
-#include "RootedCommHandler_I.h"
+#include "RootedCommunicator_I.h"
 
 namespace cci {
 namespace rt {
 
-class PullCommHandler: public cci::rt::RootedCommHandler_I {
+class PullCommunicator: public cci::rt::RootedCommunicator_I {
 public:
-	PullCommHandler(MPI_Comm const &_parent_comm, int groupid, std::vector<int> const &_roots);
-	virtual ~PullCommHandler();
+	PullCommunicator(MPI_Comm const *_parent_comm, int const _gid, std::vector<int> _roots);
+	virtual ~PullCommunicator();
 
-	virtual void exchange(int &size, char* &data);
+	virtual int exchange(int &size, char* &data);
+
 };
 
 } /* namespace rt */
 } /* namespace cci */
-#endif /* PULLCOMMHANDLER_H_ */
+#endif /* PULLCommunicator_H_ */
