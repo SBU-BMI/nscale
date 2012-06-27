@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <limits>
 
 namespace cci {
 namespace rt {
@@ -27,13 +28,23 @@ public:
 	    vsprintf(msg, fmt,args);
 	    va_end(args);
 
-		int rank;
-		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-		printf("[DEBUG rank %d] %s", rank, msg);;
+	    if (!checked) {
+			int initialized;
+			MPI_Initialized(&initialized);
+			if (initialized == 1) {
+				MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+			} else {
+				rank = std::numeric_limits<int>::min();
+			}
+			checked = true;
+	    }
+	   	printf("[DEBUG rank %d] %s", rank, msg);
 	}
 
 private:
 	static char msg[4096];
+	static bool checked;
+	static int rank;
 
 };
 

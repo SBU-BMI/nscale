@@ -8,18 +8,24 @@
 #ifndef ASSIGN_H_
 #define ASSIGN_H_
 
-#include <Worker_I.h>
+#include <Action_I.h>
 
 namespace cci {
 namespace rt {
 
-class Assign: public cci::rt::Worker_I {
+class Assign: public cci::rt::Action_I {
 public:
 	Assign(MPI_Comm const * _parent_comm, int const _gid);
 	virtual ~Assign();
+	virtual int run();
+	virtual char* getClassName() { return "Assign"; };
 
-	virtual int compute(int const &input_size , char* const &input,
-				int &output_size, char* &output);
+
+protected:
+
+	virtual int compute(int const &input_size , void * const &input,
+				int &output_size, void * &output);
+
 
 };
 

@@ -9,7 +9,6 @@
 #define PROCESS_H_
 
 #include <vector>
-#include "Activity.h"
 #include "Communicator_I.h"
 #include "mpi.h"
 
@@ -45,11 +44,7 @@ private:
 	/**
 	 * queue of handlers.  double ended because response time for the handler may be different.
 	 */
-	std::vector<Activity *> activities;
-	std::vector<Communicator_I *> comms;
-	std::vector<Worker_I *> workers;
-	std::tr1::unordered_map<MPI_Comm *, Activity *> listeners;
-//	std::tr1::unordered_map<MPI_Comm *, Activity *> requesters;
+	std::vector<Communicator_I *> handlers;
 
 	MPI_Comm comm_world;
 	char hostname[256];

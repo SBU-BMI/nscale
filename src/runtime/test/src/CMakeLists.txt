@@ -20,7 +20,7 @@ link_directories(${Runtime_SOURCE_DIR})
 
 #### Runtime code
 
-set(programs Process_test)
+set(programs Process_test Assign_test Segment_test Save_test PullHandler_test)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
@@ -35,6 +35,8 @@ foreach(program ${programs})
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
 		target_link_libraries(${program} ${MPI_LIBRARIES})
 	endif(MPI_FOUND)
+	
+	add_test(${program} ${program})
 endforeach(program)
 
 

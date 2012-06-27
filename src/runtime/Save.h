@@ -8,18 +8,24 @@
 #ifndef SAVE_H_
 #define SAVE_H_
 
-#include <Worker_I.h>
+#include <Action_I.h>
 
 namespace cci {
 namespace rt {
 
-class Save: public cci::rt::Worker_I {
+class Save: public cci::rt::Action_I {
 public:
 	Save(MPI_Comm const * _parent_comm, int const _gid);
 	virtual ~Save();
+	virtual int run();
+	virtual char* getClassName() { return "Save"; };
 
-	virtual int compute(int const &input_size , char* const &input,
-				int &output_size, char* &output);
+
+protected:
+
+	virtual int compute(int const &input_size , void * const &input,
+				int &output_size, void * &output);
+
 };
 
 } /* namespace rt */

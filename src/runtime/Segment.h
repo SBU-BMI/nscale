@@ -8,18 +8,23 @@
 #ifndef SEGMENT_H_
 #define SEGMENT_H_
 
-#include <Worker_I.h>
+#include <Action_I.h>
 
 namespace cci {
 namespace rt {
 
-class Segment: public cci::rt::Worker_I {
+class Segment: public cci::rt::Action_I {
 public:
 	Segment(MPI_Comm const * _parent_comm, int const _gid);
 	virtual ~Segment();
+	virtual int run();
+	virtual char* getClassName() { return "Segment"; };
 
-	virtual int compute(int const &input_size , char* const &input,
-				int &output_size, char* &output);
+protected:
+	virtual int compute(int const &input_size , void * const &input,
+				int &output_size, void * &output);
+
+
 };
 
 } /* namespace rt */

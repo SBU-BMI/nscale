@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <mpi.h>
+#include <memory>
+
+#include <tr1/unordered_set>
 
 namespace cci {
 namespace rt {
@@ -22,35 +25,44 @@ namespace rt {
  */
 class Communicator_I {
 public:
-	Communicator_I(MPI_Comm const * _parent_comm, int const _gid) :
-		groupid(_gid), parent_comm(_parent_comm), call_count(0) {
-		pcomm_rank = -1;
-		rank = -1;
+	Communicator_I(MPI_Comm const * _parent_comm, int const _gid);
+	virtual ~Communicator_I();
 
-		if (groupid == -1) comm = MPI_COMM_NULL;
-		else {
-			MPI_Comm_rank(*parent_comm, &pcomm_rank);
+	virtual char* getClassName() { return "Communicator_I"; };
 
-			MPI_Comm_split(*parent_comm, groupid, pcomm_rank, &comm);
-			MPI_Comm_rank(comm, &rank);
-		}
-	};
-	virtual ~Communicator_I() {
-		//printf("Communicator destructor called. %d in group %d\n", rank, groupid);
-		if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
-	};
+	virtual int run() = 0;
 
 	MPI_Comm * getComm() { return &comm; };
+
+	static const int READY;
+	static const int WAIT;
+	static const int DONE;
+	static const int ERROR;
+
+	int reference(void *obj) {
+		reference_sources.insert(obj);
+		return reference_sources.size();
+	};
+	int dereference(void *obj) {
+		reference_sources.erase(obj);
+		return reference_sources.size();
+	}
+
 protected:
-	MPI_Comm const * parent_comm;
+	MPI_Comm const *parent_comm;
 	MPI_Comm comm;
 	int const groupid;
 	int rank;
+	int size;
 	int pcomm_rank;
+	int pcomm_size;
 
 	// some basic metadata tracking.
 	long call_count;
+	std::tr1::unordered_set<void *> reference_sources;
 };
+
+
 
 } /* namespace rt */
 } /* namespace cci */

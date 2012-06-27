@@ -12,6 +12,8 @@ namespace rt {
 
 
 char Debug::msg[4096];
+bool Debug::checked = false;
+int Debug::rank = -1;
 
 } /* namespace rt */
 } /* namespace cci */
