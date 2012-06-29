@@ -44,8 +44,8 @@ int main (int argc, char **argv){
 	colorDiff.setTo(Scalar(0, 0, 255), secondNotFirst);
 
 
-	namedWindow("diff", CV_WINDOW_AUTOSIZE);
-	imshow("diff", colorDiff);
+//	namedWindow("diff", CV_WINDOW_AUTOSIZE);
+//	imshow("diff", colorDiff);
 	imwrite("diff.pbm", colorDiff);
 
 //	imwrite("test/out-gray.tif", gray);
