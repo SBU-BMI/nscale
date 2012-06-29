@@ -8,30 +8,49 @@
 #ifndef COMMHANDLER_I_H_
 #define COMMHANDLER_I_H_
 
-#include <stdio.h>
-#include <string.h>
-#include <mpi.h>
+#include "Communicator_I.h"
+#include <vector>
+#include <algorithm>
+#include "Action_I.h"
+#include <tr1/unordered_map>
+#include "Scheduler_I.h"
 
 namespace cci {
 namespace rt {
 
-/**
- * handles the communication for 1 message exchange.
- * control messages are embedded and fixed for now
- * payload messages come out
- */
-class CommHandler_I {
+class CommHandler_I : public cci::rt::Communicator_I {
 public:
-	CommHandler_I(MPI_Comm const &_parent_comm, ) {};
-	virtual ~CommHandler_I() {
-		MPI_Comm_free(&comm);
+	virtual ~CommHandler_I();
+
+	/**
+	 * splits a communicator and allows handling of the communication between roots and children
+	 * _parent_comm: the communicator to split
+	 * _gid:  the group id with which to split the parent comm
+	 * _roots:  the list of roots, specified as ranks in parent_comm.
+	 */
+	CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I *_scheduler);
+
+	virtual char* getClassName() { return "CommHandler_I"; };
+
+	void setAction(Action_I * _action) {
+		action = _action;
+		action->reference(this);
 	};
 
-	virtual void exchange(int &size, char* &data) = 0;
+	virtual int run() = 0;
+	virtual bool isListener() { return scheduler->isRoot(); };
+	virtual bool isReady() { return action != NULL && status != ERROR && status != DONE; };
 
-private:
-	MPI_Comm comm;
+	static const int CONTROL_TAG;
+	static const int DATA_TAG;
 
+protected:
+	Scheduler_I *scheduler;
+
+	std::tr1::unordered_map<int, int> activeWorkers;
+
+	Action_I * action;
+	int status;
 };
 
 } /* namespace rt */

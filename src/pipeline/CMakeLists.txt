@@ -41,7 +41,7 @@ if (HDF5_FOUND)
 
 # HDF5_LIBRARIES as defined on Keeneland is broken.  it does not respect the HDF5_DIR.
 # besides there should not be absolute paths here anyways.
-	set(HDF5_LIBRARIES "hdf5_hl;hdf5;sz;z;m")
+	set(HDF5_LIBRARIES "hdf5_hl;hdf5;z;m")
 	message(STATUS "Redefined HDF5 libs: ${HDF5_LIBRARIES}")
         
 endif(HDF5_FOUND)

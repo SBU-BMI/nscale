@@ -9,7 +9,9 @@
 #define PROCESS_H_
 
 #include <vector>
-#include "Activity_I.h"
+#include "Communicator_I.h"
+#include "ProcessConfigurator_I.h"
+
 #include "mpi.h"
 
 namespace cci {
@@ -19,7 +21,7 @@ namespace rt {
 
 class Process {
 public:
-	Process(int argc, char **argv);
+	Process(int argc, char **argv, ProcessConfigurator_I *_conf);
 	virtual ~Process();
 
 	/**
@@ -44,9 +46,9 @@ private:
 	/**
 	 * queue of handlers.  double ended because response time for the handler may be different.
 	 */
-	std::vector<Activity_I *> activities;
-	std::vector<CommHandler_I *> handlers;
-	MPI_Comm *comms;
+	std::vector<Communicator_I *> handlers;
+
+	ProcessConfigurator_I *conf;
 
 	MPI_Comm comm_world;
 	char hostname[256];

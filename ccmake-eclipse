@@ -1,0 +1,2 @@
+#!/bin/sh
+ccmake -G"Eclipse CDT4 - Unix Makefiles" $1
