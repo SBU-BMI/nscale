@@ -70,14 +70,14 @@ int main (int argc, char **argv){
 			temp[0] = j;
 			save->addInput(count, data);
 			printf("input added at iteration j %d: %d\n", j, temp[0]);
-			free(data);
+//			free(data);
 
 			data = malloc(count);
 			temp = (int*) data;
 			temp[0] = j * 2;
 			save->addInput(count, data);
 			printf("input added at iteration j %d: %d\n", j, temp[0]);
-			free(data);
+//			free(data);
 		} else if (j == 40)
 			save->markInputDone();
 

@@ -12,8 +12,8 @@
 namespace cci {
 namespace rt {
 
-PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, std::vector<int> _roots)
- : RootedCommHandler_I(_parent_comm, _gid, _roots) {
+PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler)
+ : CommHandler_I(_parent_comm, _gid, _scheduler) {
 }
 
 PullCommHandler::~PullCommHandler() {
@@ -42,7 +42,7 @@ int PullCommHandler::run() {
 	call_count++;
 	//if (call_count % 100 == 0) Debug::print("PullCommHandler %s run called %d. \n", (isListener() ? "listener" : "requester"), call_count);
 
-	int count;
+	int count = 0;
 	void * data = NULL;
 	int buffer_status = READY;
 
@@ -56,6 +56,14 @@ int PullCommHandler::run() {
 		// otherwise status is just a reflection of the buffer's status.
 		if (!this->isReady()) return status;
 
+		buffer_status = action->getOutputStatus();
+		Debug::print("buffer status = %d\n", buffer_status);
+
+		if (buffer_status == WAIT) return buffer_status;  // if buffer is not ready, then skip this call
+
+		// else status is READY or WAIT (treat as READY), and buffer is READY/DONE/ERROR
+
+		// find out the status of the worker.
 		int hasMessage;
 		int worker_id;
 		// ready and listening
@@ -79,66 +87,52 @@ int PullCommHandler::run() {
 				activeWorkers[worker_id] = worker_status;
 
 				if (worker_status == WAIT) { // worker status is wait, so manager doesn't do anything.
-					return status;
+					Debug::print("Worker waiting.  why did it send the message in the first place?\n");
+					return worker_status;  // worker waiting.  keep manager at ready.  should not be here...
+
 				}
 			}
 
 
-			// worker is ready for send.
+			// worker is READY.  manager is ready/WAIT.  buffer is READY/DONE/ERROR
 
-//			// first see if there are any messages to be sent to this worker
-//			if (msgToWorker.find(worker_id) != msgToWorker.end()) {  //there is something to send. so send it.
-//				// send the message
-//				MPI_Send(&msgToWorker[worker_id], 1, MPI_INT, worker_id, CONTROL_TAG, comm);
-//				msgToWorker.erase(worker_id);
-//				if (msgToWorker.empty()) {
-//					status = DONE;  // message is either DONE or ERROR.  after all messages are sent, status is done
-//				}
-//
-//			} else {  // no message to send
+			// let worker know about the buffer status
+			MPI_Send(&buffer_status, 1, MPI_INT, worker_id, CONTROL_TAG, comm);
 
-				buffer_status = action->getOutputStatus();
+			if (buffer_status == DONE || buffer_status == ERROR ) {  // if worker is done or error,
+				// then we are done.  need to notify everyone.
+				// keep the commhandler status at READY.
+				// and set message to all nodes
 
-				Debug::print("buffer status = %d\n", buffer_status);
+				activeWorkers.erase(worker_id);
+				if (activeWorkers.empty()) {// all messages sent
+					status = buffer_status;
 
-				MPI_Send(&buffer_status, 1, MPI_INT, worker_id, CONTROL_TAG, comm);
-
-				if (buffer_status == DONE || buffer_status == ERROR ) {  // if worker is done or error,
-					// then we are done.  need to notify everyone.
-					// keep the commhandler status at READY.
-					// and set message to all nodes
-//					for (std::tr1::unordered_map<int, int>::iterator iter = activeWorkers.begin();
-//							iter != activeWorkers.end(); ++iter) {
-//						msgToWorker[iter->first] = buffer_status;
-//					}
-
-//					msgToWorker.erase(worker_id);
-					activeWorkers.erase(worker_id);
-					if (activeWorkers.empty()) {// all messages sent
-						status = DONE;
-					}
-				} else if (buffer_status == WAIT) {
-					// tell this worker to wait.
-					//status = buffer_status;
-				} else {
-					data = NULL;
-					status = action->getOutput(count, data);
-					if (status != READY) Debug::print("ERROR:  status has changed during a single invocation of run()\n");
-
-					Debug::print("%s listener sending %d bytes at %x to %d\n", getClassName(), count, data, worker_id);
-
-					// status is ready, send data.
-					MPI_Send(&count, 1, MPI_INT, worker_id, DATA_TAG, comm);
-					MPI_Send(&data, count, MPI_CHAR, worker_id, DATA_TAG, comm);
-					if (data != NULL) {
-						Debug::print("%s listener clearing %d byte at %x\n", getClassName(), count, data);
-						free(data);
-						data = NULL;
-					}
-
-
+					// if output is done, then no need to mark input as done.
+					// action->markInputDone();
 				}
-//			}
+				return status;
+			} else if (buffer_status == READY) {
+				data = NULL;
+				buffer_status = action->getOutput(count, data);
+				if (buffer_status != READY) Debug::print("ERROR:  status has changed during a single invocation of run()\n");
+
+				Debug::print("%s listener sending %d bytes at %x to %d\n", getClassName(), count, data, worker_id);
+
+				// status is ready, send data.
+				MPI_Send(&count, 1, MPI_INT, worker_id, DATA_TAG, comm);
+				MPI_Send(data, count, MPI_CHAR, worker_id, DATA_TAG, comm);
+				if (data != NULL) {
+					Debug::print("%s listener clearing %d byte at %x\n", getClassName(), count, data);
+					free(data);
+					data = NULL;
+				}
+
+				return buffer_status;
+			}  else {
+				Debug::print("%s buffer in wait state\n", getClassName());
+				// else in wait state.  don't do anything.
+			}
 
 		}
 		return status;
@@ -147,60 +141,60 @@ int PullCommHandler::run() {
 
 		// status is only for checking error, done, and prescence of action.
 		if (!this->isReady()) return status;
+
+		status = action->getInputStatus();
 		if (action->canAddInput())
-			status = READY;
-		else
-			status = action->getInputStatus();
+			buffer_status = READY;  // assume wait is for action to wait, not for adding input
+		else {
+			buffer_status = status;
+			// now continue on to let manager know about Done and Error.
+		}
 
-		printf("SENDING TO root %d\n", roots[0]);
+		int root = scheduler->getRootFromLeave(rank);
+		printf("SENDING TO root %d\n", root);
 
-		MPI_Send(&status, 1, MPI_INT, roots[0], CONTROL_TAG, comm);   // send the current status
+		MPI_Send(&buffer_status, 1, MPI_INT, root, CONTROL_TAG, comm);   // send the current status
 
-		if (status == READY) {  // only if status is ready then we would receive message back.
-			MPI_Recv(&manager_status, 1, MPI_INT, roots[0], CONTROL_TAG, comm, &mstatus);
+		if (buffer_status == READY) {  // only if status is ready then we would receive message back.
+			MPI_Recv(&manager_status, 1, MPI_INT, root, CONTROL_TAG, comm, &mstatus);
 
 			if (manager_status == READY) {
-				MPI_Recv(&count, 1, MPI_INT, roots[0], DATA_TAG, comm, &mstatus);
+				MPI_Recv(&count, 1, MPI_INT, root, DATA_TAG, comm, &mstatus);
 				data = malloc(count);
 				Debug::print("%s initialized %d bytes at address %x\n", getClassName(), count, data);
-				MPI_Recv(&data, count, MPI_CHAR, roots[0], DATA_TAG, comm, &mstatus);
+				MPI_Recv(data, count, MPI_CHAR, root, DATA_TAG, comm, &mstatus);
 
-				Debug::print("HERE 5 count %d from source %d, error code %d!\n", count, mstatus.MPI_SOURCE, mstatus.MPI_ERROR);
+//				Debug::print("HERE 5 count %d from source %d, error code %d!\n", count, mstatus.MPI_SOURCE, mstatus.MPI_ERROR);
 
 				if (count > 0) {
 					int *i2 = (int *)data;
-					Debug::print("%s requester recv %d at %x from %d\n", getClassName(), *i2, data, roots[0]);
+					Debug::print("%s requester recv %d at %x from %d\n", getClassName(), *i2, data, root);
 				} else
-					Debug::print("%s requester recv ?? at %x from %d\n", getClassName(), data, roots[0]);
+					Debug::print("%s requester recv ?? at %x from %d\n", getClassName(), data, root);
 
 				if (count > 0 && data != NULL) {
-					status = action->addInput(count, data);
-					free(data);
+					status = action->addInput(count, data);  // status takes on buffer status' value
+//					free(data);
 				} else {
 					printf("READING nothing!\n");
 				}
 				// no need to mark worker as done since worker provided the status...
 
-				Debug::print("HERE 6!\n");
-
-			} else { // control tag. that means either wait or DONE/ERROR
+			} else { // control tag. that means either WAIT or DONE/ERROR
 				// manager says to wait or be done/error
 				if (manager_status == DONE || manager_status == ERROR) { // if DONE or ERROR,
 					status = manager_status;
 
 					//mark worker input as done as well.
 					action->markInputDone();
-					Debug::print("HERE 7!\n");
-
 				} // else manager status is WAIT, no need to change local status.
-				Debug::print("HERE 8!\n");
 
 			}
 
 
-		} // else we're in DONE state.
+		} // else we're in WAIT state.
 
-		Debug::print("finally:  here 9!\n");
+
 		return status;
 
 	}

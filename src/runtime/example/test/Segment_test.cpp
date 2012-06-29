@@ -6,7 +6,7 @@
  */
 
 
-#include "Assign.h"
+#include "Segment.h"
 #include "mpi.h"
 #include <vector>
 
@@ -22,17 +22,43 @@ int main (int argc, char **argv){
 	std::vector<cci::rt::Communicator_I *> handlers;
 
 
-	cci::rt::Action_I *assign = new cci::rt::Assign(&comm_world, -1);
-	handlers.push_back(assign);
-	assign->reference(&handlers);
+	cci::rt::Action_I *seg = new cci::rt::Segment(&comm_world, -1);
+	handlers.push_back(seg);
+	seg->reference(&handlers);
 
 	int j = 0;
-		int count = sizeof(int);
-		void *data;
-		int *temp;
+	int count = sizeof(int);
+	void *data;
+	int *temp;
 
 	int result, oresult;
 	while (!handlers.empty() ) {
+		printf("not empty\n");
+
+		if (j >= 10 & j < 30) {
+			data = malloc(sizeof(int));
+			temp = (int*) data;
+			temp[0] = j;
+			seg->addInput(count, data);
+			printf("input added at iteration j %d: %d\n", j, temp[0]);
+			//free(data);
+
+			data = malloc(sizeof(int));
+			temp = (int*) data;
+			temp[0] = j;
+			seg->addInput(count, data);
+			printf("input added at iteration j %d: %d\n", j, temp[0]);
+			//free(data);
+		} else if (j == 40)
+			seg->markInputDone();
+
+		// j < 10: ready and waiting
+		// j >= 10, < 30:  ready and input coming, fast
+		// j >= 30, j < 40:  ready, has input, but no new ones
+		// j == 40:  mark input as done.
+		// j > 40, <= 50:  done, has input still
+		// j >50:  done, no more input.
+
 		for (std::vector<cci::rt::Communicator_I *>::iterator iter = handlers.begin();
 				iter != handlers.end(); ) {
 			printf("iterating\n");
@@ -46,7 +72,10 @@ int main (int argc, char **argv){
 			} else if (result == cci::rt::Communicator_I::READY ) {
 				oresult = ((cci::rt::Action_I*)(*iter))->getOutput(count, data);
 				printf("output generated at iteration j %d: %d.  output result = %d\n", j, *((int*)data), oresult);
-				free(data);
+				if (data != NULL) {
+					free(data);
+					data = NULL;
+				}
 				++iter;
 			} else {
 				printf("no output at iter j %d .  wait state %d\n", j, result);
@@ -55,7 +84,6 @@ int main (int argc, char **argv){
 		}
 		++j;
 	}
-
 
 //	MPI_Finalize();
 

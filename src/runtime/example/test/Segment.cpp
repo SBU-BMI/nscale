@@ -50,13 +50,16 @@ int Segment::run() {
 		Debug::print("READY and getting input:  call count= %d\n", call_count);
 
 		result = compute(input_size, input, output_size, output);
-		if (input != NULL) free(input);
+		if (input != NULL) {
+			free(input);
+			input = NULL;
+		}
 
 		if (result >= 0) {
 			Debug::print("saving output:  call count= %d\n", call_count);
 
 			result = addOutput(output_size, output);
-			free(output);
+//			free(output);
 		} else {
 			Debug::print("no output.  call count = %d\n", call_count);
 			result = WAIT;

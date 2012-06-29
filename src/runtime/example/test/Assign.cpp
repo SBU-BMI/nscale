@@ -27,7 +27,7 @@ Assign::~Assign() {
 int Assign::compute(int const &input_size , void * const &input,
 			int &output_size, void * &output) {
 
-	if (call_count >= 100) {
+	if (call_count >= 20) {
 		output_status = DONE;
 		output_size = 0;
 		output = NULL;
@@ -76,7 +76,7 @@ int Assign::run() {
 		result = addOutput(output_size, output);
 	} else result=WAIT;
 
-	if (output != NULL) free(output);
+//	if (output != NULL) free(output);
 
 	return result;
 }

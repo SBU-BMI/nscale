@@ -14,7 +14,7 @@ link_directories(${Runtime_SOURCE_DIR})
 #### Runtime code
 
 # Source files used by Runtime
-set(libsrcs Communicator_I.cpp RootedCommHandler_I.cpp Process.cpp PullCommHandler.cpp PushCommHandler.cpp Save.cpp Assign.cpp Segment.cpp Debug.cpp)
+set(libsrcs Debug.cpp Communicator_I.cpp CommHandler_I.cpp Process.cpp PullCommHandler.cpp PushCommHandler.cpp RandomScheduler.cpp RoundRobinScheduler.cpp)
 
 set(libname runtime)
 # Add rule to generate execution engine, as a shared library (.so)
@@ -29,6 +29,7 @@ if(MPI_FOUND)
 endif(MPI_FOUND)
 
 
-add_subdirectory(test/src)
+#add_subdirectory(test/src)
+add_subdirectory(example/test)
 
 

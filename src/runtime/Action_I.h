@@ -48,12 +48,12 @@ public:
 		if (this->canAddInput() && size > 0) {  // only receive in READY and WAIT state
 			if (data == NULL) printf("ERROR:  why is data NULL?\n");
 
-			void *d2 = malloc(size);
-			memcpy(d2, data, size);
-
+//			void *d2 = malloc(size);
+//			memcpy(d2, data, size);
+//
 
 			inputSizes.push(size);
-			inputData.push(d2);
+			inputData.push(data);
 			Debug::print("added %d bytes at address %x , inputSizes size = %d\n", size, data, inputSizes.size());
 			this->input_status = READY;
 		}
@@ -140,11 +140,11 @@ protected:
 	int addOutput(int size , void * data) {
 
 		if (this->canAddOutput() && size > 0) {  // only receive in READY and WAIT state
-			void *d2 = malloc(size);
-			memcpy(d2, data, size);
+//			void *d2 = malloc(size);
+//			memcpy(d2, data, size);
 
 			outputSizes.push(size);
-			outputData.push(d2);
+			outputData.push(data);
 			Debug::print("added %d bytes at address %x , outputSizes size = %d\n", size, data, outputSizes.size());
 			this->output_status = READY;
 		}

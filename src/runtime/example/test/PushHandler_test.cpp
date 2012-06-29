@@ -8,12 +8,13 @@
 
 
 
-#include "PullCommHandler.h"
+#include "PushCommHandler.h"
 #include "Assign.h"
 #include "Save.h"
 #include "mpi.h"
 #include <vector>
 #include "Debug.h"
+#include "RandomScheduler.h"
 
 int main (int argc, char **argv){
 	int threading_provided;
@@ -37,12 +38,13 @@ int main (int argc, char **argv){
 	std::vector<cci::rt::Communicator_I *> handlers;
 
 
-	std::vector<int> roots;
-	roots.push_back(0);
-	printf("ROOT: %d\n", roots[0]);
-	cci::rt::RootedCommHandler_I *handler = new cci::rt::PullCommHandler(&comm_world, 0, roots);
+	cci::rt::Scheduler_I *sch;
+	if (rank == 0) sch = new cci::rt::RandomScheduler(true, false);  // root at rank = 0
+	else sch = new cci::rt::RandomScheduler(false, true);
+
+	cci::rt::CommHandler_I *handler = new cci::rt::PushCommHandler(&comm_world, 0, sch);
 	handlers.push_back(handler);
-	if (handler->isListener()) {
+	if (!handler->isListener()) {
 		cci::rt::Assign *assign = new cci::rt::Assign(&comm_world, -1);
 		handlers.push_back(assign);
 		assign->reference(&handlers);
@@ -59,7 +61,6 @@ int main (int argc, char **argv){
 	int result;
 	while (!handlers.empty() ) {
 		++j;
-		if (j >= 50) break;
 		for (std::vector<cci::rt::Communicator_I *>::iterator iter = handlers.begin();
 				iter != handlers.end(); ) {
 			result = (*iter)->run();

@@ -8,14 +8,14 @@
 #ifndef PULLCOMMHANDLER_H_
 #define PULLCOMMHANDLER_H_
 
-#include "RootedCommHandler_I.h"
+#include "CommHandler_I.h"
 
 namespace cci {
 namespace rt {
 
-class PullCommHandler: public cci::rt::RootedCommHandler_I {
+class PullCommHandler: public cci::rt::CommHandler_I {
 public:
-	PullCommHandler(MPI_Comm const *_parent_comm, int const _gid, std::vector<int> _roots);
+	PullCommHandler(MPI_Comm const *_parent_comm, int const _gid, Scheduler_I * _scheduler);
 	virtual ~PullCommHandler();
 
 	virtual char* getClassName() { return "PullCommHandler"; };

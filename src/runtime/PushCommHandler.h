@@ -8,14 +8,14 @@
 #ifndef PUSHCOMMHANDLER_H_
 #define PUSHCOMMHANDLER_H_
 
-#include "RootedCommHandler_I.h"
+#include "CommHandler_I.h"
 
 namespace cci {
 namespace rt {
 
-class PushCommHandler: public cci::rt::RootedCommHandler_I {
+class PushCommHandler: public cci::rt::CommHandler_I {
 public:
-	PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, std::vector<int> _roots);
+	PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler);
 	virtual ~PushCommHandler();
 	virtual char* getClassName() { return "PushCommHandler"; };
 

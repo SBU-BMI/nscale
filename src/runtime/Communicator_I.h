@@ -46,7 +46,7 @@ public:
 	int dereference(void *obj) {
 		reference_sources.erase(obj);
 		return reference_sources.size();
-	}
+	};
 
 protected:
 	MPI_Comm const *parent_comm;

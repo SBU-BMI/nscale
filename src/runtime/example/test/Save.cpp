@@ -27,7 +27,7 @@ int Save::compute(int const &input_size , void * const &input,
 	if (input_size == 0 || input == NULL) return -1;
 
 
-	int *i2 = (int*)input;
+	int const *i2 = (int const *)input;
 	Debug::print("at SAVE: Inputsize = %d, input = %d\n", input_size, *i2);
 	return 1;
 }
@@ -50,7 +50,10 @@ int Save::run() {
 		int result = getInput(input_size, input);
 		//if (call_count % 100 == 0) Debug::print("SAVE READY\n");
 		result = compute(input_size, input, output_size, output);
-		if (input != NULL) free(input);
+		if (input != NULL) {
+			free(input);
+			input = NULL;
+		}
 		if (result >= 0) return READY;
 		else return WAIT;
 	} else if (istatus == WAIT) {
