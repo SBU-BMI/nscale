@@ -395,16 +395,32 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 
 
 template <typename T>
-Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize) {
+Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
 
 
 	uint64_t t1 = cciutils::ClockGetTime();
-	Mat output(seeds.size() + Size(2,2), seeds.type());
-	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
-	Mat input(image.size() + Size(2,2), image.type());
-	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat input, output;
+//	Mat output(seeds.size() + Size(2,2), seeds.type());
+//	copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+//	Mat input(image.size() + Size(2,2), image.type());
+//	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+
+	int nTiles = seeds.cols/tileSize;
+	
+	if(withBorder){
+		output = seeds;
+		input = image;
+
+		nTiles = seeds.cols-2/tileSize;
+	}else{
+		output.create(seeds.size() + Size(2,2), seeds.type());
+		copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		input.create(image.size() + Size(2,2), image.type());
+		copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		nTiles = seeds.cols/tileSize;
+	}
 
 	std::cout << "Copy time="<< cciutils::ClockGetTime()-t1<<std::endl;
 
@@ -422,7 +438,6 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 	T* iPtrMinus;
 
 	t1 = cciutils::ClockGetTime();
-	int nTiles = seeds.cols/tileSize;
 
 	std::cout << "nTiles="<< nTiles*nTiles << " tileSize="<<tileSize <<std::endl;
 	int count = 0;
@@ -1578,8 +1593,8 @@ Mat morphOpen(const Mat& image, const Mat& kernel) {
 
 template Mat imreconstructOpenMP<unsigned char>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize);
 template Mat imreconstructOpenMP<float>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize);
-template Mat imreconstructFixTilingEffects<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
-template Mat imreconstructFixTilingEffects<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
+template Mat imreconstructFixTilingEffects<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
+template Mat imreconstructFixTilingEffects<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
 
 //template Mat imreconstructGeorge<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);

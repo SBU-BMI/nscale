@@ -32,17 +32,23 @@ int main (int argc, char **argv){
 	Mat mask = imread(argv[2], -1);
 
 	Mat recon1 = nscale::imreconstruct<unsigned char>(marker, mask, 8);
-	imwrite("out-recon8.ppm", recon1);
+//	imwrite("out-recon8.ppm", recon1);
 
+	Mat marker_border(marker.size() + Size(2,2), marker.type());
+	copyMakeBorder(marker, marker_border, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+	Mat mask_border(mask.size() + Size(2,2), mask.type());
+	copyMakeBorder(mask, mask_border, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
-	Mat marker_copy, mask_copy;
-	marker.copyTo(marker_copy);
-	mask.copyTo(mask_copy);
+	Mat marker_copy(marker_border, Rect(1,1,marker_border.cols-2,marker_border.rows-2));
+
+	Mat mask_copy(mask_border, Rect(1,1,mask_border.cols-2,mask_border.rows-2));
+//	marker.copyTo(marker_copy);
+//	mask.copyTo(mask_copy);
 
 	// Warmup
-	Mat roiMarker(marker_copy, Rect(0,0, 10,10 ));
-	GpuMat mat(roiMarker);
-	mat.release();
+//	Mat roiMarker(marker_copy, Rect(0,0, 10,10 ));
+//	GpuMat mat(roiMarker);
+//	mat.release();
 
 //#pragma omp parallel for
 //	for(int i = 0; i < 10; i++){
@@ -97,7 +103,9 @@ int main (int argc, char **argv){
 	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
 
 	t1 = cciutils::ClockGetTime();
-	Mat reconCopy = nscale::imreconstructFixTilingEffects<unsigned char>(marker_copy, mask, 8, 0, 0, tileWidth);
+//	Mat reconCopy = nscale::imreconstructFixTilingEffects<unsigned char>(marker_copy, mask, 8, 0, 0, tileWidth, true);
+
+	Mat reconCopy = nscale::imreconstructFixTilingEffects<unsigned char>(marker_border, mask_border, 8, 0, 0, tileWidth, true);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
 
@@ -107,10 +115,10 @@ int main (int argc, char **argv){
 //
 //	Mat reconOpenMP = nscale::imreconstructOpenMP<unsigned char>(marker, mask, 8, 512);
 //
-//	Mat comp = recon != reconCopy;
+	Mat comp = recon1 != reconCopy;
 //	Mat openMpDiff = recon != reconOpenMP;
 //
-//	std::cout << "comp reconCopy= "<<countNonZero(comp) << std::endl;
+	std::cout << "comp reconCopy= "<<countNonZero(comp) << std::endl;
 //	std::cout << "comp openmp= "<<countNonZero(openMpDiff) << std::endl;
 //	
 //	imwrite("diff.ppm", openMpDiff);

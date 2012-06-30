@@ -25,7 +25,7 @@ template <typename T>
 cv::Mat imreconstructOpenMP(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize);
 
 template <typename T>
-Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize);
+Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder=false);
 
 //template <typename T>
 //cv::Mat imreconstructGeorge(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
