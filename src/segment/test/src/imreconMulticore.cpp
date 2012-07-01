@@ -24,12 +24,13 @@ using namespace cv::gpu;
 using namespace std;
 
 int main (int argc, char **argv){
-	if(argc != 3){
-		std::cout << "Usage: ./imreconMulticore <marker-img> <mask-img>" <<std::endl;
+	if(argc != 4){
+		std::cout << "Usage: ./imreconMulticore <marker-img> <mask-img> <#Threads>" <<std::endl;
 		exit(1);
 	}
 	Mat marker = imread(argv[1], -1);
 	Mat mask = imread(argv[2], -1);
+	int nThreads = atoi(argv[3]);
 
 	Mat recon1 = nscale::imreconstruct<unsigned char>(marker, mask, 8);
 //	imwrite("out-recon8.ppm", recon1);
@@ -63,17 +64,17 @@ int main (int argc, char **argv){
 	int nTilesY=marker.rows/tileHeight;
 	
 	uint64_t t1_tiled = cciutils::ClockGetTime();
-	omp_set_num_threads(8);
+	omp_set_num_threads(nThreads);
+#pragma omp parallel
+	{
+		std::cout << "NumberThreads="<< omp_get_num_threads()<<std::endl;
+	}
 
-//#pragma omp parallel for
+#pragma omp parallel for
 	for(int tileY=0; tileY < nTilesY; tileY++){
-//#pragma omp parallel for
+#pragma omp parallel for
 		for(int tileX=0; tileX < nTilesX; tileX++){
 //			std::cout <<"Rect("<< tileX*tileWidth << "," << tileY*tileHeight <<","<< tileWidth <<","<< tileHeight<< ");"<<std::endl;
-			if(tileX==0 && tileY==0){
-
-				std::cout << "NumberThreads="<< omp_get_max_threads()<<std::endl;
-			}
 
 			Mat roiMarker(marker_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight ));
 			Mat roiMask(mask_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
@@ -105,7 +106,8 @@ int main (int argc, char **argv){
 	t1 = cciutils::ClockGetTime();
 //	Mat reconCopy = nscale::imreconstructFixTilingEffects<unsigned char>(marker_copy, mask, 8, 0, 0, tileWidth, true);
 
-	Mat reconCopy = nscale::imreconstructFixTilingEffects<unsigned char>(marker_border, mask_border, 8, 0, 0, tileWidth, true);
+//	Mat reconCopy = nscale::imreconstructFixTilingEffects<unsigned char>(marker_border, mask_border, 8, 0, 0, tileWidth, true);
+	Mat reconCopy = nscale::imreconstructFixTilingEffectsParallel<unsigned char>(marker_border, mask_border, 8, 0, 0, tileWidth, true);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
 

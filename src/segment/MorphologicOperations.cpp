@@ -9,6 +9,7 @@
 #include <queue>
 #include <iostream>
 #include <limits>
+#include <omp.h>
 #include "highgui.h"
 
 #include "utils.h"
@@ -30,6 +31,7 @@ namespace nscale {
 template <typename T>
 inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
 		int x, int y, T* iPtr, T* oPtr, const T& pval) {
+	
 	T qval = oPtr[x];
 	T ival = iPtr[x];
 	if ((qval < pval) && (ival != qval)) {
@@ -37,6 +39,50 @@ inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::q
 		xQ.push(x);
 		yQ.push(y);
 	}
+}
+
+template <typename T>
+inline void propagateAtomic(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
+		int x, int y, T* iPtr, T* oPtr, const T* pval) {
+	T ival = iPtr[x];
+	T* oPtrP = &(oPtr[x]);
+	while(true){
+		// Current value in marker image
+		T qval = oPtr[x];
+		if ((qval < pval[0]) && (ival != qval)) {
+			//		#pragma omp atomic
+
+			T min_val = min(pval[0], ival);
+			bool success = false;
+			if (std::numeric_limits<T>::is_integer) {
+				success = __sync_val_compare_and_swap((unsigned char*)oPtrP, (unsigned char)qval, (unsigned char)min_val);
+			}else{
+				success = __sync_val_compare_and_swap((int*)oPtrP, (int)qval, (int)min_val);
+			}
+			// if update did not work, read data again and check the propagation condition
+			if(!success) continue;
+//			oPtrP[0] = min(pval[0], ival);
+
+
+			xQ.push(x);
+			yQ.push(y);
+			break;
+		}else{
+			break;
+		}
+	}
+
+
+//	T qval = oPtr[x];
+//	T old_pval = pval[0];
+//	if ((qval < old_pval) && (ival != qval)) {
+////		#pragma omp atomic
+//		oPtrP[0] = min(pval[0], ival);
+//		xQ.push(x);
+//		yQ.push(y);
+//	}else{
+//	//	break;
+//	}
 }
 
 template
@@ -564,6 +610,198 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 					propagate<T>(input, output, xQ, yQ, xplus, yplus, iPtrPlus, oPtrPlus,pval);
 				}
 
+			}
+		}
+	}
+
+
+	uint64_t t3 = cciutils::ClockGetTime();
+	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
+
+
+	return output(Range(1, maxy), Range(1, maxx));
+
+}
+
+template <typename T>
+Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder) {
+	CV_Assert(image.channels() == 1);
+	CV_Assert(seeds.channels() == 1);
+
+
+	uint64_t t1 = cciutils::ClockGetTime();
+	Mat input, output;
+
+	int nTiles;
+	
+	if(withBorder){
+		output = seeds;
+		input = image;
+
+		nTiles = seeds.cols-2/tileSize;
+	}else{
+		output.create(seeds.size() + Size(2,2), seeds.type());
+		copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		input.create(image.size() + Size(2,2), image.type());
+		copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		nTiles = seeds.cols/tileSize;
+	}
+
+	std::cout << "Copy time="<< cciutils::ClockGetTime()-t1<<std::endl;
+	omp_set_num_threads(1);
+	int nThreads;
+	#pragma omp parallel
+	{
+		nThreads = omp_get_num_threads();
+	}
+
+	std::cout << "nThreads = "<< nThreads << std::endl;
+	T pval, preval;
+	int xminus, xplus, yminus, yplus;
+	int maxx = output.cols - 1;
+	int maxy = output.rows - 1;
+	vector<std::queue<int> > xQ(nThreads);
+	vector<std::queue<int> > yQ(nThreads);
+
+	std::cout << "Queue.size = "<< xQ.size() <<std::endl;
+	T* oPtr;
+	T* oPtrMinus;
+	T* oPtrPlus;
+	T* iPtr;
+	T* iPtrPlus;
+	T* iPtrMinus;
+
+	t1 = cciutils::ClockGetTime();
+
+	std::cout << "nTiles="<< nTiles*nTiles << " tileSize="<<tileSize <<std::endl;
+	int count = 0;
+
+	t1 = cciutils::ClockGetTime();
+	// pass over entire image image
+
+#pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static) 
+	for (int y = 1; y <= maxy-1; ++y) {
+		int tid = omp_get_thread_num();
+
+		oPtr = output.ptr<T>(y);
+		oPtrPlus = output.ptr<T>(y+1);
+		oPtrMinus = output.ptr<T>(y-1);
+		iPtr = input.ptr<T>(y);
+		iPtrPlus = input.ptr<T>(y+1);
+		iPtrMinus = input.ptr<T>(y-1);
+		int xIncrement=1;
+		for (int x = 1; x<= maxx-1; x+=xIncrement) {
+			xminus = x-1;
+			xplus = x+1;
+
+			bool candidateFound=false;
+			// capture the seeds
+			// walk through the neighbor pixels, right and down (N-(p)) only
+			pval = oPtr[x];
+
+			if ((oPtr[xplus] < min(pval, iPtr[xplus])) ||		  // right
+					(oPtrPlus[x] < min(pval, iPtrPlus[x]))||  // down
+					(oPtr[xminus] < min(pval, iPtr[xminus]))|| // left
+					(oPtrMinus[x] < min(pval, iPtrMinus[x]))   // up
+					) {
+				
+
+				xQ[tid].push(x);
+				yQ[tid].push(y);
+				candidateFound=true;
+				++count;
+			}
+
+			if (connectivity == 8 && !candidateFound) {
+				if ((oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) || // right/down corner
+						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus])) || // left/down corner
+						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up 
+						(oPtrMinus[xminus] < min(pval, iPtrMinus[xminus])) // left/up
+				) {
+					xQ[tid].push(x);
+					yQ[tid].push(y);
+					++count;
+				}
+			}
+
+			if( (x%(tileSize) == 0) || (y%(tileSize)==0 || y%(tileSize)==1) ){
+				xIncrement=1;
+			}else{
+				xIncrement=tileSize-1;
+			}
+
+		}
+	}
+	uint64_t t2 = cciutils::ClockGetTime();
+	count = 0;
+	for(int i = 0; i < xQ.size(); i++){
+		count+=xQ[i].size();
+	}
+	std::cout << "    scan time = " << t2-t1 << "ms for queue entries="<< count<< std::endl;
+
+	T*ppval;
+	// now process the queue.
+//	T qval, ival;
+//	int x, y;
+//	count = 0;
+	#pragma omp parallel private(xminus,xplus,yminus,yplus,oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,ppval)
+	{
+		int tid = omp_get_thread_num();
+		while (!(xQ[tid].empty())) {
+			//		++count;
+			int x = xQ[tid].front();
+			int y = yQ[tid].front();
+			xQ[tid].pop();
+			yQ[tid].pop();
+			xminus = x-1;
+			xplus = x+1;
+			yminus = y-1;
+			yplus = y+1;
+
+			oPtr = output.ptr<T>(y);
+			oPtrPlus = output.ptr<T>(yplus);
+			oPtrMinus = output.ptr<T>(yminus);
+			iPtr = input.ptr<T>(y);
+			iPtrPlus = input.ptr<T>(yplus);
+			iPtrMinus = input.ptr<T>(yminus);
+
+			ppval = &(oPtr[x]);
+
+			// look at the 4 connected components
+			if (y > 0) {
+				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yminus, iPtrMinus, oPtrMinus, ppval);
+			}
+			if (y < maxy) {
+				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yplus, iPtrPlus, oPtrPlus,ppval);
+			}
+			if (x > 0) {
+				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, y, iPtr, oPtr,ppval);
+			}
+			if (x < maxx) {
+				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,ppval);
+			}
+			
+					// now 8 connected
+			if (connectivity == 8) {
+			
+				if (y > 0) {
+					if (x > 0) {
+						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, ppval);
+					}
+					if (x < maxx) {
+						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, ppval);
+					}
+			
+				}
+				if (y < maxy) {
+					if (x > 0) {
+						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yplus, iPtrPlus, oPtrPlus,ppval);
+					}
+					if (x < maxx) {
+						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,ppval);
+					}
+			
+				}
 			}
 		}
 	}
@@ -1595,6 +1833,9 @@ template Mat imreconstructOpenMP<unsigned char>(const cv::Mat& seeds, const cv::
 template Mat imreconstructOpenMP<float>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize);
 template Mat imreconstructFixTilingEffects<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
 template Mat imreconstructFixTilingEffects<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
+
+template Mat imreconstructFixTilingEffectsParallel<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
+template Mat imreconstructFixTilingEffectsParallel<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
 
 //template Mat imreconstructGeorge<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
