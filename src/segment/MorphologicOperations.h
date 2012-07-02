@@ -22,13 +22,17 @@ template <typename T>
 cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
 template <typename T>
-cv::Mat imreconstructOpenMP(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize);
+cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize, int nThreads=0);
 
 template <typename T>
 Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder=false);
 
 template <typename T>
-Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder=false);
+Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, int connectivity, int tileSize, bool withBorder=false);
+
+template <typename T>
+Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectivity, bool withBorder=false, int nThreads=0);
+
 
 //template <typename T>
 //cv::Mat imreconstructGeorge(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
