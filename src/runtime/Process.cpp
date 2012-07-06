@@ -17,6 +17,7 @@
 #include <string.h>
 #include <iterator>
 #include <limits>
+
 namespace cci {
 namespace rt {
 
@@ -29,13 +30,19 @@ Process::Process(int argc, char **argv, ProcessConfigurator_I *_conf) :
 	gethostname(hostname, 255);  // from <iostream>
 
 	comm_world = MPI_COMM_WORLD;
+	if (conf != NULL) conf->init();
 
 }
 
 Process::~Process() {
+	Debug::print("Process destructor called\n");
+
 	teardown();
 
-	if (conf != NULL) delete conf;
+	if (conf != NULL) {
+		conf->finalize();
+		delete conf;
+	}
 
 	MPI_Finalize();
 }
@@ -45,7 +52,9 @@ void Process::setup() {
 	// if already configured, clean up,
 	teardown();
 
-	configured = conf->configure(comm_world, handlers);
+	configured = conf->configure(comm_world, this);
+
+	Debug::print("Process configured\n");
 
 	MPI_Barrier(comm_world);
 }
@@ -55,9 +64,15 @@ void Process::setup() {
  */
 void Process::run() {
 
-	unsigned long working = std::numeric_limits<unsigned long>::max();
-	working = working >> (sizeof(unsigned long) * 8 - handlers.size());
-	Debug::print("listener has %d entries, working bit field = %x\n", handlers.size(), working);
+	if (!configured) {
+		Debug::print("ERROR:  not configured\n");
+		return;
+	}
+	Debug::print("Process running\n");
+
+//	unsigned long working = std::numeric_limits<unsigned long>::max();
+//	working = working >> (sizeof(unsigned long) * 8 - handlers.size());
+//	Debug::print("listener has %d entries, working bit field = %x\n", handlers.size(), working);
 
 	int result;
 	while (!handlers.empty() ) {
@@ -65,9 +80,7 @@ void Process::run() {
 				iter != handlers.end(); ) {
 			result = (*iter)->run();
 			if (result == Communicator_I::DONE || result == Communicator_I::ERROR) {
-				if ((*iter)->dereference(&handlers) == 0) {
-					delete (*iter);
-				}
+				Communicator_I::dereference((*iter), &handlers);
 				iter = handlers.erase(iter);
 			} else ++iter;
 		}
@@ -82,7 +95,7 @@ void Process::teardown() {
 
 	// clean up all the communicators.
 	for (int i = 0; i < handlers.size(); ++i) {
-		if (handlers[i]->dereference(&handlers) == 0) delete handlers[i];
+		Communicator_I::dereference(handlers[i], &handlers);
 	}
 	handlers.clear();
 

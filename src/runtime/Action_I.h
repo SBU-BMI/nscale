@@ -22,12 +22,14 @@ public:
 		Communicator_I(_parent_comm, _gid), input_status(READY), output_status(READY) {};
 	virtual ~Action_I() {
 		void * data;
+		if (!inputSizes.empty()) Debug::print("%s WARNING: %d entries left in input\n", getClassName(), inputSizes.size());
 		for (int i = 0; i < inputSizes.size(); ++i) {
 			inputSizes.pop();
 			data = inputData.front();
 			inputData.pop();
 			free(data);
 		}
+		if (!outputSizes.empty()) Debug::print("%s WARNING: %d entries left in output\n", getClassName(), outputSizes.size());
 		for (int i = 0; i < outputSizes.size(); ++i) {
 			outputSizes.pop();
 			data = outputData.front();
@@ -36,17 +38,14 @@ public:
 		}
 	};
 
-	virtual char* getClassName() { return "Action_I"; };
+	virtual const char* getClassName() { return "Action_I"; };
 
-	virtual int run() {
-		Debug::print("ERROR: calling base class Action_I run\n");
-		return WAIT;
-	};
+	virtual int run() = 0;
 
 	// can add input if worker's compute is not done, and input buffer is ready
 	int addInput(int size , void * data) {
 		if (this->canAddInput() && size > 0) {  // only receive in READY and WAIT state
-			if (data == NULL) printf("ERROR:  why is data NULL?\n");
+			if (data == NULL) Debug::print("%s ERROR:  why is data NULL?\n", getClassName());
 
 //			void *d2 = malloc(size);
 //			memcpy(d2, data, size);
@@ -54,7 +53,7 @@ public:
 
 			inputSizes.push(size);
 			inputData.push(data);
-			Debug::print("added %d bytes at address %x , inputSizes size = %d\n", size, data, inputSizes.size());
+//			Debug::print("added %d bytes at address %x , inputSizes size = %d\n", size, data, inputSizes.size());
 			this->input_status = READY;
 		}
 		return this->input_status;
@@ -123,10 +122,7 @@ public:
 
 protected:
 	virtual int compute(int const &input_size , void * const &input,
-			int &output_size, void * &output) {
-		Debug::print("ERROR: calling base class Action_I compute\n");
-		return WAIT;
-	};
+			int &output_size, void * &output) = 0;
 
 	virtual bool canAddOutput(){
 		if (this->input_status == ERROR || this->output_status == ERROR) {
@@ -145,7 +141,7 @@ protected:
 
 			outputSizes.push(size);
 			outputData.push(data);
-			Debug::print("added %d bytes at address %x , outputSizes size = %d\n", size, data, outputSizes.size());
+//			Debug::print("added %d bytes at address %x , outputSizes size = %d\n", size, data, outputSizes.size());
 			this->output_status = READY;
 		}
 		return this->output_status;

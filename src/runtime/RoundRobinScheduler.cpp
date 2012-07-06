@@ -11,20 +11,24 @@ namespace cci {
 namespace rt {
 
 RoundRobinScheduler::RoundRobinScheduler(std::vector<int> &_roots, std::vector<int> &_leaves) :
-	Scheduler_I(_roots, _leaves), rootIdx(0), leafIdx(0) {
+	Scheduler_I(_roots, _leaves) {
+	rootIdx = roots.end();
+	leafIdx = leaves.end();
 }
 
 RoundRobinScheduler::RoundRobinScheduler(bool _root, bool _leaf) :
-	Scheduler_I(_root, _leaf), rootIdx(0), leafIdx(0) {
+	Scheduler_I(_root, _leaf) {
+	rootIdx = roots.end();
+	leafIdx = leaves.end();
 }
-int RoundRobinScheduler::getRootFromLeave(int leafId) {
+int RoundRobinScheduler::getRootFromLeaf(int leafId) {
 	int size = roots.size();
 	if (size == 0) return -1;
 	else if (size == 1) return roots[0];
 	else {
-		int out= roots[this->rootIdx];
-		rootIdx  = (rootIdx + 1) % size;
-		return out;
+		++rootIdx;
+		if (rootIdx == roots.end()) rootIdx = roots.begin();
+		return *rootIdx;
 	}
 }
 int RoundRobinScheduler::getLeafFromRoot(int rootId) {
@@ -32,11 +36,59 @@ int RoundRobinScheduler::getLeafFromRoot(int rootId) {
 	if (size == 0) return -1;
 	else if (size == 1) return leaves[0];
 	else {
-		int out= leaves[this->leafIdx];
-		leafIdx  = (leafIdx + 1) % size;
-		return out;
+		++leafIdx;
+		if (leafIdx == leaves.end()) leafIdx = leaves.begin();
+		return *leafIdx;
 	}
 }
+
+int RoundRobinScheduler::removeRoot(int id) {
+	// save the value
+	if (*rootIdx == id) {
+		++rootIdx;
+		if (rootIdx == roots.end()) rootIdx = roots.begin();
+	}
+	int val = *rootIdx;
+
+	int count = Scheduler_I::removeRoot(id);
+
+	// reset the iterators
+	rootIdx = find(roots.begin(), roots.end(), val);
+	return count;
+}
+int RoundRobinScheduler::removeLeaf(int id) {
+	// save the value
+	if (*leafIdx == id) {
+		++leafIdx;
+		if (leafIdx == leaves.end()) leafIdx = leaves.begin();
+	}
+	int val = *leafIdx;
+
+	int count = Scheduler_I::removeLeaf(id);
+
+	// reset the iterators
+	leafIdx = find(leaves.begin(), leaves.end(), val);
+	return count;
+}
+int RoundRobinScheduler::addRoot(int id) {
+	int val = *rootIdx;
+
+	int count = Scheduler_I::addRoot(id);
+
+	// reset the iterators
+	rootIdx = find(roots.begin(), roots.end(), val);
+	return count;
+}
+int RoundRobinScheduler::addLeaf(int id) {
+	int val = *leafIdx;
+
+	int count = Scheduler_I::addLeaf(id);
+
+	// reset the iterators
+	leafIdx = find(leaves.begin(), leaves.end(), val);
+	return count;
+}
+
 
 } /* namespace rt */
 } /* namespace cci */

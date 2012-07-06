@@ -18,7 +18,7 @@ Save::Save(MPI_Comm const * _parent_comm, int const _gid) :
 }
 
 Save::~Save() {
-	// TODO Auto-generated destructor stub
+	Debug::print("%s destructor called.\n", getClassName());
 }
 
 int Save::compute(int const &input_size , void * const &input,
@@ -57,7 +57,7 @@ int Save::run() {
 		if (result >= 0) return READY;
 		else return WAIT;
 	} else if (istatus == WAIT) {
-		if (call_count % 10 == 0) Debug::print("SAVE WAIT\n");
+//		if (call_count % 10 == 0) Debug::print("SAVE WAIT\n");
 		return WAIT;
 	} else {  // done or error //
 		Debug::print("SAVE DONE/ERROR at call_count %d\n", call_count);

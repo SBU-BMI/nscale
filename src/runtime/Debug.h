@@ -19,7 +19,7 @@ namespace rt {
 
 class Debug {
 public:
-	static void print(char* fmt, ...)
+	static void print(const char* fmt, ...)
 	{
 		memset(msg, 0, 4096);
 

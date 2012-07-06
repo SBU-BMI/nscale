@@ -22,7 +22,7 @@ CommHandler_I::CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, Sche
 
 
 	if (comm == MPI_COMM_NULL) {
-		Debug::print("ERROR: comm member %d must have a MPI communicator.\n", rank);
+		Debug::print("%s ERROR: comm member %d must have a MPI communicator.\n", getClassName(), rank);
 		status = ERROR;
 
 	} else {
@@ -49,7 +49,7 @@ CommHandler_I::~CommHandler_I() {
 		activeWorkers.clear();
 	}
 
-	if (action->dereference(this) == 0) delete action;
+	Communicator_I::dereference(action, this);
 	if (scheduler != NULL) delete scheduler;
 }
 

@@ -26,9 +26,8 @@ namespace rt {
 class Communicator_I {
 public:
 	Communicator_I(MPI_Comm const * _parent_comm, int const _gid);
-	virtual ~Communicator_I();
 
-	virtual char* getClassName() { return "Communicator_I"; };
+	virtual const char* getClassName() { return "Communicator_I"; };
 
 	virtual int run() = 0;
 
@@ -39,13 +38,24 @@ public:
 	static const int DONE;
 	static const int ERROR;
 
-	int reference(void *obj) {
-		reference_sources.insert(obj);
-		return reference_sources.size();
+	static int reference(Communicator_I* self, void *obj) {
+		if (self == NULL) return -1;
+		if (obj == NULL) return self->reference_sources.size();
+
+		self->reference_sources.insert(obj);
+		return self->reference_sources.size();
 	};
-	int dereference(void *obj) {
-		reference_sources.erase(obj);
-		return reference_sources.size();
+	static int dereference(Communicator_I* self, void *obj) {
+		if (self == NULL) return -1;
+		if (obj == NULL) return self->reference_sources.size();
+
+		self->reference_sources.erase(obj);
+		int result = self->reference_sources.size();
+		if (result == 0) {
+			delete self;
+			return result;
+		}
+		else return 0;
 	};
 
 protected:
@@ -56,10 +66,14 @@ protected:
 	int size;
 	int pcomm_rank;
 	int pcomm_size;
+	char hostname[256];
 
 	// some basic metadata tracking.
 	long call_count;
 	std::tr1::unordered_set<void *> reference_sources;
+
+	virtual ~Communicator_I();
+
 };
 
 

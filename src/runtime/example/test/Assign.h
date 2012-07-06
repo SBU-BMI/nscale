@@ -18,7 +18,7 @@ public:
 	Assign(MPI_Comm const * _parent_comm, int const _gid);
 	virtual ~Assign();
 	virtual int run();
-	virtual char* getClassName() { return "Assign"; };
+	virtual const char* getClassName() { return "Assign"; };
 
 
 protected:

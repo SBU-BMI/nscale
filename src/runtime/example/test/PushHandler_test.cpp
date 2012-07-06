@@ -39,20 +39,21 @@ int main (int argc, char **argv){
 
 
 	cci::rt::Scheduler_I *sch;
-	if (rank == 0) sch = new cci::rt::RandomScheduler(true, false);  // root at rank = 0
+	if (rank % 4 == 0) sch = new cci::rt::RandomScheduler(true, false);  // root at rank = 0
 	else sch = new cci::rt::RandomScheduler(false, true);
 
 	cci::rt::CommHandler_I *handler = new cci::rt::PushCommHandler(&comm_world, 0, sch);
 	handlers.push_back(handler);
+	cci::rt::Communicator_I::reference(handler, &handlers);
 	if (!handler->isListener()) {
 		cci::rt::Assign *assign = new cci::rt::Assign(&comm_world, -1);
 		handlers.push_back(assign);
-		assign->reference(&handlers);
+		cci::rt::Communicator_I::reference(assign, &handlers);
 		handler->setAction(assign);   // handler sets the refernce
 	} else {
 		cci::rt::Save *save = new cci::rt::Save(&comm_world, -1);
 		handlers.push_back(save);
-		save->reference(&handlers);
+		cci::rt::Communicator_I::reference(save, &handlers);
 		handler->setAction(save);  // handler sets the reference;
 	}
 
@@ -66,9 +67,8 @@ int main (int argc, char **argv){
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
 				cci::rt::Debug::print("%s no output at iter j %d .  DONE or error state %d\n", (*iter)->getClassName(), j, result);
-				if ((*iter)->dereference(&handlers) == 0) {
-					delete (*iter);
-				}
+				cci::rt::Communicator_I::dereference(*iter, &handlers);
+
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {
 				cci::rt::Debug::print("%s output generated at iteration j %d.  result = %d\n", (*iter)->getClassName(), j, result);

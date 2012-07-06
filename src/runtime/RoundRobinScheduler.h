@@ -19,12 +19,18 @@ public:
 	RoundRobinScheduler(bool _root, bool _leaf);
 	virtual ~RoundRobinScheduler() {};
 
-	virtual int getRootFromLeave(int leafId);
+	virtual int getRootFromLeaf(int leafId);
 	virtual int getLeafFromRoot(int rootId);
 
+	virtual int removeRoot(int id);
+	virtual int removeLeaf(int id);
+	virtual int addRoot(int id);
+	virtual int addLeaf(int id);
+
+
 private:
-	int rootIdx;
-	int leafIdx;
+	std::vector<int>::iterator rootIdx;
+	std::vector<int>::iterator leafIdx;
 };
 
 } /* namespace rt */

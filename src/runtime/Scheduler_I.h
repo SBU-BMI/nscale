@@ -26,14 +26,26 @@ public:
 	 * this version of the function takes a list of roots and leafs.  the list contain the ranks
 	 * within the specified communicator.
 	 */
-	Scheduler_I(std::vector<int> &_roots, std::vector<int> &_leaves) :
-		configured(false), root(false), leaf(false), comm(MPI_COMM_NULL), roots(_roots), leaves(_leaves), listform(true) {};
+	Scheduler_I(std::vector<int> const &_roots, std::vector<int> const &_leaves) :
+		configured(false), root(false), leaf(false), comm(MPI_COMM_NULL), roots(_roots), leaves(_leaves), listform(true) {
+
+		// remove any duplicates
+		sort(roots.begin(), roots.end());
+		std::vector<int>::iterator it = unique(roots.begin(), roots.end());
+		roots.resize( it - roots.begin() );
+
+		sort(leaves.begin(), leaves.end());
+		it = unique(leaves.begin(), leaves.end());
+		leaves.resize( it - leaves.begin() );
+
+	};
 	/**
 	 * this version of the function takes 2 flags:  isroot and isleaf.  allGather is used to construct
 	 * the list.  all gather uses the communicator specified.
 	 */
 	Scheduler_I(bool _root, bool _leaf) :
 		configured(false), root(_root), leaf(_leaf), comm(MPI_COMM_NULL), listform(false) {};
+
 	virtual ~Scheduler_I() {
 		roots.clear();
 		leaves.clear();
@@ -41,15 +53,13 @@ public:
 
 	void configure(MPI_Comm &_comm) {
 		comm = _comm;
+		MPI_Comm_rank(comm, &rank);
+
 
 		if (listform) {
-			int rank;
-			MPI_Comm_rank(comm, &rank);
 
-			std::sort(roots.begin(), roots.end());
-			root = std::binary_search(roots.begin(), roots.end(), rank);
-			std::sort(leaves.begin(), leaves.end());
-			leaf = std::binary_search(leaves.begin(), leaves.end(), rank);
+			if (binary_search(roots.begin(), roots.end(), rank)) root = true;
+			if (binary_search(leaves.begin(), leaves.end(), rank)) leaf = true;
 		} else {
 			int size;
 			MPI_Comm_size(comm, &size);
@@ -62,6 +72,8 @@ public:
 			if (root) sendbuf[0] = 1;
 			if (leaf) sendbuf[1] = 1;
 			MPI_Allgather(sendbuf, 2, MPI_CHAR, recvbuf, 2, MPI_CHAR, comm);
+
+			// now populate the list.  guaranteed to be sorted and unique
 			roots.clear();
 			leaves.clear();
 			for (int i = 0; i < size; ++i) {
@@ -76,13 +88,48 @@ public:
 		configured = true;
 	};
 
+
+
+	virtual int removeRoot(int id) {
+		std::vector<int>::iterator it = std::find(roots.begin(), roots.end(), id);
+		if (it != roots.end()) roots.erase(it);
+		if (rank == id) root = false;
+		return roots.size();
+	}
+	virtual int removeLeaf(int id) {
+		std::vector<int>::iterator it = std::find(leaves.begin(), leaves.end(), id);
+		if (it != leaves.end()) leaves.erase(it);
+		if (rank == id) leaf = false;
+		return leaves.size();
+
+	}
+	virtual int addRoot(int id) {
+		if (std::binary_search(roots.begin(), roots.end(), id)) return roots.size();
+
+		roots.push_back(id);
+		sort(roots.begin(), roots.end());
+
+		if (rank == id) root = true;
+		return roots.size();
+	}
+	virtual int addLeaf(int id) {
+		if (std::binary_search(leaves.begin(), leaves.end(), id)) return leaves.size();
+
+		leaves.push_back(id);
+		sort(leaves.begin(), leaves.end());
+
+		if (rank == id) leaf = true;
+
+		return leaves.size();
+	}
+
 	bool isRoot() { return this->root; };
 	bool isLeaf() { return this->leaf; };
 
 	std::vector<int> &getRoots() { return roots; };
 	std::vector<int> &getLeaves() { return leaves; };
 
-	virtual int getRootFromLeave(int leafId) = 0;
+	virtual int getRootFromLeaf(int leafId) = 0;
 	virtual int getLeafFromRoot(int rootId) = 0;
 
 protected:
@@ -93,7 +140,9 @@ protected:
 
 	bool listform;
 	bool configured;
+
 	MPI_Comm comm;
+	int rank;
 };
 
 } /* namespace rt */

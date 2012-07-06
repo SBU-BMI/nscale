@@ -53,7 +53,7 @@ int main (int argc, char **argv){
 
 	cci::rt::Action_I *save = new cci::rt::Save(&comm_world, g2);
 	handlers.push_back(save);
-	save->reference(&handlers);
+	cci::rt::Communicator_I::reference(save, &handlers);
 
 	int j = 0;
 	int count = sizeof(int);
@@ -94,9 +94,8 @@ int main (int argc, char **argv){
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
 				printf("no output at iter j %d .  DONE or error state %d\n", j, result);
-				if ((*iter)->dereference(&handlers) == 0) {
-					delete (*iter);
-				}
+				cci::rt::Communicator_I::dereference(*iter, &handlers);
+
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {
 				printf("output generated at iteration j %d: %d\n", j, result);

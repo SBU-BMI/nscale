@@ -31,5 +31,6 @@ endif(MPI_FOUND)
 
 #add_subdirectory(test/src)
 add_subdirectory(example/test)
+add_subdirectory(example/ADIOS)
 
 

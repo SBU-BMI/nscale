@@ -18,7 +18,7 @@ public:
 	Segment(MPI_Comm const * _parent_comm, int const _gid);
 	virtual ~Segment();
 	virtual int run();
-	virtual char* getClassName() { return "Segment"; };
+	virtual const char* getClassName() { return "Segment"; };
 
 protected:
 	virtual int compute(int const &input_size , void * const &input,

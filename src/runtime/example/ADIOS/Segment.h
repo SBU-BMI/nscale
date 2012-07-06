@@ -1,33 +1,34 @@
 /*
- * Save.h
+ * Segment.h
  *
  *  Created on: Jun 18, 2012
  *      Author: tcpan
  */
 
-#ifndef SAVE_H_
-#define SAVE_H_
+#ifndef SEGMENT_H_
+#define SEGMENT_H_
 
 #include <Action_I.h>
 
 namespace cci {
 namespace rt {
+namespace adios {
 
-class Save: public cci::rt::Action_I {
+class Segment: public cci::rt::Action_I {
 public:
-	Save(MPI_Comm const * _parent_comm, int const _gid);
-	virtual ~Save();
+	Segment(MPI_Comm const * _parent_comm, int const _gid);
+	virtual ~Segment();
 	virtual int run();
-	virtual const char* getClassName() { return "Save"; };
-
+	virtual const char* getClassName() { return "Segment"; };
 
 protected:
-
 	virtual int compute(int const &input_size , void * const &input,
 				int &output_size, void * &output);
 
+
 };
 
+}
 } /* namespace rt */
 } /* namespace cci */
-#endif /* SAVE_H_ */
+#endif /* SEGMENT_H_ */

@@ -30,11 +30,11 @@ public:
 	 */
 	CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I *_scheduler);
 
-	virtual char* getClassName() { return "CommHandler_I"; };
+	virtual const char* getClassName() { return "CommHandler_I"; };
 
 	void setAction(Action_I * _action) {
 		action = _action;
-		action->reference(this);
+		Communicator_I::reference(action, this);
 	};
 
 	virtual int run() = 0;

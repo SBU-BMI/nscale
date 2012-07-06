@@ -18,7 +18,7 @@ Assign::Assign(MPI_Comm const * _parent_comm, int const _gid)  :
 }
 
 Assign::~Assign() {
-	// TODO Auto-generated destructor stub
+	Debug::print("%s destructor called.\n", getClassName());
 }
 
 /**

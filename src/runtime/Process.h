@@ -17,7 +17,7 @@
 namespace cci {
 namespace rt {
 
-
+class ProcessConfigurator_I;
 
 class Process {
 public:
@@ -41,6 +41,11 @@ public:
 	 * clean up.  free communicators.
 	 */
 	virtual void teardown();
+
+	void addHandler(Communicator_I * handler) {
+		handlers.push_back(handler);
+		Communicator_I::reference(handler, &handlers);
+	}
 
 private:
 	/**

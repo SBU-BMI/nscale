@@ -19,7 +19,7 @@ public:
 	RandomScheduler(bool _root, bool _leaf);
 	virtual ~RandomScheduler() {};
 
-	virtual int getRootFromLeave(int leafId);
+	virtual int getRootFromLeaf(int leafId);
 	virtual int getLeafFromRoot(int rootId);
 };
 

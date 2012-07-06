@@ -18,7 +18,7 @@ public:
 	PullCommHandler(MPI_Comm const *_parent_comm, int const _gid, Scheduler_I * _scheduler);
 	virtual ~PullCommHandler();
 
-	virtual char* getClassName() { return "PullCommHandler"; };
+	virtual const char* getClassName() { return "PullCommHandler"; };
 
 
 	virtual int run();

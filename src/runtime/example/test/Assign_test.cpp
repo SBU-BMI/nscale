@@ -24,7 +24,7 @@ int main (int argc, char **argv){
 
 	cci::rt::Action_I *assign = new cci::rt::Assign(&comm_world, -1);
 	handlers.push_back(assign);
-	assign->reference(&handlers);
+	cci::rt::Communicator_I::reference(assign, &handlers);
 
 	int j = 0;
 	int count = sizeof(int);
@@ -35,13 +35,10 @@ int main (int argc, char **argv){
 	while (!handlers.empty() ) {
 		for (std::vector<cci::rt::Communicator_I *>::iterator iter = handlers.begin();
 				iter != handlers.end(); ) {
-			printf("iterating\n");
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
 				printf("no output at iter j %d .  DONE or error state %d\n", j, result);
-				if ((*iter)->dereference(&handlers) == 0) {
-					delete (*iter);
-				}
+				cci::rt::Communicator_I::dereference((*iter), &handlers);
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {
 				oresult = ((cci::rt::Action_I*)(*iter))->getOutput(count, data);

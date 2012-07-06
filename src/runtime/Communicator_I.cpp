@@ -6,6 +6,9 @@
  */
 
 #include "Communicator_I.h"
+#include "Debug.h"
+
+#include <iostream>
 
 namespace cci {
 namespace rt {
@@ -33,9 +36,10 @@ Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid) :
 		MPI_Comm_rank(comm, &rank);
 		MPI_Comm_size(comm, &size);
 	}
+	gethostname(hostname, 255);  // from <iostream>
 };
 Communicator_I::~Communicator_I() {
-	printf("Communicator destructor called. %d in group %d\n", rank, groupid);
+	if (!reference_sources.empty()) Debug::print("%s ERROR:  still has %d objects referencing it\n", getClassName(), reference_sources.size());
 
 	if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
 };

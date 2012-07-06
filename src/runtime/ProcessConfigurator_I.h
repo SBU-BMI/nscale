@@ -10,17 +10,23 @@
 
 #include "Communicator_I.h"
 #include "mpi.h"
+#include "Process.h"
 #include <vector>
 
 namespace cci {
 namespace rt {
+
+class Process;
 
 class ProcessConfigurator_I {
 public:
 	ProcessConfigurator_I() {};
 	virtual ~ProcessConfigurator_I() {};
 
-	virtual bool configure(MPI_Comm &comm, std::vector<Communicator_I *> &handlers) = 0;
+	virtual bool init() = 0;
+	virtual bool finalize() = 0;
+
+	virtual bool configure(MPI_Comm &comm, Process * proc) = 0;
 };
 
 } /* namespace rt */
