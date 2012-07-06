@@ -67,8 +67,14 @@ int main (int argc, char **argv) {
 
 	MPI_Comm_free(&comm_worker);
 
-	int group_size = atoi(argv[1]);
-	int group_interleave = atoi(argv[2]);
+	int group_size, group_interleave;
+	if (argc < 3) {
+		group_size = 0;
+		group_interleave = 1;
+	} else {
+		group_size = atoi(argv[1]);
+		group_interleave = atoi(argv[2]);
+	}
 	int worker_group;
 	// create new group from old group
 	// first come up with the color  manager gets color 0.  everyone else: 1.
@@ -150,8 +156,62 @@ int main (int argc, char **argv) {
 		printf("other groups don't have barrier\n");
 	}
 	
+	MPI_Barrier(comm_worker);
 	MPI_Comm_free(&comm_worker);
 
+	MPI_Barrier(comm_world);
+
+
+	// testing MPI with RMA
+	printf("START RMA TEST rank %d\n", rank);
+	int flag = 0;
+	MPI_Win win;
+	if (rank == 0) {
+		// set up the receive window.
+		MPI_Win_create(&flag, sizeof(int), sizeof(int), MPI_INFO_NULL, comm_world, &win);
+	} else {
+
+		// set up the send window
+		MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, comm_world, &win);
+
+		// now do selective.
+		MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0, 0, win);
+		MPI_Accumulate(&rank, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_MAX, win);
+		MPI_Win_unlock(0, win);
+	}
+	MPI_Win_free(&win);
+	printf("rank %d flag = %d\n", rank, flag);
+
+	printf("START RMA TEST selective update rank %d\n", rank);
+	int out = 0;
+	flag = 0;
+	if (rank == 0) {
+		// set up the receive window.
+		MPI_Win_create(&flag, sizeof(int), sizeof(int), MPI_INFO_NULL, comm_world, &win);
+	} else {
+
+		// set up the send window
+		MPI_Win_create(NULL, 0, 1, MPI_INFO_NULL, comm_world, &win);
+
+		for (int i = 0; i < 4; i++) {
+
+		// now do selective.
+		MPI_Win_lock(MPI_LOCK_SHARED, 0, 0, win);
+		MPI_Get(&out, 1, MPI_INT, 0, 0, 1, MPI_INT, win);
+		MPI_Win_unlock(0, win);
+
+		sleep(rank);
+		if (out < 2) {
+
+			// now do selective.
+			MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0, 0, win);
+			MPI_Accumulate(&rank, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_MAX, win);
+			MPI_Win_unlock(0, win);
+		}
+		printf("rank %d flag = %d, out = %d\n", rank, flag, out);
+		}
+	}
+	MPI_Win_free(&win);
 
 
 

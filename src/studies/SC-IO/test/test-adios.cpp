@@ -88,9 +88,22 @@ int main (int argc, char **argv) {
 //	MPI_Barrier(MPI_COMM_WORLD);
 //	err = adios_finalize(rank);
 
+	int err;
+
+	// adios init has to be called by everyone. using MPI_COMM_WORLD.
+	// testing with worker only - fails.
+//	if (rank != managerid) {
+//		err = adios_init("adios_xml/test-adios-MPI.xml");
+//		if (err != 1) printf("ERROR: adios error code on init: %d \n", err);
+//
+//		err = adios_finalize(rank);
+//	}
+//	MPI_Finalize();
+//	return 0;
+
 
 	// now do another test with comm_worker only
-	int err = adios_init("adios_xml/test-adios-MPI.xml");
+	err = adios_init("adios_xml/test-adios-MPI.xml");
 	if (err != 1) printf("ERROR: adios error code on init: %d \n", err);
 
 	if (worker_rank >= 0) {
