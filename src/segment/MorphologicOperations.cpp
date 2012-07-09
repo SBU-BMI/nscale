@@ -104,8 +104,8 @@ bool propagateDist(int x, int y, Mat &nearestNeighbor, int tenNNx, int tenNNy){
 
 
 
-	float curDist = sqrt(pow((tenNNx-tenCurNNx),2) +pow((tenNNy-tenCurNNy),2));
-	float distThroughX = sqrt(pow((curNNx-tenNNx),2) + pow((curNNy-tenNNy),2));
+	float curDist = sqrt(pow((double)(tenNNx-tenCurNNx),2) +pow((double)(tenNNy-tenCurNNy),2));
+	float distThroughX = sqrt(pow((double)(curNNx-tenNNx),2) + pow((double)(curNNy-tenNNy),2));
 
 	if(distThroughX < curDist){
 		isTentativeShorter = true;
