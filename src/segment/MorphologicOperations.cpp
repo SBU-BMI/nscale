@@ -1032,7 +1032,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 		output = seeds;
 		input = image;
 
-		nTiles = seeds.cols-2/tileSize;
+		nTiles = (seeds.cols-2)/tileSize;
 	}else{
 		output.create(seeds.size() + Size(2,2), seeds.type());
 		copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
@@ -1057,7 +1057,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	vector<std::queue<int> > xQ(nThreads);
 	vector<std::queue<int> > yQ(nThreads);
 
-	std::cout << "Queue.size = "<< xQ.size() <<std::endl;
+	std::cout << "Queue.size = "<< xQ.size() <<" Queue[0].size()="<< xQ[0].size()<<std::endl;
 	T* oPtr;
 	T* oPtrMinus;
 	T* oPtrPlus;
@@ -1129,6 +1129,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	uint64_t t2 = cciutils::ClockGetTime();
 	count = 0;
 	for(int i = 0; i < xQ.size(); i++){
+		std::cout << "Queue["<<i<<"]="<<xQ[i].size()<< std::endl;
 		count+=xQ[i].size();
 	}
 	std::cout << "    scan time = " << t2-t1 << "ms for queue entries="<< count<< std::endl;
@@ -1161,18 +1162,24 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 
 			ppval = &(oPtr[x]);
 
+			pval = oPtr[x];
+
 			// look at the 4 connected components
 			if (y > 0) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yminus, iPtrMinus, oPtrMinus, ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yminus, iPtrMinus, oPtrMinus, ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], x, yminus, iPtrMinus, oPtrMinus, pval);
 			}
 			if (y < maxy) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yplus, iPtrPlus, oPtrPlus,ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yplus, iPtrPlus, oPtrPlus,ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], x, yplus, iPtrPlus, oPtrPlus,pval);
 			}
 			if (x > 0) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, y, iPtr, oPtr,ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, y, iPtr, oPtr,ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], xminus, y, iPtr, oPtr,pval);
 			}
 			if (x < maxx) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,pval);
 			}
 			
 					// now 8 connected
@@ -1180,19 +1187,24 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 			
 				if (y > 0) {
 					if (x > 0) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, ppval);
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, pval);
 					}
 					if (x < maxx) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, ppval);
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, pval);
 					}
 			
 				}
 				if (y < maxy) {
 					if (x > 0) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yplus, iPtrPlus, oPtrPlus,ppval);
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yplus, iPtrPlus, oPtrPlus,ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xminus, yplus, iPtrPlus, oPtrPlus,pval);
 					}
 					if (x < maxx) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,ppval);
+
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,pval);
 					}
 			
 				}
@@ -1479,6 +1491,8 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
 
 	t1 = cciutils::ClockGetTime();
+
+//	Mat reconCopy = nscale::imreconstructFixTilingEffects<T>(marker_copy, image, 8, 0, 0, tileSize);
 	Mat reconCopy = nscale::imreconstructFixTilingEffectsParallel<T>(marker_copy, image, 8, tileSize);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
@@ -1879,6 +1893,10 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 //	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
 	if (binary == true) {
+//		imwrite("in-imrecon-binary-marker.pgm", marker);
+//		imwrite("in-imrecon-binary-mask.pgm", mask);
+
+
 //		imwrite("test/in-fillholes-bin-marker.pgm", marker);
 //		imwrite("test/in-fillholes-bin-mask.pgm", mask);
 		output = imreconstructBinary<T>(marker, mask, connectivity);
@@ -2243,6 +2261,10 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 	 */
 	Mat mask = nscale::PixelOperations::invert<T>(image);
 	Mat marker = mask - h;
+
+//	imwrite("in-imrecon-float-marker.exr", marker);
+//	imwrite("in-imrecon-float-mask.exr", mask);
+
 	Mat output = imreconstruct<T>(marker, mask, connectivity);
 	return nscale::PixelOperations::invert<T>(output);
 }

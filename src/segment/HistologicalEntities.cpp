@@ -334,7 +334,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	// then invert to create basins
 	Mat dist(seg_big.size(), CV_32FC1);
 
-//	imwrite("mask.pbm", seg_big);
+//	imwrite("seg_big.pbm", seg_big);
 
 	// opencv: compute the distance to nearest zero
 	// matlab: compute the distance to the nearest non-zero
