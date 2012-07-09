@@ -12,6 +12,8 @@ int distTransformPropagation( int *g_InputListPtr, int h_ListSize, cv::gpu::PtrS
 
 void distMapCalcCaller(int rows, int cols, cv::gpu::PtrStep_<int> nearestNeighbors, cv::gpu::PtrStep_<float> distanceMap, cudaStream_t stream);
 
+void neighborCalcCaller(int rows, int cols, cv::gpu::PtrStep_<int> g_nearestNeighbors, int tIdX, int tIdY, int tileSize, int imgCols, cudaStream_t stream);
+
 //
 //template <typename T>
 //void invertUIntCaller(int rows, int cols, int cn, const cv::gpu::PtrStep_<T> img1,
