@@ -571,7 +571,7 @@ __global__ void distTransformPropagationKernel(int* d_Result, PtrStep_<unsigned 
 int distTransformPropagation( int *g_InputListPtr, int h_ListSize, PtrStep_<unsigned char> mask , PtrStep_<int> nearestNeighbors, int cols, int rows, int queue_increase_factor){
 	int *d_Result;
 
-	int tempNblocks = 12;
+	int tempNblocks = 16;
 	// alloc space to save output elements in the queue for each block
 	int **h_OutQueuePtr = (int **)malloc(sizeof(int*) * tempNblocks);
 
@@ -783,9 +783,27 @@ void distMapCalcCaller(int rows, int cols, PtrStep_<int> nearestNeighbors, PtrSt
 	distMapKernel<<<grid, threads, 0, stream>>>(rows, cols, nearestNeighbors, distanceMap);
 }
 
+__global__ void neighborCalKernel(int rows, int cols, PtrStep_<int> nearestMap, int tIdX, int tIdY, int tileSize, int imgCols)
+{
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	if(y < rows && x < cols){
+		// calculate x and y of the nearest 0
+		int col = (nearestMap.ptr(y)[x] % cols)+ tIdX*tileSize;
+		int row = (nearestMap.ptr(y)[x] / cols)+ tIdY*tileSize;
+		nearestMap.ptr(y)[x] = row * imgCols + col;
+	}
+
+}
 
 
 
+void neighborCalcCaller(int rows, int cols, cv::gpu::PtrStep_<int> nearestNeighbors, int tIdX, int tIdY, int tileSize, int imgCols, cudaStream_t stream){
+	dim3 threads(16,16);
+	dim3 grid((cols + threads.x - 1) / threads.x, (rows + threads.y - 1) / threads.y);
+
+	neighborCalKernel<<<grid, threads, 0, stream>>>(rows, cols, nearestNeighbors, tIdX, tIdY, tileSize, imgCols);
+}
 
 }} // close namespaces
 

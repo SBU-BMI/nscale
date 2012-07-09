@@ -34,8 +34,12 @@ int main (int argc, char **argv){
 	int nThreads = atoi(argv[3]);
 	int tileSize = atoi(argv[4]);
 	omp_set_num_threads(nThreads);
+<<<<<<< HEAD:src/segment/test/src/imreconMulticore.cpp
 
 	int zoomFactor = 16;
+=======
+	int zoomFactor = 8;
+>>>>>>> 48b9a447c39bff41a4c43adcc44b7721a65d32b4:src/segment/test/src/imreconMulticore.cpp
         if(zoomFactor > 1){
                 Mat tempMarker = Mat::zeros((marker.cols*zoomFactor)+2,(marker.rows*zoomFactor)+2, marker.type());
                 Mat tempMask = Mat::zeros((mask.cols*zoomFactor)+2 ,(mask.rows*zoomFactor)+2, mask.type());
@@ -53,8 +57,8 @@ int main (int argc, char **argv){
 	uint64_t t1 = cciutils::ClockGetTime();
 //	Mat recon1 = nscale::imreconstruct<unsigned char>(marker, mask, 8);
 	uint64_t t2 = cciutils::ClockGetTime();
-	std::cout << "SequentialTime="<< t2-t1 << std::endl;
-
+//	std::cout << "SequentialTime="<< t2-t1 << std::endl;
+//
 	Mat marker_border(marker.size() + Size(2,2), marker.type());
 	copyMakeBorder(marker, marker_border, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 	Mat mask_border(mask.size() + Size(2,2), mask.type());
@@ -63,14 +67,18 @@ int main (int argc, char **argv){
 	mask.release();marker.release();
 	Mat marker_copy(marker_border, Rect(1,1,marker_border.cols-2,marker_border.rows-2));
 	Mat mask_copy(mask_border, Rect(1,1,mask_border.cols-2,mask_border.rows-2));
-
+	marker.release(); mask.release();
 	t1 = cciutils::ClockGetTime();
 	Mat reconQueue = nscale::imreconstructParallelQueue<unsigned char>(marker_border,mask_border,8,true, nThreads);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "QueueTime = "<< t2-t1 << std::endl;
 
 //	t1 = cciutils::ClockGetTime();
+<<<<<<< HEAD:src/segment/test/src/imreconMulticore.cpp
 //	Mat reconTile = nscale::imreconstructParallelTile<unsigned char>(marker,mask,8,tileSize, nThreads);
+=======
+//	Mat reconTile = nscale::imreconstructParallelTile<unsigned char>(marker,mask,8,4096, nThreads);
+>>>>>>> 48b9a447c39bff41a4c43adcc44b7721a65d32b4:src/segment/test/src/imreconMulticore.cpp
 //	t2 = cciutils::ClockGetTime();
 //	std::cout << "TiledTime = "<< t2-t1 << std::endl;
 

@@ -26,6 +26,411 @@ using namespace std;
 
 namespace nscale {
 
+// verify if this 0 has a 1 neighbor
+bool checkDistNeighbors8(int x, int y, const Mat &mask){
+        bool isCandidate = false;
+
+	int rows = mask.rows;
+	int cols = mask.cols;
+        // upper line
+        if(y>0){
+                // uppper left corner
+                if(x > 0){
+                        if(mask.ptr<uchar>(y-1)[x-1] != 0 ){
+                                isCandidate = true;
+                        }
+                }
+                // upper right corner
+                if(x < (cols-1)){
+                        if(mask.ptr<uchar>(y-1)[x+1] != 0 ){
+                                isCandidate = true;
+                        }
+                }
+                // upper center
+                if(mask.ptr<uchar>(y-1)[x] != 0 ){
+                        isCandidate = true;
+                }
+        }
+
+        // lower line
+        if(y < (rows-1)){
+                // lower left corner
+                if(x > 0){
+                        if(mask.ptr<uchar>(y+1)[x-1] != 0 ){
+                                isCandidate = true;
+                        }
+                }
+                // lower right corner
+                if(x < (cols-1)){
+                        if(mask.ptr<uchar>(y+1)[x+1] != 0 ){
+                                isCandidate = true;
+                        }
+                }
+                // lower center
+                if(mask.ptr<uchar>(y+1)[x] != 0 ){
+                        isCandidate = true;
+                }
+        }
+        // left item
+        if(x>0){
+                if(mask.ptr<uchar>(y)[x-1] != 0){
+                        isCandidate = true;
+                }
+        }
+        // right item
+        if(x < (cols-1)){
+                if(mask.ptr<uchar>(y)[x+1] != 0){
+                        isCandidate = true;
+                }
+        }
+        return isCandidate;
+}
+
+bool propagateDist(int x, int y, Mat &nearestNeighbor, int tenNNx, int tenNNy){
+	bool isTentativeShorter = false;
+
+	int rows = nearestNeighbor.rows;
+	int cols = nearestNeighbor.cols;
+
+	// Current nearest background pixel of (x,y)
+	int curNN = nearestNeighbor.ptr<int>(y)[x];
+	int curNNx = curNN % cols;
+	int curNNy = curNN / cols;
+
+	// Current nearest background pixel of (tenNNx,tenNNy)
+	int tenCurNeighbor = nearestNeighbor.ptr<int>(tenNNy)[tenNNx];
+	int tenCurNNx = tenCurNeighbor % cols;
+	int tenCurNNy = tenCurNeighbor / cols;
+
+
+
+	float curDist = sqrt(pow((tenNNx-tenCurNNx),2) +pow((tenNNy-tenCurNNy),2));
+	float distThroughX = sqrt(pow((curNNx-tenNNx),2) + pow((curNNy-tenNNy),2));
+
+	if(distThroughX < curDist){
+		isTentativeShorter = true;
+		int *nnPtr = nearestNeighbor.ptr<int>(tenNNy);
+		nnPtr[tenNNx] = curNN;
+	}
+
+	return isTentativeShorter;
+}
+
+// try to propagate distance to a neighbor pixel
+void propagateDist8(int x, int y, Mat &nearestNeighbor, std::queue<int> &xQ, std::queue<int> &yQ){
+	int rows = nearestNeighbor.rows;
+	int cols = nearestNeighbor.cols;
+        // upper line
+        if(y>0){
+                // uppper left corner
+                if(x > 0){
+			bool propagate = propagateDist(x, y, nearestNeighbor, x-1, y-1);
+			if(propagate){
+				xQ.push(x-1);
+				yQ.push(y-1);
+			}
+                }
+                // upper right corner
+                if(x < (cols-1)){
+			bool propagate = propagateDist(x, y, nearestNeighbor, x+1, y-1);
+			if(propagate){
+				xQ.push(x+1);
+				yQ.push(y-1);
+			}
+                }
+                // upper center
+		bool propagate = propagateDist(x, y, nearestNeighbor, x, y-1);
+		if(propagate){
+			xQ.push(x);
+			yQ.push(y-1);
+		}
+        }
+
+        // lower line
+        if(y < (rows-1)){
+                // lower left corner
+                if(x > 0){
+			bool propagate = propagateDist(x, y, nearestNeighbor, x-1, y+1);
+			if(propagate){
+				xQ.push(x-1);
+				yQ.push(y+1);
+			}
+                }
+                // lower right corner
+                if(x < (cols-1)){
+			bool propagate = propagateDist(x, y, nearestNeighbor, x+1, y+1);
+			if(propagate){
+				xQ.push(x+1);
+				yQ.push(y+1);
+			}
+                }
+                // lower center
+		bool propagate = propagateDist(x, y, nearestNeighbor, x, y+1);
+		if(propagate){
+			xQ.push(x);
+			yQ.push(y+1);
+		}
+        }
+        // left item
+        if(x>0){
+		bool propagate = propagateDist(x, y, nearestNeighbor, x-1, y);
+		if(propagate){
+			xQ.push(x-1);
+			yQ.push(y);
+		}
+        }
+        // right item
+        if(x < (cols-1)){
+		bool propagate = propagateDist(x, y, nearestNeighbor, x+1, y);
+		if(propagate){
+			xQ.push(x+1);
+			yQ.push(y);
+		}
+        }
+}
+
+
+
+Mat distanceTransform(const Mat& mask, bool calcDist) {
+	CV_Assert(mask.channels() == 1);
+	CV_Assert(mask.type() ==  CV_8UC1);
+	
+	// create nearest neighbors map
+	Mat nearestNeighbor(mask.size(), CV_32S);
+
+	// save x and y dimension of pixel to be propagated
+	std::queue<int> xQ;
+	std::queue<int> yQ;
+
+	// Initialization phase: find initial wavefront pixels and init. nearestNeighbor matrix.
+	for(int y = 0; y < nearestNeighbor.rows; y++){
+		// get point to current line of matrices
+		int *nnPtr = nearestNeighbor.ptr<int>(y);
+		const uchar *maskPtr = mask.ptr<uchar>(y);
+
+		// iterate over column to init neartes background pixel, and detect wavefront pixels
+		for(int x = 0; x < nearestNeighbor.cols; x++){
+			nnPtr[x] = nearestNeighbor.rows * nearestNeighbor.cols * 3;
+
+			// if this is a background pixel
+			if(maskPtr[x] == 0){
+				nnPtr[x] = y*nearestNeighbor.cols+x;
+
+				bool isWavefrontPixel = nscale::checkDistNeighbors8(x, y, mask);
+				if(isWavefrontPixel){
+					xQ.push(x);
+					yQ.push(y);
+				}
+			}
+		}
+	}
+
+//	std::cout << "#pixel in initial wavefront: "<< xQ.size() << " x="<<xQ.front() << " y="<< yQ.front()<<std::endl;
+	int count = 0;
+	while(!xQ.empty()){
+		count++;
+		int y = yQ.front();
+		int x = xQ.front();
+		xQ.pop();
+		yQ.pop();
+
+		// try to propagate nearest backgroung of (x,y) pixel to its neighbors
+		propagateDist8(x, y, nearestNeighbor, xQ, yQ);
+
+	}
+
+	
+	// Print nearest neighbors matrix
+//        for(int x = 0; x < nearestNeighbor.rows; x++){
+//                int* ptr = nearestNeighbor.ptr<int>(x);
+//                for(int y = 0; y < nearestNeighbor.cols; y++){
+//                        std::cout << std::setprecision(2) << ptr[y] <<"\t ";
+//                }
+//                std::cout<<std::endl;
+//        }
+//
+	if(calcDist){
+		Mat distanceMap(mask.size(), CV_32FC1);
+
+		// Calculate the distance map, based on the nearest neighbors map.
+		for(int y = 0; y < mask.rows; y++){
+			int* nnPtr = nearestNeighbor.ptr<int>(y);
+			float* nnDist = distanceMap.ptr<float>(y);
+			for(int x=0; x < mask.cols; x++){
+				int curNN = nnPtr[x];
+				int x_neighbor = curNN % mask.cols;
+				int y_neighbor = curNN / mask.cols;
+
+				nnDist[x] = sqrt( (x-x_neighbor)*(x-x_neighbor)+ (y-y_neighbor)*(y-y_neighbor));
+			}
+		}
+
+		return distanceMap;
+	}else{
+		return nearestNeighbor;
+	}
+}
+
+
+
+Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize) {
+	CV_Assert(nearestNeighbor.channels() == 1);
+
+	int nTiles = nearestNeighbor.cols/tileSize;
+	
+	// save x and y dimension of pixel to be propagated
+	std::queue<int> xQ;
+	std::queue<int> yQ;
+
+	uint64_t t1 = cciutils::ClockGetTime();
+
+	std::cout << "nTiles="<< nTiles*nTiles << " tileSize="<<tileSize <<std::endl;
+	int count = 0;
+
+	// pass over entire image image
+	for (int y = 0; y < nearestNeighbor.rows; ++y) {
+		int xIncrement=1;
+		for (int x = 0; x < nearestNeighbor.cols; x+=xIncrement) {
+//			std::cout << "("<<y<<","<<x<<"):"<< std::endl;
+
+			propagateDist8(x, y, nearestNeighbor, xQ, yQ);
+
+			if( (x%(tileSize) == (tileSize-1)) || (y%(tileSize)==(tileSize-1) || y%(tileSize)==0) ){
+				xIncrement=1;
+			}else{
+				xIncrement=tileSize-1;
+			}
+
+		}
+	}
+	uint64_t t2 = cciutils::ClockGetTime();
+	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries="<< xQ.size()<< std::endl;
+
+	count = 0;
+	while(!xQ.empty()){
+		count++;
+		int y = yQ.front();
+		int x = xQ.front();
+		xQ.pop();
+		yQ.pop();
+
+		// try to propagate nearest backgroung of (x,y) pixel to its neighbors
+		propagateDist8(x, y, nearestNeighbor, xQ, yQ);
+
+	}
+
+	uint64_t t3 = cciutils::ClockGetTime();
+	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
+	Mat distanceMap(nearestNeighbor.size(), CV_32FC1);
+
+//        for(int x = 0; x < nearestNeighbor.rows; x++){
+//                int* ptr = nearestNeighbor.ptr<int>(x);
+//                for(int y = 0; y < nearestNeighbor.cols; y++){
+//                        std::cout << std::setprecision(2) << ptr[y] <<"\t ";
+//                }
+//                std::cout<<std::endl;
+//        }
+
+	// Calculate the distance map, based on the nearest neighbors map.
+#pragma omp parallel for
+	for(int y = 0; y < nearestNeighbor.rows; y++){
+		int* nnPtr = nearestNeighbor.ptr<int>(y);
+		float* nnDist = distanceMap.ptr<float>(y);
+		for(int x=0; x < nearestNeighbor.cols; x++){
+			int curNN = nnPtr[x];
+			int x_neighbor = curNN % nearestNeighbor.cols;
+			int y_neighbor = curNN / nearestNeighbor.cols;
+
+			nnDist[x] = sqrt( (x-x_neighbor)*(x-x_neighbor)+ (y-y_neighbor)*(y-y_neighbor));
+		}
+	}
+
+	return distanceMap;
+
+
+}
+
+
+cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads){
+
+	if(nThreads >0)
+		omp_set_num_threads(nThreads);
+
+	int tileWidth=tileSize;
+	int tileHeight=tileSize;
+	int nTilesX=mask.cols/tileWidth;
+	int nTilesY=mask.rows/tileHeight;
+	uint64_t t1, t2; 
+	
+	uint64_t t1_tiled = cciutils::ClockGetTime();
+//	// Print nearestNeighbor matrix
+//        for(int x = 0; x < mask.rows; x++){
+//                const unsigned char* ptr = mask.ptr<unsigned char>(x);
+//                for(int y = 0; y < mask.cols; y++){
+//                        std::cout << std::setprecision(2) << (int)(ptr[y]) <<"\t ";
+//                }
+//                std::cout<<std::endl;
+//        }
+
+	Mat nearestNeighbor(mask.size(), CV_32S);
+
+//#pragma omp parallel for schedule(dynamic,1)
+	for(int tileY=0; tileY < nTilesY; tileY++){
+//#pragma omp parallel for  schedule(dynamic,1)
+		for(int tileX=0; tileX < nTilesX; tileX++){
+			Mat roiMask(mask, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
+			Mat roiNeighborMap(nearestNeighbor, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));	
+			t1 = cciutils::ClockGetTime();
+        
+			Stream stream;
+			GpuMat g_mask(roiMask);
+			GpuMat g_distance = nscale::gpu::distanceTransform(g_mask, stream, false, tileX, tileY, tileSize, nearestNeighbor.cols);
+			stream.waitForCompletion();
+			g_distance.download(roiNeighborMap);
+	//		Mat neighborMapTile(g_distance);
+			g_mask.release();
+			g_distance.release();
+
+/*			Mat neighborMapTile = nscale::distanceTransform(roiMask, false);
+
+			for(int y = 0; y < neighborMapTile.rows; y++){
+				int* NMTPtr = neighborMapTile.ptr<int>(y);
+				for(int x = 0; x < neighborMapTile.cols; x++){
+					int colId = NMTPtr[x] % neighborMapTile.cols + tileX * tileSize;
+					int rowId = NMTPtr[x] / neighborMapTile.cols + tileY * tileSize;
+					NMTPtr[x] = rowId*nearestNeighbor.cols + colId;
+
+				} 
+			}*/
+//			uint64_t t1_copy = cciutils::ClockGetTime();
+//			neighborMapTile.copyTo(roiNeighborMap);
+//			uint64_t t2_copy = cciutils::ClockGetTime();
+//			std::cout << "copyDataInCPUMemory" << t2_copy-t1_copy << "ms" << std::endl;			
+
+			uint64_t t2 = cciutils::ClockGetTime();
+
+			std::cout << " Tile took " << t2-t1 << "ms" << std::endl;
+		}
+	}
+	uint64_t t2_tiled = cciutils::ClockGetTime();
+	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
+
+	// Print nearestNeighbor matrix
+/*        for(int x = 0; x < nearestNeighbor.rows; x++){
+                int* ptr = nearestNeighbor.ptr<int>(x);
+                for(int y = 0; y < nearestNeighbor.cols; y++){
+                        std::cout << std::setprecision(2) << ptr[y] <<"\t ";
+                }
+                std::cout<<std::endl;
+        }*/
+
+	t1 = cciutils::ClockGetTime();
+	Mat distanceMap = nscale::distTransformFixTilingEffects(nearestNeighbor, tileSize);
+	t2 = cciutils::ClockGetTime();
+	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
+
+	return distanceMap;
+}
 
 
 template <typename T>
@@ -652,7 +1057,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	vector<std::queue<int> > xQ(nThreads);
 	vector<std::queue<int> > yQ(nThreads);
 
-	std::cout << "Queue.size = "<< xQ.size() <<std::endl;
+	std::cout << "Queue.size = "<< xQ.size() <<" Queue[0].size()="<< xQ[0].size()<<std::endl;
 	T* oPtr;
 	T* oPtrMinus;
 	T* oPtrPlus;
@@ -768,18 +1173,24 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 
 			ppval = &(oPtr[x]);
 
+			pval = oPtr[x];
+
 			// look at the 4 connected components
 			if (y > 0) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yminus, iPtrMinus, oPtrMinus, ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yminus, iPtrMinus, oPtrMinus, ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], x, yminus, iPtrMinus, oPtrMinus, pval);
 			}
 			if (y < maxy) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yplus, iPtrPlus, oPtrPlus,ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], x, yplus, iPtrPlus, oPtrPlus,ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], x, yplus, iPtrPlus, oPtrPlus,pval);
 			}
 			if (x > 0) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, y, iPtr, oPtr,ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, y, iPtr, oPtr,ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], xminus, y, iPtr, oPtr,pval);
 			}
 			if (x < maxx) {
-				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,ppval);
+				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,ppval);
+				propagate<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,pval);
 			}
 			
 					// now 8 connected
@@ -787,19 +1198,24 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 			
 				if (y > 0) {
 					if (x > 0) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, ppval);
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, pval);
 					}
 					if (x < maxx) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, ppval);
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, pval);
 					}
 			
 				}
 				if (y < maxy) {
 					if (x > 0) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yplus, iPtrPlus, oPtrPlus,ppval);
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yplus, iPtrPlus, oPtrPlus,ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xminus, yplus, iPtrPlus, oPtrPlus,pval);
 					}
 					if (x < maxx) {
-						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,ppval);
+
+						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,ppval);
+						propagate<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,pval);
 					}
 			
 				}
@@ -1066,9 +1482,9 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 
 	Mat marker_copy(seeds);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
 	for(int tileY=0; tileY < nTilesY; tileY++){
-#pragma omp parallel for
+#pragma omp parallel for  schedule(dynamic,1)
 		for(int tileX=0; tileX < nTilesX; tileX++){
 			Mat roiMarker(marker_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight ));
 			Mat roiMask(image, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
@@ -1086,7 +1502,9 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
 
 	t1 = cciutils::ClockGetTime();
-	Mat reconCopy = nscale::imreconstructFixTilingEffects<T>(marker_copy, image, 8, 0,0,tileSize);
+
+	Mat reconCopy = nscale::imreconstructFixTilingEffects<T>(marker_copy, image, 8, 0, 0, tileSize);
+//	Mat reconCopy = nscale::imreconstructFixTilingEffectsParallel<T>(marker_copy, image, 8, tileSize);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
 
@@ -1486,6 +1904,10 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 //	uint64_t t1 = cciutils::ClockGetTime();
 	Mat output;
 	if (binary == true) {
+//		imwrite("in-imrecon-binary-marker.pgm", marker);
+//		imwrite("in-imrecon-binary-mask.pgm", mask);
+
+
 //		imwrite("test/in-fillholes-bin-marker.pgm", marker);
 //		imwrite("test/in-fillholes-bin-mask.pgm", mask);
 		output = imreconstructBinary<T>(marker, mask, connectivity);
@@ -1850,6 +2272,10 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 	 */
 	Mat mask = nscale::PixelOperations::invert<T>(image);
 	Mat marker = mask - h;
+
+//	imwrite("in-imrecon-float-marker.exr", marker);
+//	imwrite("in-imrecon-float-mask.exr", mask);
+
 	Mat output = imreconstruct<T>(marker, mask, connectivity);
 	return nscale::PixelOperations::invert<T>(output);
 }

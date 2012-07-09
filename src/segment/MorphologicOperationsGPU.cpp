@@ -107,7 +107,7 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream) {throw_nogpu(); }
 
 #else
 
-GpuMat distanceTransform(const GpuMat& mask, Stream& stream) {
+GpuMat distanceTransform(const GpuMat& mask, Stream& stream, bool calcDist, int tIdX, int tIdY, int tileSize, int imgCols) {
 	CV_Assert(mask.channels() == 1);
 	CV_Assert(mask.type() ==  CV_8UC1);
 	
@@ -115,15 +115,19 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream) {
 	GpuMat g_nearestNeighbors(mask.size(), CV_32S);
 
 	int g_queue_size;
-	int queue_propagation_increase = 2;
+	int queue_propagation_increase = 32;
 	int retCode=1;
 	
 	// try the computation untill it succeeds without "exploding the queue size".
 	do{
 //		std::cout << "Call build queue rows= "<< mask.rows<< " cols="<< mask.cols << std::endl;
+
+		uint64_t t1 = cciutils::ClockGetTime();
 		// build queue with propagation frontier pixels
 		int *g_queue = nscale::gpu::distQueueBuildCaller(mask.rows, mask.cols, mask, g_nearestNeighbors, g_queue_size, StreamAccessor::getStream(stream));
-//		std::cout << "After Call build queue - queue size = "<< g_queue_size << std::endl;
+
+		uint64_t t2 = cciutils::ClockGetTime();
+		std::cout << "After Call build queue - queue size = "<< g_queue_size << " elapsedTime:"<<t2-t1 <<std::endl;
 
 		stream.waitForCompletion();
 
@@ -133,46 +137,22 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream) {
 		queue_propagation_increase *=4;
 	}while(retCode);
 
-	// Calculate the distance map, based on the nearest neighbors map.
-//
-//	Mat h_nearestNeighbors(g_nearestNeighbors);
-//	for(int x = 0; x < h_nearestNeighbors.rows; x++){
-//		int* ptr = (int*)h_nearestNeighbors.ptr(x);
-//
-//
-//		for(int y = 0; y < h_nearestNeighbors.cols; y++){
-//
-//			std::cout << std::setprecision(10) << ptr[y] <<"\t ";
-//
-//
-//		}
-//		std::cout<<std::endl;
-//	}
-//
-//	for(int x = 0; x < h_nearestNeighbors.rows; x++){
-//		int* ptr = (int*)h_nearestNeighbors.ptr(x);
-//
-//
-//		for(int y = 0; y < h_nearestNeighbors.cols; y++){
-//			int x_neighbor = ptr[y]/h_nearestNeighbors.cols;
-//			int y_neighbor = ptr[y]%h_nearestNeighbors.cols;
-//
-//
-//			std::cout << std::setprecision(10) << sqrt((x-x_neighbor)*(x-x_neighbor)+(y-y_neighbor)*(y-y_neighbor)) <<"\t ";
-//
-//
-//		}
-//		std::cout<<std::endl;
-//	}
-//
+	if(calcDist){
+		uint64_t t1 = cciutils::ClockGetTime();
+		GpuMat g_distanceMap(mask.size(), CV_32FC1);
+		nscale::gpu::distMapCalcCaller(g_nearestNeighbors.rows, g_nearestNeighbors.cols, g_nearestNeighbors, g_distanceMap, StreamAccessor::getStream(stream));
+		stream.waitForCompletion();
+		uint64_t t2 = cciutils::ClockGetTime();
+		std::cout << "DistMapCalc Time:" << t2-t1 << std::endl;
 
-	GpuMat g_distanceMap(mask.size(), CV_32FC1);
-	nscale::gpu::distMapCalcCaller(g_nearestNeighbors.rows, g_nearestNeighbors.cols, g_nearestNeighbors, g_distanceMap, StreamAccessor::getStream(stream));
-	stream.waitForCompletion();
-
-	g_nearestNeighbors.release();
-//	nearestNeighbors.release();
-	return g_distanceMap;
+		g_nearestNeighbors.release();
+		return g_distanceMap;
+	}else{
+		std::cout << "neighborCalcCaller"<<std::endl;
+		// calc global value of data calculated for this tile
+		::nscale::gpu::neighborCalcCaller(g_nearestNeighbors.rows, g_nearestNeighbors.cols, g_nearestNeighbors, tIdX, tIdY, tileSize, imgCols, StreamAccessor::getStream(stream));
+		return g_nearestNeighbors;
+	}
 }
 
 /** slightly optimized serial implementation,
