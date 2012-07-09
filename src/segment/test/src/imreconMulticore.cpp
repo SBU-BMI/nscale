@@ -24,18 +24,34 @@ using namespace cv::gpu;
 using namespace std;
 
 int main (int argc, char **argv){
-	if(argc != 4){
-		std::cout << "Usage: ./imreconMulticore <marker-img> <mask-img> <#Threads>" <<std::endl;
+	if(argc != 5){
+		std::cout << "Usage: ./imreconMulticore <marker-img> <mask-img> <#Threads> <tileSize>" <<std::endl;
 		exit(1);
 	}
+
 	Mat marker = imread(argv[1], -1);
 	Mat mask = imread(argv[2], -1);
 	int nThreads = atoi(argv[3]);
-
+	int tileSize = atoi(argv[4]);
 	omp_set_num_threads(nThreads);
 
+	int zoomFactor = 16;
+        if(zoomFactor > 1){
+                Mat tempMarker = Mat::zeros((marker.cols*zoomFactor)+2,(marker.rows*zoomFactor)+2, marker.type());
+                Mat tempMask = Mat::zeros((mask.cols*zoomFactor)+2 ,(mask.rows*zoomFactor)+2, mask.type());
+                for(int x = 0; x < zoomFactor; x++){
+                        for(int y = 0; y <zoomFactor; y++){
+                                Mat roi(tempMarker, cv::Rect((marker.cols*x)+1, marker.rows*y+1, marker.cols, marker.rows));
+                                marker.copyTo(roi);
+                                Mat roiMask(tempMask, cv::Rect((mask.cols*x)+1, mask.rows*y+1, mask.cols, mask.rows ));
+                                mask.copyTo(roiMask);
+                        }
+                }
+                marker = tempMarker;
+                mask = tempMask;
+        }
 	uint64_t t1 = cciutils::ClockGetTime();
-	Mat recon1 = nscale::imreconstruct<unsigned char>(marker, mask, 8);
+//	Mat recon1 = nscale::imreconstruct<unsigned char>(marker, mask, 8);
 	uint64_t t2 = cciutils::ClockGetTime();
 	std::cout << "SequentialTime="<< t2-t1 << std::endl;
 
@@ -44,6 +60,7 @@ int main (int argc, char **argv){
 	Mat mask_border(mask.size() + Size(2,2), mask.type());
 	copyMakeBorder(mask, mask_border, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 
+	mask.release();marker.release();
 	Mat marker_copy(marker_border, Rect(1,1,marker_border.cols-2,marker_border.rows-2));
 	Mat mask_copy(mask_border, Rect(1,1,mask_border.cols-2,mask_border.rows-2));
 
@@ -52,13 +69,13 @@ int main (int argc, char **argv){
 	t2 = cciutils::ClockGetTime();
 	std::cout << "QueueTime = "<< t2-t1 << std::endl;
 
-	t1 = cciutils::ClockGetTime();
-	Mat reconTile = nscale::imreconstructParallelTile<unsigned char>(marker,mask,8,1024, nThreads);
-	t2 = cciutils::ClockGetTime();
-	std::cout << "TiledTime = "<< t2-t1 << std::endl;
+//	t1 = cciutils::ClockGetTime();
+//	Mat reconTile = nscale::imreconstructParallelTile<unsigned char>(marker,mask,8,tileSize, nThreads);
+//	t2 = cciutils::ClockGetTime();
+//	std::cout << "TiledTime = "<< t2-t1 << std::endl;
 
-	std::cout << "comp reconQueue= "<<countNonZero(recon1!=reconQueue) << std::endl;
-	std::cout << "comp reconTile= "<<countNonZero(recon1!=reconTile) << std::endl;
+//	std::cout << "comp reconQueue= "<<countNonZero(recon1!=reconQueue) << std::endl;
+//	std::cout << "comp reconTile= "<<countNonZero(recon1!=reconTile) << std::endl;
 	return 0;
 }
 

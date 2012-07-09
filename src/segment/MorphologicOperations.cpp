@@ -627,7 +627,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 		output = seeds;
 		input = image;
 
-		nTiles = seeds.cols-2/tileSize;
+		nTiles = (seeds.cols-2)/tileSize;
 	}else{
 		output.create(seeds.size() + Size(2,2), seeds.type());
 		copyMakeBorder(seeds, output, 1, 1, 1, 1, BORDER_CONSTANT, 0);
@@ -667,12 +667,12 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 
 	t1 = cciutils::ClockGetTime();
 	// pass over entire image image
-
-#pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static) 
+	int tid = 0;
+//	int tid = omp_get_thread_num();
+//#pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static) 
 	for (int y = 1; y <= maxy-1; ++y) {
-		int tid = omp_get_thread_num();
-
-		oPtr = output.ptr<T>(y);
+//		int tid = omp_get_thread_num();
+			oPtr = output.ptr<T>(y);
 		oPtrPlus = output.ptr<T>(y+1);
 		oPtrMinus = output.ptr<T>(y-1);
 		iPtr = input.ptr<T>(y);
@@ -699,6 +699,11 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 				yQ[tid].push(y);
 				candidateFound=true;
 				++count;
+	if(xQ[tid].size() % 1000 == 0){
+				tid++;
+				tid %= nThreads;
+			}
+
 			}
 
 			if (connectivity == 8 && !candidateFound) {
@@ -710,6 +715,11 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 					xQ[tid].push(x);
 					yQ[tid].push(y);
 					++count;
+					if(xQ[tid].size() % 1000 == 0){
+						tid++;
+						tid %= nThreads;
+					}
+
 				}
 			}
 
@@ -718,12 +728,14 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 			}else{
 				xIncrement=tileSize-1;
 			}
-
+		
 		}
 	}
+
 	uint64_t t2 = cciutils::ClockGetTime();
 	count = 0;
 	for(int i = 0; i < xQ.size(); i++){
+		std::cout << "Queue["<<i<<"]="<< xQ[i].size() << std::endl;
 		count+=xQ[i].size();
 	}
 	std::cout << "    scan time = " << t2-t1 << "ms for queue entries="<< count<< std::endl;
@@ -1074,7 +1086,7 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
 
 	t1 = cciutils::ClockGetTime();
-	Mat reconCopy = nscale::imreconstructFixTilingEffectsParallel<T>(marker_copy, image, 8, tileSize);
+	Mat reconCopy = nscale::imreconstructFixTilingEffects<T>(marker_copy, image, 8, 0,0,tileSize);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
 
