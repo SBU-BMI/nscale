@@ -28,7 +28,7 @@ int main (int argc, char **argv){
 	}
 //	std::cout << "input - " << (int) input.ptr(10)[20] << std::endl;
 
-       int zoomFactor = 4; 
+       int zoomFactor = 2; 
 
         if(zoomFactor > 1){
                 Mat tempMask = Mat::zeros((input.cols*zoomFactor) ,(input.rows*zoomFactor), input.type());
@@ -90,7 +90,7 @@ int main (int argc, char **argv){
 
 
 	t1 = cciutils::ClockGetTime();
-	Mat queueBasedTiled = nscale::distanceTransformParallelTile(input,8192, 8);
+	Mat queueBasedTiled = nscale::distanceTransformParallelTile(input,4096, 8);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "distTranf CPU queue tiled took "<< t2-t1 << " ms" << std::endl;
 	queueBasedTiled.release();

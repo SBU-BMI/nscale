@@ -115,7 +115,7 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream, bool calcDist, int 
 	GpuMat g_nearestNeighbors(mask.size(), CV_32S);
 
 	int g_queue_size;
-	int queue_propagation_increase = 32;
+	int queue_propagation_increase =2;
 	int retCode=1;
 	
 	// try the computation untill it succeeds without "exploding the queue size".

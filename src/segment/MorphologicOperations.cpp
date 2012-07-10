@@ -273,7 +273,7 @@ Mat distanceTransform(const Mat& mask, bool calcDist) {
 
 
 
-Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize) {
+Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize, bool calcDist) {
 	CV_Assert(nearestNeighbor.channels() == 1);
 
 	int nTiles = nearestNeighbor.cols/tileSize;
@@ -321,37 +321,41 @@ Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize) {
 
 	uint64_t t3 = cciutils::ClockGetTime();
 	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
-	Mat distanceMap(nearestNeighbor.size(), CV_32FC1);
+	if(calcDist){
 
-//        for(int x = 0; x < nearestNeighbor.rows; x++){
-//                int* ptr = nearestNeighbor.ptr<int>(x);
-//                for(int y = 0; y < nearestNeighbor.cols; y++){
-//                        std::cout << std::setprecision(2) << ptr[y] <<"\t ";
-//                }
-//                std::cout<<std::endl;
-//        }
+		Mat distanceMap(nearestNeighbor.size(), CV_32FC1);
 
-	// Calculate the distance map, based on the nearest neighbors map.
+		//        for(int x = 0; x < nearestNeighbor.rows; x++){
+		//                int* ptr = nearestNeighbor.ptr<int>(x);
+		//                for(int y = 0; y < nearestNeighbor.cols; y++){
+		//                        std::cout << std::setprecision(2) << ptr[y] <<"\t ";
+		//                }
+		//                std::cout<<std::endl;
+		//        }
+
+		// Calculate the distance map, based on the nearest neighbors map.
 #pragma omp parallel for
-	for(int y = 0; y < nearestNeighbor.rows; y++){
-		int* nnPtr = nearestNeighbor.ptr<int>(y);
-		float* nnDist = distanceMap.ptr<float>(y);
-		for(int x=0; x < nearestNeighbor.cols; x++){
-			int curNN = nnPtr[x];
-			int x_neighbor = curNN % nearestNeighbor.cols;
-			int y_neighbor = curNN / nearestNeighbor.cols;
+		for(int y = 0; y < nearestNeighbor.rows; y++){
+			int* nnPtr = nearestNeighbor.ptr<int>(y);
+			float* nnDist = distanceMap.ptr<float>(y);
+			for(int x=0; x < nearestNeighbor.cols; x++){
+				int curNN = nnPtr[x];
+				int x_neighbor = curNN % nearestNeighbor.cols;
+				int y_neighbor = curNN / nearestNeighbor.cols;
 
-			nnDist[x] = sqrt( (x-x_neighbor)*(x-x_neighbor)+ (y-y_neighbor)*(y-y_neighbor));
+				nnDist[x] = sqrt( (x-x_neighbor)*(x-x_neighbor)+ (y-y_neighbor)*(y-y_neighbor));
+			}
 		}
+
+		return distanceMap;
+	}else{
+		return nearestNeighbor;
 	}
-
-	return distanceMap;
-
 
 }
 
 
-cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads){
+cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads, bool calcDist){
 
 	if(nThreads >0)
 		omp_set_num_threads(nThreads);
@@ -363,26 +367,17 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 	uint64_t t1, t2; 
 	
 	uint64_t t1_tiled = cciutils::ClockGetTime();
-//	// Print nearestNeighbor matrix
-//        for(int x = 0; x < mask.rows; x++){
-//                const unsigned char* ptr = mask.ptr<unsigned char>(x);
-//                for(int y = 0; y < mask.cols; y++){
-//                        std::cout << std::setprecision(2) << (int)(ptr[y]) <<"\t ";
-//                }
-//                std::cout<<std::endl;
-//        }
-
 	Mat nearestNeighbor(mask.size(), CV_32S);
 
-//#pragma omp parallel for schedule(dynamic,1)
+#pragma omp parallel for schedule(dynamic,1)
 	for(int tileY=0; tileY < nTilesY; tileY++){
-//#pragma omp parallel for  schedule(dynamic,1)
+#pragma omp parallel for  schedule(dynamic,1)
 		for(int tileX=0; tileX < nTilesX; tileX++){
 			Mat roiMask(mask, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
 			Mat roiNeighborMap(nearestNeighbor, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));	
 			t1 = cciutils::ClockGetTime();
         
-			Stream stream;
+/*			Stream stream;
 			GpuMat g_mask(roiMask);
 			GpuMat g_distance = nscale::gpu::distanceTransform(g_mask, stream, false, tileX, tileY, tileSize, nearestNeighbor.cols);
 			stream.waitForCompletion();
@@ -390,8 +385,8 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 	//		Mat neighborMapTile(g_distance);
 			g_mask.release();
 			g_distance.release();
-
-/*			Mat neighborMapTile = nscale::distanceTransform(roiMask, false);
+*/
+			Mat neighborMapTile = nscale::distanceTransform(roiMask, false);
 
 			for(int y = 0; y < neighborMapTile.rows; y++){
 				int* NMTPtr = neighborMapTile.ptr<int>(y);
@@ -401,9 +396,9 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 					NMTPtr[x] = rowId*nearestNeighbor.cols + colId;
 
 				} 
-			}*/
+			}
 //			uint64_t t1_copy = cciutils::ClockGetTime();
-//			neighborMapTile.copyTo(roiNeighborMap);
+			neighborMapTile.copyTo(roiNeighborMap);
 //			uint64_t t2_copy = cciutils::ClockGetTime();
 //			std::cout << "copyDataInCPUMemory" << t2_copy-t1_copy << "ms" << std::endl;			
 
@@ -415,17 +410,8 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 	uint64_t t2_tiled = cciutils::ClockGetTime();
 	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
 
-	// Print nearestNeighbor matrix
-/*        for(int x = 0; x < nearestNeighbor.rows; x++){
-                int* ptr = nearestNeighbor.ptr<int>(x);
-                for(int y = 0; y < nearestNeighbor.cols; y++){
-                        std::cout << std::setprecision(2) << ptr[y] <<"\t ";
-                }
-                std::cout<<std::endl;
-        }*/
-
 	t1 = cciutils::ClockGetTime();
-	Mat distanceMap = nscale::distTransformFixTilingEffects(nearestNeighbor, tileSize);
+	Mat distanceMap = nscale::distTransformFixTilingEffects(nearestNeighbor, tileSize, calcDist);
 	t2 = cciutils::ClockGetTime();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
 

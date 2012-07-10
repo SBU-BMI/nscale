@@ -90,7 +90,8 @@ cv::Mat morphOpen(const cv::Mat& image, const cv::Mat& kernel);
 
 
 cv::Mat distanceTransform(const cv::Mat& mask, bool calcDist=true);
-cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads);
+cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads, bool calcDist=true);
+cv::Mat distTransformFixTilingEffects(cv::Mat& nearestNeighbor, int tileSize, bool calcDist=true);
 
 namespace gpu {
 // GPU versions of the same functions.
