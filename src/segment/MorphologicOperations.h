@@ -89,6 +89,9 @@ template <typename T>
 cv::Mat morphOpen(const cv::Mat& image, const cv::Mat& kernel);
 
 
+cv::Mat distanceTransform(const cv::Mat& mask, bool calcDist=true);
+cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads, bool calcDist=true);
+cv::Mat distTransformFixTilingEffects(cv::Mat& nearestNeighbor, int tileSize, bool calcDist=true);
 
 namespace gpu {
 // GPU versions of the same functions.
@@ -182,7 +185,7 @@ cv::gpu::GpuMat morphErode(const cv::gpu::GpuMat& image, const cv::Mat& kernel, 
 template <typename T>
 cv::gpu::GpuMat morphDilate(const cv::gpu::GpuMat& image, const cv::Mat& kernel, cv::gpu::Stream& stream);
 
-cv::gpu::GpuMat distanceTransform(const cv::gpu::GpuMat& mask, cv::gpu::Stream& stream);
+cv::gpu::GpuMat distanceTransform(const cv::gpu::GpuMat& mask, cv::gpu::Stream& stream, bool calcDist=true, int tIdX=0, int tIdY=0, int tileSize=0, int imgCols=0);
 
 }
 
