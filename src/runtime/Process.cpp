@@ -30,19 +30,31 @@ Process::Process(int argc, char **argv, ProcessConfigurator_I *_conf) :
 	gethostname(hostname, 255);  // from <iostream>
 
 	comm_world = MPI_COMM_WORLD;
-	if (conf != NULL) conf->init();
+	MPI_Comm_rank(comm_world, &world_rank);
+
+	logger = new cciutils::SCIOLogger(world_rank, hostname, 0);
+
+	if (conf != NULL) conf->init(logger);
 
 }
 
 Process::~Process() {
-	Debug::print("Process destructor called\n");
+	//Debug::print("Process destructor called\n");
 
-	teardown();
+	if (configured) teardown();
 
 	if (conf != NULL) {
 		conf->finalize();
 		delete conf;
 	}
+
+#if defined (WITH_MPI)
+	logger->writeCollectively("test.log", world_rank, 0, comm_world);
+#else
+	logger->write("test.log");
+#endif
+
+	if (logger) delete logger;
 
 	MPI_Finalize();
 }
@@ -50,7 +62,7 @@ Process::~Process() {
 
 void Process::setup() {
 	// if already configured, clean up,
-	teardown();
+	if (configured) teardown();
 
 	configured = conf->configure(comm_world, this);
 
@@ -91,9 +103,10 @@ void Process::run() {
 
 void Process::teardown() {
 	MPI_Barrier(comm_world);
+
 	if (!configured) return;
 
-	// clean up all the communicators.
+	// clean up all the communication handlers.
 	for (int i = 0; i < handlers.size(); ++i) {
 		Communicator_I::dereference(handlers[i], &handlers);
 	}

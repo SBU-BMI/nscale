@@ -11,10 +11,8 @@
 namespace cci {
 namespace rt {
 
-Segment::Segment(MPI_Comm const * _parent_comm, int const _gid) :
-				Action_I(_parent_comm, _gid) {
-	// TODO Auto-generated constructor stub
-
+Segment::Segment(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logger) :
+				Action_I(_parent_comm, _gid, _logger) {
 }
 
 Segment::~Segment() {

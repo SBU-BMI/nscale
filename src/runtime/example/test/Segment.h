@@ -15,7 +15,7 @@ namespace rt {
 
 class Segment: public cci::rt::Action_I {
 public:
-	Segment(MPI_Comm const * _parent_comm, int const _gid);
+	Segment(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logger = NULL);
 	virtual ~Segment();
 	virtual int run();
 	virtual const char* getClassName() { return "Segment"; };

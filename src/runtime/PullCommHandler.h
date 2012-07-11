@@ -15,7 +15,7 @@ namespace rt {
 
 class PullCommHandler: public cci::rt::CommHandler_I {
 public:
-	PullCommHandler(MPI_Comm const *_parent_comm, int const _gid, Scheduler_I * _scheduler);
+	PullCommHandler(MPI_Comm const *_parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logger = NULL);
 	virtual ~PullCommHandler();
 
 	virtual const char* getClassName() { return "PullCommHandler"; };

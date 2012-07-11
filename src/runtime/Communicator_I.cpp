@@ -19,8 +19,8 @@ const int Communicator_I::WAIT = 2;
 const int Communicator_I::DONE = 0;
 const int Communicator_I::ERROR = -1;
 
-Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid) :
-	groupid(_gid), parent_comm(_parent_comm), call_count(0) {
+Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logger) :
+	groupid(_gid), parent_comm(_parent_comm), call_count(0), logger(_logger) {
 	pcomm_rank = -1;
 	rank = -1;
 	pcomm_size = 0;

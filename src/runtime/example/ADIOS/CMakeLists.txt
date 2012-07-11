@@ -8,9 +8,9 @@ set(RT-Example-test_VERSION_MINOR 0)
 include_directories(${Runtime_SOURCE_DIR})
 include_directories(${Segmentation_SOURCE_DIR})
 include_directories(${SCIOSegmentation_SOURCE_DIR})
-
 include_directories(${SCIOSegmentation_SOURCE_DIR}/adios-include)
-	
+include_directories(${SCIOSegmentation_BINARY_DIR})
+
 # Make sure the compiler can find the library in Execution Engine directory
 link_directories(${Runtime_SOURCE_DIR})
 link_directories(${Segmentation_SOURCE_DIR})
@@ -21,7 +21,7 @@ link_directories(${ADIOS_LIB_DIRS})
 #### Runtime example library
 
 # Source files used by Runtime
-set(libsrcs AssignTiles.cpp ADIOSSave.cpp Segment.cpp SegConfigurator.cpp)
+set(libsrcs AssignTiles.cpp ADIOSSave.cpp Segment.cpp SegConfigurator.cpp CVImage.cpp UtilsADIOS.cpp)
 
 set(libname rt_adios)
 # Add rule to generate execution engine, as a shared library (.so)
@@ -33,18 +33,21 @@ target_link_libraries(${libname} nu-io)
 target_link_libraries(${libname} scio-adios)
 target_link_libraries(${libname} ${ADIOS_LIBS})
 
+
 if(MPI_FOUND)
 	set_target_properties(${libname} PROPERTIES COMPILE_DEFINITIONS "WITH_MPI")
-	set_target_properties(${libname} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}") 
+	set_target_properties(${libname} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} ${ADIOS_COMP_FLAGS}") 
 	set_target_properties(${libname} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
 	target_link_libraries(${libname} ${MPI_LIBRARIES})
+else(MPI_FOUND)
+	set_target_properties(${libname} PROPERTIES COMPILE_FLAGS "${ADIOS_COMP_FLAGS}")
 endif(MPI_FOUND)
 
 
 
 #### Runtime code
 
-set(programs Process_test )
+set(programs Process_test CVImage_test)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
@@ -57,9 +60,12 @@ foreach(program ${programs})
 
 	if(MPI_FOUND)
 		set_target_properties(${program} PROPERTIES COMPILE_DEFINITIONS "WITH_MPI")
-  		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}") 
+  		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS} ${ADIOS_COMP_FLAGS}") 
   		set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}") 
 		target_link_libraries(${program} ${MPI_LIBRARIES})
+	else(MPI_FOUND)
+		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${ADIOS_COMP_FLAGS}")
+	
 	endif(MPI_FOUND)
 	
 	add_test(${program} ${program})

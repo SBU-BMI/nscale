@@ -12,12 +12,12 @@
 namespace cci {
 namespace rt {
 
-PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler)
- : CommHandler_I(_parent_comm, _gid, _scheduler) {
+PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logger)
+ : CommHandler_I(_parent_comm, _gid, _scheduler, _logger) {
 }
 
 PullCommHandler::~PullCommHandler() {
-	Debug::print("%s destructor called.\n", getClassName());
+//	Debug::print("%s destructor called.\n", getClassName());
 
 }
 
@@ -116,6 +116,8 @@ int PullCommHandler::run() {
 
 					// if output is done, then no need to mark input as done.
 					// action->markInputDone();
+					Debug::print("%s DONE.\n", getClassName());
+
 				}
 				return status;
 			} else if (buffer_status == READY) {
@@ -199,7 +201,7 @@ int PullCommHandler::run() {
 				status = DONE;
 				// if manager can't accept, then action can stop
 				action->markInputDone();
-				Debug::print("%s DONE\n", getClassName());
+//				Debug::print("%s DONE\n", getClassName());
 			}
 
 		} // else manager status is WAIT, no need to change local status.

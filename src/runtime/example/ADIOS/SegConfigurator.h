@@ -9,7 +9,7 @@
 #define SEGCONFIGURATOR_H_
 
 #include <ProcessConfigurator_I.h>
-#include "SCIOUtilsADIOS.h"
+#include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
 
 
@@ -20,19 +20,16 @@ namespace adios {
 
 class SegConfigurator : public cci::rt::ProcessConfigurator_I {
 public:
-	SegConfigurator(std::string &_iocode) : iomanager(NULL), iocode(_iocode), logger(NULL) {};
+	SegConfigurator(std::string &_iocode) :
+		iomanager(NULL), iocode(_iocode) {};
 	virtual ~SegConfigurator() {
 		if (iomanager != NULL) {
 			delete iomanager;
 			iomanager = NULL;
 		}
-		if (logger != NULL) {
-			delete logger;
-			logger = NULL;
-		}
 	};
 
-	virtual bool init();
+	virtual bool init(cciutils::SCIOLogger *_logger);
 	virtual bool finalize();
 
 	virtual bool configure(MPI_Comm &comm, Process *proc);
@@ -44,11 +41,8 @@ public:
 	static const int UNUSED_GROUP;
 
 protected:
-	cciutils::ADIOSManager *iomanager;
+	ADIOSManager *iomanager;
 	std::string iocode;
-	cciutils::SCIOLogger * logger;
-	char hostname[256];
-
 
 };
 

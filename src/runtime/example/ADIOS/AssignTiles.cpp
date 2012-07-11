@@ -16,8 +16,8 @@ namespace rt {
 namespace adios {
 
 
-AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid, std::string dirName)  :
-	Action_I(_parent_comm, _gid) {
+AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid, std::string dirName, cciutils::SCIOLogSession *_logger)  :
+	Action_I(_parent_comm, _gid, _logger) {
 
 
 	// check to see if it's a directory or a file
@@ -40,7 +40,7 @@ AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid, std::str
 
 AssignTiles::~AssignTiles() {
 
-	Debug::print("%s destructor called.\n", getClassName());
+//	Debug::print("%s destructor called.\n", getClassName());
 	filenames.clear();
 }
 

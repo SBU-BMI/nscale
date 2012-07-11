@@ -55,9 +55,13 @@ private:
 
 	ProcessConfigurator_I *conf;
 
+	int world_rank;
 	MPI_Comm comm_world;
 	char hostname[256];
 	bool configured;
+
+	cciutils::SCIOLogger *logger;
+
 };
 
 } /* namespace rt */

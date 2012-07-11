@@ -15,6 +15,8 @@
 
 #include <tr1/unordered_set>
 
+#include "SCIOUtilsLogger.h"
+
 namespace cci {
 namespace rt {
 
@@ -25,7 +27,7 @@ namespace rt {
  */
 class Communicator_I {
 public:
-	Communicator_I(MPI_Comm const * _parent_comm, int const _gid);
+	Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logger = NULL);
 
 	virtual const char* getClassName() { return "Communicator_I"; };
 
@@ -73,6 +75,8 @@ protected:
 	std::tr1::unordered_set<void *> reference_sources;
 
 	virtual ~Communicator_I();
+
+	cciutils::SCIOLogSession *logger;
 
 };
 

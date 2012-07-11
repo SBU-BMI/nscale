@@ -7,17 +7,17 @@
 
 #include "PushCommHandler.h"
 #include "Debug.h"
-
+#include <unistd.h>
 
 namespace cci {
 namespace rt {
 
-PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler)
-: CommHandler_I(_parent_comm, _gid, _scheduler) {
+PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logger)
+: CommHandler_I(_parent_comm, _gid, _scheduler, _logger) {
 }
 
 PushCommHandler::~PushCommHandler() {
-	Debug::print("%s destructor called.\n", getClassName());
+//	Debug::print("%s destructor called.\n", getClassName());
 }
 
 /**
@@ -167,14 +167,49 @@ int PushCommHandler::run() {
 		}  // else buffer status is READY.
 
 
-		// call manager with READY, DONE, or ERROR
-		int root = scheduler->getRootFromLeaf(rank);
+		int root;
+//		// call manager with READY, DONE, or ERROR
+//		bool waitForManager = true;
+//		int completed = 0;
+//		int iter = 0;
+//		int err;
+//		int val = call_count * 100 + buffer_status;
+//
+//
+//		while (waitForManager) {
+//			iter = 0;
+//			completed = 0;
+//			root = scheduler->getRootFromLeaf(rank);
+//			err = MPI_Issend(&val, 1, MPI_INT, root, CONTROL_TAG, comm, &myRequest);   // send the current status
+//			printf("%d issend %d status %d\n", rank, val, err);
+//			err = MPI_Test(&myRequest, &completed, &mstatus);
+//			printf("%d checking root %d, completed = %d, error %d\n", rank, root, completed, err);
+//			while (completed == 0 && iter < 100) {
+//				usleep(1000);
+//				err = MPI_Test(&myRequest, &completed, &mstatus);
+//				++iter;
+//			}
+//			if (completed != 0) {
+//				printf("%d got root %d complted = %d \n", rank, root, completed);
+//				waitForManager = false;  // myRequest is cleaned up
+//			} else if (iter >= 100) {
+////				printf("%d did not get root %d.  compelted = %d\n", rank, root, completed);
+//				err = MPI_Cancel(&myRequest);
+////				printf("%d cancel status %d\n", rank, err);
+//
+//				err = MPI_Request_free(&myRequest);   // clean up.
+////				printf("%d req free status %d\n", rank, err);
+//
+//			}
+//		}
 
-		MPI_Send(&buffer_status, 1, MPI_INT, root, CONTROL_TAG, comm);   // send the current status
+		root = scheduler->getRootFromLeaf(rank);
+//		Debug::print("%s %d target root is %d\n", getClassName(), rank, root);
+		MPI_Send(&buffer_status, 1, MPI_INT, root, CONTROL_TAG, comm);
 
 		MPI_Recv(&manager_status, 1, MPI_INT, root, CONTROL_TAG, comm, &mstatus);
 
-//			Debug::print("%s manager status is %d\n", getClassName(), manager_status);
+//		Debug::print("%s manager status is %d\n", getClassName(), manager_status);
 
 		if (manager_status == READY) {
 			status = action->getOutput(count, data);
@@ -183,7 +218,7 @@ int PushCommHandler::run() {
 			MPI_Send(&count, 1, MPI_INT, root, DATA_TAG, comm);
 			MPI_Send(data, count, MPI_CHAR, root, DATA_TAG, comm);
 			if (data != NULL) free(data);
-//				Debug::print("%s sent data\n", getClassName());
+//			Debug::print("%s %d sent data to %d\n", getClassName(), rank, root);
 
 		} else if (manager_status == DONE || manager_status == ERROR ) {
 			// one manager is done.  remove it from the list.  if there is no roots left, done.

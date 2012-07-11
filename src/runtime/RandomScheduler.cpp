@@ -21,12 +21,20 @@ RandomScheduler::RandomScheduler(bool _root, bool _leaf) :
 }
 
 int RandomScheduler::getRootFromLeaf(int leafId) {
+//	std::ostream_iterator<int> os(std::cout, ",");
+//	copy(roots.begin(), roots.end(), os);
+//	std::cout << std::endl;
+
 	int size = roots.size();
 	if (size == 0) return -1;
 	else if (size == 1) return roots[0];
 	else return roots[rand() % size];
 }
 int RandomScheduler::getLeafFromRoot(int rootId) {
+//	std::ostream_iterator<int> os(std::cout, ",");
+//	copy(leaves.begin(), leaves.end(), os);
+//	std::cout << std::endl;
+
 	int size = leaves.size();
 	if (size == 0) return -1;
 	else if (size == 1) return leaves[0];

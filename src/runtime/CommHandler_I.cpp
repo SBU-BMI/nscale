@@ -17,8 +17,9 @@ const int CommHandler_I::CONTROL_TAG = 0;
 const int CommHandler_I::DATA_TAG = 1;
 
 
-CommHandler_I::CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler) :
-	Communicator_I(_parent_comm, _gid), action(NULL), status(READY) {
+CommHandler_I::CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler,
+		cciutils::SCIOLogSession *_logger) :
+	Communicator_I(_parent_comm, _gid, _logger), action(NULL), status(READY) {
 
 
 	if (comm == MPI_COMM_NULL) {

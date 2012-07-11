@@ -29,8 +29,8 @@ public:
 
 
 private:
-	std::vector<int>::iterator rootIdx;
-	std::vector<int>::iterator leafIdx;
+	int rootIdx;
+	int leafIdx;
 };
 
 } /* namespace rt */

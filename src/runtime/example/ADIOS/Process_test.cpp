@@ -12,7 +12,7 @@
 int main (int argc, char **argv){
 
 	std::string iocode("MPI");
-	cci::rt::adios::SegConfigurator *conf = new cci::rt::adios::SegConfigurator(iocode);
+	cci::rt::ProcessConfigurator_I *conf = new cci::rt::adios::SegConfigurator(iocode);
 
 	cci::rt::Process p(argc, argv, conf);
 

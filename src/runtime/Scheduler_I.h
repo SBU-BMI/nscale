@@ -12,6 +12,9 @@
 #include <vector>
 #include <algorithm>
 
+#include <iterator>
+#include <iostream>
+
 namespace cci {
 namespace rt {
 
@@ -86,17 +89,21 @@ public:
 		}
 
 		configured = true;
+
 	};
 
 
 
 	virtual int removeRoot(int id) {
+//		printf("Remove Scheduler Root called\n");
+
 		std::vector<int>::iterator it = std::find(roots.begin(), roots.end(), id);
 		if (it != roots.end()) roots.erase(it);
 		if (rank == id) root = false;
 		return roots.size();
 	}
 	virtual int removeLeaf(int id) {
+//		printf("Remove Scheduler leaf called\n");
 		std::vector<int>::iterator it = std::find(leaves.begin(), leaves.end(), id);
 		if (it != leaves.end()) leaves.erase(it);
 		if (rank == id) leaf = false;
@@ -104,6 +111,8 @@ public:
 
 	}
 	virtual int addRoot(int id) {
+//		printf("add Scheduler Root called\n");
+
 		if (std::binary_search(roots.begin(), roots.end(), id)) return roots.size();
 
 		roots.push_back(id);
@@ -113,6 +122,8 @@ public:
 		return roots.size();
 	}
 	virtual int addLeaf(int id) {
+//		printf("add Scheduler leaf called\n");
+
 		if (std::binary_search(leaves.begin(), leaves.end(), id)) return leaves.size();
 
 		leaves.push_back(id);

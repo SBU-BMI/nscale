@@ -13,7 +13,8 @@
 #include "AssignTiles.h"
 #include "Segment.h"
 #include "RandomScheduler.h"
-#include "SCIOUtilsADIOS.h"
+#include "RoundRobinScheduler.h"
+#include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
 
 namespace cci {
@@ -27,7 +28,10 @@ const int SegConfigurator::COMPUTE_TO_IO_GROUP = 3;
 const int SegConfigurator::UNUSED_GROUP = 0;
 
 
-bool SegConfigurator::init() {
+bool SegConfigurator::init(cciutils::SCIOLogger *_logger) {
+	if (logger) delete logger;
+	logger = _logger;
+
 	// need to initialize ADIOS by everyone because it has HARDCODED MPI_COMM_WORLD instead of taking a parameter for the comm.
 
 	// get the configuration file
@@ -47,12 +51,11 @@ bool SegConfigurator::init() {
 	int rank = -1;
 	MPI_Comm_rank(comm, &rank);
 
-	gethostname(hostname, 255);
-
-	logger = new cciutils::SCIOLogger(rank, hostname, 0);
 	cciutils::SCIOLogSession *session = logger->getSession("all");
-	iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm, session, gapped, grouped);
+	iomanager = new ADIOSManager(adios_config.c_str(), rank, comm, session, gapped, grouped);
 	// ONLY HAS THIS CODE HERE BECAUSE ADIOS USES HARDCODED COMM
+
+	return true;
 }
 
 bool SegConfigurator::finalize() {
@@ -60,11 +63,9 @@ bool SegConfigurator::finalize() {
 		delete iomanager;
 		iomanager = NULL;
 	}
-	if (logger != NULL) {
-		delete logger;
-		logger = NULL;
-	}
 	// ONLY HAS THIS CODE HERE BECAUSE ADIOS USES HARDCODED COMM
+
+	return true;
 }
 
 bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
@@ -90,9 +91,6 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	// io be 1/4 of whole thing
 
 	CommHandler_I *handler, *handler2;
-	std::vector<int> roots;
-//	std::ostream_iterator<int> out(std::cout, ",");
-
 
 	// first split into 2.  focus on compute group.
 	compute_io_g = (rank % 4 == 0 ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
@@ -108,8 +106,8 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
 	Scheduler_I *sch2 = NULL;
-	if (compute_io_g == IO_GROUP) sch2 = new RandomScheduler(true, false);  // root at rank = 0
-	else sch2 = new RandomScheduler(false, true);
+	if (compute_io_g == IO_GROUP) sch2 = new RoundRobinScheduler(true, false);  // root at rank = 0
+	else sch2 = new RoundRobinScheduler(false, true);
 
 	handler2 = new PushCommHandler(&comm, compute_to_io_g, sch2);
 	//std::cout << "rank " << rank << ": ";
@@ -158,7 +156,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 			++io_sub_g;
 		}
 		// io subgroups
-		Action_I *save = new cci::rt::adios::ADIOSSave(handler->getComm(), io_sub_g, logger, iomanager, iocode);  // comm is group 1 IO comms, split into io_sub_g comms
+		Action_I *save = new cci::rt::adios::ADIOSSave(handler->getComm(), io_sub_g, iomanager, iocode, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
 		proc->addHandler(handler2);
 		proc->addHandler(save);
 		handler2->setAction(save);

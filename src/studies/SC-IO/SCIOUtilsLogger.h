@@ -68,17 +68,17 @@ public:
 	virtual std::string getAsStringByType(const int &_type) const {
 		if (eventtype == _type) {
 			return getAsString();
-		}
+		} else return std::string();
 	}
 	virtual std::string getAsStringByName(const std::string &_name) const {
 		if (name.compare(_name) == 0) {
 			return getAsString();
-		}
+		} else return std::string();
 	}
 	virtual std::string getAsStringById(const int &_id) const {
 		if (id == _id) {
 			return getAsString();
-		}
+		} else return std::string();
 	}
 	virtual std::string getName() const {
 		return name;

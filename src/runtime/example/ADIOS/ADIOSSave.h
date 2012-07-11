@@ -9,7 +9,7 @@
 #define ADIOSSAVE_H_
 
 #include <Action_I.h>
-#include "SCIOUtilsADIOS.h"
+#include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
 #include "mpi.h"
 
@@ -20,22 +20,22 @@ namespace adios {
 
 class ADIOSSave: public cci::rt::Action_I {
 public:
-	ADIOSSave(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogger *_logger, cciutils::ADIOSManager *_iomanager, std::string &iocode);
+	ADIOSSave(MPI_Comm const *_parent_comm, int const _gid, ADIOSManager *_iomanager, std::string &iocode, cciutils::SCIOLogSession *_logger = NULL);
 	virtual ~ADIOSSave();
 	virtual int run();
 	virtual const char* getClassName() { return "ADIOSSave"; };
 
 
 protected:
-	int write();
+	virtual int process(bool catchup);
 	virtual int compute(int const &input_size , void * const &input,
-				int &output_size, void * &output);
+				int &output_size, void * &output) { return READY; };
 
-	cciutils::ADIOSManager *iomanager;
-	cciutils::SCIOADIOSWriter *writer;
+	ADIOSManager *iomanager;
+	ADIOSWriter *writer;
 	int local_iter;
 	int global_iter;
-	int local_count;
+
 	MPI_Win iter_win;
 	int buffer_max;
 

@@ -18,8 +18,8 @@ namespace rt {
 
 class Action_I : public Communicator_I {
 public:
-	Action_I(MPI_Comm const * _parent_comm, int const _gid) :
-		Communicator_I(_parent_comm, _gid), input_status(READY), output_status(READY) {};
+	Action_I(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logger = NULL) :
+		Communicator_I(_parent_comm, _gid, _logger), input_status(READY), output_status(READY) {};
 	virtual ~Action_I() {
 		void * data;
 		if (!inputSizes.empty()) Debug::print("%s WARNING: %d entries left in input\n", getClassName(), inputSizes.size());
