@@ -14,7 +14,7 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     end
     
     if (isempty(proc_type))
-        proc_type = 'w';
+        proc_type = '*';
     end
     
     % get some information about the events
@@ -24,9 +24,13 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     for i = 1:size(proc_events, 1) 
         mx = max([mx, max(proc_events{i, 7})]);  % maximum end timestamp
     end
-    pidx = strcmp(proc_type, cat(1, proc_events{:, 3}));
-    events = proc_events(pidx, :);
-    clear pidx;
+    if strcmp(proc_type, '*')
+        events = proc_events;
+    else 
+        pidx = strcmp(proc_type, cat(1, proc_events{:, 3}));
+        events = proc_events(pidx, :);
+        clear pidx;
+    end
     
     % now check the sampling interval
     if (isempty(sample_interval))

@@ -11,8 +11,8 @@
 namespace cci {
 namespace rt {
 
-Assign::Assign(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logger)  :
-	Action_I(_parent_comm, _gid, _logger) {
+Assign::Assign(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession)  :
+	Action_I(_parent_comm, _gid, _logsession) {
 }
 
 Assign::~Assign() {

@@ -12,8 +12,8 @@
 namespace cci {
 namespace rt {
 
-PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logger)
- : CommHandler_I(_parent_comm, _gid, _scheduler, _logger) {
+PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession)
+ : CommHandler_I(_parent_comm, _gid, _scheduler, _logsession) {
 }
 
 PullCommHandler::~PullCommHandler() {
@@ -38,6 +38,11 @@ PullCommHandler::~PullCommHandler() {
 int PullCommHandler::run() {
 
 	// not need to check for action== NULL. NULL action sets status to ERROR
+	long long t1, t2;
+	t1 = cciutils::event::timestampInUS();
+	char len[21];  // max length of uint64 is 20 digits
+	memset(len, 0, 21);
+
 
 	call_count++;
 	//if (call_count % 100 == 0) Debug::print("PullCommHandler %s run called %d. \n", (isListener() ? "listener" : "requester"), call_count);
@@ -87,6 +92,9 @@ int PullCommHandler::run() {
 					// all the workers are done, so action cannot get generate more input
 					action->markInputDone();
 				}
+				t2 = cciutils::event::timestampInUS();
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 				return status;  // worker is in done or error state, don't send.
 
 			} else {
@@ -94,6 +102,9 @@ int PullCommHandler::run() {
 
 				if (worker_status == WAIT) { // worker status is wait, so manager doesn't do anything.
 					Debug::print("%s Worker waiting.  why did it send the message in the first place?\n", getClassName());
+					t2 = cciutils::event::timestampInUS();
+					if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 					return worker_status;  // worker waiting.  keep manager at ready.  should not be here...
 
 				}
@@ -119,6 +130,9 @@ int PullCommHandler::run() {
 					Debug::print("%s DONE.\n", getClassName());
 
 				}
+				t2 = cciutils::event::timestampInUS();
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("buffer done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 				return status;
 			} else if (buffer_status == READY) {
 				data = NULL;
@@ -135,6 +149,9 @@ int PullCommHandler::run() {
 					free(data);
 					data = NULL;
 				}
+				t2 = cciutils::event::timestampInUS();
+				sprintf(len, "%lu", (long)(count));
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 				return buffer_status;
 			}  else {
@@ -142,7 +159,8 @@ int PullCommHandler::run() {
 				// else in wait state.  don't do anything.
 			}
 
-		}
+		} // else no message
+
 		return status;
 
 	} else {
@@ -165,6 +183,10 @@ int PullCommHandler::run() {
 			// and say done.
 			status = DONE;
 
+			t2 = cciutils::event::timestampInUS();
+			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
+
 			return status;
 		}  // else we are READY
 
@@ -186,6 +208,7 @@ int PullCommHandler::run() {
 //					Debug::print("%s requester recv %d at %x from %d\n", getClassName(), *i2, data, root);
 //				} else
 //					Debug::print("%s requester recv ?? at %x from %d\n", getClassName(), data, root);
+			sprintf(len, "%lu", (long)(count));
 
 			if (count > 0 && data != NULL) {
 				status = action->addInput(count, data);  // status takes on buffer status' value
@@ -206,6 +229,8 @@ int PullCommHandler::run() {
 
 		} // else manager status is WAIT, no need to change local status.
 
+		t2 = cciutils::event::timestampInUS();
+		if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker msg"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 		return status;
 

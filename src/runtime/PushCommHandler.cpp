@@ -12,8 +12,8 @@
 namespace cci {
 namespace rt {
 
-PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logger)
-: CommHandler_I(_parent_comm, _gid, _scheduler, _logger) {
+PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession)
+: CommHandler_I(_parent_comm, _gid, _scheduler, _logsession) {
 }
 
 PushCommHandler::~PushCommHandler() {
@@ -34,6 +34,10 @@ PushCommHandler::~PushCommHandler() {
 int PushCommHandler::run() {
 
 	// not need to check for action== NULL. NULL action sets status to ERROR
+	long long t1, t2;
+	t1 = cciutils::event::timestampInUS();
+	char len[21];  // max length of uint64 is 20 digits
+	memset(len, 0, 21);
 
 	call_count++;
 	//if (call_count % 100 == 0) Debug::print("PushCommHandler %s run called %d. \n", (isListener() ? "listener" : "requester"), call_count);
@@ -81,6 +85,9 @@ int PushCommHandler::run() {
 					// all the workers are done
 					action->markInputDone();
 				}
+				t2 = cciutils::event::timestampInUS();
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 				return status;  // worker is in done or error state, don't send.
 
 			} else {
@@ -88,6 +95,10 @@ int PushCommHandler::run() {
 
 				if (worker_status == WAIT) { // worker status is wait, so manager doesn't do anything.
 					Debug::print("%s Worker waiting.  why did it send the message in the first place?\n", getClassName());
+
+					t2 = cciutils::event::timestampInUS();
+					if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 					return worker_status;  // return status is worker wait, but keep manager at ready.
 				}
 			}
@@ -111,6 +122,9 @@ int PushCommHandler::run() {
 					Debug::print("%s DONE\n", getClassName());
 					// action is already done, so no need to change it.
 				}
+				t2 = cciutils::event::timestampInUS();
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("buffer done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 				return status;
 
 			} else if (buffer_status == READY) {
@@ -132,10 +146,16 @@ int PushCommHandler::run() {
 					Debug::print("%s READING nothing!\n", getClassName());
 				}
 
+				t2 = cciutils::event::timestampInUS();
+				sprintf(len, "%lu", (long)(count));
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+
 				return buffer_status;
 			} else {
 //				Debug::print("%s waiting\n", getClassName());
 			} // else wait.  so do nothing
+			t2 = cciutils::event::timestampInUS();
+			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 			return status;
 		} else {
@@ -162,6 +182,9 @@ int PushCommHandler::run() {
 			}
 			// and say done.
 			status = DONE;
+
+			t2 = cciutils::event::timestampInUS();
+			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 			return status;
 		}  // else buffer status is READY.
@@ -220,6 +243,8 @@ int PushCommHandler::run() {
 			if (data != NULL) free(data);
 //			Debug::print("%s %d sent data to %d\n", getClassName(), rank, root);
 
+			sprintf(len, "%lu", (long)(count));
+
 		} else if (manager_status == DONE || manager_status == ERROR ) {
 			// one manager is done.  remove it from the list.  if there is no roots left, done.
 			if (scheduler->removeRoot(root) == 0)  {
@@ -232,6 +257,11 @@ int PushCommHandler::run() {
 		} else {
 //			Debug::print("%s waiting\n", getClassName());
 		}  // else we are in wait state.  nothing to be done.
+
+		t2 = cciutils::event::timestampInUS();
+		if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker msg"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+
+
 		return status;
 
 	}

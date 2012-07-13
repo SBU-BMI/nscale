@@ -13,7 +13,6 @@
 #include "Debug.h"
 
 
-#include <iostream>
 #include <string.h>
 #include <iterator>
 #include <limits>
@@ -21,42 +20,26 @@
 namespace cci {
 namespace rt {
 
-Process::Process(int argc, char **argv, ProcessConfigurator_I *_conf) :
-		conf(_conf), configured(false) {
+Process::Process(MPI_Comm &_comm_world, int argc, char **argv, ProcessConfigurator_I *_conf) :
+		conf(_conf), configured(false), comm_world(_comm_world) {
 	// common initialization
-	int threading_provided;
-	int err  = MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &threading_provided);
 
-	gethostname(hostname, 255);  // from <iostream>
 
-	comm_world = MPI_COMM_WORLD;
 	MPI_Comm_rank(comm_world, &world_rank);
 
-	logger = new cciutils::SCIOLogger(world_rank, hostname, 0);
-
-	if (conf != NULL) conf->init(logger);
+	if (conf != NULL) conf->init();
 
 }
 
 Process::~Process() {
 	//Debug::print("Process destructor called\n");
 
-	if (configured) teardown();
+	teardown();
 
-	if (conf != NULL) {
-		conf->finalize();
-		delete conf;
-	}
+	if (conf != NULL) conf->finalize();
 
-#if defined (WITH_MPI)
-	logger->writeCollectively("test.log", world_rank, 0, comm_world);
-#else
-	logger->write("test.log");
-#endif
 
-	if (logger) delete logger;
 
-	MPI_Finalize();
 }
 
 
@@ -67,7 +50,6 @@ void Process::setup() {
 	configured = conf->configure(comm_world, this);
 
 	Debug::print("Process configured\n");
-
 	MPI_Barrier(comm_world);
 }
 

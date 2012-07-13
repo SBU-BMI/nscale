@@ -21,13 +21,14 @@ link_directories(${ADIOS_LIB_DIRS})
 #### Runtime example library
 
 # Source files used by Runtime
-set(libsrcs AssignTiles.cpp ADIOSSave.cpp Segment.cpp SegConfigurator.cpp CVImage.cpp UtilsADIOS.cpp)
+set(libsrcs AssignTiles.cpp ADIOSSave.cpp Segment.cpp SegConfigurator.cpp CVImage.cpp UtilsADIOS.cpp SegmentCmdParser.cpp)
 
 set(libname rt_adios)
 # Add rule to generate execution engine, as a shared library (.so)
 add_library("${libname}" SHARED ${libsrcs})
 # Link opencv stuff to the execution engine
 target_link_libraries(${libname} segment)
+target_link_libraries(${libname} scio-segment)
 target_link_libraries(${libname} ${OpenCV_LIBS})
 target_link_libraries(${libname} nu-io)
 target_link_libraries(${libname} scio-adios)

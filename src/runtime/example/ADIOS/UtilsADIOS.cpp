@@ -62,6 +62,8 @@ ADIOSWriter* ADIOSManager::allocateWriter(
 	int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
 	MPI_Comm const &_local_comm, int _local_group) {
 
+	long long t1 = ::cciutils::event::timestampInUS();
+
 
 	ADIOSWriter *w = new ADIOSWriter(pref, suf, _newfile,
 			_appendInTime, selStages,
@@ -71,6 +73,9 @@ ADIOSWriter* ADIOSManager::allocateWriter(
 
 	writers.push_back(w);
 
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS Writer alloc"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
 //	if (w->local_rank == 0) printf("INITIALIZED group %d for %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->local_group, pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
 
 	return w;
@@ -78,12 +83,16 @@ ADIOSWriter* ADIOSManager::allocateWriter(
 
 
 void ADIOSManager::freeWriter(ADIOSWriter *w) {
+	long long t1 = ::cciutils::event::timestampInUS();
 
 	std::vector<ADIOSWriter *>::iterator newend = remove(writers.begin(), writers.end(), w);
 	writers.erase(newend, writers.end());
 
 	delete w;
 //	printf("cleaned up writer %d \n", w->local_rank);
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS Writer free"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
 }
 
 
@@ -520,6 +529,10 @@ int ADIOSWriter::persistCountInfo() {
 
 int ADIOSWriter::benchmark(int id) {
 
+	long long t1, t2;
+	t1 = ::cciutils::event::timestampInUS();
+
+
 	std::stringstream ss;
 	ss << "BENCH " << id << " ";
 	event_name_prefix = ss.str();
@@ -532,12 +545,19 @@ int ADIOSWriter::benchmark(int id) {
 	CVImage cvi(img, img_name, ss.str(), 1024, 2048);
 	saveCVImage(cvi);
 	ss.str(std::string());
+	t2 = ::cciutils::event::timestampInUS();
+	ss << event_name_prefix << "DATA prep";
+	char len[21];  // max length of uint64 is 20 digits
+	memset(len, 0, 21);
+	sprintf(len, "%lu", (long)(img.dataend) - (long)(img.datastart));
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	ss.str(std::string());
 
 
 	//printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", comm_rank, tileInfo_pg_size, tileSize);
-	long t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cciutils::event::timestampInUS();
 	MPI_Barrier(comm);
-	long t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cciutils::event::timestampInUS();
 	ss << event_name_prefix << "START MPI Wait";
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
 	ss.str(std::string());

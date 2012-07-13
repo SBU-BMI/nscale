@@ -20,7 +20,10 @@ namespace adios {
 
 class ADIOSSave: public cci::rt::Action_I {
 public:
-	ADIOSSave(MPI_Comm const *_parent_comm, int const _gid, ADIOSManager *_iomanager, std::string &iocode, cciutils::SCIOLogSession *_logger = NULL);
+	ADIOSSave(MPI_Comm const *_parent_comm, int const _gid,
+			std::string &outDir, std::string &iocode, int total, int _buffer_max,
+			int tile_max, int imagename_max, int filename_max,
+			ADIOSManager *_iomanager, cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~ADIOSSave();
 	virtual int run();
 	virtual const char* getClassName() { return "ADIOSSave"; };

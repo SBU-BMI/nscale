@@ -12,14 +12,14 @@ namespace rt {
 
 RoundRobinScheduler::RoundRobinScheduler(std::vector<int> &_roots, std::vector<int> &_leaves) :
 	Scheduler_I(_roots, _leaves) {
-	rootIdx = 0;
-	leafIdx = 0;
+	rootIdx = rand() % roots.size();
+	leafIdx = rand() % leaves.size();
 }
 
 RoundRobinScheduler::RoundRobinScheduler(bool _root, bool _leaf) :
 	Scheduler_I(_root, _leaf) {
-	rootIdx = 0;
-	leafIdx = 0;
+	rootIdx = rand() % roots.size();
+	leafIdx = rand() % leaves.size();
 }
 
 int RoundRobinScheduler::getRootFromLeaf(int leafId) {

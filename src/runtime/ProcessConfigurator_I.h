@@ -20,10 +20,10 @@ class Process;
 
 class ProcessConfigurator_I {
 public:
-	ProcessConfigurator_I() : logger(NULL) {};
+	ProcessConfigurator_I(cciutils::SCIOLogger *_logger) : logger(_logger) {};
 	virtual ~ProcessConfigurator_I() {};
 
-	virtual bool init(cciutils::SCIOLogger *_logger) = 0;
+	virtual bool init() = 0;
 	virtual bool finalize() = 0;
 
 	virtual bool configure(MPI_Comm &comm, Process * proc) = 0;

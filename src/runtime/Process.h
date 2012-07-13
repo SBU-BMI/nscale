@@ -21,7 +21,7 @@ class ProcessConfigurator_I;
 
 class Process {
 public:
-	Process(int argc, char **argv, ProcessConfigurator_I *_conf);
+	Process(MPI_Comm &_comm_world, int argc, char **argv, ProcessConfigurator_I *_conf);
 	virtual ~Process();
 
 	/**
@@ -59,8 +59,6 @@ private:
 	MPI_Comm comm_world;
 	char hostname[256];
 	bool configured;
-
-	cciutils::SCIOLogger *logger;
 
 };
 

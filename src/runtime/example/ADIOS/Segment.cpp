@@ -11,13 +11,21 @@
 #include "CVImage.h"
 #include "FileUtils.h"
 #include <string>
+#include "utils.h"
+#include "SCIOHistologicalEntities.h"
 
 namespace cci {
 namespace rt {
 namespace adios {
 
-Segment::Segment(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logger) :
-				Action_I(_parent_comm, _gid, _logger) {
+Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
+		std::string &proctype, int gpuid,
+		cciutils::SCIOLogSession *_logsession) :
+				Action_I(_parent_comm, _gid, _logsession) {
+	if (strcmp(proctype.c_str(), "cpu")) proc_code = cciutils::DEVICE_CPU;
+	else if (strcmp(proctype.c_str(), "cpu")) {
+		proc_code = cciutils::DEVICE_GPU;
+	}
 }
 
 Segment::~Segment() {
@@ -27,6 +35,9 @@ int Segment::compute(int const &input_size , void * const &input,
 			int &output_size, void * &output) {
 	if (input_size == 0 || input == NULL) return -1;
 
+	long long t1, t2;
+
+	t1 = ::cciutils::event::timestampInUS();
 
 	std::string fn = std::string((char const *)input);
 	//Debug::print("%s READING %s\n", getClassName(), fn.c_str());
@@ -52,17 +63,58 @@ int Segment::compute(int const &input_size , void * const &input,
 	int tiley = atoi(ystr.c_str());
 
 	cv::Mat im = cv::imread(fn, -1);
-
 	// simulate computation
 	//sleep(10);
+	t2 = ::cciutils::event::timestampInUS();
+	char len[21];  // max length of uint64 is 20 digits
+	memset(len, 0, 21);
+	sprintf(len, "%lu", (long)(im.dataend) - (long)(im.datastart));
+	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("read"), t1, t2, std::string(len), ::cciutils::event::FILE_I));
 
-	CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
+
+	if (!im.data) {
+		im.release();
+		return -1;
+	}
+
+	t1 = ::cciutils::event::timestampInUS();
+
+	// real computation:
+	int status;
+	int *bbox = NULL;
+	int compcount;
+	cv::Mat mask;
+//	if (proc_code == cciutils::DEVICE_GPU ) {
+//		nscale::gpu::SCIOHistologicalEntities *seg = new nscale::gpu::SCIOHistologicalEntities(fn);
+//		status = seg->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, session, writer);
+//		delete seg;
+//
+//	} else {
+
+	nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(fn);
+	status = seg->segmentNuclei(im, mask, compcount, bbox, logsession, NULL);
+	delete seg;
+//	}
+	free(bbox);
+	im.release();
+
+	t2 = ::cciutils::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+
+	t1 = ::cciutils::event::timestampInUS();
+
+	CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
 	img->serialize(output_size, output);
-
 	// clean up
 	delete img;
+	mask.release();
 
-	im.release();
+
+	t2 = ::cciutils::event::timestampInUS();
+	memset(len, 0, 21);
+	sprintf(len, "%lu", (long)output_size);
+	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("serialize"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+
 
 	return 1;
 }
@@ -104,7 +156,7 @@ int Segment::run() {
 		return WAIT;
 	} else {  // done or error //
 		// output already changed.
-		Debug::print("%s Done for input:  call count= %d\n", getClassName(), call_count);
+		Debug::print("%s DONE.  call count= %d\n", getClassName(), call_count);
 		return output_status;
 	}
 

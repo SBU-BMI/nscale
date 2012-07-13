@@ -35,6 +35,7 @@ allTypeNames = {'Other',...
     'ADIOS finalize'};
         
 dirs = {...
+    '/home/tcpan/PhD/path', ...
     '/home/tcpan/PhD/path/Data/adios/Jaguar-tcga4-grouped', ...
     '/home/tcpan/PhD/path/Data/adios/Jaguar-tcga3-grouped', ...
     '/home/tcpan/PhD/path/Data/adios/Jaguar-tcga2-grouped', ...
@@ -61,12 +62,19 @@ dirs = {...
 selections = [1];
 
 timeIntervals = [...
+    10000; ...
     repmat([100000], 5, 1); ...
     1000; ...
     repmat([10000], 11, 1);...
     repmat([100000], 4, 1)...
     ];
 procWidth = 1;
+
+proc_types = [...
+    '*';
+    repmat(['w'], 21, 1)...
+    ];
+
     
 for j = 1 : length(selections)
     close all;
@@ -74,6 +82,8 @@ for j = 1 : length(selections)
     
     dirname = dirs{id};
     timeInterval = timeIntervals(id);
+
+    proc_type = proc_types(id);
     
     fid = fopen([dirname, '.TP.csv'], 'w');
 
@@ -87,11 +97,11 @@ for j = 1 : length(selections)
         [~, n, ~] = fileparts(csvfile);
         prefix = fullfile(dirname, n)
         
-        proc_events = readComputeAndIOTimingOneLineFormat(fullfile(dirname, csvfile));
+        proc_events = readComputeAndIOTimingOneLineFormat(fullfile(dirname, csvfile), proc_type);
         [~, ~] = plotProcEvents(proc_events, procWidth, timeInterval, prefix, allEventTypes, colorMap);
         close all;
         fprintf(fid, '%s\n', prefix);
-        summarize(proc_events, timeInterval, fid, 'w', allEventTypes, allTypeNames);
+        summarize(proc_events, timeInterval, fid, proc_type, allEventTypes, allTypeNames);
     end
     
     

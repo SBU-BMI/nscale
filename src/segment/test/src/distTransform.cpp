@@ -85,9 +85,11 @@ int main (int argc, char **argv){
 	std::cout << "distTranf CPU queue took "<< t2-t1 << " ms" << std::endl;
 	queueBasedDist.release();
 
+
+#if defined (WITH_CUDA)
 	GpuMat g_warm(input);
 	g_warm.release();
-
+#endif
 
 	t1 = cciutils::ClockGetTime();
 	Mat queueBasedTiled = nscale::distanceTransformParallelTile(input,4096, 8);
@@ -102,7 +104,7 @@ int main (int argc, char **argv){
 //		std::cout<<std::endl;
 //	}
 //
-
+#if defined (WITH_CUDA)
 	t1 = cciutils::ClockGetTime();
 	GpuMat g_mask(input);
 	t2 = cciutils::ClockGetTime();
@@ -121,7 +123,7 @@ int main (int argc, char **argv){
 	t2 = cciutils::ClockGetTime();
 
 	std::cout << "download:"<< t2-t1 << std::endl;
-
+#endif
 //	for(int x = 0; x < h_distance.rows; x++){
 //		float* ptr = (float*)h_distance.ptr(x);
 //		for(int y = 0; y < h_distance.cols; y++){

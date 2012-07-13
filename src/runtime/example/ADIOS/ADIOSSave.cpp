@@ -17,8 +17,13 @@ namespace rt {
 namespace adios {
 
 
-ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid, ADIOSManager *_iomanager, std::string &iocode, cciutils::SCIOLogSession *_logger) :
-		Action_I(_parent_comm, _gid, _logger), iomanager(_iomanager), local_iter(0), global_iter(0), buffer_max(4) {
+ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid,
+		std::string &outDir, std::string &iocode, int total, int _buffer_max,
+		int tile_max, int imagename_max, int filename_max,
+		ADIOSManager *_iomanager, cciutils::SCIOLogSession *_logsession) :
+		Action_I(_parent_comm, _gid, _logsession), iomanager(_iomanager),
+		local_iter(0), global_iter(0), local_total(0),
+		buffer_max(_buffer_max) {
 
 
 	// determine if we are using AMR, if so, don't append time points
@@ -29,25 +34,21 @@ ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid, ADIOSManager
 	// always overwrite.
 	bool overwrite = true;
 
-	// specify output
-	std::string outDir("/home/tcpan/PhD/path/Data/adios/async-yellowstone");
-
 	// and the stages to capture.
 	std::vector<int> stages;
 	for (int i = 0; i < 200; i++) {
 		stages.push_back(i);
 	}
 
-	// maximum number of image tiles (for testing only)
-	int total = buffer_max * 100;
-
-
 	writer = iomanager->allocateWriter(outDir, std::string("bp"), overwrite,
 			appendInTime, stages,
 			total, buffer_max,
-			4096 * 4096 * 4, 256, 1024,
+			tile_max, imagename_max, filename_max,
 			comm, groupid);
+	writer->setLogSession(this->logsession);
 
+	long long t1, t2;
+	t1 = ::cciutils::event::timestampInUS();
 	if (rank == 0) {
 		// set up the receive window.
 		MPI_Win_create(&global_iter, sizeof(int), sizeof(int), MPI_INFO_NULL, comm, &iter_win);
@@ -55,8 +56,8 @@ ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid, ADIOSManager
 		// set up the send window
 		MPI_Win_create(NULL, 0, sizeof(int), MPI_INFO_NULL, comm, &iter_win);
 	}
-
-	local_total = 0;
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO RMA init"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 }
 
@@ -73,6 +74,7 @@ ADIOSSave::~ADIOSSave() {
 int ADIOSSave::run() {
 
 	// if input is done, it enters into fence and wait until everyone else is done.
+	long long t1, t2;
 
 	call_count++;
 
@@ -89,6 +91,7 @@ int ADIOSSave::run() {
 	 * if status is done, then wait for everyone else too and get the max iter across all processes
 	 */
 	if (input_status == DONE || input_status == ERROR) {
+		t1 = ::cciutils::event::timestampInUS();
 		MPI_Win_fence(0, iter_win); // this makes the entire process wait.  but that's okay since the whole process's action is DONE...
 
 		MPI_Win_lock(MPI_LOCK_SHARED, 0, 0, iter_win);  // lock required?
@@ -112,6 +115,8 @@ int ADIOSSave::run() {
 		}
 //		Debug::print("%s DONE local rank %d status %d, local iter %d, max iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, max_iter, local_count);
 		MPI_Win_fence(0, iter_win); // this makes the entire process wait.  but that's okay since the whole process's action is DONE...
+		t2 = ::cciutils::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO final RMA"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 	}
 
 	// get most current
@@ -141,11 +146,15 @@ int ADIOSSave::run() {
 				// update remote - important, need for others to know about the latest iteration number,
 				// so for the processes that do not have full buffer, they can enter into catchup mode
 				// during the next iteration.
+				t1 = ::cciutils::event::timestampInUS();
+
 				++local_iter;
 				MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0, 0, iter_win);
 				MPI_Accumulate(&local_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_MAX, iter_win);
 				MPI_Win_unlock(0, iter_win);
 				--local_iter;
+				t2 = ::cciutils::event::timestampInUS();
+				if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO RMA put"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 
 				// write some new data
@@ -161,7 +170,7 @@ int ADIOSSave::run() {
 }
 
 int ADIOSSave::process(bool emptyWrite) {
-	Debug::print("%s local rank %d status %d, local iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, inputSizes.size());
+	Debug::print("%s: IO group %d rank %d, write iter %d, tile count %d\n", getClassName(), groupid, rank, local_iter, inputSizes.size());
 
 	if (!emptyWrite) {
 		// move data from action's buffer to adios' buffer
@@ -175,7 +184,7 @@ int ADIOSSave::process(bool emptyWrite) {
 			if (input != NULL) {
 				CVImage *adios_img = new CVImage(input_size, input);
 				writer->saveIntermediate(*adios_img, 1);
-				int dummy;
+//				int dummy;
 //				Debug::print("%s memcpying tile %s from image %s\n", getClassName(), adios_img->getSourceFileName(dummy), adios_img->getImageName(dummy) );
 
 				delete adios_img;
@@ -187,6 +196,7 @@ int ADIOSSave::process(bool emptyWrite) {
 			result = getInput(input_size, input);
 		}
 	}
+
 //	Debug::print("%s calling ADIOS to persist the files\n", getClassName());
 	writer->persist(local_iter);
 	++local_iter;

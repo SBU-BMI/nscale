@@ -28,14 +28,18 @@ const int SegConfigurator::COMPUTE_TO_IO_GROUP = 3;
 const int SegConfigurator::UNUSED_GROUP = 0;
 
 
-bool SegConfigurator::init(cciutils::SCIOLogger *_logger) {
-	if (logger) delete logger;
-	logger = _logger;
+bool SegConfigurator::init() {
+
+	// ONLY HAS THIS CODE HERE BECAUSE ADIOS USES HARDCODED COMM
+
 
 	// need to initialize ADIOS by everyone because it has HARDCODED MPI_COMM_WORLD instead of taking a parameter for the comm.
 
+	std::string iocode = params[SegmentCmdParser::PARAM_TRANSPORT];
+
 	// get the configuration file
-	std::string adios_config("/home/tcpan/PhD/path/src/nscale-debug/adios_xml/image-tiles-globalarray-");
+	std::string adios_config(params[SegmentCmdParser::PARAM_EXECUTABLEDIR]);
+	adios_config.append("/../adios_xml/image-tiles-globalarray-");
 	adios_config.append(iocode);
 	adios_config.append(".xml");
 
@@ -44,31 +48,34 @@ bool SegConfigurator::init(cciutils::SCIOLogger *_logger) {
 	if (strncmp(iocode.c_str(), "gap-", 4) == 0) gapped = true;
 
 	// are the adios processes groupped into subgroups
-	bool grouped = true;
-
+	bool grouped = false;
+	int groupsize = atoi(params[SegmentCmdParser::PARAM_SUBIOSIZE].c_str());
+	if (groupsize > 1) grouped = true;
 
 	MPI_Comm comm = MPI_COMM_WORLD;
 	int rank = -1;
 	MPI_Comm_rank(comm, &rank);
 
-	cciutils::SCIOLogSession *session = logger->getSession("all");
+	cciutils::SCIOLogSession *session = logger->getSession("setup");
 	iomanager = new ADIOSManager(adios_config.c_str(), rank, comm, session, gapped, grouped);
-	// ONLY HAS THIS CODE HERE BECAUSE ADIOS USES HARDCODED COMM
 
 	return true;
 }
 
 bool SegConfigurator::finalize() {
+	// ONLY HAS THIS CODE HERE BECAUSE ADIOS USES HARDCODED COMM
 	if (iomanager != NULL) {
 		delete iomanager;
 		iomanager = NULL;
 	}
-	// ONLY HAS THIS CODE HERE BECAUSE ADIOS USES HARDCODED COMM
 
 	return true;
 }
 
 bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
+
+	long long t1, t2;
+	t1 = cciutils::event::timestampInUS();
 
 	int size, rank;
 	MPI_Comm_size(comm, &size);
@@ -80,24 +87,35 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	}
 
 
-	// now do a set up.
+	// now set up/
 	int compute_io_g=-1, io_sub_g=-1, compute_to_io_g = -1;
 
 
 	///// first set up the comm handlers
 
-	// for fun, let's set up a compute group and an io group.
-	// partitioning is arbitrary.  let the computesize be 3/4 of whole thing.
-	// io be 1/4 of whole thing
 
 	CommHandler_I *handler, *handler2;
 
+	int iointerleave = atoi(params[SegmentCmdParser::PARAM_IOINTERLEAVE].c_str());
+	int iosize = atoi(params[SegmentCmdParser::PARAM_IOSIZE].c_str());
+	if (iointerleave < 1) iointerleave = 1;
+	else if (iointerleave > size) iointerleave = size;
+	if (iosize < 1 || iosize > size) iosize = size/iointerleave;  // default
+
+
 	// first split into 2.  focus on compute group.
-	compute_io_g = (rank % 4 == 0 ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
 	Scheduler_I *sch = NULL;
-	if (compute_io_g == COMPUTE_GROUP && rank == 1) sch = new RandomScheduler(true, false);  // root at rank = 0
-	else if (compute_io_g == IO_GROUP && rank == 0) sch = new RandomScheduler(true, false);  // root at rank = 0
-	else sch = new RandomScheduler(false, true);
+	if (iointerleave == 1) {
+		compute_io_g = (rank < iosize ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
+		if (rank == iosize) sch = new RandomScheduler(true, false);  // root at rank = iosize
+		else if (rank == 0) sch = new RandomScheduler(true, false);  // root at rank = 0
+		else sch = new RandomScheduler(false, true);
+	} else {
+		compute_io_g = ((rank % iointerleave == 0) && (rank < iointerleave * iosize) ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
+		if (rank == 1) sch = new RandomScheduler(true, false);  // root at rank = 1
+		else if (rank == 0) sch = new RandomScheduler(true, false);  // root at rank = 0
+		else sch = new RandomScheduler(false, true);
+	}
 
 	// compute and io groups
 	handler = new PullCommHandler(&comm, compute_io_g, sch);
@@ -106,25 +124,33 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
 	Scheduler_I *sch2 = NULL;
-	if (compute_io_g == IO_GROUP) sch2 = new RoundRobinScheduler(true, false);  // root at rank = 0
-	else sch2 = new RoundRobinScheduler(false, true);
+	if (compute_io_g == IO_GROUP) sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
+	else sch2 = new RandomScheduler(false, true);
 
 	handler2 = new PushCommHandler(&comm, compute_to_io_g, sch2);
-	//std::cout << "rank " << rank << ": ";
-	//copy(roots.begin(), roots.end(), out);
-	//std::cout << std::endl;
+
+	t2 = cciutils::event::timestampInUS();
+	if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout comms"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
 	// now set up the workers
 	if (compute_io_g == COMPUTE_GROUP) {
 		proc->addHandler(handler);
 		//Debug::print("in compute setup\n");
 		if (handler->isListener()) {  // master in the compute group
-			Action_I *assign = new cci::rt::adios::AssignTiles(&comm, -1, std::string("/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1"));
+			Action_I *assign =
+					new cci::rt::adios::AssignTiles(&comm, -1,
+							params[SegmentCmdParser::PARAM_INPUT],
+							atoi(params[SegmentCmdParser::PARAM_INPUTCOUNT].c_str()),
+							logger->getSession("assign"));
 			proc->addHandler(assign);
 			handler->setAction(assign);
 			delete handler2;
 		} else {
-			Action_I *seg = new cci::rt::adios::Segment(&comm, -1);
+			Action_I *seg =
+					new cci::rt::adios::Segment(&comm, -1,
+							params[SegmentCmdParser::PARAM_PROCTYPE],
+							atoi(params[SegmentCmdParser::PARAM_GPUDEVICEID].c_str()),
+							logger->getSession("seg"));
 			proc->addHandler(seg);
 			proc->addHandler(handler2);
 			handler->setAction(seg);
@@ -132,36 +158,60 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		}
 
 	} else	{
-
-
-		// then within IO group, split to subgroups, for adios.
-		int group_size = -1;
-		int group_interleave = 1;
+		t1 = cciutils::event::timestampInUS();
 		int comm1_size;
 		int comm1_rank;
 		MPI_Comm_size(*(handler->getComm()), &comm1_size);
 		MPI_Comm_rank(*(handler->getComm()), &comm1_rank);
 
-		if (group_size == 1) {
+		// then within IO group, split to subgroups, for adios.
+		int subio_size = atoi(params[SegmentCmdParser::PARAM_SUBIOSIZE].c_str());
+		int subio_interleave = atoi(params[SegmentCmdParser::PARAM_SUBIOINTERLEAVE].c_str());
+		if (subio_interleave < 1) subio_interleave = 1;
+		else if (subio_interleave > comm1_size) subio_interleave = comm1_size;
+		if (subio_size < 1) subio_size = comm1_size / subio_interleave;
+		else if (subio_size > comm1_size) subio_size = comm1_size;
+
+		if (subio_size == 1) {
 			io_sub_g = comm1_rank;
-		} else if (group_size < 1) {
+		} else if (subio_size >= comm1_size) {
 			io_sub_g = 0;
 		} else {
-			if (group_interleave > 1) {
-				int blockid = comm1_rank / (group_size * group_interleave);
-				io_sub_g = blockid * group_interleave + comm1_rank % group_interleave;
+			if (subio_interleave > 1) {
+				int blockid = comm1_rank / (subio_size * subio_interleave);
+				io_sub_g = blockid * subio_interleave + comm1_rank % subio_interleave;
 			} else {
-				io_sub_g = comm1_rank / group_size;
+				io_sub_g = comm1_rank / subio_size;
 			}
 			++io_sub_g;
 		}
 		// io subgroups
-		Action_I *save = new cci::rt::adios::ADIOSSave(handler->getComm(), io_sub_g, iomanager, iocode, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+		std::string iocode = params[SegmentCmdParser::PARAM_TRANSPORT];
+		bool gapped = false;
+		if (strncmp(iocode.c_str(), "gap-", 4) == 0) gapped = true;
+
+		int total = atoi(params[SegmentCmdParser::PARAM_INPUTCOUNT].c_str());
+		if (gapped) {
+			total = total * comm1_size;  // worst case : all data went to 1.
+		}
+		t2 = cciutils::event::timestampInUS();
+		if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout adios"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
+
+		Action_I *save =
+				new cci::rt::adios::ADIOSSave(handler->getComm(), io_sub_g,
+						params[SegmentCmdParser::PARAM_OUTPUTDIR],
+						iocode,
+						total,
+						atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+						4096 * 4096 * 4, 256, 1024,
+						iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
 		proc->addHandler(handler2);
 		proc->addHandler(save);
 		handler2->setAction(save);
 		delete handler;
 	}
+
 	return true;
 }
 

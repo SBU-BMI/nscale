@@ -29,7 +29,7 @@ public:
 	 * _roots:  the list of roots, specified as ranks in parent_comm.
 	 */
 	CommHandler_I(MPI_Comm const *_parent_comm, int const _gid, Scheduler_I *_scheduler,
-			cciutils::SCIOLogSession *_logger = NULL);
+			cciutils::SCIOLogSession *_logsession = NULL);
 
 	virtual const char* getClassName() { return "CommHandler_I"; };
 

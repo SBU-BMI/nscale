@@ -15,7 +15,7 @@ namespace rt {
 
 class PushCommHandler: public cci::rt::CommHandler_I {
 public:
-	PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logger = NULL);
+	PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~PushCommHandler();
 	virtual const char* getClassName() { return "PushCommHandler"; };
 
