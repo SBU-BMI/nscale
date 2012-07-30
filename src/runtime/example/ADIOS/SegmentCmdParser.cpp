@@ -51,9 +51,6 @@ bool SegmentCmdParser::parse(int argc, char** argv) {
 	params[SegmentCmdParser::PARAM_INPUT] = argv[1];
 	params[SegmentCmdParser::PARAM_OUTPUTDIR] = argv[2];
 
-	// create the directory
-	futils.mkdirs(params[SegmentCmdParser::PARAM_OUTPUTDIR]);
-
 	// put in the defaults
 	params[SegmentCmdParser::PARAM_INPUTCOUNT] = "1";
 	params[SegmentCmdParser::PARAM_TRANSPORT] = "NULL";

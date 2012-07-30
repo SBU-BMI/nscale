@@ -825,7 +825,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 //	uint64_t t3 = cciutils::ClockGetTime();
 //	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 
-	std::cout <<  count << " queue entries "<< std::endl;
+//	std::cout <<  count << " queue entries "<< std::endl;
 
 	return output(Range(1, maxy), Range(1, maxx));
 

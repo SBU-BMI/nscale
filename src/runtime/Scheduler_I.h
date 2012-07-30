@@ -58,7 +58,6 @@ public:
 		comm = _comm;
 		MPI_Comm_rank(comm, &rank);
 
-
 		if (listform) {
 
 			if (binary_search(roots.begin(), roots.end(), rank)) root = true;

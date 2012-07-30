@@ -9,6 +9,7 @@
 #include <iostream>
 #include "SCIOUtilsLogger.h"
 #include "Debug.h"
+#include "FileUtils.h"
 
 #include "SegConfigurator.h"
 #include "SegmentCmdParser.h"
@@ -26,12 +27,21 @@ int main (int argc, char **argv){
 
 	int rank;
 	MPI_Comm_rank(comm, &rank);
+
+	// IMPORTANT: need to initialize random number generator right now.
+	srand(rank);
+
 	cciutils::SCIOLogger *logger = new cciutils::SCIOLogger(rank, hostname, 0);\
 	cciutils::SCIOLogSession *logsession = logger->getSession("setup");
 
 	long long t1, t2;
 	t1 = cciutils::event::timestampInUS();
 	cci::rt::adios::SegmentCmdParser *parser = new cci::rt::adios::SegmentCmdParser(comm);
+	if (rank == 0) {
+		// create the directory
+		FileUtils futils;
+		futils.mkdirs(parser->getParam(cci::rt::adios::SegmentCmdParser::PARAM_OUTPUTDIR));
+	}
 	t2 = cciutils::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cciutils::event::OTHER));
 
