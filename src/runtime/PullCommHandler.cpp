@@ -45,7 +45,7 @@ int PullCommHandler::run() {
 
 
 	call_count++;
-	//if (call_count % 100 == 0) Debug::print("PullCommHandler %s run called %d. \n", (isListener() ? "listener" : "requester"), call_count);
+//	if (call_count % 100 == 0) Debug::print("%s %s run called %d. \n", getClassName(), (isListener() ? "listener" : "requester"), call_count);
 
 	int count = 0;
 	void * data = NULL;

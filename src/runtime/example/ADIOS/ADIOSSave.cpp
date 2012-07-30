@@ -76,8 +76,6 @@ int ADIOSSave::run() {
 	// if input is done, it enters into fence and wait until everyone else is done.
 	long long t1, t2;
 
-	call_count++;
-
 	int max_iter;
 
 	//// first check globally if we need to write because of others or my buffer

@@ -107,13 +107,13 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	Scheduler_I *sch = NULL;
 	if (iointerleave == 1) {
 		compute_io_g = (rank < iosize ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
-		if (rank == iosize) sch = new RandomScheduler(true, false);  // root at rank = iosize
-		else if (rank == 0) sch = new RandomScheduler(true, false);  // root at rank = 0
+		if (rank == iosize) sch = new RandomScheduler(true, false);  // compute root at rank = iosize
+		else if (rank == 0) sch = new RandomScheduler(true, false);  // io root at rank = 0
 		else sch = new RandomScheduler(false, true);
 	} else {
 		compute_io_g = ((rank % iointerleave == 0) && (rank < iointerleave * iosize) ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
-		if (rank == 1) sch = new RandomScheduler(true, false);  // root at rank = 1
-		else if (rank == 0) sch = new RandomScheduler(true, false);  // root at rank = 0
+		if (rank == 1) sch = new RandomScheduler(true, false);  // compute root at rank = 1
+		else if (rank == 0) sch = new RandomScheduler(true, false);  // io root at rank = 0
 		else sch = new RandomScheduler(false, true);
 	}
 
@@ -124,8 +124,10 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
 	Scheduler_I *sch2 = NULL;
-	if (compute_io_g == IO_GROUP) sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
-	else sch2 = new RandomScheduler(false, true);
+	if (compute_to_io_g == UNUSED_GROUP) sch2 = new RandomScheduler(false, false);
+	else
+		if (compute_io_g == IO_GROUP) sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
+		else sch2 = new RandomScheduler(false, true);
 
 	handler2 = new PushCommHandler(&comm, compute_to_io_g, sch2);
 
@@ -173,17 +175,18 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		else if (subio_size > comm1_size) subio_size = comm1_size;
 
 		if (subio_size == 1) {
-			io_sub_g = comm1_rank;
+			io_sub_g = comm1_rank;   // each in own group.  group id = rank in io group
 		} else if (subio_size >= comm1_size) {
-			io_sub_g = 0;
+			io_sub_g = 0;  // everyone in same group.  group id = 0 for everyone.
 		} else {
 			if (subio_interleave > 1) {
 				int blockid = comm1_rank / (subio_size * subio_interleave);
 				io_sub_g = blockid * subio_interleave + comm1_rank % subio_interleave;
+				// blocks of subio_interleave io subgroups, id within a block is the modulus.  id offset for a block is blockid * subio_interleave.
 			} else {
-				io_sub_g = comm1_rank / subio_size;
+				io_sub_g = comm1_rank / subio_size;  // subgroups, with interleave of 1, so
+					// group id = block id of rank (bloc size = subio_size)
 			}
-			++io_sub_g;
 		}
 		// io subgroups
 		std::string iocode = params[SegmentCmdParser::PARAM_TRANSPORT];

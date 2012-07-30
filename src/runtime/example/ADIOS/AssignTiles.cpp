@@ -96,7 +96,7 @@ int AssignTiles::compute(int const &input_size , void * const &input,
 int AssignTiles::run() {
 
 	if (!canAddOutput()) {
-		Debug::print("%s DONE. call count %d \n", getClassName(), call_count);
+		Debug::print("%s BUFFERED. call count %d \n", getClassName(), call_count);
 		return output_status;
 	}
 
@@ -106,7 +106,6 @@ int AssignTiles::run() {
 
 
 	int result = compute(-1, NULL, output_size, output);
-	call_count++;
 
 //	if (output != NULL)
 //		Debug::print("%s iter %d output var passed back at address %x, value %s, size %d, result = %d\n", getClassName(), call_count, output, output, output_size, result);
@@ -116,11 +115,12 @@ int AssignTiles::run() {
 
 	if (result == READY) {
 		output_status = addOutput(output_size, output);
+		call_count++;
 	} else if (result == WAIT) {
 		if (this->outputSizes.empty()) output_status = WAIT;
 		else output_status = READY;
 	} else {
-		Debug::print("%s DONE. call count %d \n", getClassName(), call_count);
+		Debug::print("%s BUFFERED. entries=%d \n", getClassName(), call_count);
 
 		output_status = result;
 	}

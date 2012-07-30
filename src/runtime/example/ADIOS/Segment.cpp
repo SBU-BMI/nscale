@@ -95,35 +95,33 @@ int Segment::compute(int const &input_size , void * const &input,
 	status = seg->segmentNuclei(im, mask, compcount, bbox, logsession, NULL);
 	delete seg;
 //	}
-	free(bbox);
+	if (bbox != NULL) free(bbox);
 	im.release();
 
 	t2 = ::cciutils::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
 
-	t1 = ::cciutils::event::timestampInUS();
+	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
+		t1 = ::cciutils::event::timestampInUS();
+		CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
+		img->serialize(output_size, output);
+		// clean up
+		delete img;
 
-	CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
-	img->serialize(output_size, output);
-	// clean up
-	delete img;
+
+		t2 = ::cciutils::event::timestampInUS();
+		memset(len, 0, 21);
+		sprintf(len, "%lu", (long)output_size);
+		if (logsession != NULL) logsession->log(cciutils::event(90, std::string("serialize"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+
+	}
 	mask.release();
-
-
-	t2 = ::cciutils::event::timestampInUS();
-	memset(len, 0, 21);
-	sprintf(len, "%lu", (long)output_size);
-	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("serialize"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
-
-
-	return 1;
+	return status;
 }
 
 int Segment::run() {
 
 	if (!canAddOutput()) return output_status;
-
-	call_count++;
 
 	int output_size, input_size;
 	void *output, *input;
@@ -141,13 +139,15 @@ int Segment::run() {
 			input = NULL;
 		}
 
-		if (result >= 0) {
+		if (result == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 //			Debug::print("%s bufferring output:  call count= %d\n", getClassName(), call_count);
 
 			result = addOutput(output_size, output);
+			call_count++;
+
 //			free(output);
 		} else {
-			Debug::print("%s no output.  call count = %d\n", getClassName(), call_count);
+//			Debug::print("%s no output.  entries processed = %d\n", getClassName(), call_count);
 			result = WAIT;
 		}
 		return result;
@@ -156,7 +156,7 @@ int Segment::run() {
 		return WAIT;
 	} else {  // done or error //
 		// output already changed.
-		Debug::print("%s DONE.  call count= %d\n", getClassName(), call_count);
+		Debug::print("%s DONE.  entries processed = %d\n", getClassName(), call_count);
 		return output_status;
 	}
 
