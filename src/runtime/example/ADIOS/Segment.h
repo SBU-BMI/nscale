@@ -28,6 +28,7 @@ protected:
 				int &output_size, void * &output);
 
 	int proc_code;
+	int output_count;
 
 };
 

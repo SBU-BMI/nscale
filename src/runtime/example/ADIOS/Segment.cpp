@@ -21,7 +21,7 @@ namespace adios {
 Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
 		std::string &proctype, int gpuid,
 		cciutils::SCIOLogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _logsession) {
+				Action_I(_parent_comm, _gid, _logsession), output_count(0) {
 	if (strcmp(proctype.c_str(), "cpu")) proc_code = cciutils::DEVICE_CPU;
 	else if (strcmp(proctype.c_str(), "cpu")) {
 		proc_code = cciutils::DEVICE_GPU;
@@ -135,6 +135,8 @@ int Segment::run() {
 //		Debug::print("%s READY and getting input:  call count= %d\n", getClassName(), call_count);
 
 		result = compute(input_size, input, output_size, output);
+		call_count++;
+
 		if (input != NULL) {
 			free(input);
 			input = NULL;
@@ -142,9 +144,8 @@ int Segment::run() {
 
 		if (result == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 //			Debug::print("%s bufferring output:  call count= %d\n", getClassName(), call_count);
-
+			++output_count;
 			result = addOutput(output_size, output);
-			call_count++;
 
 //			free(output);
 		} else {
@@ -157,7 +158,7 @@ int Segment::run() {
 		return WAIT;
 	} else {  // done or error //
 		// output already changed.
-		Debug::print("%s DONE.  entries processed = %d\n", getClassName(), call_count);
+		Debug::print("%s DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
 		return output_status;
 	}
 
