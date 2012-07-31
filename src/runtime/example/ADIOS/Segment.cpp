@@ -90,10 +90,11 @@ int Segment::compute(int const &input_size , void * const &input,
 //		delete seg;
 //
 //	} else {
-
+	Debug::print("%s running for %s\n", getClassName(), fn.c_str());
 	nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(fn);
 	status = seg->segmentNuclei(im, mask, compcount, bbox, logsession, NULL);
 	delete seg;
+	Debug::print("%s complete for %s\n", getClassName(), fn.c_str());
 //	}
 	if (bbox != NULL) free(bbox);
 	im.release();

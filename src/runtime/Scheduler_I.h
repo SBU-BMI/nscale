@@ -11,6 +11,7 @@
 #include "mpi.h"
 #include <vector>
 #include <algorithm>
+#include <string.h>
 
 #include <iterator>
 #include <iostream>
