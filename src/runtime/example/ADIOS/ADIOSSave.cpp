@@ -83,41 +83,40 @@ int ADIOSSave::run() {
 	// get the local status and local buffer size
 	int local_count = inputSizes.size();
 
-	bool flushing;
+	bool atend = false;
+
+
+	// local_count > 0 && max_iter <= local_iter;  //new data to write
+	// local_count == 0 && max_iter > local_iter; //catch up with empty
+	// local_count > 0 && max_iter > local_iter;  //catch up with some writes
+	// local_count == 0 && max_iter <= local_iter;  // update remote, nothing to write locally.
 
 	/**
 	 * if status is done, then wait for everyone else too and get the max iter across all processes
 	 */
 	if (input_status == DONE || input_status == ERROR) {
 		t1 = ::cciutils::event::timestampInUS();
-		MPI_Win_fence(0, iter_win); // this makes the entire process wait.  but that's okay since the whole process's action is DONE...
 
-		MPI_Win_lock(MPI_LOCK_SHARED, 0, 0, iter_win);  // lock required?
-		MPI_Get(&max_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, iter_win);  // get the current max iter
-		MPI_Win_unlock(0, iter_win);
+		atend = true;
 
-		// fence before modifying.
-		MPI_Win_fence(0, iter_win);
-		// get the global iteration id and number of remaining actions (processes)
+		// this makes the entire application wait.  but that's okay since the whole process's action is DONE...
+		MPI_Win_fence(MPI_MODE_NOPRECEDE, iter_win);
 
-		// local_count > 0 && max_iter <= local_iter;  //new data to write
-		// local_count == 0 && max_iter > local_iter; //catch up with empty
-		// local_count > 0 && max_iter > local_iter;  //catch up with full
-		// local_count == 0 && max_iter <= local_iter;  // update remote, nothing to write.
-		if (max_iter <= local_iter) {  // this process has done more iterations.
-			if (local_count > 0) ++local_iter;  // if there is some data to be written out, project that we have one extra
-			MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0, 0, iter_win);
-			MPI_Accumulate(&local_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_MAX, iter_win);
-			MPI_Win_unlock(0, iter_win);
-			if (local_count > 0) --local_iter;
-		}
-//		Debug::print("%s DONE local rank %d status %d, local iter %d, max iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, max_iter, local_count);
-		MPI_Win_fence(0, iter_win); // this makes the entire process wait.  but that's okay since the whole process's action is DONE...
+		// then everyone update the global iter so the max is accurate for all processed in communicator.
+		//  ( in case this process has done more iterations than others)
+		if (local_count > 0) ++local_iter;  // if there is some data to be written out, iteration count WILL increase by at least 1.
+		MPI_Accumulate(&local_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_MAX, iter_win);
+		if (local_count > 0) --local_iter;
+
+		MPI_Win_fence(MPI_MODE_NOSTORE | MPI_MODE_NOSUCCEED, iter_win);   // nostore on rank 0?:  no local modification to iter_win's content.  since last fence.
+
+
+		Debug::print("%s DONE local rank %d status %d, local iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, local_count);
 		t2 = ::cciutils::event::timestampInUS();
 		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO final RMA"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 	}
 
-	// get most current
+	// get most current io iteration count
 	MPI_Win_lock(MPI_LOCK_SHARED, 0, 0, iter_win);
 	MPI_Get(&max_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, iter_win);
 	MPI_Win_unlock(0, iter_win);
@@ -130,24 +129,25 @@ int ADIOSSave::run() {
 	if (max_iter > local_iter) {  // at DONE, max_iter accounts for the buffer content.
 		while (max_iter - 1 > local_iter) {
 			// write empty
-			Debug::print("%s rank %d catch up writing empty at iter %d\n", getClassName(), rank, local_iter);
+			if (atend) Debug::print("%s rank %d catch up writing empty at iter %d\n", getClassName(), rank, local_iter);
 			process(true);
 		}
 		// last iteration to catch up.
 		// write what's in the buffer
 		process(false);
-//		Debug::print("CATCHUP ITER local rank %d status %d, local iter %d, local count %d\n", rank, input_status, local_iter, local_count);
+		if (atend) Debug::print("%s CATCHUP ITER local rank %d status %d, local iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, local_count);
 	} else {  // new data to be written, and not a catch up.
 		if (input_status == WAIT || input_status == READY) {
 			// this would be a new iteration, only if count is at max
 			if (local_count >= buffer_max) {
-				// update remote - important, need for others to know about the latest iteration number,
+				// update remote - important to do this before calling process().  process() is blocking.
+				// need for other processes to know about the latest iteration number,
 				// so for the processes that do not have full buffer, they can enter into catchup mode
 				// during the next iteration.
 				t1 = ::cciutils::event::timestampInUS();
 
-				++local_iter;
-				MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0, 0, iter_win);
+				++local_iter;  // pre-update.
+				MPI_Win_lock(MPI_LOCK_SHARED, 0, 0, iter_win);  // okay to have shared lock for accumulate.
 				MPI_Accumulate(&local_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_MAX, iter_win);
 				MPI_Win_unlock(0, iter_win);
 				--local_iter;
@@ -157,9 +157,13 @@ int ADIOSSave::run() {
 
 				// write some new data
 				process(false);
-//				Debug::print("INIT NEW ITER local rank %d status %d, local iter %d, local count %d\n", rank, input_status, local_iter, local_count);
-			}  // else do nothing
+				if (atend) Debug::print("%s INIT NEW ITER local rank %d status %d, local iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, local_count);
+			}  else {
+				if (atend) Debug::print("%s local==max, no data. local rank %d status %d, local iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, local_count);
+			}
 
+		} else {
+			if (atend) Debug::print("%s local==max, input = done. local rank %d status %d, local iter %d, local count %d\n", getClassName(), rank, input_status, local_iter, local_count);
 		}
 
 	}

@@ -45,7 +45,6 @@ int PushCommHandler::run() {
 	int count;
 	void * data = NULL;
 	int buffer_status = READY;
-
 	int worker_status = READY;
 	int manager_status = READY;
 	MPI_Status mstatus;
@@ -74,6 +73,9 @@ int PushCommHandler::run() {
 
 			// track the worker status
 			if (worker_status == DONE || worker_status == ERROR) {
+				Debug::print("%s remove worker %d due to worker status %d.\n", getClassName(), worker_id, worker_status);
+
+
 				activeWorkers.erase(worker_id);
 
 	
@@ -178,6 +180,9 @@ int PushCommHandler::run() {
 
 			for (std::vector<int>::iterator iter=roots.begin();
 					iter != roots.end(); ++iter) {
+
+				Debug::print("%s root %d is notified as done.\n", getClassName(), *iter);
+
 				MPI_Isend(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
 			}
 			// and say done.

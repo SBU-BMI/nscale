@@ -26,7 +26,7 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename, proc_t
             end
             clear temp1;
             tline = fgetl(fid);
-        end        
+        end
     elseif ischar(tline) && (strcmp(tline, 'v2') == 1)
         % processing version 2 (has annotation output, which is just the
         % size of the data being outputted.

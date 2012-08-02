@@ -17,6 +17,8 @@
 #include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
 
+#include "NullSinkAction.h"
+
 namespace cci {
 namespace rt {
 namespace adios {
@@ -121,6 +123,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	handler = new PullCommHandler(&comm, compute_io_g, sch);
 
 	// then the compute to IO communication group
+	// separate masters in the compute group
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
 	Scheduler_I *sch2 = NULL;
@@ -201,14 +204,15 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout adios"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
 
-		Action_I *save =
-				new cci::rt::adios::ADIOSSave(handler->getComm(), io_sub_g,
-						params[SegmentCmdParser::PARAM_OUTPUTDIR],
-						iocode,
-						total,
-						atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-						4096 * 4096 * 4, 256, 1024,
-						iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+//		Action_I *save =
+//				new cci::rt::adios::ADIOSSave(handler->getComm(), io_sub_g,
+//						params[SegmentCmdParser::PARAM_OUTPUTDIR],
+//						iocode,
+//						total,
+//						atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+//						4096 * 4096 * 4, 256, 1024,
+//						iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+		Action_I *save = new cci::rt::NullSinkAction(handler->getComm(), io_sub_g, logger->getSession("io"));
 		proc->addHandler(handler2);
 		proc->addHandler(save);
 		handler2->setAction(save);

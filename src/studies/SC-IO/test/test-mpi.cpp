@@ -214,102 +214,104 @@ int main (int argc, char **argv) {
 	MPI_Win_free(&win);
 
 
-	// testing issend, cancel, with iprobe.
-	MPI_Status mstatus;
-	bool done = false;
-	bool wait = false;
-	if (rank == 0) {
 
-		while (!done) {
-			int hasMessage;
-			int worker_id;
-			int worker_status;
-
-			MPI_Iprobe(MPI_ANY_SOURCE, 1, comm_world, &hasMessage, &mstatus);
-			if (hasMessage) {
-				worker_id = mstatus.MPI_SOURCE;
-//				printf("manager queue has %lu messages?\n", mstatus._ucount);
-
-				MPI_Recv(&worker_status, 1, MPI_INT, worker_id, 1, comm_world, &mstatus);
-				printf("manager received %d from %d with error %d canceled? %d\n", worker_status, worker_id, mstatus.MPI_ERROR, mstatus._cancelled);
-
-				if (worker_status % 100== 1) {
-					done = true;
-				} else if (worker_status % 100== 2){
-					wait = true;
-				}
-				MPI_Send(&worker_status, 1, MPI_INT, worker_id, 1, comm_world);
-
-			}
-
-			if (wait == true) {
-				printf("wait a sec\n");
-				sleep(1);
-				wait = false;
-			}
-		}
-
-	} else {
-
-		// call manager with READY, DONE, or ERROR
-		bool waitForManager = true;
-		int completed = 0;
-		int root = 0;
-		int err;
-		int runs = 0;
-		int val = runs * 100 + 0;
-		MPI_Request myRequest;
-		int manager_status;
-
-		while (!done) {
-			if (runs % 10 == 1) {
-				val = runs * 100 + 2;
-			} else if (runs > 20) {
-				val = runs * 100 + 1;
-			} else {
-				val = runs * 100;
-			}
-			runs++;
-
-			waitForManager = true;
-
-			while (waitForManager) {
-				int iter = 0;
-				completed = 0;
-				err = MPI_Issend(&val, 1, MPI_INT, root, 1, comm_world, &myRequest);   // send the current status
-				printf("%d issend %d status %d\n", rank, val, err);
-				err = MPI_Test(&myRequest, &completed, &mstatus);
-//				printf("%d checking root %d, completed = %d, error %d\n", rank, root, completed, err);
-				while (completed == 0 && iter < 100) {
-					usleep(1000);
-					err = MPI_Test(&myRequest, &completed, &mstatus);
-					++iter;
-				}
-				if (completed != 0) {
-					printf("%d got root %d for %d complted = %d \n", rank, root, val, completed);
-					waitForManager = false;  // myRequest is cleaned up
-				} else if (completed == 0 && iter >= 100) {
-	//				printf("%d did not get root %d.  compelted = %d\n", rank, root, completed);
-					err = MPI_Cancel(&myRequest);
-	//				printf("%d cancel status %d\n", rank, err);
-
-					err = MPI_Request_free(&myRequest);   // clean up.
-	//				printf("%d req free status %d\n", rank, err);
-
-				}
-			}
-
-		//		root = scheduler->getRootFromLeaf(rank);
-		//		MPI_Send(&buffer_status, 1, MPI_INT, root, CONTROL_TAG, comm);
-
-			MPI_Recv(&manager_status, 1, MPI_INT, root, 1, comm_world, &mstatus);
-			printf("manager status received = %d\n", manager_status);
-			if (manager_status % 100 == 1) {
-				done = true;
-			}
-		}
-
-	}
+	// CANCELLING DOES NOT WORK.
+//	// testing issend, cancel, with iprobe.
+//	MPI_Status mstatus;
+//	bool done = false;
+//	bool wait = false;
+//	if (rank == 0) {
+//
+//		while (!done) {
+//			int hasMessage;
+//			int worker_id;
+//			int worker_status;
+//
+//			MPI_Iprobe(MPI_ANY_SOURCE, 1, comm_world, &hasMessage, &mstatus);
+//			if (hasMessage) {
+//				worker_id = mstatus.MPI_SOURCE;
+////				printf("manager queue has %lu messages?\n", mstatus._ucount);
+//
+//				MPI_Recv(&worker_status, 1, MPI_INT, worker_id, 1, comm_world, &mstatus);
+////				printf("manager received %d from %d with error %d canceled? %d\n", worker_status, worker_id, mstatus.MPI_ERROR, mstatus._cancelled);
+//
+//				if (worker_status % 100== 1) {
+//					done = true;
+//				} else if (worker_status % 100== 2){
+//					wait = true;
+//				}
+//				MPI_Send(&worker_status, 1, MPI_INT, worker_id, 1, comm_world);
+//
+//			}
+//
+//			if (wait == true) {
+//				printf("wait a sec\n");
+//				sleep(1);
+//				wait = false;
+//			}
+//		}
+//
+//	} else {
+//
+//		// call manager with READY, DONE, or ERROR
+//		bool waitForManager = true;
+//		int completed = 0;
+//		int root = 0;
+//		int err;
+//		int runs = 0;
+//		int val = runs * 100 + 0;
+//		MPI_Request myRequest;
+//		int manager_status;
+//
+//		while (!done) {
+//			if (runs % 10 == 1) {
+//				val = runs * 100 + 2;
+//			} else if (runs > 20) {
+//				val = runs * 100 + 1;
+//			} else {
+//				val = runs * 100;
+//			}
+//			runs++;
+//
+//			waitForManager = true;
+//
+//			while (waitForManager) {
+//				int iter = 0;
+//				completed = 0;
+//				err = MPI_Issend(&val, 1, MPI_INT, root, 1, comm_world, &myRequest);   // send the current status
+//				printf("%d issend %d status %d\n", rank, val, err);
+//				err = MPI_Test(&myRequest, &completed, &mstatus);
+////				printf("%d checking root %d, completed = %d, error %d\n", rank, root, completed, err);
+//				while (completed == 0 && iter < 100) {
+//					usleep(1000);
+//					err = MPI_Test(&myRequest, &completed, &mstatus);
+//					++iter;
+//				}
+//				if (completed != 0) {
+//					printf("%d got root %d for %d complted = %d \n", rank, root, val, completed);
+//					waitForManager = false;  // myRequest is cleaned up
+//				} else if (completed == 0 && iter >= 100) {
+//	//				printf("%d did not get root %d.  compelted = %d\n", rank, root, completed);
+//					err = MPI_Cancel(&myRequest);
+//	//				printf("%d cancel status %d\n", rank, err);
+//
+//					err = MPI_Request_free(&myRequest);   // clean up.
+//	//				printf("%d req free status %d\n", rank, err);
+//
+//				}
+//			}
+//
+//		//		root = scheduler->getRootFromLeaf(rank);
+//		//		MPI_Send(&buffer_status, 1, MPI_INT, root, CONTROL_TAG, comm);
+//
+//			MPI_Recv(&manager_status, 1, MPI_INT, root, 1, comm_world, &mstatus);
+//			printf("manager status received = %d\n", manager_status);
+//			if (manager_status % 100 == 1) {
+//				done = true;
+//			}
+//		}
+//
+//	}
 
 
 

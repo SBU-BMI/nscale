@@ -49,8 +49,11 @@ void Process::setup() {
 
 	configured = conf->configure(comm_world, this);
 
-	Debug::print("Process configured\n");
+
+
 	MPI_Barrier(comm_world);
+
+	if (world_rank == 0) Debug::print("Processes configured\n");
 }
 
 /**
@@ -62,7 +65,7 @@ void Process::run() {
 		Debug::print("ERROR:  not configured\n");
 		return;
 	}
-	Debug::print("Process running\n");
+	//Debug::print("Process running\n");
 
 //	unsigned long working = std::numeric_limits<unsigned long>::max();
 //	working = working >> (sizeof(unsigned long) * 8 - handlers.size());

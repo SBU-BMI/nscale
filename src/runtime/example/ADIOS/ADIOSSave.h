@@ -37,7 +37,7 @@ protected:
 	ADIOSManager *iomanager;
 	ADIOSWriter *writer;
 	int local_iter;
-	int global_iter;
+	int global_iter;   // volatile, for sake of MPI_WIN.
 
 	MPI_Win iter_win;
 	int buffer_max;
