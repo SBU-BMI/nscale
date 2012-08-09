@@ -42,6 +42,10 @@ public:
 		it = unique(leaves.begin(), leaves.end());
 		leaves.resize( it - leaves.begin() );
 
+		printf("superclass roots.size = %ld\n", roots.size());
+		printf("superclass leaves.size = %ld\n", leaves.size());
+
+
 	};
 	/**
 	 * this version of the function takes 2 flags:  isroot and isleaf.  allGather is used to construct
@@ -88,10 +92,11 @@ public:
 			delete [] sendbuf;
 		}
 
+		postConfigure();
+
 		configured = true;
 
 	};
-
 
 
 	virtual int removeRoot(int id) {
@@ -154,6 +159,9 @@ protected:
 
 	MPI_Comm comm;
 	int rank;
+
+	virtual void postConfigure() = 0;
+
 };
 
 } /* namespace rt */

@@ -21,6 +21,10 @@ public:
 
 	virtual int getRootFromLeaf(int leafId);
 	virtual int getLeafFromRoot(int rootId);
+
+protected:
+	virtual void postConfigure() {};
+
 };
 
 } /* namespace rt */

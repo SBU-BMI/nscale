@@ -55,10 +55,11 @@ public:
 		int result = self->reference_sources.size();
 		if (result == 0) {
 			delete self;
-			return result;
 		}
-		else return 0;
+		return result;
 	};
+
+	virtual int getStatus() = 0;
 
 protected:
 	MPI_Comm const *parent_comm;

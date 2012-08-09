@@ -1,19 +1,19 @@
 /*
- * ADIOSSave.h
+ * ADIOSSave_Reduce.h
  *
  *  Created on: Jun 18, 2012
  *      Author: tcpan
  */
 
-#ifndef ADIOSSAVE_H_
-#define ADIOSSAVE_H_
+#ifndef ADIOSSAVE_REDUCE_H_
+#define ADIOSSAVE_REDUCE_H_
 
 #include <Action_I.h>
 #include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
 #include "mpi.h"
 
-//extern int test_input_status;
+extern int test_input_status;
 
 
 namespace cci {
@@ -21,15 +21,15 @@ namespace rt {
 namespace adios {
 
 
-class ADIOSSave: public cci::rt::Action_I {
+class ADIOSSave_Reduce: public cci::rt::Action_I {
 public:
-	ADIOSSave(MPI_Comm const *_parent_comm, int const _gid,
+	ADIOSSave_Reduce(MPI_Comm const *_parent_comm, int const _gid,
 			std::string &outDir, std::string &iocode, int total, int _buffer_max,
 			int tile_max, int imagename_max, int filename_max,
 			ADIOSManager *_iomanager, cciutils::SCIOLogSession *_logsession = NULL);
-	virtual ~ADIOSSave();
+	virtual ~ADIOSSave_Reduce();
 	virtual int run();
-	virtual const char* getClassName() { return "ADIOSSave"; };
+	virtual const char* getClassName() { return "ADIOSSave_Reduce"; };
 
 	virtual int getInputStatus() {
 		if (this->input_status == ERROR || this->output_status == ERROR) {
@@ -67,15 +67,6 @@ protected:
 
 	int local_iter;
 
-	int global_iter;
-	MPI_Win iter_win;
-
-	int global_done_count;
-	int *dones;
-	MPI_Win done_win;
-	bool done_marked;
-	bool all_done;
-
 	int buffer_max;
 
 	int local_total;
@@ -87,4 +78,4 @@ protected:
 }
 } /* namespace rt */
 } /* namespace cci */
-#endif /* ADIOSSAVE_H_ */
+#endif /* ADIOSSAVE_REDUCE_H_ */

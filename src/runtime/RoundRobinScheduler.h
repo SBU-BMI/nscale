@@ -28,6 +28,9 @@ public:
 	virtual int addLeaf(int id);
 
 
+protected:
+	virtual void postConfigure();
+
 private:
 	int rootIdx;
 	int leafIdx;

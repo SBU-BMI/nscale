@@ -66,6 +66,7 @@ public:
 
 	static const int ENCODE_RAW;	// raw encoding type
 
+	// works because data, imagename, and sourcefilenames are separate arrays.
 	void compact() {
 		data_max_size = metadata.info.data_size;
 		image_name_max_size = metadata.info.image_name_size;
@@ -73,12 +74,23 @@ public:
 	}
 
 	MetadataType const &getMetadata() { return this->metadata; };
-	unsigned char const *getData(int &max_size) { max_size = data_max_size; return this->data; };
-	char const *getImageName(int &max_size) { max_size = image_name_max_size; return this->image_name; };
-	char const *getSourceFileName(int &max_size) { max_size = source_file_name_max_size; return this->source_file_name; };
+	unsigned char const *getData(int &max_size, int &size) { max_size = data_max_size; size = metadata.info.data_size; return this->data; };
+	char const *getImageName(int &max_size, int &size) { max_size = image_name_max_size; size = metadata.info.image_name_size; return this->image_name; };
+	char const *getSourceFileName(int &max_size, int &size) { max_size = source_file_name_max_size; size = metadata.info.source_file_name_size; return this->source_file_name; };
 	int const getType() { return this->type; };
 
+	static MetadataType *allocMetadata() {
+		MetadataType *meta = new ::cci::rt::adios::CVImage::MetadataType[1];
+		memset(meta, 0, CVIMAGE_METADATA_SIZE);
+		return meta;
+	}
+	static void freeMetadata(MetadataType* &meta) {
+		delete [] meta;
+	}
 
+	static void freeSerializedData(void *data) {
+		free(data);
+	}
 
 protected:
 	MetadataType metadata;

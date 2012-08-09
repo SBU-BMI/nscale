@@ -20,6 +20,10 @@ public:
 	virtual const char* getClassName() { return "PushCommHandler"; };
 
 	virtual int run();
+
+private:
+	int send_count;
+
 };
 
 } /* namespace rt */

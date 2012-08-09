@@ -5,6 +5,7 @@
 #include "gpu_utils.h"
 #include "adios.h"
 #include "adios_internals.h"
+#include "Debug.h"
 
 namespace cci {
 namespace rt {
@@ -124,13 +125,14 @@ ADIOSWriter::ADIOSWriter(std::string const &_prefix, std::string const &_suffix,
 	sourceTileFile_capacity = mx_filename_bytes * tileInfo_capacity;
 	tile_capacity = mx_image_bytes * tileInfo_capacity;
 
-	tile_buffer_capacity = mx_image_bytes * tileInfo_buffer_capacity;
-	imagename_buffer_capacity = mx_imagename_bytes * tileInfo_buffer_capacity;
-	sourceTileFile_buffer_capacity = mx_filename_bytes * tileInfo_buffer_capacity;
+	local_tile_capacity = mx_image_bytes * tileInfo_buffer_capacity;
+	local_imagename_capacity = mx_imagename_bytes * tileInfo_buffer_capacity;
+	local_sourceTileFile_capacity = mx_filename_bytes * tileInfo_buffer_capacity;
 
-	tile = (unsigned char*)malloc(tile_buffer_capacity);
-	imageName = (char*)malloc(imagename_buffer_capacity);
-	sourceTileFile = (char*)malloc(sourceTileFile_buffer_capacity);
+	tile = (unsigned char*)malloc(local_tile_capacity);
+	//Debug::print("Local_tile_buffer at %p with capacity %d\n", tile, local_tile_capacity);
+	imageName = (char*)malloc(local_imagename_capacity);
+	sourceTileFile = (char*)malloc(local_sourceTileFile_capacity);
 	clearBuffer();
 
 }
@@ -140,6 +142,11 @@ ADIOSWriter::~ADIOSWriter() {
 	free(tile);
 	free(imageName);
 	free(sourceTileFile);
+
+	for (std::vector<CVImage *>::iterator iter = buffer.begin();
+			iter!= buffer.end(); ++iter) {
+		delete *iter;
+	}
 	buffer.clear();
 
 	selected_stages.clear();
@@ -151,39 +158,49 @@ bool ADIOSWriter::selected(const int stage) {
 }
 
 void ADIOSWriter::clearBuffer() {
-	memset(this->tile, 0, this->tile_buffer_capacity);
-	memset(this->imageName, 0, this->imagename_buffer_capacity);
-	memset(this->sourceTileFile, 0, this->sourceTileFile_buffer_capacity);
+	memset(this->tile, 0, this->local_tile_capacity);
+	memset(this->imageName, 0, this->local_imagename_capacity);
+	memset(this->sourceTileFile, 0, this->local_sourceTileFile_capacity);
 	this->data_pos = 0;
 	this->imageNames_pos = 0;
 	this->filenames_pos = 0;
 
+	for (std::vector<CVImage *>::iterator iter = buffer.begin();
+			iter!= buffer.end(); ++iter) {
+		delete *iter;
+	}
 	this->buffer.clear();
 }
 
 
-CVImage &ADIOSWriter::saveCVImage(CVImage const &img) {
-	CVImage::MetadataType *meta = new CVImage::MetadataType[1];
+CVImage *ADIOSWriter::saveCVImage(CVImage const *img) {
+	CVImage::MetadataType *meta = CVImage::allocMetadata();
+
+//	printf("tile at %p, data pos=%ld, max data=%d\n", tile, data_pos, mx_image_bytes);
 
 	CVImage *out = new CVImage(meta, tile + data_pos, mx_image_bytes,
 			imageName + imageNames_pos, mx_imagename_bytes,
 			sourceTileFile + filenames_pos, mx_filename_bytes);
 
-	out->copy(img);
+	out->copy(*img);
+
 
 	int data_size, img_name_size, src_fn_size;
+	int dummy, mx_img_name_size, mx_src_fn_size;
 	out->compact();
 
-	out->getData(data_size);
+	out->getData(dummy, data_size);
 	data_pos += data_size;
-	out->getImageName(img_name_size);
-	imageNames_pos += img_name_size;
-	out->getSourceFileName(src_fn_size);
-	filenames_pos += src_fn_size;
+	out->getImageName(mx_img_name_size, img_name_size);
+	imageNames_pos += mx_img_name_size;
+	out->getSourceFileName(mx_img_name_size, src_fn_size);
+	filenames_pos += mx_img_name_size;
 
-	buffer.push_back(*out);
+	buffer.push_back(out);
 
-	return *out;
+	CVImage::freeMetadata(meta);
+
+	return out;
 }
 
 
@@ -313,7 +330,7 @@ int ADIOSWriter::persist(int iter) {
 		/**  get tile metadata
 		*/
 		for (int i = 0; i < tileInfo_pg_size; ++i) {
-			CVImage::MetadataType md = buffer[i].getMetadata();
+			CVImage::MetadataType md = buffer[i]->getMetadata();
 			tileOffsetX[i] = md.info.x_offset;
 			tileOffsetY[i] = md.info.y_offset;
 			tileSizeX[i] = md.info.x_size;
@@ -358,9 +375,9 @@ int ADIOSWriter::persist(int iter) {
 
 	if (gapped) {
 		tileInfo_pg_offset = comm_rank * tileInfo_buffer_capacity + tileInfo_total;
-		imageName_pg_offset = comm_rank * imagename_buffer_capacity + imageName_total;
-		sourceTileFile_pg_offset = comm_rank * sourceTileFile_buffer_capacity + sourceTileFile_total;
-		tile_pg_offset = comm_rank * tile_buffer_capacity + tile_total;
+		imageName_pg_offset = comm_rank * local_imagename_capacity + imageName_total;
+		sourceTileFile_pg_offset = comm_rank * local_sourceTileFile_capacity + sourceTileFile_total;
+		tile_pg_offset = comm_rank * local_tile_capacity + tile_total;
 	} else {
 		// compute offset within step across all processes
 		pg_sizes[0] = tileInfo_pg_size;
@@ -402,9 +419,9 @@ int ADIOSWriter::persist(int iter) {
 	*/
 	if (gapped) {
 		this->tileInfo_total = (write_session_id + 1) * comm_size * tileInfo_buffer_capacity;
-		this->imageName_total= (write_session_id + 1) * comm_size * imagename_buffer_capacity;
-		this->sourceTileFile_total = (write_session_id + 1) * comm_size * sourceTileFile_buffer_capacity;
-		this->tile_total = (write_session_id + 1) * comm_size * tile_buffer_capacity;
+		this->imageName_total= (write_session_id + 1) * comm_size * local_imagename_capacity;
+		this->sourceTileFile_total = (write_session_id + 1) * comm_size * local_sourceTileFile_capacity;
+		this->tile_total = (write_session_id + 1) * comm_size * local_tile_capacity;
 	} else {
 		step_totals[0] = 0;
 		step_totals[1] = 0;
@@ -486,7 +503,7 @@ int ADIOSWriter::persist(int iter) {
 		delete [] tile_offset;
 		delete [] tile_size;
 	}
-	this->clearBuffer();
+// 	this->clearBuffer();
 
 	t2 = ::cciutils::event::timestampInUS();
 	ss << event_name_prefix << "IO var clear";
@@ -542,8 +559,9 @@ int ADIOSWriter::benchmark(int id) {
 	cv::Mat img = cv::Mat::eye(4096, 4096, CV_32SC1);
 	std::string img_name("testimg");
 	ss << "BENCHTest" << comm_rank << ".tif";
-	CVImage cvi(img, img_name, ss.str(), 1024, 2048);
+	CVImage *cvi = new CVImage(img, img_name, ss.str(), 1024, 2048);
 	saveCVImage(cvi);
+	delete cvi;
 	ss.str(std::string());
 	t2 = ::cciutils::event::timestampInUS();
 	ss << event_name_prefix << "DATA prep";
@@ -567,6 +585,8 @@ int ADIOSWriter::benchmark(int id) {
 
 	persistCountInfo();
 	
+	clearBuffer();
+
 	//printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", comm_rank, tileInfo_pg_size, tileSize);
 	t1 = ::cciutils::event::timestampInUS();
 	MPI_Barrier(comm);
@@ -581,17 +601,17 @@ int ADIOSWriter::benchmark(int id) {
 
 
 
-void ADIOSWriter::saveIntermediate(CVImage const &img, const int stage) {
-	if (!selected(stage)) return;
+void ADIOSWriter::saveIntermediate(CVImage const *img, const int stage) {
+	//if (!selected(stage)) return;
 
 	long long t1 = ::cciutils::event::timestampInUS();
-	CVImage out = saveCVImage(img);
+	CVImage *out = saveCVImage(img);
 
 	long long t2 = ::cciutils::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
-	int data_size;
-	out.getData(data_size);
+	int data_size, dummy;
+	out->getData(dummy, data_size);
 	sprintf(len, "%ld", (long)(data_size));
 
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO Buffer"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
@@ -601,8 +621,9 @@ void ADIOSWriter::saveIntermediate(CVImage const &img, const int stage) {
 void ADIOSWriter::saveIntermediate(const ::cv::Mat& intermediate, const int stage,
 		const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 
-	CVImage source(intermediate, _image_name, _source_tile_file_name, _offsetX, _offsetY);
-	return saveIntermediate(source, stage);
+	CVImage *source = new CVImage(intermediate, _image_name, _source_tile_file_name, _offsetX, _offsetY);
+	saveIntermediate(source, stage);
+	delete source;
 }
 
 #if defined (WITH_CUDA)

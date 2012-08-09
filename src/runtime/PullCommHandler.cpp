@@ -13,11 +13,15 @@ namespace cci {
 namespace rt {
 
 PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession)
- : CommHandler_I(_parent_comm, _gid, _scheduler, _logsession) {
+ : CommHandler_I(_parent_comm, _gid, _scheduler, _logsession), send_count(0) {
 }
 
 PullCommHandler::~PullCommHandler() {
-//	Debug::print("%s destructor called.\n", getClassName());
+	if (isListener()) {
+		Debug::print("%s destructor called.  total of %d data messages sent.\n", getClassName(), send_count);
+	} else {
+		Debug::print("%s destructor called.\n", getClassName());
+	}
 
 }
 
@@ -45,6 +49,7 @@ int PullCommHandler::run() {
 
 
 	call_count++;
+
 //	if (call_count % 100 == 0) Debug::print("%s %s run called %d. \n", getClassName(), (isListener() ? "listener" : "requester"), call_count);
 
 	int count = 0;
@@ -78,6 +83,7 @@ int PullCommHandler::run() {
 //		MPI_Probe(MPI_ANY_SOURCE, CONTROL_TAG, comm, &mstatus);
 
 			worker_id = mstatus.MPI_SOURCE;
+			if (activeWorkers.find(worker_id) == activeWorkers.end()) return status;
 
 			MPI_Recv(&worker_status, 1, MPI_INT, worker_id, CONTROL_TAG, comm, &mstatus);
 
@@ -142,6 +148,7 @@ int PullCommHandler::run() {
 //				Debug::print("%s listener sending %d bytes at %x to %d\n", getClassName(), count, data, worker_id);
 
 				// status is ready, send data.
+				++send_count;
 				MPI_Send(&count, 1, MPI_INT, worker_id, DATA_TAG, comm);
 				MPI_Send(data, count, MPI_CHAR, worker_id, DATA_TAG, comm);
 				if (data != NULL) {
@@ -152,6 +159,8 @@ int PullCommHandler::run() {
 				t2 = cciutils::event::timestampInUS();
 				sprintf(len, "%lu", (long)(count));
 				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+
+				if (send_count % 100 == 0) Debug::print("%s manager sent %d data messages to workers.\n", getClassName(), send_count);
 
 				return buffer_status;
 			}  else {
@@ -178,7 +187,8 @@ int PullCommHandler::run() {
 
 			for (std::vector<int>::iterator iter=roots.begin();
 					iter != roots.end(); ++iter) {
-				MPI_Isend(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
+//				MPI_Isend(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
+				MPI_Send(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm);
 			}
 			// and say done.
 			status = DONE;

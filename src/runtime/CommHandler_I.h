@@ -45,6 +45,8 @@ public:
 	static const int CONTROL_TAG;
 	static const int DATA_TAG;
 
+	virtual int getStatus() { return status; };
+
 protected:
 	Scheduler_I *scheduler;
 
@@ -52,6 +54,8 @@ protected:
 
 	Action_I * action;
 	int status;
+
+//	bool hascompletedworker;
 };
 
 } /* namespace rt */

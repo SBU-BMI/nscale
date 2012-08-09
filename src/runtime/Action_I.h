@@ -19,8 +19,9 @@ namespace rt {
 class Action_I : public Communicator_I {
 public:
 	Action_I(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession = NULL) :
-		Communicator_I(_parent_comm, _gid, _logsession), input_status(READY), output_status(READY) {};
+		Communicator_I(_parent_comm, _gid, _logsession), input_status(READY), output_status(READY), debug(false) {};
 	virtual ~Action_I() {
+
 		void * data;
 		if (!inputSizes.empty()) Debug::print("%s WARNING: %d entries left in input\n", getClassName(), inputSizes.size());
 		for (int i = 0; i < inputSizes.size(); ++i) {
@@ -29,6 +30,7 @@ public:
 			inputData.pop();
 			free(data);
 		}
+
 		if (!outputSizes.empty()) Debug::print("%s WARNING: %d entries left in output\n", getClassName(), outputSizes.size());
 		for (int i = 0; i < outputSizes.size(); ++i) {
 			outputSizes.pop();
@@ -46,10 +48,6 @@ public:
 	int addInput(int size , void * data) {
 		if (this->canAddInput() && size > 0) {  // only receive in READY and WAIT state
 			if (data == NULL) Debug::print("%s ERROR:  why is data NULL?\n", getClassName());
-
-//			void *d2 = malloc(size);
-//			memcpy(d2, data, size);
-//
 
 			inputSizes.push(size);
 			inputData.push(data);
@@ -76,6 +74,8 @@ public:
 
 	void markInputDone() {
 		this->input_status = DONE;
+//		Debug::print("%s action marked as %d\n", getClassName(), input_status);
+
 	}
 
 	virtual int getOutputStatus() {
@@ -120,6 +120,22 @@ public:
 		return stat == READY;
 	};
 
+	 int getInputSize() { return this->inputSizes.size(); };
+	 int getOutputSize() { return this->outputSizes.size(); };
+
+
+	 void debugOn() {
+		 debug = true;
+	 };
+	 void debugOff() {
+		 debug = false;
+	 };
+
+
+		virtual int getStatus() {
+			return input_status;
+		};
+
 protected:
 	virtual int compute(int const &input_size , void * const &input,
 			int &output_size, void * &output) = 0;
@@ -153,7 +169,7 @@ protected:
 		return stat == READY;
 	};
 
-	int getInput(int &size , void * &data) {
+	virtual int getInput(int &size , void * &data) {
 		int stat = getInputStatus();
 		if (stat == READY) {
 			size = inputSizes.front();
@@ -185,7 +201,7 @@ protected:
 		// DONE (no more and buffer is empty)
 		// (FLUSH is implicit.  REDAY and full buffer)
 		// FULL will be implemented later.
-
+	bool debug;
 };
 
 } /* namespace rt */

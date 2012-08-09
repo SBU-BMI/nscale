@@ -22,6 +22,9 @@ public:
 
 
 	virtual int run();
+
+private:
+	int send_count;
 };
 
 } /* namespace rt */

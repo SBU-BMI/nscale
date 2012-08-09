@@ -9,6 +9,7 @@
 #include "PullCommHandler.h"
 #include "PushCommHandler.h"
 #include "Action_I.h"
+#include <sstream>
 
 #include "Debug.h"
 
@@ -71,14 +72,29 @@ void Process::run() {
 //	working = working >> (sizeof(unsigned long) * 8 - handlers.size());
 //	Debug::print("listener has %d entries, working bit field = %x\n", handlers.size(), working);
 
+	std::stringstream ss;
+
 	int result;
 	while (!handlers.empty() ) {
+
 		for (std::vector<Communicator_I *>::iterator iter = handlers.begin();
 				iter != handlers.end(); ) {
 			result = (*iter)->run();
 			if (result == Communicator_I::DONE || result == Communicator_I::ERROR) {
+				ss.str(std::string());
+				ss << "dereferencing " << (*iter)->getClassName() << ". ";
 				Communicator_I::dereference((*iter), &handlers);
 				iter = handlers.erase(iter);
+
+				if (!handlers.empty()) {
+
+					ss << "Handlers remaining: ";
+					for (std::vector<Communicator_I *>::iterator iter2 = handlers.begin();
+							iter2 != handlers.end(); ++iter2) {
+						ss << "(" << (*iter2)->getClassName() << ":" << (*iter2)->getStatus() << "), ";
+					}
+				}
+				Debug::print("Process %s\n", ss.str().c_str());
 			} else ++iter;
 		}
 	}

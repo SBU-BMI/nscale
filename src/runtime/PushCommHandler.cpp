@@ -9,15 +9,23 @@
 #include "Debug.h"
 #include <unistd.h>
 
+//int test_input_status;
+
 namespace cci {
 namespace rt {
 
 PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession)
-: CommHandler_I(_parent_comm, _gid, _scheduler, _logsession) {
+: CommHandler_I(_parent_comm, _gid, _scheduler, _logsession), send_count(0) {
+//	hascompletedworker = false;
+//	test_input_status = ERROR;
 }
 
 PushCommHandler::~PushCommHandler() {
-//	Debug::print("%s destructor called.\n", getClassName());
+	if (isListener()) {
+		Debug::print("%s destructor called.  total of %d data messages received.\n", getClassName(), send_count);
+	} else {
+		Debug::print("%s destructor called.\n", getClassName());
+	}
 }
 
 /**
@@ -50,7 +58,11 @@ int PushCommHandler::run() {
 	MPI_Status mstatus;
 	MPI_Request myRequest;
 
+
 	if (isListener()) {
+
+//		if (hascompletedworker && buffer_status != READY) Debug::print("%s manager %d status %d.\n", getClassName(), rank, buffer_status);
+
 		if (!this->isReady()) return status;
 
 		if (action->canAddInput())
@@ -58,7 +70,7 @@ int PushCommHandler::run() {
 		else
 			buffer_status = action->getInputStatus();  // get the data, and the return status
 
-//		Debug::print("%s buffer status = %d\n", getClassName(), buffer_status);
+		//if (hascompletedworker) Debug::print("%s buffer status = %d\n", getClassName(), buffer_status);
 
 
 		int hasMessage;
@@ -68,24 +80,38 @@ int PushCommHandler::run() {
 		if (hasMessage) {
 //		MPI_Probe(MPI_ANY_SOURCE, CONTROL_TAG, comm, &mstatus);
 			worker_id = mstatus.MPI_SOURCE;
+			if (activeWorkers.find(worker_id) == activeWorkers.end()) return status;
 
 			MPI_Recv(&worker_status, 1, MPI_INT, worker_id, CONTROL_TAG, comm, &mstatus);
 
+//			if (hascompletedworker) Debug::print("%s worker %d status = %d\n", getClassName(), worker_id, worker_status);
+
 			// track the worker status
 			if (worker_status == DONE || worker_status == ERROR) {
-				Debug::print("%s remove worker %d due to worker status %d.\n", getClassName(), worker_id, worker_status);
-
+//				hascompletedworker = true;
+//				Debug::print("%s worker %d status = %d\n", getClassName(), worker_id, worker_status);
+//				action->debugOn();
 
 				activeWorkers.erase(worker_id);
+//				std::stringstream ss;
+//				ss << "active workers: [";
+//				for (std::tr1::unordered_map<int, int>::iterator iter = activeWorkers.begin();
+//						iter != activeWorkers.end(); ++iter) {
+//					ss << iter->first << ", ";
+//				}
+//				ss << "]";
+//				Debug::print("%s %s\n", getClassName(), ss.str().c_str());
 
 	
 				// NOTE: workers are responsible for notifying all the masters it knows about.
 				// if all workers are done, or in error state, then this is done too.
 				if (activeWorkers.empty()) {
 					status = DONE;  // nothing to send to workers. since they are all done.
-					Debug::print("%s all workers DONE.\n", getClassName());
+					Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), action->getInputSize());
 					// all the workers are done
 					action->markInputDone();
+//					test_input_status = DONE;
+
 				}
 				t2 = cciutils::event::timestampInUS();
 				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
@@ -116,6 +142,8 @@ int PushCommHandler::run() {
 				// then we are done.  need to notify everyone.
 				// keep the commhandler status at READY.
 				// and set message to all nodes
+//				hascompletedworker = true;
+//				action->debugOn();
 
 				activeWorkers.erase(worker_id);
 				if (activeWorkers.empty()) {// all messages sent
@@ -130,7 +158,9 @@ int PushCommHandler::run() {
 				return status;
 
 			} else if (buffer_status == READY) {
-				// status is ready, send data.
+				// status is ready, receive data.
+
+				++send_count;
 				MPI_Recv(&count, 1, MPI_INT, worker_id, DATA_TAG, comm, &mstatus);
 				data = malloc(count);
 				MPI_Recv(data, count, MPI_CHAR, worker_id, DATA_TAG, comm, &mstatus);
@@ -151,6 +181,9 @@ int PushCommHandler::run() {
 				t2 = cciutils::event::timestampInUS();
 				sprintf(len, "%lu", (long)(count));
 				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+
+				if (send_count % 100 == 0) Debug::print("%s manager received %d data messages from workers.\n", getClassName(), send_count);
+
 
 				return buffer_status;
 			} else {
@@ -181,10 +214,13 @@ int PushCommHandler::run() {
 			for (std::vector<int>::iterator iter=roots.begin();
 					iter != roots.end(); ++iter) {
 
-				Debug::print("%s root %d is notified as done.\n", getClassName(), *iter);
+//				Debug::print("%s root %d is notified as done.\n", getClassName(), *iter);
 
-				MPI_Isend(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
+//				MPI_Isend(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
+				MPI_Send(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm);
 			}
+			// TODO do waitall here.
+
 			// and say done.
 			status = DONE;
 

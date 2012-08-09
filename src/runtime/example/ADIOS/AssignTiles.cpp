@@ -48,7 +48,7 @@ AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
 		// resize the list
 		filenames.resize(count);
 	}
-	Debug::print("total number of items found=%d, processing limited to %d\n", filenames.size(), count);
+	Debug::print("%s total number of items found=%d, processing limited to %d\n", getClassName(), cc, count);
 
 	t2 = ::cciutils::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
@@ -59,7 +59,7 @@ AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
 
 AssignTiles::~AssignTiles() {
 
-//	Debug::print("%s destructor called.\n", getClassName());
+	Debug::print("%s destructor called.\n", getClassName());
 	filenames.clear();
 }
 

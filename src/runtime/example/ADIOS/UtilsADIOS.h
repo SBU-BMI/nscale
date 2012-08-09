@@ -102,12 +102,12 @@ private:
     long sourceTileFile_capacity;
     long tile_capacity;
 
-	long tile_buffer_capacity;
-	int imagename_buffer_capacity;
-	int sourceTileFile_buffer_capacity;
+	long local_tile_capacity;
+	int local_imagename_capacity;
+	int local_sourceTileFile_capacity;
 
 
-	std::vector<CVImage> buffer;
+	std::vector<CVImage *> buffer;
 	unsigned char *tile;
 	char *imageName;
 	char *sourceTileFile;
@@ -127,9 +127,8 @@ protected:
 			MPI_Comm const &_comm, bool _grouped, int _comm_group);
 
 	bool selected(const int stage);
-	void clearBuffer();
 
-	CVImage &saveCVImage(CVImage const &img);
+	CVImage *saveCVImage(CVImage const *img);
 
 	virtual int open(const char* groupName);
 	virtual int close(uint32_t time_index = 0);
@@ -137,11 +136,13 @@ protected:
 public:
 	virtual ~ADIOSWriter();
 
+	void clearBuffer();
+
 	virtual int persist(int iter);  // return the session id at the end
 	virtual int persistCountInfo();
 	virtual int benchmark(int id);
 
-	virtual void saveIntermediate(CVImage const &img, const int stage);
+	virtual void saveIntermediate(CVImage const *img, const int stage);
 
 	// write out with raw
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,

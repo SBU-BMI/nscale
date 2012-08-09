@@ -29,8 +29,9 @@ Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
 }
 
 Segment::~Segment() {
-//	Debug::print("%s destructor called.\n", getClassName());
+	Debug::print("%s destructor called.\n", getClassName());
 }
+
 int Segment::compute(int const &input_size , void * const &input,
 			int &output_size, void * &output) {
 	if (input_size == 0 || input == NULL) return -1;
@@ -63,8 +64,9 @@ int Segment::compute(int const &input_size , void * const &input,
 	int tiley = atoi(ystr.c_str());
 
 	cv::Mat im = cv::imread(fn, -1);
+	//cv::Mat im = cv::Mat::zeros(4096, 4096, CV_8UC4);
 	// simulate computation
-	//sleep(10);
+	//sleep(rand() % 3 + 1);
 	t2 = ::cciutils::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
@@ -80,24 +82,22 @@ int Segment::compute(int const &input_size , void * const &input,
 	t1 = ::cciutils::event::timestampInUS();
 
 	// real computation:
-	int status;
+	int status = ::nscale::SCIOHistologicalEntities::SUCCESS;
 	int *bbox = NULL;
 	int compcount;
-	cv::Mat mask;
+	cv::Mat mask = cv::Mat::zeros(im.size(), CV_32SC1);
 //	if (proc_code == cciutils::DEVICE_GPU ) {
 //		nscale::gpu::SCIOHistologicalEntities *seg = new nscale::gpu::SCIOHistologicalEntities(fn);
 //		status = seg->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, session, writer);
 //		delete seg;
 //
 //	} else {
-//	Debug::print("%s running for %s\n", getClassName(), fn.c_str());
+	//Debug::print("%s running for %s\n", getClassName(), fn.c_str());
 	nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(fn);
 	status = seg->segmentNuclei(im, mask, compcount, bbox, logsession, NULL);
 	delete seg;
-//	Debug::print("%s complete for %s\n", getClassName(), fn.c_str());
+	//Debug::print("%s complete for %s\n", getClassName(), fn.c_str());
 //	}
-	if (bbox != NULL) free(bbox);
-	im.release();
 
 	t2 = ::cciutils::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
@@ -105,6 +105,7 @@ int Segment::compute(int const &input_size , void * const &input,
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 		t1 = ::cciutils::event::timestampInUS();
 		CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
+//		CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
 		img->serialize(output_size, output);
 		// clean up
 		delete img;
@@ -116,6 +117,9 @@ int Segment::compute(int const &input_size , void * const &input,
 		if (logsession != NULL) logsession->log(cciutils::event(90, std::string("serialize"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
 
 	}
+	if (bbox != NULL) free(bbox);
+	im.release();
+
 	mask.release();
 	return status;
 }
