@@ -114,7 +114,7 @@ int PushCommHandler::run() {
 
 				}
 				t2 = cciutils::event::timestampInUS();
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 				return status;  // worker is in done or error state, don't send.
 
@@ -125,7 +125,7 @@ int PushCommHandler::run() {
 					Debug::print("%s Worker waiting.  why did it send the message in the first place?\n", getClassName());
 
 					t2 = cciutils::event::timestampInUS();
-					if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+//					if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 					return worker_status;  // return status is worker wait, but keep manager at ready.
 				}
@@ -153,7 +153,7 @@ int PushCommHandler::run() {
 					// action is already done, so no need to change it.
 				}
 				t2 = cciutils::event::timestampInUS();
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("buffer done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("buffer done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 				return status;
 
@@ -180,7 +180,7 @@ int PushCommHandler::run() {
 
 				t2 = cciutils::event::timestampInUS();
 				sprintf(len, "%lu", (long)(count));
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("push data received"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 				if (send_count % 100 == 0) Debug::print("%s manager received %d data messages from workers.\n", getClassName(), send_count);
 
@@ -189,8 +189,6 @@ int PushCommHandler::run() {
 			} else {
 //				Debug::print("%s waiting\n", getClassName());
 			} // else wait.  so do nothing
-			t2 = cciutils::event::timestampInUS();
-			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 			return status;
 		} else {
@@ -286,6 +284,9 @@ int PushCommHandler::run() {
 
 			sprintf(len, "%lu", (long)(count));
 
+			t2 = cciutils::event::timestampInUS();
+			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("push data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+
 		} else if (manager_status == DONE || manager_status == ERROR ) {
 			// one manager is done.  remove it from the list.  if there is no roots left, done.
 			if (scheduler->removeRoot(root) == 0)  {
@@ -299,8 +300,6 @@ int PushCommHandler::run() {
 //			Debug::print("%s waiting\n", getClassName());
 		}  // else we are in wait state.  nothing to be done.
 
-		t2 = cciutils::event::timestampInUS();
-		if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker msg"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 
 		return status;

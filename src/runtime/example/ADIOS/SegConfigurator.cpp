@@ -121,7 +121,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	}
 
 	// compute and io groups
-	handler = new PullCommHandler(&comm, compute_io_g, sch);
+	handler = new PullCommHandler(&comm, compute_io_g, sch, logger->getSession("pull"));
 
 	// then the compute to IO communication group
 	// separate masters in the compute group
@@ -133,7 +133,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		if (compute_io_g == IO_GROUP) sch2 = new RoundRobinScheduler(true, false);  // all io nodes are roots.
 		else sch2 = new RoundRobinScheduler(false, true);
 
-	handler2 = new PushCommHandler(&comm, compute_to_io_g, sch2);
+	handler2 = new PushCommHandler(&comm, compute_to_io_g, sch2, logger->getSession("push"));
 
 	t2 = cciutils::event::timestampInUS();
 	if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout comms"), t1, t2, std::string(), ::cciutils::event::MEM_IO));

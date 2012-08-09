@@ -62,6 +62,23 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename, proc_t
     clear tline;
     fclose(fid);
     
+    %% merge action and comm on the same node
+    
+    nodes = unique([proc_events{:, 1}]);
+    pes2 = cell(size(nodes, 2), size(proc_events, 2));
+    
+    for j = 1:size(nodes, 2)
+        pos = find([proc_events{:, 1}] == nodes(j));
+        pe2 = proc_events(pos, :);
+        pes2{j, 1} = nodes(j);
+        pes2{j, 2} = pe2{1, 2};
+        pes2{j, 3} = pe2{1, 3};
+        for i = 4:size(proc_events, 2)
+            pes2{j, i} = cat(1, pe2{:, i});
+        end
+        
+    end
+    proc_events = pes2;
 end
 
  

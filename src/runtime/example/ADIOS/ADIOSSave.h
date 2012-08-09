@@ -31,6 +31,9 @@ public:
 	virtual int run();
 	virtual const char* getClassName() { return "ADIOSSave"; };
 
+	// differs from base imple:  base imple if input buffer is not empty, return READY.
+	// here we return the input status.
+	// TODO: move to separate getInput and addInput statuses.
 	virtual int getInputStatus() {
 		if (this->input_status == ERROR || this->output_status == ERROR) {
 			this->input_status = ERROR;
@@ -42,6 +45,9 @@ public:
 		return input_status;
 	}
 
+	// differs from base imple:  base imple gets data if stat is ready.
+	// here we also get data if stat is done and there is content.
+	// TODO: move to separate getInput and addInput statuses.
 	virtual int getInput(int &size , void * &data) {
 		int stat = getInputStatus();
 		if (stat == READY ||

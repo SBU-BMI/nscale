@@ -99,7 +99,7 @@ int PullCommHandler::run() {
 					action->markInputDone();
 				}
 				t2 = cciutils::event::timestampInUS();
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 				return status;  // worker is in done or error state, don't send.
 
@@ -109,7 +109,7 @@ int PullCommHandler::run() {
 				if (worker_status == WAIT) { // worker status is wait, so manager doesn't do anything.
 					Debug::print("%s Worker waiting.  why did it send the message in the first place?\n", getClassName());
 					t2 = cciutils::event::timestampInUS();
-					if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+//					if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 					return worker_status;  // worker waiting.  keep manager at ready.  should not be here...
 
@@ -137,7 +137,7 @@ int PullCommHandler::run() {
 
 				}
 				t2 = cciutils::event::timestampInUS();
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("buffer done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("buffer done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
 				return status;
 			} else if (buffer_status == READY) {
@@ -158,7 +158,7 @@ int PullCommHandler::run() {
 				}
 				t2 = cciutils::event::timestampInUS();
 				sprintf(len, "%lu", (long)(count));
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("pull data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 				if (send_count % 100 == 0) Debug::print("%s manager sent %d data messages to workers.\n", getClassName(), send_count);
 
@@ -227,6 +227,8 @@ int PullCommHandler::run() {
 				// status remain the same.
 			}
 			// no need to mark worker as done since worker provided the status...
+			t2 = cciutils::event::timestampInUS();
+			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("pull data received"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 		} else if (manager_status == DONE || manager_status == ERROR) { // if DONE or ERROR,
 
@@ -239,8 +241,6 @@ int PullCommHandler::run() {
 
 		} // else manager status is WAIT, no need to change local status.
 
-		t2 = cciutils::event::timestampInUS();
-		if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker msg"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
 		return status;
 
