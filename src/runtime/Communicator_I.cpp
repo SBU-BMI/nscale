@@ -7,6 +7,7 @@
 
 #include "Communicator_I.h"
 #include "Debug.h"
+#include <unistd.h>
 
 #include <iostream>
 
