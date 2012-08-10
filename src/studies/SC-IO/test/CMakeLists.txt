@@ -27,7 +27,7 @@ if(ADIOS_FOUND)
 	
 	### copy over the adios xml files
 	FILE(GLOB ADIOS_XMLS_IN RELATIVE ${PROJECT_SOURCE_DIR} "*.xml.in" )
-	set(ADIOS_XML_DIR ${CMAKE_BINARY_DIR}/adios_xml)
+	set(ADIOS_XML_DIR ${EXECUTABLE_OUTPUT_PATH}/../adios_xml)
 	#message("adios xml dir = ${ADIOS_XML_DIR}")
 	make_directory(${ADIOS_XML_DIR})
 	
