@@ -27,6 +27,8 @@
 #include "datatypes.h"
 #include "h5utils.h"
 
+#include <unistd.h>
+
 using namespace cv;
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.

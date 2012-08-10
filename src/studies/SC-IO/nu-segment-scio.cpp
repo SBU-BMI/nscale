@@ -19,6 +19,8 @@
 #include "SCIOUtilsCVImageIO.h"
 #include "SCIOHistologicalEntities.h"
 
+#include <unistd.h>
+
 using namespace cv;
 
 
@@ -164,9 +166,10 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	}
 
 	srand(0);
-	if (imageCount != -1) {
+	std::random_shuffle( filenames.begin(), filenames.end() );
+	if (imageCount != -1 && imageCount < filenames.size()) {
 		// randomize the file order.
-		std::random_shuffle( filenames.begin(), filenames.end() );
+		filenames.resize(imageCount);
 	}
 
 	std::string temp, tempdir;
@@ -297,7 +300,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	// now start the loop to listen for messages
 	int curr = 0;
-	int total = (imageCount == -1) ? filenames.size() : (imageCount > filenames.size() ? filenames.size() : imageCount);
+	int total = filenames.size();
 	MPI_Status status;
 	int worker_id;
 	char ready;

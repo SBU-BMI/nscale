@@ -19,6 +19,7 @@
 #include "PixelOperations.h"
 #include "FileUtils.h"
 
+#include <unistd.h>
 
 void readData(ADIOS_GROUP *g,const  uint64_t *start, const uint64_t *count, const int rank, void* &tiledata, ::cv::Mat &img,
 		char* &sourceTileFiledata, int &tileOffsetX, int &tileOffsetY, char* &imageName, long &imageName_offset, long &imageName_size) {

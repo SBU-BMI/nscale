@@ -20,24 +20,27 @@
 #include <mpi.h>
 #include "SCIOHistologicalEntities.h"
 
+#include <unistd.h>
+
 using namespace cv;
 
 
 void printUsage(char ** argv);
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark);
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
-		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output);
+		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount);
 void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, cciutils::SCIOADIOSWriter *writer);
 
 void printUsage(char **argv) {
-	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <tranport> [cpu | gpu [id]] [groupsize] [groupInterleave] [benchmark]" << std::endl;
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <tranport> [imagecount] [cpu | gpu [id]] [groupsize] [groupInterleave] [benchmark]" << std::endl;
 	std::cout << "transport is one of NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR" << std::endl;
+	std::cout << "imagecount: number of images to process.  -1 means all images." << std::endl;
 	std::cout << "groupsize is the size of the adios IO subgroup (default -1 means all procs).  groupInterleave (integer) is how the groups mix together.  default is 1 for no interleaving: processes in a group have contiguous process ids." << std::endl;
 	std::cout << "  groupInterleave value of less than 1 is treated as 1.  numbers greater than 1 interleaves that many groups. e.g. 1 2 3 1 2 3.  This is useful to match interleaves to node's core count." << std::endl;
 
 }
 
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark) {
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark) {
 	if (argc < 4) {
 		printUsage(argv);
 		return -1;
@@ -68,10 +71,10 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &g
 		iocode.assign(argv[3]);
 	}
 
+	if (argc > 4) imageCount = atoi(argv[4]);
+	const char* mode = argc > 5 ? argv[5] : "cpu";
 
-	const char* mode = argc > 4 ? argv[4] : "cpu";
-
-	int i = 5;
+	int i = 6;
 
 	if (strcasecmp(mode, "cpu") == 0) {
 		modecode = cciutils::DEVICE_CPU;
@@ -113,7 +116,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &g
 
 
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
-		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output) {
+		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount) {
 
 	// check to see if it's a directory or a file
 	std::string suffix;
@@ -130,6 +133,12 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 		}
 	}
 
+	srand(0);
+	std::random_shuffle( filenames.begin(), filenames.end() );
+	if (imageCount != -1 && imageCount < filenames.size()) {
+		// randomize the file order.
+		filenames.resize(imageCount);
+	}
 
 	std::string temp, tempdir;
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
@@ -137,15 +146,16 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 		temp = futils.replaceExt(filenames[i], ".tif", ".mask.pbm");
 		temp = futils.replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-	//	futils.mkdirs(tempdir);
+		futils.mkdirs(tempdir);
 		seg_output.push_back(temp);
 		// generate the bounds output file name
 		temp = futils.replaceExt(filenames[i], ".tif", ".bounds.csv");
 		temp = futils.replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-	//	futils.mkdirs(tempdir);
+		futils.mkdirs(tempdir);
 		bounds_output.push_back(temp);
 	}
+
 
 }
 
@@ -693,7 +703,8 @@ int main (int argc, char **argv){
 	int modecode, groupSize, groupInterleave;
 	std::string imageName, outDir, hostname, workingDir, iocode;
 	bool benchmark;
-	int status = parseInput(argc, argv, modecode, iocode, groupSize, groupInterleave, workingDir, imageName, outDir, benchmark);
+	int imageCount;
+	int status = parseInput(argc, argv, modecode, iocode, imageCount, groupSize, groupInterleave, workingDir, imageName, outDir, benchmark);
 	if (status != 0) return status;
 
 
@@ -726,7 +737,7 @@ int main (int argc, char **argv){
 	uint64_t t1 = 0, t2 = 0;
 	if (rank == manager_rank) {
     		t1 = cciutils::ClockGetTime();
-	    	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
+    		getFiles(imageName, outDir, filenames, seg_output, bounds_output, imageCount);
 
     		t2 = cciutils::ClockGetTime();
     		total = filenames.size();

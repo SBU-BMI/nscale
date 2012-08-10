@@ -17,6 +17,8 @@
 #include "S1Task.h"
 #include "ExecutionEngine.h"
 
+#include <unistd.h>
+
 #ifdef WITH_MPI
 #include <mpi.h>
 #endif

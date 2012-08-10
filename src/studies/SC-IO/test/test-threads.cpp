@@ -12,7 +12,7 @@
 #include <string>
 #include "pthread.h"
 
-
+#include <unistd.h>
 
 void *write(void * arg) {
 	printf("here I am...\n");

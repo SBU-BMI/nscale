@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "FileUtils.h"
 #include <dirent.h>
-
+#include <unistd.h>
 using namespace cv;
 
 

@@ -13,6 +13,8 @@
 #include "pthread.h"
 #include "SCIOUtilsLogger.h"
 
+#include <unistd.h>
+
 int main (int argc, char **argv) {
 
 	// init MPI

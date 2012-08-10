@@ -73,7 +73,8 @@ timeIntervals = [...
 procWidth = 1;
 
 proc_types = [...
-    '*';
+    repmat(['*'],2, 1);
+    
     repmat(['w'], 21, 1)...
     ];
 

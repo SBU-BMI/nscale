@@ -15,6 +15,7 @@
 #include "adios_internals.h"
 
 #include <algorithm>
+#include <unistd.h>
 
 int main (int argc, char **argv) {
 

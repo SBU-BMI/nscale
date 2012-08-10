@@ -15,6 +15,7 @@
 #include "SegmentCmdParser.h"
 
 #include <signal.h>
+#include <unistd.h>
 
 cciutils::SCIOLogger *logger = NULL;
 cci::rt::adios::SegmentCmdParser *parser = NULL;
