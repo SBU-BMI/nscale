@@ -110,14 +110,14 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	Scheduler_I *sch = NULL;
 	if (iointerleave == 1) {
 		compute_io_g = (rank < iosize ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
-		if (rank == iosize) sch = new RoundRobinScheduler(true, false);  // compute root at rank = iosize
-		else if (rank == 0) sch = new RoundRobinScheduler(true, false);  // io root at rank = 0
-		else sch = new RoundRobinScheduler(false, true);
+		if (rank == iosize) sch = new RandomScheduler(true, false);  // compute root at rank = iosize
+		else if (rank == 0) sch = new RandomScheduler(true, false);  // io root at rank = 0
+		else sch = new RandomScheduler(false, true);
 	} else {
 		compute_io_g = ((rank % iointerleave == 0) && (rank < iointerleave * iosize) ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
-		if (rank == 1) sch = new RoundRobinScheduler(true, false);  // compute root at rank = 1
-		else if (rank == 0) sch = new RoundRobinScheduler(true, false);  // io root at rank = 0
-		else sch = new RoundRobinScheduler(false, true);
+		if (rank == 1) sch = new RandomScheduler(true, false);  // compute root at rank = 1
+		else if (rank == 0) sch = new RandomScheduler(true, false);  // io root at rank = 0
+		else sch = new RandomScheduler(false, true);
 	}
 
 	// compute and io groups
@@ -128,10 +128,10 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
 	Scheduler_I *sch2 = NULL;
-	if (compute_to_io_g == UNUSED_GROUP) sch2 = new RoundRobinScheduler(false, false);
+	if (compute_to_io_g == UNUSED_GROUP) sch2 = new RandomScheduler(false, false);
 	else
-		if (compute_io_g == IO_GROUP) sch2 = new RoundRobinScheduler(true, false);  // all io nodes are roots.
-		else sch2 = new RoundRobinScheduler(false, true);
+		if (compute_io_g == IO_GROUP) sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
+		else sch2 = new RandomScheduler(false, true);
 
 	handler2 = new PushCommHandler(&comm, compute_to_io_g, sch2, logger->getSession("push"));
 
@@ -204,7 +204,8 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		t2 = cciutils::event::timestampInUS();
 		if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout adios"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
-
+		FileUtils futils;
+		futils.mkdirs(params[SegmentCmdParser::PARAM_OUTPUTDIR]);
 		Action_I *save =
 				new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
 						params[SegmentCmdParser::PARAM_OUTPUTDIR],
