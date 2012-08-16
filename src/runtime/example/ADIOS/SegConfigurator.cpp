@@ -17,7 +17,7 @@
 #include "RoundRobinScheduler.h"
 #include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
-
+#include "FileUtils.h"
 #include "NullSinkAction.h"
 
 namespace cci {

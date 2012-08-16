@@ -23,6 +23,6 @@
 			<var name="tile" type="unsigned byte" dimensions="tile_pg_size" />
 	    </global-bounds>
     </adios-group>
-     <method group="tileInfo-gap" method="@ADIOS_TRANSPORT@"/>
+     <method group="tileInfo-gap" method="@ADIOS_TRANSPORT@">@TRANSPORT_OPTIONS@</method>
     <buffer size-MB="200" allocate-time="now"/>
 </adios-config>

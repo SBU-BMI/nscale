@@ -104,7 +104,7 @@ endif(USE_OPENMP)
 
 # ----------------------------------------------------------------------------
 #                       PROCESS SUBDIRECTORIES:
-# ----------------------------------------------------------------------------
+# -----------------------------------------------------s-----------------------
 # Save libs and executables in the same place
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE PATH "Output directory for libraries" )
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE PATH "Output directory for applications" )
@@ -120,4 +120,4 @@ option (BUILD_EXAMPLE_APPLICTIONS "Inform whether sample applications should be 
 
 
 add_subdirectory(src)
-
+add_subdirectory(scripts)

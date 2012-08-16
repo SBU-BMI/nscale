@@ -52,7 +52,7 @@
 		<var name="tile_capacity" type="long" />
 		<var name="tile_total" type="long" />
     </adios-group>
-    <method group="tileCount" method="@ADIOS_TRANSPORT@"/>
-    <method group="tileInfo" method="@ADIOS_TRANSPORT@"/>
+    <method group="tileCount" method="@ADIOS_TRANSPORT@">@TRANSPORT_OPTIONS@</method>
+    <method group="tileInfo" method="@ADIOS_TRANSPORT@">@TRANSPORT_OPTIONS@</method>
     <buffer size-MB="300" allocate-time="now"/>
 </adios-config>

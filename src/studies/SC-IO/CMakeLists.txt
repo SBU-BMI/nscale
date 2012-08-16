@@ -99,13 +99,21 @@ if(ADIOS_FOUND)
 
 	# create a list of suffixes.
 	set(ADIOS_TRANSPORTS NULL POSIX MPI_LUSTRE MPI_AMR MPI)
-
+	set(NULL_TRANSPORT_OPTION "")
+	set(POSIX_TRANSPORT_OPTION "")
+	set(MPI_TRANSPORT_OPTION "")
+	set(MPI_LUSTRE_TRANSPORT_OPTION "block_size=68157440")
+	set(MPI_AMR_TRANSPORT_OPTION "num_aggregator=16;num_ost=4")
+	
 	foreach(ADIOS_XML_IN ${ADIOS_XMLS_IN})
 		# generate the xml files for different transports
 		foreach (ADIOS_TRANSPORT ${ADIOS_TRANSPORTS})
+		
+			set(TRANSPORT_OPTIONS ${${ADIOS_TRANSPORT}_TRANSPORT_OPTION})
+			#message(STATUS "${${ADIOS_TRANSPORT}_TRANSPORT_OPTION} : ${TRANSPORT_OPTIONS}")
 			string(REPLACE ".xml.in" "-${ADIOS_TRANSPORT}.xml" ADIOS_XML ${ADIOS_XML_IN})
 			# then replace the transport variables.
-			message(STATUS "copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML_IN} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
+			#message(STATUS "copy from ${PROJECT_SOURCE_DIR}/${ADIOS_XML_IN} to ${ADIOS_XML_DIR}/${ADIOS_XML}")
 			configure_file(	${PROJECT_SOURCE_DIR}/${ADIOS_XML_IN} ${ADIOS_XML_DIR}/${ADIOS_XML} @ONLY)	
 		endforeach(ADIOS_TRANSPORT)
 

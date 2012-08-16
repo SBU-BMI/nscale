@@ -1,0 +1,35 @@
+#!/bin/bash
+#    Begin PBS directives
+#PBS -A csc025ewk
+#PBS -M @JOB_STATUS_EMAIL@
+#PBS -m abe
+#PBS -N @RUN_NAME@
+#PBS -j oe
+#PBS -l walltime=4:00:00,size=@PROC_COUNT@
+#PBS -l gres=widow2%widow3
+#PBS -V
+#    End PBS directives and begin shell commands
+
+# replaced with -V.   source ~/jaguar_env.sh
+
+
+cd /tmp/work/pantc/nscale/bin
+
+date
+aprun -S 8 -n @PROC_COUNT@ /tmp/work/pantc/nscale/bin/nu-segment-scio-adios.exe /lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is1-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ cpu 1 1 0
+date
+rm -rf /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.1-1
+date
+aprun -S 8 -n @PROC_COUNT@ /tmp/work/pantc/nscale/bin/nu-segment-scio-adios.exe /lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is16-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ cpu 16 1 0
+date
+rm -rf /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.16-1
+date
+aprun -S 8 -n @PROC_COUNT@ /tmp/work/pantc/nscale/bin/nu-segment-scio-adios.exe /lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is@PROC_COUNT@-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ cpu @PROC_COUNT@ 1 0
+date
+rm -rf /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.@PROC_COUNT@-1
+date
+
+rm /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@*.bp
+
+
+exit 0
