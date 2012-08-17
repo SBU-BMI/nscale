@@ -1,0 +1,23 @@
+#!/bin/bash
+BINDIR=/data/tcpan/src/nscale-bin
+cd $BINDIR/bin
+DATADIR=/data/exascale/DATA/ValidationSet/20X_4096x4096_tiles
+OUTDIR=/mnt/scratch1/tcpan
+HOSTS=/data/tcpan/hostfiles/gpunodes
+
+date
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is1-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 1 1 0
+date
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is1-1
+date
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is16-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 16 1 0
+date
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is16-1
+date
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is@IO_SIZE@-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @IO_SIZE@ 1 0
+date
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is@IO_SIZE@-1
+date
+
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.*.bp
+

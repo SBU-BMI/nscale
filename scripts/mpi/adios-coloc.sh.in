@@ -1,0 +1,25 @@
+#!/bin/bash
+
+BINDIR=/data/tcpan/src/nscale-bin
+cd $BINDIR/bin
+DATADIR=/data/exascale/DATA/ValidationSet/20X_4096x4096_tiles
+OUTDIR=/mnt/scratch1/tcpan
+HOSTS=/data/tcpan/hostfiles/gpunodes
+
+date
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is1-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu 1 1 0
+date
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.1-1
+date
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is16-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu 16 1 0
+date
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.16-1
+date
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is@PROC_COUNT@-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu @PROC_COUNT@ 1 0
+date
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.@PROC_COUNT@-1
+date
+
+rm ${OUTDIR}/TCGA.@RUN_NAME@.*.bp
+
+

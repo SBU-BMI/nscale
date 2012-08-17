@@ -3,32 +3,35 @@
 #PBS -A csc025ewk
 #PBS -M @JOB_STATUS_EMAIL@
 #PBS -m abe
-#PBS -N @RUN_NAME@
+#PBS -N TCGA.@RUN_NAME@
 #PBS -j oe
-#PBS -l walltime=1:00:00,size=@PROC_COUNT@
+#PBS -l walltime=@WALL_TIME@,size=@PROC_COUNT@
 #PBS -l gres=widow2%widow3
 #PBS -V
 #    End PBS directives and begin shell commands
 
 # replaced with -V.   source ~/jaguar_env.sh
 
+BINDIR=/tmp/work/pantc/nscale
+cd $BINDIR/bin
+DATADIR=/lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles
+OUTDIR=/lustre/widow2/proj/csc025/pantc
 
-cd /tmp/work/pantc/nscale/bin
 
 date
-aprun -S 8 -n @PROC_COUNT@ /tmp/work/pantc/nscale/bin/Process_test.exe /lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is1-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 1 1 0
+aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is1-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 1 1 0
 date
-rm -rf /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is1-1
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is1-1
 date
-aprun -S 8 -n @PROC_COUNT@ /tmp/work/pantc/nscale/bin/Process_test.exe /lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is16-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 16 1 0
+aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is16-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 16 1 0
 date
-rm -rf /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is16-1
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is16-1
 date
-aprun -S 8 -n @PROC_COUNT@ /tmp/work/pantc/nscale/bin/Process_test.exe /lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is@IO_SIZE@-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @IO_SIZE@ 1 0
+aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is@IO_SIZE@-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @IO_SIZE@ 1 0
 date
-rm -rf /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.is@IO_SIZE@-1
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is@IO_SIZE@-1
 date
 
-rm -rf /lustre/widow2/proj/csc025/pantc/TCGA.@RUN_NAME@.*.bp
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.*.bp
 
 exit 0

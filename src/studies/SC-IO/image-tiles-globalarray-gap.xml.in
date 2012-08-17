@@ -24,5 +24,5 @@
 	    </global-bounds>
     </adios-group>
      <method group="tileInfo-gap" method="@ADIOS_TRANSPORT@">@TRANSPORT_OPTIONS@</method>
-    <buffer size-MB="200" allocate-time="now"/>
+    <buffer size-MB="260" allocate-time="now"/>
 </adios-config>

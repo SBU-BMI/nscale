@@ -1,0 +1,15 @@
+#!/bin/bash
+BINDIR=/data/tcpan/src/nscale-bin
+cd $BINDIR/bin
+DATADIR=/data/exascale/DATA/ValidationSet/20X_4096x4096_tiles
+OUTDIR=/mnt/scratch1/tcpan
+HOSTS=/data/tcpan/hostfiles/gpunodes
+
+
+date
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ 0-200 cpu
+date
+
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.*.bp
+

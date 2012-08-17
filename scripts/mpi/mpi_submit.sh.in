@@ -1,0 +1,37 @@
+#!/bin/bash
+
+script_dir=`dirname $0`
+system="cci"
+
+proc_counts="@PROC_COUNTS@"
+pcs="${proc_counts//;/ }"
+
+
+
+# baseline.  us PROC_COUNTS because we'd like to sort the submission order.
+for pc in ${pcs}
+do
+	for f in `ls ${script_dir}/baseline.${system}.p${pc}.*.sh`
+	do
+		echo "${f}"
+		NEXT=`${f}`
+	done
+
+#adios with separate io nodes
+	for f in `ls ${script_dir}/separate.${system}.p${pc}.*.sh`
+	do
+		echo "${f}"
+		NEXT=`${f}`
+	done
+
+#adios collocated io nodes
+	for f in `ls ${script_dir}/co-loc.${system}.p${pc}.*.sh`
+	do
+		echo "${f}"
+		NEXT=`${f}`
+	done
+done
+
+
+
+
