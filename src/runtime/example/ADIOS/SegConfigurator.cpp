@@ -204,8 +204,6 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		t2 = cciutils::event::timestampInUS();
 		if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout adios"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
-		FileUtils futils;
-		futils.mkdirs(params[SegmentCmdParser::PARAM_OUTPUTDIR]);
 		Action_I *save =
 				new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
 						params[SegmentCmdParser::PARAM_OUTPUTDIR],
