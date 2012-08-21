@@ -16,13 +16,13 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename, proc_t
         tline = fgetl(fid);  % skip header
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %*d %*s %s', 1, 'delimiter', ',');
-            if strcmp(temp1{3}, proc_type) || strcmp(proc_type, '*')
+            if ~strcmp(temp1{3}, proc_type) || strcmp(proc_type, '*')
                 temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
 
                 proc_events = [proc_events; temp1, temp2];
                 clear temp2;
             else
-                fprintf(1, 'SKIP non worker lines\n');
+                fprintf(1, 'SKIP %s lines %s\n', proc_type, cell2mat(temp1{3}));
             end
             clear temp1;
             tline = fgetl(fid);
@@ -39,7 +39,7 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename, proc_t
                 proc_events = [proc_events; temp1, temp2];
                 clear temp2;
             else
-                fprintf(1, 'SKIP non worker lines\n');
+                fprintf(1, 'SKIP non worker lines %s\n', cell2mat(temp1{3}));
             end
             clear temp1;
             tline = fgetl(fid);
@@ -53,7 +53,7 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( filename, proc_t
                 proc_events = [proc_events; temp1, temp2];
                 clear temp2;
             else
-                fprintf(1, 'SKIP non worker lines\n');
+                fprintf(1, 'SKIP non worker lines %s\n', cell2mat(temp1{3}));
             end
             clear temp1;
             tline = fgetl(fid);
