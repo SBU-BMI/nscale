@@ -35,6 +35,7 @@ allTypeNames = {'Other',...
     'ADIOS finalize'};
         
 dirs = {...
+    '/home/tcpan/PhD/path/Data/adios/cci-gpu-clus-async-noADIOS', ...
     '/home/tcpan/PhD/path/Data/adios/jaguar-tcga-strong1/base', ...
     '/home/tcpan/PhD/path/Data/adios/jaguar-tcga-strong1/async', ...
     '/home/tcpan/PhD/path/Data/adios/jaguar-tcga-async1', ...
@@ -63,9 +64,10 @@ dirs = {...
     '/home/tcpan/PhD/path/Data/adios/keeneland-tcga4-throughput-smallAMR'...
     };
     
-selections = [1 2];
+selections = [1];
 
 timeIntervals = [...
+    10000; ...
     100000; ...
     100000; ...
     10000; ...
@@ -80,6 +82,7 @@ timeIntervals = [...
 procWidth = 1;
 
 proc_types = {...
+    'pull';
     'm';
     'pull'; 
     '*';
@@ -98,27 +101,30 @@ for j = 1 : length(selections)
 
     proc_type = proc_types{id};
     
-    fid = fopen([dirname, '.TP.csv'], 'w');
 
     files = dir(fullfile(dirname, '*.csv'));
     
 
     for i = 1:length(files)
         clear proc_events;
-        csvfile = files(i).name;
-                
-        [~, n, ~] = fileparts(csvfile);
-        prefix = fullfile(dirname, n)
         
-        proc_events = readComputeAndIOTimingOneLineFormat(fullfile(dirname, csvfile), proc_type);
-%        [~, ~] = plotProcEvents(proc_events, procWidth, timeInterval, prefix, allEventTypes, colorMap);
+        proc_events = readComputeAndIOTimingOneLineFormat(dirname, files(i), proc_type);
+
+        [~, n, ~] = fileparts(files(i).name);
+        prefix = fullfile(dirname, n);
+        [~, ~] = plotProcEvents(proc_events, procWidth, timeInterval, prefix, allEventTypes, colorMap);
         close all;
+
+       fid = fopen([dirname, '.TP2.csv'], 'a');
         fprintf(fid, '%s\n', prefix);
+        tic;
+        fprintf(1, 'summarizing\n');
         summarize(proc_events, timeInterval, fid, '*', allEventTypes, allTypeNames);
+        toc
+       fclose(fid);
     end
     
     
-    fclose(fid);
 end
 
 

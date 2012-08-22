@@ -20,10 +20,12 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     % get some information about the events
     % filter "in" the workers only.
     % also calculate the max timestamp.
-    mx = 0;
-    for i = 1:size(proc_events, 1) 
-        mx = max([mx, max(proc_events{i, 7})]);  % maximum end timestamp
+    mxx = zeros(size(proc_events,1), 1);
+    for p = 1:size(proc_events, 1) 
+        mxx(p) = max(proc_events{p, 7});
     end
+    mx = max(mxx);  % maximum end timestamp
+    
     if strcmp(proc_type, '*')
         events = proc_events;
     else 
@@ -133,7 +135,6 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
             fulldr = (datasize * sample_interval) ./ duration;
             % can't do this in more vectorized way, because of the range access
 
-            tmpdata = zeros(cols, num_ev_names);
             startdr = datasize .* (start_bucket_end - startt + 1) ./ duration;
             enddr = datasize .* (endt - end_bucket_start + 1) ./ duration;
 
@@ -145,6 +146,7 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
 
             clear duration;
 
+            %tmpdata = zeros(cols, num_ev_names);
             for j = 1:length(datasize)
                 x1 = startt_bucket(j);
                 x2 = endt_bucket(j);
@@ -152,20 +154,29 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
 
                % if start and end in the same bucket, mark with duration
                if x1 == x2
-                   tmpdata(x1, y) = ...
-                       tmpdata(x1, y) + datasize(j);
+%                    tmpdata(x1, y) = ...
+%                        tmpdata(x1, y) + datasize(j);
+                   ndata_sizes{i}(x1, y) = ...
+                       ndata_sizes{i}(x1, y) + datasize(j);
                else
                    % do the start first
-                   tmpdata(x1, y) = ...
-                       tmpdata(x1, y) + startdr(j);
+%                    tmpdata(x1, y) = ...
+%                        tmpdata(x1, y) + startdr(j);
+%                     % then do the end
+%                    tmpdata(x2,y) = ...
+%                        tmpdata(x2, y) + enddr(j);
+                   ndata_sizes{i}(x1, y) = ...
+                       ndata_sizes{i}(x1, y) + startdr(j);
                     % then do the end
-                   tmpdata(x2,y) = ...
-                       tmpdata(x2, y) + enddr(j);
+                   ndata_sizes{i}(x2,y) = ...
+                       ndata_sizes{i}(x2, y) + enddr(j);
 
                    % then do in between
                    if x2 > (x1 + 1)
-                        tmpdata(x1+1 : x2-1, y) = ...
-                           tmpdata(x1+1 : x2-1, y) + fulldr(j);
+%                         tmpdata(x1+1 : x2-1, y) = ...
+%                            tmpdata(x1+1 : x2-1, y) + fulldr(j);
+                        ndata_sizes{i}(x1+1 : x2-1, y) = ...
+                           ndata_sizes{i}(x1+1 : x2-1, y) + fulldr(j);
                    end
                end 
             end
@@ -181,8 +192,8 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
             clear datasize;
 
 
-            ndata_sizes{i} = sparse(tmpdata);
-            clear tmpdata;
+            %ndata_sizes{i} = sparse(tmpdata);
+            %clear tmpdata;
         end
 
         for i = 1:p	
@@ -378,7 +389,7 @@ function computeTimeStats(fid, totals, durations, tmax, p, labels, hasDataSizes,
     eventmin = zeros(label_count,1);
     eventmax = zeros(label_count,1);
     for n = 1:label_count
-        if length(durations{n}) == 0
+        if isempty(durations{n})
             eventmean(n) = 0;
             eventstdev(n) = 0;
             eventmedian(n) = 0;
@@ -530,7 +541,6 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
         fulldr = (datasize * sample_interval) ./ duration;
         % can't do this in more vectorized way, because of the range access
         
-        tmpdata = zeros(cols, num_ev_names);
         startdr = datasize .* (start_bucket_end - startt + 1) ./ duration;
         enddr = datasize .* (endt - end_bucket_start + 1) ./ duration;
 
@@ -541,7 +551,8 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
         clear end_bucket_start;
 
         clear duration;
-        
+ %       tmpdata = zeros(cols, num_ev_names);
+       
         for j = 1:length(datasize)
             x1 = startt_bucket(j);
             x2 = endt_bucket(j);
@@ -549,20 +560,30 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
             
            % if start and end in the same bucket, mark with duration
            if x1 == x2
-               tmpdata(x1, y) = ...
-                   tmpdata(x1, y) + datasize(j);
+%                tmpdata(x1, y) = ...
+%                    tmpdata(x1, y) + datasize(j);
+               ndata_sizes{i}(x1, y) = ...
+                   ndata_sizes{i}(x1, y) + datasize(j);
            else
+%                % do the start first
+%                tmpdata(x1, y) = ...
+%                    tmpdata(x1, y) + startdr(j);
+%                 % then do the end
+%                tmpdata(x2,y) = ...
+%                    tmpdata(x2, y) + enddr(j);
                % do the start first
-               tmpdata(x1, y) = ...
-                   tmpdata(x1, y) + startdr(j);
+               ndata_sizes{i}(x1, y) = ...
+                   ndata_sizes{i}(x1, y) + startdr(j);
                 % then do the end
-               tmpdata(x2,y) = ...
-                   tmpdata(x2, y) + enddr(j);
+               ndata_sizes{i}(x2,y) = ...
+                   ndata_sizes{i}(x2, y) + enddr(j);
 
                % then do in between
                if x2 > (x1 + 1)
-                    tmpdata(x1+1 : x2-1, y) = ...
-                       tmpdata(x1+1 : x2-1, y) + fulldr(j);
+%                     tmpdata(x1+1 : x2-1, y) = ...
+%                        tmpdata(x1+1 : x2-1, y) + fulldr(j);
+                    ndata_sizes{i}(x1+1 : x2-1, y) = ...
+                       ndata_sizes{i}(x1+1 : x2-1, y) + fulldr(j);
                end
            end 
         end
@@ -578,8 +599,8 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
         clear datasize;
 
         
-        ndata_sizes{i} = sparse(tmpdata);
-        clear tmpdata;
+%        ndata_sizes{i} = sparse(tmpdata);
+%        clear tmpdata;
     end
 
     
