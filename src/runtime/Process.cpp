@@ -94,7 +94,7 @@ void Process::run() {
 						ss << "(" << (*iter2)->getClassName() << ":" << (*iter2)->getStatus() << "), ";
 					}
 				}
-				Debug::print("Process %s\n", ss.str().c_str());
+//				Debug::print("Process %s\n", ss.str().c_str());
 			} else ++iter;
 		}
 	}

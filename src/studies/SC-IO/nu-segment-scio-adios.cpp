@@ -479,7 +479,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 //					t3 = ::cciutils::event::timestampInUS();
 //					if (session != NULL) session->log(cciutils::event(90, std::string("queue wait"), t2, t3, std::string(), ::cciutils::event::MEM_IO));
 					t3 = ::cciutils::event::timestampInUS();
-					if (session != NULL) session->log(cciutils::event(90, std::string("sent work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+//					if (session != NULL) session->log(cciutils::event(90, std::string("sent work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
 
 				} else {  // wait state.
 
@@ -534,7 +534,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 				//printf("manager signal finished to %d\n", worker_id);
 				--active_workers;
 				t3 = ::cciutils::event::timestampInUS();
-				if (session != NULL) session->log(cciutils::event(90, std::string("sent END"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+//				if (session != NULL) session->log(cciutils::event(90, std::string("sent END"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
 
 			}
 
@@ -604,10 +604,10 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 		// get the manager status
 		MPI_Recv(&flag, 1, MPI_CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
 		//printf("worker %d received manager status %d\n", rank, flag);
-		t3 = ::cciutils::event::timestampInUS();
-		if (session != NULL) session->log(cciutils::event(90, std::string("get status"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
-
-		t2 = ::cciutils::event::timestampInUS();
+//		t3 = ::cciutils::event::timestampInUS();
+//		if (session != NULL) session->log(cciutils::event(90, std::string("get status"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+//
+//		t2 = ::cciutils::event::timestampInUS();
 		if (flag == MANAGER_READY) {
 
 			// get data from manager
@@ -629,7 +629,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			output = mask + maskSize + 1;
 
 			t3 = ::cciutils::event::timestampInUS();
-			if (session != NULL) session->log(cciutils::event(90, std::string("get work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+//			if (session != NULL) session->log(cciutils::event(90, std::string("get work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
 
 			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu ms\n", rank, t1 -t0);

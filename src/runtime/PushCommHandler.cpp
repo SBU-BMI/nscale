@@ -24,7 +24,7 @@ PushCommHandler::~PushCommHandler() {
 	if (isListener()) {
 		Debug::print("%s destructor called.  total of %d data messages received.\n", getClassName(), send_count);
 	} else {
-		Debug::print("%s destructor called.\n", getClassName());
+//		Debug::print("%s destructor called.\n", getClassName());
 	}
 }
 

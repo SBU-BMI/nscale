@@ -20,7 +20,7 @@ PullCommHandler::~PullCommHandler() {
 	if (isListener()) {
 		Debug::print("%s destructor called.  total of %d data messages sent.\n", getClassName(), send_count);
 	} else {
-		Debug::print("%s destructor called.\n", getClassName());
+//		Debug::print("%s destructor called.\n", getClassName());
 	}
 
 }
