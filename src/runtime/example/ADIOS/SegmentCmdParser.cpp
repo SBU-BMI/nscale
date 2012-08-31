@@ -53,7 +53,7 @@ bool SegmentCmdParser::parse(int argc, char** argv) {
 
 	// put in the defaults
 	params[SegmentCmdParser::PARAM_INPUTCOUNT] = "1";
-	params[SegmentCmdParser::PARAM_TRANSPORT] = "NULL";
+	params[SegmentCmdParser::PARAM_TRANSPORT] = "na-NULL";
 	params[SegmentCmdParser::PARAM_IOSIZE] = "-1";
 	params[SegmentCmdParser::PARAM_IOINTERLEAVE] = "4";
 	params[SegmentCmdParser::PARAM_SUBIOSIZE] = "-1";
@@ -86,7 +86,9 @@ bool SegmentCmdParser::parse(int argc, char** argv) {
 	} else return true;
 
 	if (argc > pos) {
-		if(	strcmp(argv[pos], "NULL") != 0 &&
+		if(	strcmp(argv[pos], "na-NULL") != 0 &&
+			strcmp(argv[pos], "na-POSIX") != 0 &&
+			strcmp(argv[pos], "NULL") != 0 &&
 			strcmp(argv[pos], "POSIX") != 0 &&
 			strcmp(argv[pos], "MPI") != 0 &&
 			strcmp(argv[pos], "MPI_LUSTRE") != 0 &&
@@ -151,8 +153,8 @@ void SegmentCmdParser::printUsage(char *cmd) {
 		ss << "\t imagecount: required. number of images to process. no default." << std::endl;
 		ss << "\t [cpu | gpu id]: optional. chooses CPU or GPU computation. CPU is single core." << std::endl;
 		ss << "\t\t If GPU, specify which device to use." << std::endl;
-		ss << "\t [transport]: optional. one of NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR " << std::endl;
-		ss << "\t\t | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR.  default is NULL" << std::endl;
+		ss << "\t [transport]: optional. one of na-NULL | na-POSIX | NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR " << std::endl;
+		ss << "\t\t | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR.  default is na-NULL.  na- prefix means non-adios.  gap- prefix means no compacting in the output space." << std::endl;
 		ss << "\t [buffersize]: optional. number of tiles an IO node buffers. default = 7 " << std::endl;
 		ss << "\t [IOsize], [IOInterleave]: clamp to [1, size]. optional. Determine the size of IO group and how they mix." << std::endl;
 		ss << "\t\t IOInterleave <= 1: IO group size is specified by IOsize. IO procs are contiguous" << std::endl;

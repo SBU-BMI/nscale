@@ -9,8 +9,11 @@
 
 #include "PullCommHandler.h"
 #include "PushCommHandler.h"
+
 #include "ADIOSSave.h"
 #include "ADIOSSave_Reduce.h"
+#include "POSIXRawSave.h"
+
 #include "AssignTiles.h"
 #include "Segment.h"
 #include "RandomScheduler.h"
@@ -204,15 +207,26 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		t2 = cciutils::event::timestampInUS();
 		if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout adios"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
-		Action_I *save =
-				new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
-						params[SegmentCmdParser::PARAM_OUTPUTDIR],
-						iocode,
-						total,
-						atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-						4096 * 4096 * 4, 256, 1024,
-						iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
-//		Action_I *save = new cci::rt::NullSinkAction(handler->getComm(), io_sub_g, logger->getSession("io"));
+		Action_I *save;
+		if (strcmp(iocode.c_str(), "na-NULL") == 0)
+			save = new cci::rt::NullSinkAction(handler->getComm(), io_sub_g, logger->getSession("io"));
+		else if (strcmp(iocode.c_str(), "na-POSIX") == 0)
+			save = new cci::rt::adios::POSIXRawSave(handler->getComm(), io_sub_g,
+				params[SegmentCmdParser::PARAM_OUTPUTDIR],
+				iocode,
+				total,
+				atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+				4096 * 4096 * 4, 256, 1024,
+				logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+		else
+			save = new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
+				params[SegmentCmdParser::PARAM_OUTPUTDIR],
+				iocode,
+				total,
+				atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+				4096 * 4096 * 4, 256, 1024,
+				iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+
 		proc->addHandler(handler2);
 		proc->addHandler(save);
 		handler2->setAction(save);

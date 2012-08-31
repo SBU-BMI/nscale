@@ -9,10 +9,12 @@
 #include "Debug.h"
 #include "mpi.h"
 
-#include "opencv2/opencv.h"
+#include "opencv2/opencv.hpp"
 #include "CVImage.h"
 #include "UtilsADIOS.h"
 #include <string>
+#include "FileUtils.h"
+
 namespace cci {
 namespace rt {
 namespace adios {
@@ -39,10 +41,13 @@ POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 	size_t pos = outdir.find_last_not_of('/');
 	if (pos != std::string::npos) {
 		outdir.erase(pos+1);
+		if (rank == 0) {
+			FileUtils fu;
+			fu.mkdirs(outdir);
+			}
 	} else {
 		outdir.clear(); // outdir is "/".
 	}
-
 }
 
 POSIXRawSave::~POSIXRawSave() {
@@ -131,6 +136,8 @@ int POSIXRawSave::run() {
 }
 
 int POSIXRawSave::process() {
+	long long t1, t2;
+	t1 = ::cciutils::event::timestampInUS();
 
 	// move data from action's buffer to adios' buffer
 
@@ -144,15 +151,15 @@ int POSIXRawSave::process() {
 		int datasize;
 		int namesize;
 		int maxsize;
-		unsigned char * data = in_img->getData(maxsize, datasize);
-		char* imgname = in_img->getImageName(maxsize, namesize);
+		const unsigned char * data = in_img->getData(maxsize, datasize);
+		const char* imgname = in_img->getImageName(maxsize, namesize);
 
 
 		// write out as raw
 		std::stringstream ss;
 		ss << outdir << "/" << imgname << "_tile_";
-		ss << in_img->metadata.info.x_offset << "x" << in_img->metadata.info.y_offset;
-		ss << "_type" << in_img->metadata.info.cvDataType;
+		ss << in_img->getMetadata().info.x_offset << "x" << in_img->getMetadata().info.y_offset;
+		ss << "_type" << in_img->getMetadata().info.cvDataType;
 		ss << "_out.raw";
 
 		FILE* fid = fopen(ss.str().c_str(), "wb");
@@ -174,6 +181,8 @@ int POSIXRawSave::process() {
 
 	++local_iter;
 
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO POSIX Write"), t1, t2, std::string(), ::cciutils::event::FILE_O));
 
 	return 0;
 }
