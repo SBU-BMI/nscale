@@ -44,10 +44,7 @@ bool SegConfigurator::init() {
 	std::string iocode = params[SegmentCmdParser::PARAM_TRANSPORT];
 
 	// get the configuration file
-	std::string adios_config(params[SegmentCmdParser::PARAM_EXECUTABLEDIR]);
-	adios_config.append("/../adios_xml/image-tiles-globalarray-");
-	adios_config.append(iocode);
-	adios_config.append(".xml");
+
 
 	// determine if we are looking at gapped output
 	bool gapped = false;
@@ -63,7 +60,12 @@ bool SegConfigurator::init() {
 	MPI_Comm_rank(comm, &rank);
 
 	cciutils::SCIOLogSession *session = logger->getSession("setup");
-	iomanager = new ADIOSManager(adios_config.c_str(), rank, comm, session, gapped, grouped);
+	if (strncmp(iocode.c_str(), "na-", 3) != 0) {
+		std::string adios_config(params[SegmentCmdParser::PARAM_EXECUTABLEDIR]);
+		adios_config.append("/../adios_xml/image-tiles-globalarray-");
+		adios_config.append(iocode);
+		adios_config.append(".xml");iomanager = new ADIOSManager(adios_config.c_str(), rank, comm, session, gapped, grouped);
+	}
 
 	return true;
 }
