@@ -48,7 +48,7 @@ endif(MPI_FOUND)
 
 #### Runtime code
 
-set(programs Process_test CVImage_test)
+set(programs Process_test CVImage_test DataBuffer_test)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)

@@ -16,7 +16,7 @@ link_directories(${SCIOSegmentation_BINARY_DIR})
 #### Runtime code
 
 # Source files used by Runtime
-set(libsrcs Debug.cpp Communicator_I.cpp CommHandler_I.cpp Process.cpp PullCommHandler.cpp PushCommHandler.cpp RandomScheduler.cpp RoundRobinScheduler.cpp NullSinkAction.cpp)
+set(libsrcs Debug.cpp Communicator_I.cpp CommHandler_I.cpp Process.cpp PullCommHandler.cpp PushCommHandler.cpp RandomScheduler.cpp RoundRobinScheduler.cpp NullSinkAction.cpp DataBuffer.cpp MPISendDataBuffer.cpp MPIRecvDataBuffer.cpp)
 
 set(libname runtime)
 # Add rule to generate execution engine, as a shared library (.so)
