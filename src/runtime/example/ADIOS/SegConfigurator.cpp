@@ -64,7 +64,10 @@ bool SegConfigurator::init() {
 		std::string adios_config(params[SegmentCmdParser::PARAM_EXECUTABLEDIR]);
 		adios_config.append("/../adios_xml/image-tiles-globalarray-");
 		adios_config.append(iocode);
-		adios_config.append(".xml");iomanager = new ADIOSManager(adios_config.c_str(), rank, comm, session, gapped, grouped);
+		adios_config.append(".xml");
+
+		//Debug::print("iomanager created for %s using config %s\n", iocode.c_str(), adios_config.c_str());
+		iomanager = new ADIOSManager(adios_config.c_str(), rank, comm, session, gapped, grouped);
 	}
 
 	return true;

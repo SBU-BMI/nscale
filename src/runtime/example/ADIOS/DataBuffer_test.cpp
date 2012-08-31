@@ -13,6 +13,7 @@
 #include "MPISendDataBuffer.h"
 #include "MPIRecvDataBuffer.h"
 #include <cstdlib>
+#include <unistd.h>
 
 
 using namespace std;

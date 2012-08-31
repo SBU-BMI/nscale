@@ -50,7 +50,7 @@ int NullSinkAction::run() {
 //		if (call_count % 10 == 0) Debug::print("SAVE WAIT\n");
 		return WAIT;
 	} else {  // done or error //
-		Debug::print("SAVE DONE/ERROR at call_count %d\n", call_count);
+		Debug::print("%s SAVE DONE/ERROR at call_count %d\n", getClassName(), call_count);
 		// output already changed.
 		return output_status;
 	}
