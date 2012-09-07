@@ -133,9 +133,9 @@ int SCIOADIOSWriter::open(const char* groupName) {
 	std::stringstream ss;
 	if (this->appendInTime == true) {
 		if (this->grouped)
-			ss << this->prefix << ".g" << this->local_group << "." << this->suffix;
+			ss << this->prefix << "/data.g" << this->local_group << "." << this->suffix;
 		else
-			ss << this->prefix << "." << this->suffix;
+			ss << this->prefix << "/data." << this->suffix;
 
 		if (newfile) {
 			err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", local_comm);
@@ -145,9 +145,9 @@ int SCIOADIOSWriter::open(const char* groupName) {
 		}
 	} else {
 		if (this->grouped)
-			ss << this->prefix << "/g" << this->local_group << "-t"<< this->write_session_id << "." << this->suffix;
+			ss << this->prefix << "/data.g" << this->local_group << "-t"<< this->write_session_id << "." << this->suffix;
 		else
-			ss << this->prefix << "/t" << this->write_session_id << "." << this->suffix;
+			ss << this->prefix << "/data.t" << this->write_session_id << "." << this->suffix;
 		err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", local_comm);
 	}
 

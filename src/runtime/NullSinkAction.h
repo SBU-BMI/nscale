@@ -26,7 +26,7 @@ public:
 
 protected:
 	virtual int compute(int const &input_size , void * const &input,
-				int &output_size, void * &output) { return READY; };
+				int &output_size, void * &output) { return Communicator_I::READY; };
 
 };
 

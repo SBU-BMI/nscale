@@ -8,7 +8,7 @@
 #include "ADIOSSave.h"
 #include "Debug.h"
 #include "mpi.h"
-
+#include "FileUtils.h"
 #include "CVImage.h"
 #include "UtilsADIOS.h"
 
@@ -22,6 +22,7 @@ ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid,
 		std::string &outDir, std::string &iocode, int total, int _buffer_max,
 		int tile_max, int imagename_max, int filename_max,
 		ADIOSManager *_iomanager, cciutils::SCIOLogSession *_logsession) :
+
 		Action_I(_parent_comm, _gid, _input, _output, _logsession), iomanager(_iomanager),
 		local_iter(0), global_iter(0), local_total(0), global_done_count(0),
 		done_marked(false), all_done(false), c(0),
@@ -43,6 +44,13 @@ ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid,
 	std::vector<int> stages;
 	for (int i = 0; i < 200; i++) {
 		stages.push_back(i);
+	}
+
+	if (rank == 0) {
+		// create the directory
+		FileUtils futils;
+		futils.mkdirs(outDir);
+		printf("made directories for %s\n", outDir.c_str());
 	}
 
 	writer = iomanager->allocateWriter(outDir, std::string("bp"), overwrite,

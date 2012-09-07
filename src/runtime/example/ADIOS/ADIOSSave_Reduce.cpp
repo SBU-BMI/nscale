@@ -9,6 +9,8 @@
 #include "Debug.h"
 #include "mpi.h"
 
+#include "FileUtils.h"
+
 #include "CVImage.h"
 #include "UtilsADIOS.h"
 
@@ -43,6 +45,15 @@ ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid
 	for (int i = 0; i < 200; i++) {
 		stages.push_back(i);
 	}
+
+
+	if (rank == 0) {
+		// create the directory
+		FileUtils futils;
+		futils.mkdirs(outDir);
+		printf("made directories for %s\n", outDir.c_str());
+	}
+
 
 	writer = iomanager->allocateWriter(outDir, std::string("bp"), overwrite,
 			appendInTime, stages,

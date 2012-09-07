@@ -27,39 +27,30 @@ NullSinkAction::~NullSinkAction() {
 
 int NullSinkAction::run() {
 
-
-	call_count++;
-	//if (call_count % 100 == 0) Debug::print("Save compute called %d\n", call_count);
+	if (this->inputBuf->isFinished()) {
+		Debug::print("%s input DONE.  input count = %d\n", getClassName(), call_count);
+		return Communicator_I::DONE;
+	} else if (this->inputBuf->isEmpty()) {
+		return Communicator_I::WAIT;
+	}
 
 	DataBuffer::DataType data;
+	void *input;
 
-	int input_size, output_size;  // allocate output vars because these are references
-	void *input, *output;
-	output = NULL;
-	output_size = -1;
 
-	int status = (this->inputBuf->isEmpty() ? Communicator_I::WAIT : Communicator_I::READY);
-	if (status == Communicator_I::READY) {
-		int result = this->inputBuf->pop(data);
-		input_size = data.first;
-		input = data.second;
-
-		//if (call_count % 100 == 0) Debug::print("SAVE READY\n");
-		result = compute(input_size, input, output_size, output);
-		if (input != NULL) {
-			free(input);
-			input = NULL;
-		}
-		if (result >= 0) return Communicator_I::READY;
-		else return Communicator_I::WAIT;
-	} else if (status == Communicator_I::WAIT) {
-//		if (call_count % 10 == 0) Debug::print("SAVE WAIT\n");
+	call_count++;
+	int bstat = this->inputBuf->pop(data);
+	if (bstat == DataBuffer::EMPTY) {
 		return Communicator_I::WAIT;
-	} else {  // done or error //
-		Debug::print("%s SAVE DONE/ERROR at call_count %d\n", getClassName(), call_count);
-		// output already changed.
-		return Communicator_I::DONE;
 	}
+	input = data.second;
+	if (input != NULL) {
+		free(input);
+		input = NULL;
+	}
+
+	return Communicator_I::READY;
+
 }
 
 } /* namespace rt */

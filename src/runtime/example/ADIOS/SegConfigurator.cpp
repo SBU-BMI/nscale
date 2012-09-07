@@ -69,7 +69,7 @@ bool SegConfigurator::init() {
 		adios_config.append(".xml");
 
 		//Debug::print("iomanager created for %s using config %s\n", iocode.c_str(), adios_config.c_str());
-		iomanager = new ADIOSManager(adios_config.c_str(), rank, comm, session, gapped, grouped);
+		iomanager = new ADIOSManager(adios_config.c_str(), params[SegmentCmdParser::PARAM_TRANSPORT], rank, comm, session, gapped, grouped);
 	}
 
 	return true;

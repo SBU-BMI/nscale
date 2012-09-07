@@ -32,15 +32,18 @@ private:
 	int rank;
 	bool gapped;
 	bool grouped;
+	std::string transport;
 
 	std::vector<ADIOSWriter *> writers;
 	cciutils::SCIOLogSession * logsession;
 
 public:
-	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession * session, bool _gapped = false, bool _groupped = true);
+	ADIOSManager(const char* configfilename, std::string const &_transport,
+			int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession * session, bool _gapped = false, bool _groupped = true);
 	virtual ~ADIOSManager();
 
-	virtual ADIOSWriter *allocateWriter(std::string const &pref, std::string const &suf, bool _newfile,
+	virtual ADIOSWriter *allocateWriter(std::string const &pref,
+			std::string const &suf, bool _newfile,
 			bool _appendInTime, std::vector<int> const &selStages,
 			int max_image_count, int local_image_count,
 			int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
@@ -51,7 +54,8 @@ public:
 
 
 class ADIOSWriter : public cciutils::cv::IntermediateResultHandler {
-	friend ADIOSWriter *ADIOSManager::allocateWriter(std::string const &pref, std::string const &suf, bool _newfile,
+	friend ADIOSWriter *ADIOSManager::allocateWriter(std::string const &pref,
+			std::string const &suf, bool _newfile,
 			bool _appendInTime, std::vector<int> const &selStages,
 			int max_image_count, int local_image_count,
 			int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
@@ -62,6 +66,7 @@ private:
     std::string prefix;
     std::string suffix;
     bool newfile;
+    std::string transport;
 
     bool appendInTime;
     std::vector<int> selected_stages;
@@ -120,7 +125,8 @@ private:
 
 protected:
 
-	ADIOSWriter(std::string const &_prefix, std::string const &_suffix, bool _newfile,
+	ADIOSWriter(std::string const &_prefix, std::string const &_suffix,
+			bool _newfile,
 			bool _appendInTime, std::vector<int> const &_selected_stages,
 			int _mx_image_capacity, int _mx_local_image_capacity, bool _gapped,
 			int _mx_image_bytes, int _mx_imagename_bytes, int _mx_filename_bytes,

@@ -12,13 +12,16 @@ namespace rt {
 namespace adios {
 
 
-ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession *session, bool _gapped, bool _grouped ) {
+ADIOSManager::ADIOSManager(const char* configfilename, std::string const &_transport,
+		int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession *session, bool _gapped, bool _grouped ) :
+		transport(_transport) {
 	gapped = _gapped;
 	grouped = _grouped;
 
 	rank = _rank;
 	comm = _comm;
 	logsession = session;
+
 
 	long long t1 = ::cciutils::event::timestampInUS();
 	adios_init(configfilename);
@@ -72,6 +75,7 @@ ADIOSWriter* ADIOSManager::allocateWriter(
 			mx_image_bytes, mx_imagename_bytes, mx_sourcetilefile_bytes,
 			_local_comm, this->grouped, _local_group);
 
+	w->transport = this->transport;
 	writers.push_back(w);
 
 	long long t2 = ::cciutils::event::timestampInUS();
@@ -213,9 +217,11 @@ int ADIOSWriter::open(const char* groupName) {
 	std::stringstream ss;
 	if (this->appendInTime == true) {
 		if (this->grouped)
-			ss << this->prefix << ".g" << this->comm_group << "." << this->suffix;
+			ss << this->prefix << "/" << transport << ".g" << this->comm_group << "." << this->suffix;
 		else
-			ss << this->prefix << "." << this->suffix;
+			ss << this->prefix << "/" << transport << "." << this->suffix;
+
+		printf("opening %s for time appending writing\n", ss.str().c_str());
 
 		if (newfile) {
 			err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", &comm);
@@ -225,9 +231,12 @@ int ADIOSWriter::open(const char* groupName) {
 		}
 	} else {
 		if (this->grouped)
-			ss << this->prefix << "/g" << this->comm_group << "-t"<< this->write_session_id << "." << this->suffix;
+			ss << this->prefix << "/" << transport << ".g" << this->comm_group << "-t"<< this->write_session_id << "." << this->suffix;
 		else
-			ss << this->prefix << "/t" << this->write_session_id << "." << this->suffix;
+			ss << this->prefix << "/" << transport << ".t" << this->write_session_id << "." << this->suffix;
+
+		printf("opening %s for time separated writing\n", ss.str().c_str());
+
 		err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", &comm);
 	}
 

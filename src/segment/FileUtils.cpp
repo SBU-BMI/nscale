@@ -49,8 +49,8 @@ string FileUtils::getFile(string& filename) {
 string FileUtils::getExt(string& filename) {
 	string fn = getFile(filename);
 	int pos = fn.rfind('.');
-	if (pos >= filename.length() - 1) return string("");
-	else if (pos >= 0) return filename.substr(pos + 1);
+	if (pos >= fn.length() - 1) return string("");
+	else if (pos >= 0) return fn.substr(pos + 1);
 	else return string("");
 }
 

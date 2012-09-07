@@ -42,13 +42,24 @@ POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 		stages.push_back(i);
 	}
 
-	size_t pos = outdir.find_last_not_of('/');
-	if (pos != std::string::npos) {
-		outdir.erase(pos+1);
-
-	} else {
-		outdir.clear(); // outdir is "/".
+	if (rank == 0) {
+		// create the directory
+		FileUtils futils;
+		futils.mkdirs(outdir);
+		printf("made directories for %s\n", outdir.c_str());
 	}
+
+	size_t pos = outdir.rfind('/');
+	if (pos == outdir.length() - 1) {
+		if (outdir.length() == 1) {
+			// outdir is "/"
+			outdir.clear();
+		} else {
+			outdir.erase(pos+1);  // last character is '/'.  remove it for good measure.
+		}
+	} // else "/" is somewhere else, or not present.  nothing to do.
+
+
 }
 
 POSIXRawSave::~POSIXRawSave() {
@@ -164,7 +175,7 @@ int POSIXRawSave::process() {
 			std::string tmpfn = fu.replaceDir(sourcefn, fu.getDir(sourcefn), outdir);
 			std::string outfn = fu.replaceExt(tmpfn, fu.getExt(tmpfn), "out.raw");
 
-
+			printf("FILESNAMES: source %s, temp %s, out %s\n", sourcefn.c_str(), tmpfn.c_str(), outfn.c_str());
 			// write out as raw
 //			std::stringstream ss;
 //
