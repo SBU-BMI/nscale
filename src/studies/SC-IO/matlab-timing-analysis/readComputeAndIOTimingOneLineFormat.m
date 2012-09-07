@@ -36,14 +36,16 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
         tline = r{linenum};  % skip header
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %*d %*s %s', 1, 'delimiter', ',');
-            if ~strcmp(temp1{3}, proc_type) || strcmp(proc_type, '*')
-                temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
+            if (isempty(find(strcmp(temp1{3}, proc_type), 1)) || ~isempty(find(strcmp('*', proc_type), 1))) 
+                if (length(tline(pos+1:end)) > 0)
+                    temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
 
-                %proc_events = [proc_events; temp1, temp2];
-                proc_events(outlinenum, 1:3) = temp1;
-                proc_events(outlinenum, 4:8) = temp2;
-                outlinenum = outlinenum + 1;
-                clear temp2;
+                    %proc_events = [proc_events; temp1, temp2];
+                    proc_events(outlinenum, 1:3) = temp1;
+                    proc_events(outlinenum, 4:8) = temp2;
+                    outlinenum = outlinenum + 1;
+                    clear temp2;
+                end
             else
                 %fprintf(1, 'SKIP %s lines %s\n', proc_type, cell2mat(temp1{3}));
             end
@@ -60,14 +62,16 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
         tline = r{linenum};  % skip header
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %s', 1, 'delimiter', ',');
-            if strcmp(temp1{3}, 'w')
-                temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
+            if isempty(find(strcmp(temp1{3}, proc_type), 1)) || ~isempty(find(strcmp('*', proc_type), 1))
+                if (length(tline(pos+1:end)) > 0)
+                    temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
 
-                %proc_events = [proc_events; temp1, temp2];
-                proc_events(outlinenum, 1:3) = temp1;
-                proc_events(outlinenum, 4:8) = temp2;
-                 outlinenum = outlinenum + 1;
-               clear temp2;
+                    %proc_events = [proc_events; temp1, temp2];
+                    proc_events(outlinenum, 1:3) = temp1;
+                    proc_events(outlinenum, 4:8) = temp2;
+                     outlinenum = outlinenum + 1;
+                   clear temp2;
+                end
             else
                 %fprintf(1, 'SKIP non worker lines %s\n', cell2mat(temp1{3}));
             end
@@ -80,14 +84,16 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
 
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %s', 1, 'delimiter', ',');
-            if strcmp(temp1{3}, 'w')
-                temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64', 'delimiter', ',');
+            if isempty(find(strcmp(temp1{3}, proc_type), 1)) || ~isempty(find(strcmp('*', proc_type), 1))
+                if (length(tline(pos+1:end)) > 0)
+                    temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64', 'delimiter', ',');
 
-                %proc_events = [proc_events; temp1, temp2];
-                proc_events(outlinenum, 1:3) = temp1;
-                proc_events(outlinenum, 4:7) = temp2;
-                 outlinenum = outlinenum + 1;
-               clear temp2;
+                    %proc_events = [proc_events; temp1, temp2];
+                    proc_events(outlinenum, 1:3) = temp1;
+                    proc_events(outlinenum, 4:7) = temp2;
+                     outlinenum = outlinenum + 1;
+                   clear temp2;
+                end
             else
                 %fprintf(1, 'SKIP non worker lines %s\n', cell2mat(temp1{3}));
             end
