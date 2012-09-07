@@ -103,7 +103,7 @@ if(ADIOS_FOUND)
 	set(POSIX_TRANSPORT_OPTION "")
 	set(MPI_TRANSPORT_OPTION "")
 	set(MPI_LUSTRE_TRANSPORT_OPTION "block_size=68157440")
-	set(MPI_AMR_TRANSPORT_OPTION "num_aggregator=16;num_ost=4")
+	set(MPI_AMR_TRANSPORT_OPTION "num_aggregator=16;osts_to_skip=0-100;num_ost=200")
 	
 	foreach(ADIOS_XML_IN ${ADIOS_XMLS_IN})
 		# generate the xml files for different transports

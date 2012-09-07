@@ -13,9 +13,11 @@
 # replaced with -V.   source ~/jaguar_env.sh
 
 BINDIR=/tmp/work/pantc/nscale
-cd $BINDIR/bin
-DATADIR=/lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles
+DATADIR=/lustre/widow2/proj/csc025/tkurc1/bcrTCGA-new
+# old, no attention to OSTS.  DATADIR=/lustre/widow2/proj/csc025/tkurc1/bcrTCGA/20Xtiles
 OUTDIR=/lustre/widow2/proj/csc025/pantc
+
+cd $OUTDIR
 
 date
 aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ 0-200 cpu
