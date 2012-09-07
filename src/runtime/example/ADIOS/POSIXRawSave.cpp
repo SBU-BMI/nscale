@@ -21,13 +21,17 @@ namespace adios {
 
 
 POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
+		DataBuffer *_input, DataBuffer *_output,
+
 		std::string &outDir, std::string &iocode, int total, int _buffer_max,
 		int tile_max, int imagename_max, int filename_max,
 		cciutils::SCIOLogSession *_logsession) :
-		Action_I(_parent_comm, _gid, _logsession),
+		Action_I(_parent_comm, _gid, _input, _output, _logsession),
 		local_iter(0), local_total(0),
 		c(0), outdir(outDir),
 		buffer_max(_buffer_max) {
+
+	assert(_input != NULL);
 
 	// always overwrite.
 	bool overwrite = true;
@@ -41,10 +45,7 @@ POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 	size_t pos = outdir.find_last_not_of('/');
 	if (pos != std::string::npos) {
 		outdir.erase(pos+1);
-		if (rank == 0) {
-			FileUtils fu;
-			fu.mkdirs(outdir);
-			}
+
 	} else {
 		outdir.clear(); // outdir is "/".
 	}
@@ -62,9 +63,9 @@ int POSIXRawSave::run() {
 	t1 = ::cciutils::event::timestampInUS();
 
 	int max_iter = 0;
-	int active = 0;
 
-	int status = input_status;
+	// status is set to WAIT or READY, since we can be DONE only if everyone is DONE
+	int status = (this->inputBuf->isEmpty() ? Communicator_I::WAIT : Communicator_I::READY);
 
 	int buffer[2], gbuffer[2];
 
@@ -73,17 +74,16 @@ int POSIXRawSave::run() {
 
 
 	// first get the local states - done or not done.
-	if (input_status == DONE || input_status == ERROR) {
+	if (this->inputBuf->isFinished()) {
 		buffer[0] = 0;
 		c++;
-		status = WAIT;  // pre-initialize to WAIT.
 	} else {
 		buffer[0] = 1;
 	}
 
 	// next predict the local iterations.  write either when full, or when done.
-	if ((inputSizes.size() >= buffer_max && (input_status == READY || input_status == WAIT)) ||
-			(inputSizes.size() > 0 && (input_status == DONE || input_status == ERROR))) {
+	if (this->inputBuf->isFull() ||
+			(!(this->inputBuf->isEmpty()) && this->inputBuf->isStopped())) {
 		// not done and has full buffer, or done and has some data
 		// increment self and accumulate
 		buffer[1] = local_iter + 1;
@@ -98,12 +98,12 @@ int POSIXRawSave::run() {
 
 
 	if (gbuffer[0] == 0) {
-		status = DONE;
+		status = Communicator_I::DONE;
 	}
 	max_iter = gbuffer[1];
 
 
-	if (input_status == DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, input_status, status, max_iter, local_iter, inputSizes.size());
+	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, status, max_iter, local_iter, inputBuf->getBufferSize());
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -124,7 +124,7 @@ int POSIXRawSave::run() {
 	 */
 	// catch up.  so flush whatever's in buffer.
 	while (max_iter > local_iter) {
-		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, inputSizes.size());
+		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, inputBuf->getBufferSize());
 		process();
 	}
 
@@ -140,43 +140,60 @@ int POSIXRawSave::process() {
 	t1 = ::cciutils::event::timestampInUS();
 
 	// move data from action's buffer to adios' buffer
-
+	DataBuffer::DataType data;
 	int input_size;  // allocate output vars because these are references
 	void *input;
-	int result = getInput(input_size, input);
+	int result;
 
-	while (input != NULL) {
-		CVImage *in_img = new CVImage(input_size, input);
+	FileUtils fu;
 
-		int datasize;
-		int namesize;
-		int maxsize;
-		const unsigned char * data = in_img->getData(maxsize, datasize);
-		const char* imgname = in_img->getImageName(maxsize, namesize);
+	while (!this->inputBuf->isEmpty()) {
+		result = this->inputBuf->pop(data);
+		input_size = data.first;
+		input = data.second;
+
+		if (input != NULL) {
+
+			CVImage *in_img = new CVImage(input_size, input);
+
+			int datasize;
+			int namesize;
+			int maxsize;
+			const unsigned char * data = in_img->getData(maxsize, datasize);
+			std::string sourcefn(in_img->getSourceFileName(maxsize, namesize));
+			std::string tmpfn = fu.replaceDir(sourcefn, fu.getDir(sourcefn), outdir);
+			std::string outfn = fu.replaceExt(tmpfn, fu.getExt(tmpfn), "out.raw");
 
 
-		// write out as raw
-		std::stringstream ss;
-		ss << outdir << "/" << imgname << "_tile_";
-		ss << in_img->getMetadata().info.x_offset << "x" << in_img->getMetadata().info.y_offset;
-		ss << "_type" << in_img->getMetadata().info.cvDataType;
-		ss << "_out.raw";
+			// write out as raw
+//			std::stringstream ss;
+//
+//			ss << outdir << "/" << imgname << "_tile_";
+//			ss << in_img->getMetadata().info.x_offset << "x" << in_img->getMetadata().info.y_offset;
+//	//		ss << "_type" << in_img->getMetadata().info.cvDataType;
+//			ss << ".out.raw";
 
-		FILE* fid = fopen(ss.str().c_str(), "wb");
-		if (!fid) {
-			printf("ERROR: can't open %s to write\n", ss.str().c_str());
-		} else {
-			fwrite(data, 1, datasize, fid);
-			fclose(fid);
+			FILE* fid = fopen(outfn.c_str(), "r");
+			if (!fid) {
+				printf("INFO: creating file %s for writing.\n", outfn.c_str());
+			} else {
+				fclose(fid);
+			}
+
+			fid = fopen(outfn.c_str(), "wb");
+			if (!fid) {
+				printf("ERROR: can't open %s to write\n", outfn.c_str());
+			} else {
+				fwrite(data, 1, datasize, fid);
+				fclose(fid);
+			}
+
+			delete in_img;
+			free(input);
+			input = NULL;
+
+			++local_total;
 		}
-
-		delete in_img;
-		free(input);
-		input = NULL;
-
-		++local_total;
-
-		result = getInput(input_size, input);
 	}
 
 	++local_iter;

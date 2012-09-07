@@ -44,7 +44,7 @@ public:
 
 	void addHandler(Communicator_I * handler) {
 		handlers.push_back(handler);
-		Communicator_I::reference(handler, &handlers);
+//		Communicator_I::reference(handler, &handlers);
 	}
 
 private:

@@ -37,12 +37,21 @@ FileUtils::~FileUtils()
 string FileUtils::getDir(string& filename) {
 	int pos = filename.rfind('/');
 	if (pos > 0) return filename.substr(0, pos);
+	else if (pos == 0) return string("/");
 	else return string("");
 }
 string FileUtils::getFile(string& filename) {
 	int pos = filename.rfind('/');
-	if (pos >= 0) return filename.substr(pos + 1);
+	if (pos >= filename.length() - 1) return string("");
+	else if (pos >= 0) return filename.substr(pos + 1);
 	else return filename;
+}
+string FileUtils::getExt(string& filename) {
+	string fn = getFile(filename);
+	int pos = fn.rfind('.');
+	if (pos >= filename.length() - 1) return string("");
+	else if (pos >= 0) return filename.substr(pos + 1);
+	else return string("");
 }
 
 string FileUtils::getRelativePath(string& filename, const string& dir) {

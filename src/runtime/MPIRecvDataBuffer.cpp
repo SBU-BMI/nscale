@@ -11,37 +11,13 @@
 namespace cci {
 namespace rt {
 
-MPIRecvDataBuffer::MPIRecvDataBuffer(int _capacity) : DataBuffer(_capacity) {
+MPIRecvDataBuffer::MPIRecvDataBuffer(int _capacity) : MPIDataBuffer(_capacity) {
 }
 
 MPIRecvDataBuffer::~MPIRecvDataBuffer() { }
 
-void MPIRecvDataBuffer::dumpBuffer() {
-	DataBuffer::dumpBuffer();
-
-	// get all the requests together
-	MPI_Request *reqs = new MPI_Request[mpi_buffer.size()];
-	int active = 0;
-	for (std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType>::iterator iter = mpi_buffer.begin();
-			iter != mpi_buffer.end(); ++iter) {
-		reqs[active] = *(iter->first);
-		++active;
-	}
-
-	MPI_Status *stati = new MPI_Status[mpi_buffer.size()];
-
-	// wait for everything to finish.
-	MPI_Waitall(active, reqs, stati);
-
-	for (std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType>::iterator iter = mpi_buffer.begin();
-			iter != mpi_buffer.end(); ++iter) {
-		free(iter->second.second);
-	}
-	mpi_buffer.clear();
-
-}
-
 int MPIRecvDataBuffer::pushMPI(MPI_Request *req, DataBuffer::DataType const data) {
+
 	if (!canPushMPI()) {
 		if (isFull()) return FULL;
 		else return status;
@@ -53,11 +29,14 @@ int MPIRecvDataBuffer::pushMPI(MPI_Request *req, DataBuffer::DataType const data
 	if (completed == 0) mpi_buffer[req] = data;	
 	else buffer.push(data);
 
+//	Debug::print("MPIRecvDataBuffer: pushMPI called.  %d load\n", mpi_buffer.size());
+
 	if (this->isFull()) return FULL;
 	else return status;  // should have value READY.
 }
 
 int MPIRecvDataBuffer::popMPI(DataBuffer::DataType* &data) {
+
 	if (mpi_buffer.size() == 0) return -1;
 	data = NULL;
 
@@ -101,6 +80,8 @@ int MPIRecvDataBuffer::popMPI(DataBuffer::DataType* &data) {
 		printf("recv new size: %ld\n", mpi_buffer.size());
 		retcode = completed;
 	}
+
+//	Debug::print("MPIRecvDataBuffer: popMPI called.  %d load\n", mpi_buffer.size());
 
 	delete [] reqs;
 	delete [] reqptrs;

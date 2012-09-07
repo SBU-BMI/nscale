@@ -12,10 +12,12 @@
 #include <string.h>
 #include <mpi.h>
 #include <memory>
-
+#include <cassert>
 #include <tr1/unordered_set>
 
+#include "DataBuffer.h"
 #include "SCIOUtilsLogger.h"
+#include "Debug.h"
 
 namespace cci {
 namespace rt {
@@ -28,6 +30,8 @@ namespace rt {
 class Communicator_I {
 public:
 	Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession = NULL);
+	virtual ~Communicator_I();
+
 
 	virtual const char* getClassName() { return "Communicator_I"; };
 
@@ -35,12 +39,12 @@ public:
 
 	MPI_Comm * getComm() { return &comm; };
 
+
 	static const int READY;
 	static const int WAIT;
 	static const int DONE;
 	static const int ERROR;
-
-	static int reference(Communicator_I* self, void *obj) {
+/*	static int reference(Communicator_I* self, void *obj) {
 		if (self == NULL) return -1;
 		if (obj == NULL) return self->reference_sources.size();
 
@@ -58,8 +62,7 @@ public:
 		}
 		return result;
 	};
-
-	virtual int getStatus() = 0;
+*/
 
 protected:
 	MPI_Comm const *parent_comm;
@@ -73,11 +76,11 @@ protected:
 
 	// some basic metadata tracking.
 	long call_count;
-	std::tr1::unordered_set<void *> reference_sources;
-
-	virtual ~Communicator_I();
-
+/*	std::tr1::unordered_set<void *> reference_sources;
+*/
 	cciutils::SCIOLogSession *logsession;
+
+
 
 };
 

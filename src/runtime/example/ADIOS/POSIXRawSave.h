@@ -24,6 +24,8 @@ namespace adios {
 class POSIXRawSave: public cci::rt::Action_I {
 public:
 	POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
+			DataBuffer *_input, DataBuffer *_output,
+
 			std::string &outDir, std::string &iocode, int total, int _buffer_max,
 			int tile_max, int imagename_max, int filename_max,
 			cciutils::SCIOLogSession *_logsession = NULL);
@@ -31,7 +33,7 @@ public:
 	virtual int run();
 	virtual const char* getClassName() { return "POSIXRawSave"; };
 
-
+/*
 	// differs from base imple:  base imple if input buffer is not empty, return READY.
 	// here we return the input status.
 	// TODO: move to separate getInput and addInput statuses.
@@ -64,6 +66,7 @@ public:
 		}
 		return stat;
 	};
+	*/
 protected:
 	virtual int process();
 	virtual int compute(int const &input_size , void * const &input,

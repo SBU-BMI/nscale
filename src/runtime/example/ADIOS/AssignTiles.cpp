@@ -18,8 +18,11 @@ namespace adios {
 
 
 AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
+		DataBuffer *_input, DataBuffer *_output,
 		std::string &dirName, int count, cciutils::SCIOLogSession *_logsession)  :
-	Action_I(_parent_comm, _gid, _logsession) {
+	Action_I(_parent_comm, _gid, _input, _output, _logsession) {
+
+	assert(_output != NULL);
 
 	long long t1, t2;
 	t1 = ::cciutils::event::timestampInUS();
@@ -83,27 +86,29 @@ int AssignTiles::compute(int const &input_size , void * const &input,
 		t2 = ::cciutils::event::timestampInUS();
 		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("Assign"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
-		return READY;
+		return Communicator_I::READY;
 	} else {
 		output = NULL;
 		output_size = 0;
 
-		return DONE;
+		return Communicator_I::DONE;
 	}
 
 }
 
 int AssignTiles::run() {
 
-	if (!canAddOutput()) {
-		Debug::print("%s BUFFERED. call count %d \n", getClassName(), call_count);
-		return output_status;
-	}
 
+	if (outputBuf->isStopped()) {
+		Debug::print("%s STOPPED. call count %d \n", getClassName(), call_count);
+		return Communicator_I::DONE;
+	} else if (outputBuf->isFull()){
+		Debug::print("%s FULL. call count %d \n", getClassName(), call_count);
+		return Communicator_I::WAIT;
+	} // else has room, and not stopped, so can push.
 
 	int output_size = 0;
 	void *output = NULL;
-
 
 	int result = compute(-1, NULL, output_size, output);
 
@@ -112,21 +117,28 @@ int AssignTiles::run() {
 //	else
 //		Debug::print("%s iter %d output var passed back at address %x, size %d, result = %d\n", getClassName(), call_count, output, output_size, result);
 
+	int bstat;
+	if (result == Communicator_I::READY) {
+		++call_count;
+		bstat = outputBuf->push(std::make_pair(output_size, output));
 
-	if (result == READY) {
-		output_status = addOutput(output_size, output);
-		call_count++;
-	} else if (result == WAIT) {
-		if (this->outputSizes.empty()) output_status = WAIT;
-		else output_status = READY;
-	} else {
-		Debug::print("%s BUFFERED. entries=%d \n", getClassName(), call_count);
+		if (bstat == DataBuffer::STOP) {
+			Debug::print("ERROR: %s can't push into buffer.  status STOP.  Should have caught this earlier. \n", getClassName());
+			return Communicator_I::DONE;
+		} else if (bstat == DataBuffer::FULL) {
+			Debug::print("ERROR: %s can't push into buffer.  status FULL.  Should have caught this earlier.\n", getClassName());
+			return Communicator_I::WAIT;
+		} else {
+			return Communicator_I::READY;
+		}
 
-		output_status = result;
+	} else if (result == Communicator_I::DONE) {
+
+		// no more, so done.
+		outputBuf->stop();
 	}
+	return result;
 
-
-	return output_status;
 }
 
 }

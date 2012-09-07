@@ -96,13 +96,6 @@ int main (int argc, char **argv){
 	long long t1, t2;
 	t1 = cciutils::event::timestampInUS();
 	parser = new cci::rt::adios::SegmentCmdParser(comm);
-	if (rank == 0) {
-		// create the directory
-		FileUtils futils;
-		futils.mkdirs(parser->getParam(cci::rt::adios::SegmentCmdParser::PARAM_OUTPUTDIR));
-	}
-	t2 = cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cciutils::event::OTHER));
 
 	if (!parser->parse(argc, argv)) {
 		if (logger) delete logger;
@@ -111,6 +104,17 @@ int main (int argc, char **argv){
 		MPI_Finalize();
 		return 0;
 	}
+	if (rank == 0) {
+		// create the directory
+		FileUtils futils;
+		futils.mkdirs(parser->getParam(cci::rt::adios::SegmentCmdParser::PARAM_OUTPUTDIR));
+		printf("made directories for %s\n", parser->getParam(cci::rt::adios::SegmentCmdParser::PARAM_OUTPUTDIR).c_str());
+
+	}
+
+	t2 = cciutils::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cciutils::event::OTHER));
+
 
 	cci::rt::ProcessConfigurator_I *conf = new cci::rt::adios::SegConfigurator(parser->getParams(), logger);
 

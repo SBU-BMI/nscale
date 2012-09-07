@@ -11,47 +11,26 @@
 namespace cci {
 namespace rt {
 
-MPISendDataBuffer::MPISendDataBuffer(int _capacity) : DataBuffer(_capacity) {
+MPISendDataBuffer::MPISendDataBuffer(int _capacity) : MPIDataBuffer(_capacity) {
 }
 
-MPISendDataBuffer::~MPISendDataBuffer() { }
-
-void MPISendDataBuffer::dumpBuffer() {
-	DataBuffer::dumpBuffer();
-
-	// get all the requests together
-	MPI_Request *reqs = new MPI_Request[mpi_buffer.size()];
-	int active = 0;
-	for (std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType>::iterator iter = mpi_buffer.begin();
-			iter != mpi_buffer.end(); ++iter) {
-		reqs[active] = *(iter->first);
-		++active;
-	}
-
-	MPI_Status *stati = new MPI_Status[mpi_buffer.size()];
-
-	// wait for everything to finish.
-	MPI_Waitall(active, reqs, stati);
-
-	for (std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType>::iterator iter = mpi_buffer.begin();
-			iter != mpi_buffer.end(); ++iter) {
-		free(iter->second.second);
-	}
-	mpi_buffer.clear();
-
-}
+MPISendDataBuffer::~MPISendDataBuffer() {}
 
 int MPISendDataBuffer::pushMPI(MPI_Request *req, DataBuffer::DataType const data) {
+
 	if (!canPushMPI()) return FULL;
 	if (data.first == 0 || data.second == NULL) return BAD_DATA;
 
 	mpi_buffer[req] = data;
+
+//	Debug::print("MPISendDataBuffer: pushMPI called.  %d load\n", mpi_buffer.size());
 
 	if (mpi_buffer.size() >= capacity) return FULL;
 	else return status;  // should have value READY.
 }
 
 int MPISendDataBuffer::popMPI(DataBuffer::DataType* &data) {
+
 	if (mpi_buffer.size() == 0) return -1;
 	data = NULL;
 //
@@ -108,6 +87,9 @@ int MPISendDataBuffer::popMPI(DataBuffer::DataType* &data) {
 		printf("send new size: %ld\n", mpi_buffer.size());
 		retcode = completed;
 	}
+
+//	Debug::print("MPISendDataBuffer: popMPI called.  %d load\n", mpi_buffer.size());
+
 	delete [] reqs;
 	delete [] reqptrs;
 	delete [] completedreqs;

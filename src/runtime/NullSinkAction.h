@@ -15,7 +15,9 @@ namespace rt {
 
 class NullSinkAction: public cci::rt::Action_I {
 public:
-	NullSinkAction(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession = NULL);
+	NullSinkAction(MPI_Comm const * _parent_comm, int const _gid,
+			DataBuffer *_input, DataBuffer *_output,
+			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~NullSinkAction();
 
 	virtual int run();

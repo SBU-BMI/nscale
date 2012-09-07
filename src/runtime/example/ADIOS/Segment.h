@@ -17,6 +17,7 @@ namespace adios {
 class Segment: public cci::rt::Action_I {
 public:
 	Segment(MPI_Comm const * _parent_comm, int const _gid,
+			DataBuffer *_input, DataBuffer *_output,
 			std::string &proctype, int gpuid,
 			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~Segment();

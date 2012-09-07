@@ -82,19 +82,20 @@ void Process::run() {
 			result = (*iter)->run();
 			if (result == Communicator_I::DONE || result == Communicator_I::ERROR) {
 				ss.str(std::string());
-				ss << "dereferencing " << (*iter)->getClassName() << ". ";
-				Communicator_I::dereference((*iter), &handlers);
+				ss << "DELETING " << (*iter)->getClassName() << ". ";
+//				Communicator_I::dereference((*iter), &handlers);
+				delete (*iter);
 				iter = handlers.erase(iter);
 
-				if (!handlers.empty()) {
-
-					ss << "Handlers remaining: ";
-					for (std::vector<Communicator_I *>::iterator iter2 = handlers.begin();
-							iter2 != handlers.end(); ++iter2) {
-						ss << "(" << (*iter2)->getClassName() << ":" << (*iter2)->getStatus() << "), ";
-					}
-				}
-//				Debug::print("Process %s\n", ss.str().c_str());
+//				if (!handlers.empty()) {
+//
+//					ss << "Handlers remaining: ";
+//					for (std::vector<Communicator_I *>::iterator iter2 = handlers.begin();
+//							iter2 != handlers.end(); ++iter2) {
+//						ss << "(" << (*iter2)->getClassName() << ":" << (*iter2)->getStatus() << "), ";
+//					}
+//				}
+				Debug::print("Process %s\n", ss.str().c_str());
 			} else ++iter;
 		}
 	}
@@ -109,7 +110,8 @@ void Process::teardown() {
 
 	// clean up all the communication handlers.
 	for (int i = 0; i < handlers.size(); ++i) {
-		Communicator_I::dereference(handlers[i], &handlers);
+//		Communicator_I::dereference(handlers[i], &handlers);
+		delete handlers[i];
 	}
 	handlers.clear();
 

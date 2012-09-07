@@ -12,20 +12,23 @@
 #include "CVImage.h"
 #include "UtilsADIOS.h"
 
+
 namespace cci {
 namespace rt {
 namespace adios {
 
 
 ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid,
+		DataBuffer *_input, DataBuffer *_output,
 		std::string &outDir, std::string &iocode, int total, int _buffer_max,
 		int tile_max, int imagename_max, int filename_max,
 		ADIOSManager *_iomanager, cciutils::SCIOLogSession *_logsession) :
-		Action_I(_parent_comm, _gid, _logsession), iomanager(_iomanager),
+		Action_I(_parent_comm, _gid, _input, _output, _logsession), iomanager(_iomanager),
 		local_iter(0), local_total(0),
 		c(0),
 		buffer_max(_buffer_max) {
 
+	assert(_input != NULL);
 
 	// determine if we are using AMR, if so, don't append time points
 	bool appendInTime = true;
@@ -48,7 +51,6 @@ ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid
 			comm, groupid);
 	writer->setLogSession(this->logsession);
 
-
 }
 
 ADIOSSave_Reduce::~ADIOSSave_Reduce() {
@@ -69,9 +71,9 @@ int ADIOSSave_Reduce::run() {
 	t1 = ::cciutils::event::timestampInUS();
 
 	int max_iter = 0;
-	int active = 0;
 
-	int status = input_status;
+	// status is set to WAIT or READY, since we can be DONE only if everyone is DONE
+	int status = (this->inputBuf->isEmpty() ? Communicator_I::WAIT : Communicator_I::READY);
 
 	int buffer[2], gbuffer[2];
 
@@ -79,38 +81,33 @@ int ADIOSSave_Reduce::run() {
 //		Debug::print("TEST start input status = %d\n", input_status);
 
 
-	// first get the local states - done or not done.
-	if (input_status == DONE || input_status == ERROR) {
+	// first get the local states - active or inactive
+	if (this->inputBuf->isFinished()) {
 		buffer[0] = 0;
 		c++;
-		status = WAIT;  // pre-initialize to WAIT.
 	} else {
 		buffer[0] = 1;
 	}
-
 	// next predict the local iterations.  write either when full, or when done.
-	if ((inputSizes.size() >= buffer_max && (input_status == READY || input_status == WAIT)) ||
-			(inputSizes.size() > 0 && (input_status == DONE || input_status == ERROR))) {
+	if (this->inputBuf->isFull() ||
+			(!(this->inputBuf->isEmpty()) && this->inputBuf->isStopped())) {
 		// not done and has full buffer, or done and has some data
 		// increment self and accumulate
 		buffer[1] = local_iter + 1;
 	} else {
 		buffer[1] = local_iter;
 	}
-
 	MPI_Allreduce(buffer, gbuffer, 2, MPI_INT, MPI_MAX, comm);
-
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 1 input status = %d\n", input_status);
-
-
 	if (gbuffer[0] == 0) {
-		status = DONE;
+		// everyone is done. - reached when all inputBuf are finished.
+		status = Communicator_I::DONE;
 	}
 	max_iter = gbuffer[1];
 
 
-	if (input_status == DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, input_status, status, max_iter, local_iter, inputSizes.size());
+	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->getBufferSize());
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -131,7 +128,7 @@ int ADIOSSave_Reduce::run() {
 	 */
 	// catch up.  so flush whatever's in buffer.
 	while (max_iter > local_iter) {
-		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, inputSizes.size());
+		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, this->inputBuf->getBufferSize());
 		process();
 	}
 
@@ -146,21 +143,26 @@ int ADIOSSave_Reduce::process() {
 
 	// move data from action's buffer to adios' buffer
 
+	DataBuffer::DataType data;
 	int input_size;  // allocate output vars because these are references
 	void *input;
-	int result = getInput(input_size, input);
+	int result;
 
-	while (input != NULL) {
-		CVImage *adios_img = new CVImage(input_size, input);
-		writer->saveIntermediate(adios_img, 1);
+	while (!this->inputBuf->isEmpty()) {
+		result = this->inputBuf->pop(data);
+		input_size = data.first;
+		input = data.second;
 
-		delete adios_img;
-		free(input);
-		input = NULL;
+		if (input != NULL) {
+			CVImage *adios_img = new CVImage(input_size, input);
+			writer->saveIntermediate(adios_img, 1);
 
-		++local_total;
+			delete adios_img;
+			free(input);
+			input = NULL;
 
-		result = getInput(input_size, input);
+			++local_total;
+		}
 	}
 
 //	Debug::print("%s calling ADIOS to persist the files\n", getClassName());

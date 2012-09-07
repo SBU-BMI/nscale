@@ -19,13 +19,20 @@ namespace rt {
 namespace adios {
 
 Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
+		DataBuffer *_input, DataBuffer *_output,
 		std::string &proctype, int gpuid,
 		cciutils::SCIOLogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _logsession), output_count(0) {
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0) {
+	assert(_input != NULL);
+	assert(_output != NULL);
+
 	if (strcmp(proctype.c_str(), "cpu")) proc_code = cciutils::DEVICE_CPU;
 	else if (strcmp(proctype.c_str(), "cpu")) {
 		proc_code = cciutils::DEVICE_GPU;
 	}
+
+
+
 }
 
 Segment::~Segment() {
@@ -126,45 +133,61 @@ int Segment::compute(int const &input_size , void * const &input,
 
 int Segment::run() {
 
-	if (!canAddOutput()) return output_status;
+	if (this->inputBuf->isFinished()) {
+		Debug::print("%s input DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
+		this->outputBuf->stop();
 
+		return Communicator_I::DONE;
+	} else if (this->outputBuf->isStopped()) {
+		Debug::print("%s output DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
+		this->inputBuf->stop();
+
+		return Communicator_I::DONE;
+	} else if (this->inputBuf->isEmpty() || this->outputBuf->isFull()) {
+		return Communicator_I::WAIT;
+	}
+
+	DataBuffer::DataType data;
 	int output_size, input_size;
 	void *output, *input;
 
-	int istatus = getInputStatus();
 
-	if (istatus == READY) {
-		input = NULL;
-		int result = getInput(input_size, input);
+	int bstat = this->inputBuf->pop(data);
+	if (bstat == DataBuffer::EMPTY) {
+		return Communicator_I::WAIT;
+	}
+	input_size = data.first;
+	input = data.second;
+
 //		Debug::print("%s READY and getting input:  call count= %d\n", getClassName(), call_count);
 
-		result = compute(input_size, input, output_size, output);
-		call_count++;
-
-		if (input != NULL) {
-			free(input);
-			input = NULL;
-		}
-
-		if (result == ::nscale::SCIOHistologicalEntities::SUCCESS) {
-//			Debug::print("%s bufferring output:  call count= %d\n", getClassName(), call_count);
-			++output_count;
-			result = addOutput(output_size, output);
-
-//			free(output);
-		} else {
-//			Debug::print("%s no output.  entries processed = %d\n", getClassName(), call_count);
-			result = WAIT;
-		}
-		return result;
-	} else if (istatus == WAIT) {
-//		Debug::print("%s READY and waiting for input: call count= %d\n", getClassName(), call_count);
-		return WAIT;
-	} else {  // done or error //
-		// output already changed.
-		Debug::print("%s DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
-		return output_status;
+	int result = compute(input_size, input, output_size, output);
+	call_count++;
+	if (input != NULL) {
+		free(input);
+		input = NULL;
 	}
+
+
+	if (result == ::nscale::SCIOHistologicalEntities::SUCCESS) {
+//			Debug::print("%s bufferring output:  call count= %d\n", getClassName(), call_count);
+		++output_count;
+		bstat = this->outputBuf->push(std::make_pair(output_size, output));
+
+		if (bstat == DataBuffer::STOP) {
+			Debug::print("ERROR: %s can't push into buffer.  status STOP.  Should have caught this earlier. \n", getClassName());
+			this->inputBuf->stop();
+			return Communicator_I::DONE;
+		} else if (bstat == DataBuffer::FULL) {
+			Debug::print("ERROR: %s can't push into buffer.  status FULL.  Should have caught this earlier.\n", getClassName());
+			return Communicator_I::WAIT;
+		} else {
+			return Communicator_I::READY;
+		}
+	} else {
+		return Communicator_I::READY;
+	}
+
 
 }
 

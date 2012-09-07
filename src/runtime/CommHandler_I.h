@@ -11,9 +11,9 @@
 #include "Communicator_I.h"
 #include <vector>
 #include <algorithm>
-#include "Action_I.h"
 #include <tr1/unordered_map>
 #include "Scheduler_I.h"
+#include "MPIDataBuffer.h"
 
 namespace cci {
 namespace rt {
@@ -28,34 +28,29 @@ public:
 	 * _gid:  the group id with which to split the parent comm
 	 * _roots:  the list of roots, specified as ranks in parent_comm.
 	 */
-	CommHandler_I(MPI_Comm const *_parent_comm, int const _gid, Scheduler_I *_scheduler,
+	CommHandler_I(MPI_Comm const *_parent_comm, int const _gid, MPIDataBuffer *_buffer, Scheduler_I *_scheduler,
 			cciutils::SCIOLogSession *_logsession = NULL);
 
 	virtual const char* getClassName() { return "CommHandler_I"; };
 
-	void setAction(Action_I * _action) {
-		action = _action;
-		Communicator_I::reference(action, this);
-	};
-
 	virtual int run() = 0;
 	virtual bool isListener() { return scheduler->isRoot(); };
-	virtual bool isReady() { return action != NULL && status != ERROR && status != DONE; };
+//	virtual bool isReady() { return buffer != NULL && !buffer->isStopped(); };
 
 	static const int CONTROL_TAG;
 	static const int DATA_TAG;
 
-	virtual int getStatus() { return status; };
+//	virtual int getStatus() { return status; };
 
 protected:
 	Scheduler_I *scheduler;
 
 	std::tr1::unordered_map<int, int> activeWorkers;
 
-	Action_I * action;
+	MPIDataBuffer *buffer;
+
 	int status;
 
-//	bool hascompletedworker;
 };
 
 } /* namespace rt */

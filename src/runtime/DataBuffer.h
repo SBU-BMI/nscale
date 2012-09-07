@@ -10,6 +10,8 @@
 
 #include <utility>
 #include <queue>
+#include <tr1/unordered_set>
+#include "Debug.h"
 
 namespace cci {
 namespace rt {
@@ -50,10 +52,34 @@ public:
 
 	virtual int pop(DataType &data);
 
+        static int reference(DataBuffer* self, void *obj) {
+                if (self == NULL) return -1;
+                if (obj == NULL) return self->reference_sources.size();
+
+                self->reference_sources.insert(obj);
+                return self->reference_sources.size();
+        };
+        static int dereference(DataBuffer* self, void *obj) {
+                if (self == NULL) return -1;
+                if (obj == NULL) return self->reference_sources.size();
+
+                self->reference_sources.erase(obj);
+                int result = self->reference_sources.size();
+                if (result == 0) {
+                        delete self;
+                }
+                return result;
+        };
+
+
 protected:
 	std::queue<DataType> buffer;
 	int status;
 	int capacity;
+
+	std::tr1::unordered_set<void *> reference_sources;
+
+
 
 	virtual void dumpBuffer();
 

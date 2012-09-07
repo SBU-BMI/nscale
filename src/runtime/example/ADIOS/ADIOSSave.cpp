@@ -18,13 +18,16 @@ namespace adios {
 
 
 ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid,
+		DataBuffer *_input, DataBuffer *_output,
 		std::string &outDir, std::string &iocode, int total, int _buffer_max,
 		int tile_max, int imagename_max, int filename_max,
 		ADIOSManager *_iomanager, cciutils::SCIOLogSession *_logsession) :
-		Action_I(_parent_comm, _gid, _logsession), iomanager(_iomanager),
+		Action_I(_parent_comm, _gid, _input, _output, _logsession), iomanager(_iomanager),
 		local_iter(0), global_iter(0), local_total(0), global_done_count(0),
 		done_marked(false), all_done(false), c(0),
 		buffer_max(_buffer_max) {
+
+	assert(_input != NULL);
 
 	dones = (int*)calloc(size, sizeof(int));
 
@@ -86,6 +89,9 @@ int ADIOSSave::run() {
 
 // first catch up.
 	long long t1, t2;
+
+	t1 = ::cciutils::event::timestampInUS();
+
 	int max_iter = 0;
 
 	// next see if we are already done.
@@ -93,7 +99,7 @@ int ADIOSSave::run() {
 	// if input is done, it CANNOT use fence and wait - need to participate in persist.
 
 	int incr = 1;
-	int status = input_status;
+	int status = (this->inputBuf->isEmpty() ? Communicator_I::WAIT : Communicator_I::READY);
 	int done_count;
 
 //	if (test_input_status == DONE)
@@ -105,8 +111,8 @@ int ADIOSSave::run() {
 	// first check for done-ness.  if I am done, then increment the done count.
 	// if done count == rank, mark atend true;
 	MPI_Barrier(comm);   // must have barrier to use with Win_lock for this to work.
-	t1 = ::cciutils::event::timestampInUS();
-	if (input_status == DONE || input_status == ERROR) {
+
+	if (this->inputBuf->isFinished()) {
 		c++;
 
 		// can use accumulate or put.
@@ -148,11 +154,11 @@ int ADIOSSave::run() {
 
 		if (done_count >= size) {
 			all_done = true;
-			status = DONE;
+			status = Communicator_I::DONE;
 		}
-		else status = WAIT;
+		else status = Communicator_I::WAIT;
 
-		Debug::print("%s, call_count = %ld, done_count = %d, all done = %d, status = %d, input_status = %d\n", getClassName(), c, done_count, (all_done ? 1 : 0), status, input_status);
+		if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->getBufferSize());
 
 		//if (status == WAIT) Debug::print("%s DONE local rank %d status %d, local iter %d, local count %d, done_count = %d\n", getClassName(), rank, input_status, local_iter, inputSizes.size(), done_count);
 		t2 = ::cciutils::event::timestampInUS();
@@ -168,8 +174,8 @@ int ADIOSSave::run() {
 	t1 = ::cciutils::event::timestampInUS();
 
 	// TODO: removed check for WAIT next to READY
-	if ((inputSizes.size() >= buffer_max && (input_status == READY )) ||
-			(inputSizes.size() > 0 && (input_status == DONE || input_status == ERROR))) {
+	if (this->inputBuf->isFull() ||
+			(!(this->inputBuf->isEmpty()) && this->inputBuf->isStopped())) {
 		// not done and has full buffer, or done and has some data
 		// increment self and accumulate
 		++local_iter;
@@ -187,7 +193,7 @@ int ADIOSSave::run() {
 	MPI_Get(&max_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, iter_win);
 	MPI_Win_unlock(0, iter_win);
 
-	Debug::print("%s input_status = %d, max_iter = %d, global_iter = %d, local_iter = %d, buffer size = %ld, done marked = %d\n", getClassName(), input_status, max_iter, global_iter, local_iter, inputSizes.size(), (done_marked ? 1 : 0));
+	Debug::print("%s  max_iter = %d, global_iter = %d, local_iter = %d, buffer size = %ld, done marked = %d\n", getClassName(), max_iter, global_iter, local_iter, inputBuf->getBufferSize(), (done_marked ? 1 : 0));
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -207,8 +213,8 @@ int ADIOSSave::run() {
 	 *  catch up.
 	 */
 	// catch up.  so flush whatever's in buffer.
-	if (max_iter > local_iter) Debug::print("%s rank %d catch up writing at iter %d, max_iter = %d\n", getClassName(), rank, local_iter, max_iter);
 	while (max_iter > local_iter) {
+		Debug::print("%s rank %d catch up writing at iter %d, max_iter = %d\n", getClassName(), rank, local_iter, max_iter);
 		process();
 	}
 
@@ -220,15 +226,19 @@ int ADIOSSave::run() {
 }
 
 int ADIOSSave::process() {
-	Debug::print("%s: IO group %d rank %d, write iter %d, tile count %d\n", getClassName(), groupid, rank, local_iter, inputSizes.size());
+	Debug::print("%s: IO group %d rank %d, write iter %d, tile count %d\n", getClassName(), groupid, rank, local_iter, inputBuf->getBufferSize());
 
 	// move data from action's buffer to adios' buffer
 
+	DataBuffer::DataType data;
 	int input_size;  // allocate output vars because these are references
 	void *input;
-	int result = getInput(input_size, input);
+	int result;
 
-	while (result == READY) {
+	while (!this->inputBuf->isEmpty()) {
+		result = this->inputBuf->pop(data);
+		input_size = data.first;
+		input = data.second;
 
 		if (input != NULL) {
 			CVImage *adios_img = new CVImage(input_size, input);
@@ -240,7 +250,6 @@ int ADIOSSave::process() {
 
 			++local_total;
 		}
-		result = getInput(input_size, input);
 	}
 
 //	Debug::print("%s calling ADIOS to persist the files\n", getClassName());

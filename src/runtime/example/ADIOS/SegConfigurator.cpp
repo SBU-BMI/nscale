@@ -22,6 +22,8 @@
 #include "SCIOUtilsLogger.h"
 #include "FileUtils.h"
 #include "NullSinkAction.h"
+#include "MPISendDataBuffer.h"
+#include "MPIRecvDataBuffer.h"
 
 namespace cci {
 namespace rt {
@@ -106,6 +108,8 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 
 
 	CommHandler_I *handler, *handler2;
+	MPISendDataBuffer *sbuf = NULL;
+	MPIRecvDataBuffer *rbuf = NULL;
 
 	int iointerleave = atoi(params[SegmentCmdParser::PARAM_IOINTERLEAVE].c_str());
 	int iosize = atoi(params[SegmentCmdParser::PARAM_IOSIZE].c_str());
@@ -116,32 +120,54 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 
 	// first split into 2.  focus on compute group.
 	Scheduler_I *sch = NULL;
+	bool isroot = false;
 	if (iointerleave == 1) {
 		compute_io_g = (rank < iosize ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
-		if (rank == iosize) sch = new RandomScheduler(true, false);  // compute root at rank = iosize
-		else if (rank == 0) sch = new RandomScheduler(true, false);  // io root at rank = 0
-		else sch = new RandomScheduler(false, true);
+		if (rank == iosize) isroot = true;  // compute root at rank = iosize
+		else if (rank == 0) isroot = true;  // io root at rank = 0
+
+
 	} else {
 		compute_io_g = ((rank % iointerleave == 0) && (rank < iointerleave * iosize) ? IO_GROUP : COMPUTE_GROUP);  // IO nodes have compute_io_g = 1; compute nodes compute_io_g = 0
-		if (rank == 1) sch = new RandomScheduler(true, false);  // compute root at rank = 1
-		else if (rank == 0) sch = new RandomScheduler(true, false);  // io root at rank = 0
-		else sch = new RandomScheduler(false, true);
+		if (rank == 1) isroot = true;  // compute root at rank = 1
+		else if (rank == 0) isroot = true;  // io root at rank = 0
 	}
 
-	// compute and io groups
-	handler = new PullCommHandler(&comm, compute_io_g, sch, logger->getSession("pull"));
+	sch = new RandomScheduler(isroot, !isroot);
+	// set up the buffers
+	if (compute_io_g == IO_GROUP) {  // io nodes
+		// compute and io groups
+		handler = new PullCommHandler(&comm, compute_io_g, NULL, sch, logger->getSession("pull"));
+	} else {
+		if (isroot) {  // root of compute
+			sbuf = new MPISendDataBuffer(100);
+			handler = new PullCommHandler(&comm, compute_io_g, sbuf, sch, logger->getSession("pull"));
+		} else { // other compute
+			rbuf = new MPIRecvDataBuffer(2);
+			handler = new PullCommHandler(&comm, compute_io_g, rbuf, sch, logger->getSession("pull"));
+		}
+	}
+
 
 	// then the compute to IO communication group
 	// separate masters in the compute group
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
 	Scheduler_I *sch2 = NULL;
-	if (compute_to_io_g == UNUSED_GROUP) sch2 = new RandomScheduler(false, false);
-	else
-		if (compute_io_g == IO_GROUP) sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
-		else sch2 = new RandomScheduler(false, true);
-
-	handler2 = new PushCommHandler(&comm, compute_to_io_g, sch2, logger->getSession("push"));
+	if (compute_to_io_g == UNUSED_GROUP) {
+		sch2 = new RandomScheduler(false, false);
+		handler2 = new PushCommHandler(&comm, compute_to_io_g, NULL, sch2, logger->getSession("push"));
+	} else {
+		if (compute_io_g == IO_GROUP) {
+			rbuf = new MPIRecvDataBuffer(atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()));
+			sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
+			handler2 = new PushCommHandler(&comm, compute_to_io_g, rbuf, sch2, logger->getSession("push"));
+		} else {
+			sbuf = new MPISendDataBuffer(atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()));
+			sch2 = new RandomScheduler(false, true);
+			handler2 = new PushCommHandler(&comm, compute_to_io_g, sbuf, sch2, logger->getSession("push"));
+		}
+	}
 
 	t2 = cciutils::event::timestampInUS();
 	if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout comms"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
@@ -152,23 +178,20 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		//Debug::print("in compute setup\n");
 		if (handler->isListener()) {  // master in the compute group
 			Action_I *assign =
-					new cci::rt::adios::AssignTiles(&comm, -1,
+					new cci::rt::adios::AssignTiles(&comm, -1, NULL, sbuf,
 							params[SegmentCmdParser::PARAM_INPUT],
 							atoi(params[SegmentCmdParser::PARAM_INPUTCOUNT].c_str()),
 							logger->getSession("assign"));
 			proc->addHandler(assign);
-			handler->setAction(assign);
 			delete handler2;
 		} else {
 			Action_I *seg =
-					new cci::rt::adios::Segment(&comm, -1,
+					new cci::rt::adios::Segment(&comm, -1, rbuf, sbuf,
 							params[SegmentCmdParser::PARAM_PROCTYPE],
 							atoi(params[SegmentCmdParser::PARAM_GPUDEVICEID].c_str()),
 							logger->getSession("seg"));
 			proc->addHandler(seg);
 			proc->addHandler(handler2);
-			handler->setAction(seg);
-			handler2->setAction(seg);
 		}
 
 	} else	{
@@ -214,9 +237,12 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 
 		Action_I *save;
 		if (strcmp(iocode.c_str(), "na-NULL") == 0)
-			save = new cci::rt::NullSinkAction(handler->getComm(), io_sub_g, logger->getSession("io"));
+			save = new cci::rt::NullSinkAction(handler->getComm(), io_sub_g,
+					rbuf, NULL,
+					logger->getSession("io"));
 		else if (strcmp(iocode.c_str(), "na-POSIX") == 0)
 			save = new cci::rt::adios::POSIXRawSave(handler->getComm(), io_sub_g,
+					rbuf, NULL,
 				params[SegmentCmdParser::PARAM_OUTPUTDIR],
 				iocode,
 				total,
@@ -225,6 +251,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 				logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
 		else
 			save = new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
+					rbuf, NULL,
 				params[SegmentCmdParser::PARAM_OUTPUTDIR],
 				iocode,
 				total,
@@ -234,7 +261,6 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 
 		proc->addHandler(handler2);
 		proc->addHandler(save);
-		handler2->setAction(save);
 		delete handler;
 	}
 

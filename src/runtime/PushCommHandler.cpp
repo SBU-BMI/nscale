@@ -14,8 +14,8 @@
 namespace cci {
 namespace rt {
 
-PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession)
-: CommHandler_I(_parent_comm, _gid, _scheduler, _logsession), send_count(0) {
+PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, MPIDataBuffer *_buffer, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession)
+: CommHandler_I(_parent_comm, _gid, _buffer, _scheduler, _logsession), send_count(0) {
 //	hascompletedworker = false;
 //	test_input_status = ERROR;
 }
@@ -52,25 +52,28 @@ int PushCommHandler::run() {
 
 	int count;
 	void * data = NULL;
-	int buffer_status = READY;
-	int worker_status = READY;
-	int manager_status = READY;
+	int buffer_status = Communicator_I::READY;
+	int worker_status = Communicator_I::READY;
+	int manager_status = Communicator_I::READY;
 	MPI_Status mstatus;
 	MPI_Request myRequest;
+
+	// status is only for checking error, done, and prescence of action.
+	if (this->status == Communicator_I::DONE) return status;
 
 
 	if (isListener()) {
 
+
 //		if (hascompletedworker && buffer_status != READY) Debug::print("%s manager %d status %d.\n", getClassName(), rank, buffer_status);
 
-		if (!this->isReady()) return status;
-
-		if (action->canAddInput())
-			buffer_status = READY;
-		else
-			buffer_status = action->getInputStatus();  // get the data, and the return status
-
+		if (buffer->isStopped()) buffer_status = Communicator_I::DONE;  // get the data, and the return status
+		else if (buffer->isFull()) buffer_status = Communicator_I::WAIT;
+		else buffer_status = Communicator_I::READY;
 		//if (hascompletedworker) Debug::print("%s buffer status = %d\n", getClassName(), buffer_status);
+
+
+		if (buffer_status == Communicator_I::WAIT) return buffer_status;  // if buffer is not ready, then skip this call
 
 
 		int hasMessage;
@@ -87,7 +90,7 @@ int PushCommHandler::run() {
 //			if (hascompletedworker) Debug::print("%s worker %d status = %d\n", getClassName(), worker_id, worker_status);
 
 			// track the worker status
-			if (worker_status == DONE || worker_status == ERROR) {
+			if (worker_status == Communicator_I::DONE || worker_status == Communicator_I::ERROR) {
 //				hascompletedworker = true;
 //				Debug::print("%s worker %d status = %d\n", getClassName(), worker_id, worker_status);
 //				action->debugOn();
@@ -106,10 +109,10 @@ int PushCommHandler::run() {
 				// NOTE: workers are responsible for notifying all the masters it knows about.
 				// if all workers are done, or in error state, then this is done too.
 				if (activeWorkers.empty()) {
-					status = DONE;  // nothing to send to workers. since they are all done.
-					Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), action->getInputSize());
+					status = Communicator_I::DONE;  // nothing to send to workers. since they are all done.
+					Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
 					// all the workers are done
-					action->markInputDone();
+					buffer->stop();
 //					test_input_status = DONE;
 
 				}
@@ -121,7 +124,7 @@ int PushCommHandler::run() {
 			} else {
 				activeWorkers[worker_id] = worker_status;
 
-				if (worker_status == WAIT) { // worker status is wait, so manager doesn't do anything.
+				if (worker_status == Communicator_I::WAIT) { // worker status is wait, so manager doesn't do anything.
 					Debug::print("%s Worker waiting.  why did it send the message in the first place?\n", getClassName());
 
 					t2 = cciutils::event::timestampInUS();
@@ -138,7 +141,7 @@ int PushCommHandler::run() {
 			MPI_Send(&buffer_status, 1, MPI_INT, worker_id, CONTROL_TAG, comm);
 			//Debug::print("buffer status sent \n", buffer_status);
 
-			if (buffer_status == DONE || buffer_status == ERROR ) {  // if action is done or error,
+			if (buffer_status == Communicator_I::DONE ) {  // if action is done or error,
 				// then we are done.  need to notify everyone.
 				// keep the commhandler status at READY.
 				// and set message to all nodes
@@ -147,7 +150,7 @@ int PushCommHandler::run() {
 
 				activeWorkers.erase(worker_id);
 				if (activeWorkers.empty()) {// all messages sent
-					status = DONE;
+					status = Communicator_I::DONE;
 
 					Debug::print("%s DONE\n", getClassName());
 					// action is already done, so no need to change it.
@@ -157,7 +160,7 @@ int PushCommHandler::run() {
 
 				return status;
 
-			} else if (buffer_status == READY) {
+			} else if (buffer_status == Communicator_I::READY) {
 				// status is ready, receive data.
 
 				++send_count;
@@ -173,9 +176,10 @@ int PushCommHandler::run() {
 
 
 				if (count > 0 && data != NULL) {
-					buffer_status = action->addInput(count, data);
+					int stat = buffer->push(std::make_pair(count, data));
+					buffer_status = (stat == DataBuffer::STOP ? Communicator_I::DONE : (stat == DataBuffer::FULL ? Communicator_I::WAIT : Communicator_I::READY));
 				} else {
-					Debug::print("%s READING nothing!\n", getClassName());
+					Debug::print("%s RECEIVED nothing!\n", getClassName());
 				}
 
 				t2 = cciutils::event::timestampInUS();
@@ -192,20 +196,20 @@ int PushCommHandler::run() {
 
 			return status;
 		} else {
-			return WAIT;
+			return Communicator_I::WAIT;
 		}
 
 	} else {
 
-		// status is only for checking error, done, and prescence of action.
-		if (!this->isReady()) return status;
 
-		buffer_status = action->getOutputStatus();
+		if (buffer->isFinished()) buffer_status = Communicator_I::DONE;
+		else if (buffer->isEmpty()) buffer_status = Communicator_I::WAIT;
+		else buffer_status = Communicator_I::READY;
 //		Debug::print("%s worker buffer_status is :%d\n", getClassName(), status);
 
-		if (buffer_status == WAIT) {
+		if (buffer_status == Communicator_I::WAIT) {
 			return buffer_status;  // nothing to output, so don't call manager
-		} else if (buffer_status == DONE || buffer_status == ERROR) {
+		} else if (buffer_status == Communicator_I::DONE || buffer_status == Communicator_I::ERROR) {
 			// notify all the roots
 			std::vector<int> roots = scheduler->getRoots();
 
@@ -220,7 +224,7 @@ int PushCommHandler::run() {
 			// TODO do waitall here.
 
 			// and say done.
-			status = DONE;
+			status = Communicator_I::DONE;
 
 			t2 = cciutils::event::timestampInUS();
 			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
@@ -273,26 +277,33 @@ int PushCommHandler::run() {
 
 //		Debug::print("%s manager status is %d\n", getClassName(), manager_status);
 
-		if (manager_status == READY) {
-			status = action->getOutput(count, data);
-			if (status != READY) Debug::print("%s ERROR: status has changed during a single invocation of run()\n", getClassName());
+		DataBuffer::DataType dstruct;
 
-			MPI_Send(&count, 1, MPI_INT, root, DATA_TAG, comm);
-			MPI_Send(data, count, MPI_CHAR, root, DATA_TAG, comm);
-			if (data != NULL) free(data);
+		if (manager_status == Communicator_I::READY) {
+			int stat = buffer->pop(dstruct);
+			buffer_status = (stat == DataBuffer::EMPTY ?  Communicator_I::WAIT : Communicator_I::READY);
+			if (buffer_status != Communicator_I::READY) Debug::print("%s ERROR: status has changed during a single invocation of run()\n", getClassName());
+
+			MPI_Send(&(dstruct.first), 1, MPI_INT, root, DATA_TAG, comm);
+			MPI_Send(dstruct.second, dstruct.first, MPI_CHAR, root, DATA_TAG, comm);
+			if (dstruct.second != NULL) {
+				free(dstruct.second);
+				dstruct.second = NULL;
+
+			}
 //			Debug::print("%s %d sent data to %d\n", getClassName(), rank, root);
 
-			sprintf(len, "%lu", (long)(count));
 
 			t2 = cciutils::event::timestampInUS();
+			sprintf(len, "%lu", (long)(count));
 			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("push data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
-		} else if (manager_status == DONE || manager_status == ERROR ) {
+		} else if (manager_status == Communicator_I::DONE || manager_status == Communicator_I::ERROR ) {
 			// one manager is done.  remove it from the list.  if there is no roots left, done.
 			if (scheduler->removeRoot(root) == 0)  {
-				status = DONE;
+				status = Communicator_I::DONE;
 				// if manager can't accept, then action can stop
-				action->markInputDone();
+				buffer->stop();
 				Debug::print("%s DONE\n", getClassName());
 			}
 

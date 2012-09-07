@@ -9,15 +9,14 @@
 #include <cstdlib>
 #include <cstdio>
 
-
 namespace cci {
 namespace rt {
 
-const int DataBuffer::READY = 1;
-const int DataBuffer::STOP = 0;
-const int DataBuffer::EMPTY = 2;
-const int DataBuffer::FULL = 3;
-const int DataBuffer::BAD_DATA = -1;
+const int DataBuffer::READY = 11;
+const int DataBuffer::STOP = 10;
+const int DataBuffer::EMPTY = 12;
+const int DataBuffer::FULL = 13;
+const int DataBuffer::BAD_DATA = -11;
 
 
 
@@ -27,7 +26,7 @@ DataBuffer::DataBuffer(int _capacity) : capacity(_capacity), status(DataBuffer::
 
 DataBuffer::~DataBuffer() {
 	if (!buffer.empty()) {
-		printf("WARNING:  DataBuffer is not empty.  likely to have leaked memory.\n");
+		Debug::print("WARNING:  DataBuffer is not empty.  likely to have leaked memory.\n");
 	}
 }
 
@@ -41,12 +40,15 @@ void DataBuffer::dumpBuffer() {
 
 
 int DataBuffer::push(DataType const data) {
-	if (isStopped()) return status;
-	if (isFull()) return FULL;
 
+	if (isStopped()) return STOP;
+	if (isFull()) return FULL;
 	if (data.first == 0 || data.second == NULL) return BAD_DATA;
 
 	if (this->canPush()) buffer.push(data);
+
+	//Debug::print("DataBuffer: push called.  %d load\n", buffer.size());
+
 	return status;  // should have value READY.
 }
 
@@ -55,6 +57,8 @@ int DataBuffer::pop(DataType &data) {
 
 	data = buffer.front();
 	buffer.pop();
+
+	//Debug::print("DataBuffer: pop called.  %d load\n", buffer.size());
 
 	return status;
 }

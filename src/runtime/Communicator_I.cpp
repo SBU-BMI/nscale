@@ -45,7 +45,7 @@ Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cc
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI setup"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 };
 Communicator_I::~Communicator_I() {
-	if (!reference_sources.empty()) Debug::print("%s ERROR:  still has %d objects referencing it\n", getClassName(), reference_sources.size());
+	//if (!reference_sources.empty()) Debug::print("%s ERROR:  still has %d objects referencing it\n", getClassName(), reference_sources.size());
 
 	if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
 };

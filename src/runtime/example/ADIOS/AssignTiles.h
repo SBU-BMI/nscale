@@ -19,6 +19,7 @@ namespace adios {
 class AssignTiles: public cci::rt::Action_I {
 public:
 	AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
+			DataBuffer *_input, DataBuffer *_output,
 			std::string &dirName, int count, cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~AssignTiles();
 	virtual int run();

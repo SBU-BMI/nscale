@@ -29,6 +29,7 @@ class FileUtils
 
         string getDir(string& filename);
         string getFile(string& filename);
+        string getExt(string& filename);
         string getRelativePath(string& filename, const string& dir);
         string replaceDir(string& filename, const string& oldDir, const string& newDir);
         string replaceExt(string& filename, const string& oldExt, const string& newExt);
