@@ -15,7 +15,9 @@ namespace rt {
 
 class Save: public cci::rt::Action_I {
 public:
-	Save(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession = NULL);
+	Save(MPI_Comm const * _parent_comm, int const _gid,
+			DataBuffer *_input, DataBuffer *_output,
+			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~Save();
 	virtual int run();
 	virtual const char* getClassName() { return "Save"; };

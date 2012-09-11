@@ -163,10 +163,6 @@ int Segment::run() {
 
 	int result = compute(input_size, input, output_size, output);
 	call_count++;
-	if (input != NULL) {
-		free(input);
-		input = NULL;
-	}
 
 
 	if (result == ::nscale::SCIOHistologicalEntities::SUCCESS) {
@@ -176,15 +172,27 @@ int Segment::run() {
 
 		if (bstat == DataBuffer::STOP) {
 			Debug::print("ERROR: %s can't push into buffer.  status STOP.  Should have caught this earlier. \n", getClassName());
+			this->inputBuf->push(data);
 			this->inputBuf->stop();
+			free(output);
 			return Communicator_I::DONE;
 		} else if (bstat == DataBuffer::FULL) {
-			Debug::print("ERROR: %s can't push into buffer.  status FULL.  Should have caught this earlier.\n", getClassName());
+			Debug::print("WARNING: %s can't push into buffer.  status FULL.  Should have caught this earlier.\n", getClassName());
+			this->inputBuf->push(data);
+			free(output);
 			return Communicator_I::WAIT;
 		} else {
+			if (input != NULL) {
+				free(input);
+				input = NULL;
+			}
 			return Communicator_I::READY;
 		}
 	} else {
+		if (input != NULL) {
+			free(input);
+			input = NULL;
+		}
 		return Communicator_I::READY;
 	}
 

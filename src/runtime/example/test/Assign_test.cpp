@@ -21,10 +21,9 @@ int main (int argc, char **argv){
 
 	std::vector<cci::rt::Communicator_I *> handlers;
 
-
-	cci::rt::Action_I *assign = new cci::rt::Assign(&comm_world, -1);
+	cci::rt::DataBuffer *buf = new cci::rt::DataBuffer(100);
+	cci::rt::Action_I *assign = new cci::rt::Assign(&comm_world, -1, NULL, buf, NULL);
 	handlers.push_back(assign);
-	cci::rt::Communicator_I::reference(assign, &handlers);
 
 	int j = 0;
 	int count = sizeof(int);
@@ -38,13 +37,14 @@ int main (int argc, char **argv){
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
 				printf("no output at iter j %d .  DONE or error state %d\n", j, result);
-				cci::rt::Communicator_I::dereference((*iter), &handlers);
+				delete (*iter);
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {
-				oresult = ((cci::rt::Action_I*)(*iter))->getOutput(count, data);
-				printf("output generated at iteration j %d: %d.  output result = %d\n", j, *((int*)data), oresult);
-				free(data);
-				data = NULL;
+				cci::rt::DataBuffer::DataType dstr;
+
+				oresult = ((cci::rt::Action_I*)(*iter))->getOutputBuffer()->pop(dstr);
+				printf("output generated at iteration j %d: %d.  output result = %d\n", j, *((int*)dstr.second), oresult);
+				free(dstr.second);
 				++iter;
 			} else {
 				printf("no output at iter j %d .  wait state %d\n", j, result);

@@ -46,7 +46,11 @@ ADIOSSave::ADIOSSave(MPI_Comm const * _parent_comm, int const _gid,
 		stages.push_back(i);
 	}
 
-	if (rank == 0) {
+	int minRank = 0;
+	MPI_Allreduce(&rank, &minRank, 1, MPI_INT, MPI_MIN, comm);
+	if (rank == minRank &&
+			!(strcmp(iocode.c_str(), "NULL") == 0 ||
+			strcmp(iocode.c_str(), "gap-NULL") == 0)) {
 		// create the directory
 		FileUtils futils;
 		futils.mkdirs(outDir);

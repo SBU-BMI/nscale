@@ -29,7 +29,8 @@ namespace rt {
  */
 class Communicator_I {
 public:
-	Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession = NULL);
+	Communicator_I(MPI_Comm const * _parent_comm, int const _gid,
+			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~Communicator_I();
 
 

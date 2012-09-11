@@ -28,7 +28,8 @@ public:
 	 * _gid:  the group id with which to split the parent comm
 	 * _roots:  the list of roots, specified as ranks in parent_comm.
 	 */
-	CommHandler_I(MPI_Comm const *_parent_comm, int const _gid, MPIDataBuffer *_buffer, Scheduler_I *_scheduler,
+	CommHandler_I(MPI_Comm const *_parent_comm, int const _gid,
+			MPIDataBuffer *_buffer, Scheduler_I *_scheduler,
 			cciutils::SCIOLogSession *_logsession = NULL);
 
 	virtual const char* getClassName() { return "CommHandler_I"; };
@@ -41,6 +42,7 @@ public:
 	static const int DATA_TAG;
 
 //	virtual int getStatus() { return status; };
+	MPIDataBuffer *getBuffer() {return buffer; };
 
 protected:
 	Scheduler_I *scheduler;

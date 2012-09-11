@@ -11,8 +11,10 @@
 namespace cci {
 namespace rt {
 
-Assign::Assign(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession)  :
-	Action_I(_parent_comm, _gid, _logsession) {
+Assign::Assign(MPI_Comm const * _parent_comm, int const _gid,
+		DataBuffer *_input, DataBuffer *_output,
+		cciutils::SCIOLogSession *_logsession)  :
+	Action_I(_parent_comm, _gid, _input, _output, _logsession) {
 }
 
 Assign::~Assign() {
@@ -26,32 +28,31 @@ int Assign::compute(int const &input_size , void * const &input,
 			int &output_size, void * &output) {
 
 	if (call_count >= 20) {
-		output_status = DONE;
+
 		output_size = 0;
 		output = NULL;
+
+		return Communicator_I::DONE;
 	} else {
 
 		output_size = sizeof(int);
 		output = malloc(output_size);
 //		printf("output var allocated at address %x\n", output);
 		memcpy(output, (void*)(&call_count), output_size);
+		return Communicator_I::READY;
 	}
-	return 1;
 }
 
 int Assign::run() {
 
-	if (!canAddOutput()) {
-		Debug::print("Assign is done... at call count %d \n", call_count);
-		return output_status;
-	}
+	if (outputBuf->isStopped()) {
+		Debug::print("%s STOPPED. call count %d \n", getClassName(), call_count);
+		return Communicator_I::DONE;
+	} else if (outputBuf->isFull()){
+		Debug::print("%s FULL. call count %d \n", getClassName(), call_count);
+		return Communicator_I::WAIT;
+	} // else has room, and not stopped, so can push.
 
-	call_count++;
-	//Debug::print("Assign run called %d\n", call_count);
-//	if (call_count > 100) {
-//		output_status = DONE;
-//		return DONE;
-//	}
 
 	int output_size = 0;
 	void *output = NULL;
@@ -64,18 +65,26 @@ int Assign::run() {
 //	memcpy(output,(void*)(&call_count), sizeof(int));
 //	int result = 1;
 
-	if (output != NULL)
-		Debug::print("iter %d output var passed back at address %x, value %d, size %d, result = %d\n", call_count, output, *((int*)output), output_size, result);
-	else
-		Debug::print("iter %d output var passed back at address %x, size %d, result = %d\n", call_count, output, output_size, result);
+	int bstat;
+	if (result == Communicator_I::READY) {
+		++call_count;
+		bstat = outputBuf->push(std::make_pair(output_size, output));
 
+		if (bstat == DataBuffer::STOP) {
+			Debug::print("ERROR: %s can't push into buffer.  status STOP.  Should have caught this earlier. \n", getClassName());
+			return Communicator_I::DONE;
+		} else if (bstat == DataBuffer::FULL) {
+			Debug::print("ERROR: %s can't push into buffer.  status FULL.  Should have caught this earlier.\n", getClassName());
+			return Communicator_I::WAIT;
+		} else {
+			return Communicator_I::READY;
+		}
 
-	if (result >= 0) {
-		result = addOutput(output_size, output);
-	} else result=WAIT;
+	} else if (result == Communicator_I::DONE) {
 
-//	if (output != NULL) free(output);
-
+		// no more, so done.
+		outputBuf->stop();
+	}
 	return result;
 }
 

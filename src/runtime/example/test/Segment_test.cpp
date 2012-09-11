@@ -21,15 +21,18 @@ int main (int argc, char **argv){
 
 	std::vector<cci::rt::Communicator_I *> handlers;
 
+	cci::rt::DataBuffer *rbuf = new cci::rt::DataBuffer(20);
+	cci::rt::DataBuffer *sbuf = new cci::rt::DataBuffer(10);
 
-	cci::rt::Action_I *seg = new cci::rt::Segment(&comm_world, -1);
+	cci::rt::Action_I *seg = new cci::rt::Segment(&comm_world, -1, rbuf, sbuf, NULL);
 	handlers.push_back(seg);
-	cci::rt::Communicator_I::reference(seg, &handlers);
 
 	int j = 0;
 	int count = sizeof(int);
 	void *data;
 	int *temp;
+	int stat;
+	cci::rt::DataBuffer::DataType dstr;
 
 	int result, oresult;
 	while (!handlers.empty() ) {
@@ -39,18 +42,32 @@ int main (int argc, char **argv){
 			data = malloc(sizeof(int));
 			temp = (int*) data;
 			temp[0] = j;
-			seg->addInput(count, data);
-			printf("input added at iteration j %d: %d\n", j, temp[0]);
+			dstr = std::make_pair(count, data);
+			stat = seg->getInputBuffer()->push(dstr);
+			if (stat == cci::rt::DataBuffer::STOP ||
+					stat == cci::rt::DataBuffer::FULL ||
+					stat == cci::rt::DataBuffer::BAD_DATA) {
+				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
+				free(data);
+			}
+			printf("input added at iteration j %d: %d. data ptr %p, pair ptr %p\n", j, temp[0], data, dstr.second);
 			//free(data);
 
 			data = malloc(sizeof(int));
 			temp = (int*) data;
 			temp[0] = j;
-			seg->addInput(count, data);
-			printf("input added at iteration j %d: %d\n", j, temp[0]);
+			dstr = std::make_pair(count, data);
+			stat = seg->getInputBuffer()->push(dstr);
+			printf("input added at iteration j %d: %d. data ptr %p, pair ptr %p\n", j, temp[0], data, dstr.second);
+			if (stat == cci::rt::DataBuffer::STOP ||
+					stat == cci::rt::DataBuffer::FULL ||
+					stat == cci::rt::DataBuffer::BAD_DATA) {
+				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
+				free(data);
+			}
 			//free(data);
 		} else if (j == 40)
-			seg->markInputDone();
+			seg->getInputBuffer()->stop();
 
 		// j < 10: ready and waiting
 		// j >= 10, < 30:  ready and input coming, fast
@@ -59,21 +76,23 @@ int main (int argc, char **argv){
 		// j > 40, <= 50:  done, has input still
 		// j >50:  done, no more input.
 
+		cci::rt::DataBuffer::DataType dstr;
 		for (std::vector<cci::rt::Communicator_I *>::iterator iter = handlers.begin();
 				iter != handlers.end(); ) {
 			printf("iterating\n");
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
+				printf("input buffer has stuff %d, output buffer has stuff %d\n", (((cci::rt::Action_I*)(*iter))->getInputBuffer()->isEmpty() ? 0 : 1), (((cci::rt::Action_I*)(*iter))->getOutputBuffer()->isEmpty() ? 0 : 1));
 				printf("no output at iter j %d .  DONE or error state %d\n", j, result);
-				cci::rt::Communicator_I::dereference(*iter, &handlers);
+				delete (*iter);
 
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {
-				oresult = ((cci::rt::Action_I*)(*iter))->getOutput(count, data);
-				printf("output generated at iteration j %d: %d.  output result = %d\n", j, *((int*)data), oresult);
-				if (data != NULL) {
-					free(data);
-					data = NULL;
+				oresult = ((cci::rt::Action_I*)(*iter))->getOutputBuffer()->pop(dstr);
+				printf("output generated at iteration j %d: %d.  output result = %d\n", j, *((int*)dstr.second), oresult);
+				if (dstr.second != NULL) {
+					printf("output deleted at %p\n", dstr.second);
+					free(dstr.second);
 				}
 				++iter;
 			} else {

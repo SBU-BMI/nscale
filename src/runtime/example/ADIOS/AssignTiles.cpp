@@ -124,9 +124,11 @@ int AssignTiles::run() {
 
 		if (bstat == DataBuffer::STOP) {
 			Debug::print("ERROR: %s can't push into buffer.  status STOP.  Should have caught this earlier. \n", getClassName());
+			free(output);
 			return Communicator_I::DONE;
 		} else if (bstat == DataBuffer::FULL) {
 			Debug::print("ERROR: %s can't push into buffer.  status FULL.  Should have caught this earlier.\n", getClassName());
+			free(output);
 			return Communicator_I::WAIT;
 		} else {
 			return Communicator_I::READY;

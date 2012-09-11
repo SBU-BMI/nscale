@@ -139,8 +139,15 @@ public:
 		return leaves.size();
 	}
 
-	bool isRoot() { return this->root; };
-	bool isLeaf() { return this->leaf; };
+	// MPI_ANY_SOURCE means self.
+	bool isRoot(int rank = MPI_ANY_SOURCE) {
+		if (rank == MPI_ANY_SOURCE) return this->root;
+		else return (std::find(roots.begin(), roots.end(), rank) != roots.end());
+	};
+	bool isLeaf(int rank = MPI_ANY_SOURCE) {
+		if (rank == MPI_ANY_SOURCE) return this->leaf;
+		else return (std::find(leaves.begin(), leaves.end(), rank) != leaves.end());
+	};
 
 	std::vector<int> &getRoots() { return roots; };
 	std::vector<int> &getLeaves() { return leaves; };

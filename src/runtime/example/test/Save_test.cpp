@@ -16,7 +16,7 @@ int main (int argc, char **argv){
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &threading_provided);
 
 	MPI_Comm comm_world;
-	comm_world = MPI_COMM_NULL;
+	//comm_world = MPI_COMM_NULL;
 	comm_world = MPI_COMM_WORLD;
 
 	int size=0, rank=0;
@@ -51,14 +51,16 @@ int main (int argc, char **argv){
 		}
 	}
 
-	cci::rt::Action_I *save = new cci::rt::Save(&comm_world, g2);
+	cci::rt::DataBuffer *rbuf = new cci::rt::DataBuffer(10);
+	cci::rt::Action_I *save = new cci::rt::Save(&comm_world, g2, rbuf, NULL, NULL);
 	handlers.push_back(save);
-	cci::rt::Communicator_I::reference(save, &handlers);
 
 	int j = 0;
 	int count = sizeof(int);
 	void *data = NULL;
 	int *temp = NULL;
+	cci::rt::DataBuffer::DataType dstr;
+	int stat;
 
 	int result = cci::rt::Communicator_I::READY, oresult = cci::rt::Communicator_I::READY;
 	while (!handlers.empty() ) {
@@ -68,18 +70,32 @@ int main (int argc, char **argv){
 			data = malloc(count);
 			temp = (int*) data;
 			temp[0] = j;
-			save->addInput(count, data);
-			printf("input added at iteration j %d: %d\n", j, temp[0]);
+			dstr = std::make_pair(count, data);
+			stat = save->getInputBuffer()->push(dstr);
+			if (stat == cci::rt::DataBuffer::STOP ||
+					stat == cci::rt::DataBuffer::FULL ||
+					stat == cci::rt::DataBuffer::BAD_DATA) {
+				printf("input added at iteration j %d: %d. data ptr %p, pair ptr %p\n", j, temp[0], data, dstr.second);
+				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
+				if (data != NULL) free(data);
+			}
 //			free(data);
 
 			data = malloc(count);
 			temp = (int*) data;
 			temp[0] = j * 2;
-			save->addInput(count, data);
-			printf("input added at iteration j %d: %d\n", j, temp[0]);
+			dstr = std::make_pair(count, data);
+			stat = save->getInputBuffer()->push(dstr);
+			if (stat == cci::rt::DataBuffer::STOP ||
+					stat == cci::rt::DataBuffer::FULL ||
+					stat == cci::rt::DataBuffer::BAD_DATA) {
+				printf("input added at iteration j %d: %d. data ptr %p, pair ptr %p\n", j, temp[0], data, dstr.second);
+				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
+				if (data != NULL) free(data);
+			}
 //			free(data);
 		} else if (j == 40)
-			save->markInputDone();
+			save->getInputBuffer()->stop();
 
 		// j < 10: ready and waiting
 		// j >= 10, < 30:  ready and input coming, fast
@@ -94,7 +110,7 @@ int main (int argc, char **argv){
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
 				printf("no output at iter j %d .  DONE or error state %d\n", j, result);
-				cci::rt::Communicator_I::dereference(*iter, &handlers);
+				delete (*iter);
 
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {
