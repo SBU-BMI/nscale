@@ -103,7 +103,7 @@ int AssignTiles::run() {
 		Debug::print("%s STOPPED. call count %d \n", getClassName(), call_count);
 		return Communicator_I::DONE;
 	} else if (outputBuf->isFull()){
-		Debug::print("%s FULL. call count %d \n", getClassName(), call_count);
+		//Debug::print("%s FULL. call count %d \n", getClassName(), call_count);
 		return Communicator_I::WAIT;
 	} // else has room, and not stopped, so can push.
 

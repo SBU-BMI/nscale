@@ -104,6 +104,7 @@ int Segment::compute(int const &input_size , void * const &input,
 	status = seg->segmentNuclei(im, mask, compcount, bbox, logsession, NULL);
 	delete seg;
 	//Debug::print("%s complete for %s\n", getClassName(), fn.c_str());
+	printf(".");
 //	}
 
 	t2 = ::cciutils::event::timestampInUS();

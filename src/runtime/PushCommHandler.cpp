@@ -127,7 +127,7 @@ int PushCommHandler::run() {
 						MPI_Recv(data, count, MPI_CHAR, node_id, tag, comm, &mstatus);
 
 						if (count > 0) {
-							Debug::print("%s received some data.\n", getClassName());
+//							Debug::print("%s received some data.\n", getClassName());
 							int stat = buffer->push(std::make_pair(count, data));
 							++send_count;
 							if (stat != DataBuffer::READY) {
@@ -157,7 +157,7 @@ int PushCommHandler::run() {
 
 	} else {
 		// get all pending messages
-		Debug::print("%s updating manager status\n", getClassName());
+//		Debug::print("%s updating manager status\n", getClassName());
 		// update with all received control_tag message received from roots.
 		MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, comm, &hasMessage, &mstatus);
 		while (hasMessage) {
@@ -212,7 +212,7 @@ int PushCommHandler::run() {
 			node_id = scheduler->getRootFromLeaf(rank);
 
 			// manager READY.  now set up the send.
-			Debug::print("%s sending to %d\n", getClassName(), node_id);
+//			Debug::print("%s sending to %d\n", getClassName(), node_id);
 
 
 			DataBuffer::DataType dstruct;

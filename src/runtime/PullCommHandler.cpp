@@ -20,7 +20,7 @@ PullCommHandler::~PullCommHandler() {
 	if (isListener()) {
 		Debug::print("%s destructor called.  total of %d data messages sent.\n", getClassName(), send_count);
 	} else {
-		Debug::print("%s destructor called.\n", getClassName());
+//		Debug::print("%s destructor called.\n", getClassName());
 	}
 
 }
@@ -104,9 +104,9 @@ int PullCommHandler::run() {
 		if (hasMessage) {
 			node_id = mstatus.MPI_SOURCE;
 
-			Debug::print("%s manager receiving request from %d\n", getClassName(), node_id);
+//			Debug::print("%s manager receiving request from %d\n", getClassName(), node_id);
 			MPI_Recv(&node_status, 1, MPI_INT, node_id, Communicator_I::READY, comm, &mstatus);
-			Debug::print("%s manager received request from %d\n", getClassName(), node_id);
+//			Debug::print("%s manager received request from %d\n", getClassName(), node_id);
 
 			// if worker is already done.  return after receiving the message
 			if (!scheduler->isLeaf(node_id)) return status;
@@ -123,7 +123,7 @@ int PullCommHandler::run() {
 					status = Communicator_I::DONE;
 					buffer->stop();
 				}
-				Debug::print("%s manager notified worker %d it's DONE at time %lld.\n", getClassName(), node_id, cciutils::event::timestampInUS());
+//				Debug::print("%s manager notified worker %d it's DONE at time %lld.\n", getClassName(), node_id, cciutils::event::timestampInUS());
 
 				t2 = cciutils::event::timestampInUS();
 				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
@@ -142,9 +142,9 @@ int PullCommHandler::run() {
 
 				// status is ready, send data.
 				++send_count;
-				Debug::print("%s manager sending data to %d\n", getClassName(), node_id);
+	//			Debug::print("%s manager sending data to %d\n", getClassName(), node_id);
 				MPI_Send(dstruct.second, dstruct.first, MPI_CHAR, node_id, Communicator_I::READY, comm);
-				Debug::print("%s manager sent data to %d\n", getClassName(), node_id);
+	//			Debug::print("%s manager sent data to %d\n", getClassName(), node_id);
 
 				if (dstruct.first > 0 && dstruct.second != NULL) {
 					free(dstruct.second);
@@ -175,7 +175,7 @@ int PullCommHandler::run() {
 			// notify all the roots
 			std::vector<int> roots = scheduler->getRoots();
 
-			Debug::print("%s worker buffer DONE\n", getClassName());
+//			Debug::print("%s worker buffer DONE\n", getClassName());
 			status = Communicator_I::DONE;
 			for (std::vector<int>::iterator iter=roots.begin();
 					iter != roots.end(); ++iter) {
@@ -200,12 +200,12 @@ int PullCommHandler::run() {
 
 			// double check to make sure that buffer is not full.
 			int manager_status;
-			Debug::print("%s worker sending request to %d with status %d\n", getClassName(), node_id, status);
+//			Debug::print("%s worker sending request to %d with status %d\n", getClassName(), node_id, status);
 			MPI_Send(&status, 1, MPI_INT, node_id, Communicator_I::READY, comm);   // send the current status
-			Debug::print("%s worker sent request to %d with status %d\n", getClassName(), node_id, status);
+//			Debug::print("%s worker sent request to %d with status %d\n", getClassName(), node_id, status);
 
 			// need to get data size.  use Probe.
-			Debug::print("%s worker getting data size from probe to %d\n", getClassName(), node_id);
+//			Debug::print("%s worker getting data size from probe to %d\n", getClassName(), node_id);
 			MPI_Probe(node_id, MPI_ANY_TAG, comm, &mstatus);
 			tag = mstatus.MPI_TAG;
 
@@ -223,15 +223,15 @@ int PullCommHandler::run() {
 
 			} else {  // tag == READY
 				MPI_Get_count(&mstatus, MPI_CHAR, &count);
-				Debug::print("%s worker got data size from probe to %d\n", getClassName(), node_id);
+//				Debug::print("%s worker got data size from probe to %d\n", getClassName(), node_id);
 
 				if (count > 0) {
 					data = malloc(count);
 				} else data = NULL;
 
-				Debug::print("%s worker receiving data from %d\n", getClassName(), node_id);
+//				Debug::print("%s worker receiving data from %d\n", getClassName(), node_id);
 				MPI_Recv(data, count, MPI_CHAR, node_id, Communicator_I::READY, comm, &mstatus);
-				Debug::print("%s worker received data from %d\n", getClassName(), node_id);
+//				Debug::print("%s worker received data from %d\n", getClassName(), node_id);
 
 				if (count > 0) {
 					int stat = buffer->push(std::make_pair(count, data));
