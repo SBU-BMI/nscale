@@ -71,7 +71,7 @@ int main (int argc, char **argv){
 				iter != handlers.end(); ) {
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
-				cci::rt::Debug::print("%s no output at iter j %d .  DONE or error state %d\n", (*iter)->getClassName(), j, result);
+				cci::rt::Debug::print("%s no output at iter j %d .  DONE %d\n", (*iter)->getClassName(), j, result);
 				delete (*iter);
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {

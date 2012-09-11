@@ -13,9 +13,6 @@ namespace cci {
 namespace rt {
 
 
-const int CommHandler_I::CONTROL_TAG = 0;
-const int CommHandler_I::DATA_TAG = 1;
-
 
 CommHandler_I::CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, MPIDataBuffer *_buffer, Scheduler_I * _scheduler,
 		cciutils::SCIOLogSession *_logsession) :

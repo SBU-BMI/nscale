@@ -38,9 +38,6 @@ public:
 	virtual bool isListener() { return scheduler->isRoot(); };
 //	virtual bool isReady() { return buffer != NULL && !buffer->isStopped(); };
 
-	static const int CONTROL_TAG;
-	static const int DATA_TAG;
-
 //	virtual int getStatus() { return status; };
 	MPIDataBuffer *getBuffer() {return buffer; };
 

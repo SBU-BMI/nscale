@@ -74,7 +74,7 @@ int PushCommHandler::run() {
 			for (std::vector<int>::iterator iter=leaves.begin();
 					iter != leaves.end(); ++iter) {
 //				MPI_Isend(&status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
-				MPI_Send(&status, 1, MPI_INT, *iter, CONTROL_TAG, comm);
+				MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
 			}
 			// and say done.
 
@@ -95,47 +95,36 @@ int PushCommHandler::run() {
 			if (hasMessage) {
 				node_id = mstatus.MPI_SOURCE;
 				tag = mstatus.MPI_TAG;
-				MPI_Get_count(&mstatus, MPI_CHAR, &count);
 
-				if (tag == CONTROL_TAG) {
-					data = &node_status;
-					type = MPI_INT;
+				if (tag == Communicator_I::DONE) {
 
 					// status update.  receive it
-					MPI_Recv(data, count, type, node_id, tag, comm, &mstatus);
+					MPI_Recv(&node_status, 1, MPI_INT, node_id, Communicator_I::DONE, comm, &mstatus);
 
 					// already done
 					if (!scheduler->isLeaf(node_id)) {
 						return status;
 					}
 
-					if (node_status == Communicator_I::DONE) {
-
-						if (scheduler->removeLeaf(node_id) == 0)  {
-							status = Communicator_I::DONE;
-							// if manager can't accept, then action can stop
-							buffer->stop();
-							Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
-						}
-
-						t2 = cciutils::event::timestampInUS();
-		//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
-
-
-					} else {
-						// some other status code
-						Debug::print("ERROR: %s worker sent unrecognized status %d to manager\n", getClassName(), node_status);
+					if (scheduler->removeLeaf(node_id) == 0)  {
+						status = Communicator_I::DONE;
+						// if manager can't accept, then action can stop
+						buffer->stop();
+						Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
 					}
 
-				} else {
+					t2 = cciutils::event::timestampInUS();
+	//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
+				} else {  // data
+					MPI_Get_count(&mstatus, MPI_CHAR, &count);
 					//data.  check to see if we can receive it (empty input, or has room.)
 					if (count == 0 || buffer->canPush()) {
 						data = malloc(count);
 						memset(data, 0, count);
-						type = MPI_CHAR;
 
 						// status update.  receive it
-						MPI_Recv(data, count, type, node_id, tag, comm, &mstatus);
+						MPI_Recv(data, count, MPI_CHAR, node_id, tag, comm, &mstatus);
 
 						if (count > 0) {
 							Debug::print("%s received some data.\n", getClassName());
@@ -170,31 +159,26 @@ int PushCommHandler::run() {
 		// get all pending messages
 		Debug::print("%s updating manager status\n", getClassName());
 		// update with all received control_tag message received from roots.
-		MPI_Iprobe(MPI_ANY_SOURCE, CONTROL_TAG, comm, &hasMessage, &mstatus);
+		MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, comm, &hasMessage, &mstatus);
 		while (hasMessage) {
 			node_id = mstatus.MPI_SOURCE;
 
-			MPI_Recv(&node_status, 1, MPI_INT, node_id, CONTROL_TAG, comm, &mstatus);
+			MPI_Recv(&node_status, 1, MPI_INT, node_id, Communicator_I::DONE, comm, &mstatus);
 
 			// status update, "DONE".  receive it and terminate.
-			if (node_status == Communicator_I::DONE) {   // manager is done
 
-				if (scheduler->removeRoot(node_id) == 0)  {
-					status = Communicator_I::DONE;
-					// if manager can't accept, then action can stop
-					buffer->stop();
-					Debug::print("%s all managers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
-				}
-
-				t2 = cciutils::event::timestampInUS();
-//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
-			} else {
-				// some other status code
-				Debug::print("ERROR: %s manager %d sent unrecognized status %d to worker %d\n", getClassName(), node_id, node_status, rank);
+			if (scheduler->removeRoot(node_id) == 0)  {
+				status = Communicator_I::DONE;
+				// if manager can't accept, then action can stop
+				buffer->stop();
+				Debug::print("%s all managers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
 			}
 
+			t2 = cciutils::event::timestampInUS();
+//				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
+
 			// check to see if there are any done messages from that node.
-			MPI_Iprobe(MPI_ANY_SOURCE, CONTROL_TAG, comm, &hasMessage, &mstatus);
+			MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, comm, &hasMessage, &mstatus);
 		}
 		// now check status.  if all managers are done, then worker is done.
 		if (status == Communicator_I::DONE) return status;  // empty so nothing to be done.
@@ -212,7 +196,7 @@ int PushCommHandler::run() {
 					iter != roots.end(); ++iter) {
 
 //				MPI_Isend(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
-				MPI_Send(&status, 1, MPI_INT, *iter, CONTROL_TAG, comm);
+				MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
 			}
 			// TODO do waitall here.
 
@@ -235,7 +219,7 @@ int PushCommHandler::run() {
 			int stat = buffer->pop(dstruct);
 
 			if (stat != DataBuffer::EMPTY && dstruct.first > 0 && dstruct.second != NULL) {
-				MPI_Send(dstruct.second, dstruct.first, MPI_CHAR, node_id, DATA_TAG, comm);
+				MPI_Send(dstruct.second, dstruct.first, MPI_CHAR, node_id, Communicator_I::READY, comm);
 				free(dstruct.second);
 			}
 
