@@ -1,0 +1,53 @@
+#!/bin/sh
+#PBS -N TCGA.@RUN_NAME@
+#PBS -j oe
+#PBS -A UT-NTNL0111
+#PBS -m abe
+#PBS -M @JOB_STATUS_EMAIL@
+
+### Unused PBS options ###
+## If left commented, must be specified when the job is submitted:
+## 'qsub -l walltime=hh:mm:ss,nodes=12:ppn=4'
+##
+#PBS -l walltime=@WALL_TIME@
+##PBS -l nodes=12:ppn=4:gpus=3
+#PBS -l nodes=@NODE_COUNT@:ppn=12
+
+### End of PBS options ###
+
+source /nics/c/home/tcpan/keeneland_env.sh
+
+echo "nodefile="
+cat $PBS_NODEFILE
+echo "=end nodefile"
+
+
+BINDIR=/nics/c/home/tcpan/builds/nscale-keeneland-cpu
+DATADIR=/lustre/medusa/tcpan/bcrTCGA
+# old, no attention to OSTS.  DATADIR=/lustre/medusa/tcpan/bcrTCGA
+OUTDIR=/lustre/medusa/tcpan/output
+
+cd $OUTDIR
+
+date
+echo "==== separate io ===="
+echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0"
+mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0
+date
+
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@
+
+DATADIR_OST=/lustre/medusa/tcpan/bcrTCGA_osts0_14
+
+cd $OUTDIR
+
+date
+echo "==== separate io OSTS ===="
+echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR_OST} ${OUTDIR}/TCGA.@RUN_NAME@.ost @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0"
+mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR_OST} ${OUTDIR}/TCGA.@RUN_NAME@.ost @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0
+date
+
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.ost
+
+
+exit 0
