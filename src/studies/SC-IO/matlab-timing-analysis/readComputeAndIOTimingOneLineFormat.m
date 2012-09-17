@@ -18,6 +18,7 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
     fclose(fid);
     toc
     
+    numlines = size(r, 1);
     
     % now we can also prealloc proc_events.  - HUGE speed up.
     tic;
@@ -25,7 +26,12 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
     % iterate through the lines
     linenum = 1;
     outlinenum = 1;
-    tline = r{linenum};
+    % skip header
+    if (linenum < numlines)
+        tline = r{linenum};
+    else
+        tline = '';
+    end
     if ischar(tline) && (strcmp(tline, 'v2.1') == 1)
         proc_events = cell(size(r, 1) - 1, 8);
    
@@ -33,7 +39,11 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
         % processing version 2.1 (has annotation output, which is just the
         % size of the data being outputted. also has group information. ignore for now.
         linenum = linenum + 1;
-        tline = r{linenum};  % skip header
+        if (linenum < numlines)
+            tline = r{linenum}; 
+        else
+            tline = '';
+        end
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %*d %*s %s', 1, 'delimiter', ',');
             if (isempty(find(strcmp(temp1{3}, proc_type), 1)) || ~isempty(find(strcmp('*', proc_type), 1))) 
@@ -51,7 +61,11 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
             end
             clear temp1;
             linenum= linenum+1;
-            tline = r{linenum};
+            if (linenum < numlines)
+                tline = r{linenum};
+            else
+                tline = '';
+            end
         end
     elseif ischar(tline) && (strcmp(tline, 'v2') == 1)
         proc_events = cell(size(r, 1) - 1, 8);
@@ -59,7 +73,11 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
         % processing version 2 (has annotation output, which is just the
         % size of the data being outputted.
         linenum = linenum + 1;
-        tline = r{linenum};  % skip header
+        if (linenum < numlines)
+            tline = r{linenum};  
+        else
+            tline = '';
+        end
         while ischar(tline) && ~isempty(strfind(tline, 'pid'))
             [temp1 pos] = textscan(tline, '%*s %d %*s %s %*s %s', 1, 'delimiter', ',');
             if isempty(find(strcmp(temp1{3}, proc_type), 1)) || ~isempty(find(strcmp('*', proc_type), 1))
@@ -77,7 +95,11 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
             end
             clear temp1;
             linenum = linenum + 1;
-            tline = r{linenum};  % skip header
+            if (linenum < numlines)
+                tline = r{linenum};
+            else
+                tline = '';
+            end
         end        
     else
         proc_events = cell(size(r, 1), 7);
@@ -99,7 +121,11 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
             end
             clear temp1;
             linenum = linenum + 1;
-            tline = r{linenum};  % skip header
+            if (linenum < numlines)
+                tline = r{linenum};
+            else
+                tline = '';
+            end
         end
     end
     clear tline;
