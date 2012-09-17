@@ -1,0 +1,49 @@
+#!/bin/bash
+
+script_dir=`dirname $0`
+system="jaguar"
+
+proc_counts="@SUB_NODE_COUNTS@"
+pcs="${proc_counts//;/ }"
+transports="@SUB_ADIOS_TRANSPORTS@"
+trans="${transports//;/ }"
+
+PREV=""
+NEXT=""
+
+for pc in ${pcs}
+do
+	fc=$((${pc}*@TILE_COUNT_PER_PROC@))
+## baseline.  us PROC_COUNTS because we'd like to sort the submission order.
+#	for f in `ls ${script_dir}/baseline.${system}.p${pc}.*.sh`
+#	do
+#		echo "qsub -W depend=after:$PREV ${f}"
+#		NEXT=`qsub -W depend=after:$PREV ${f}`
+#		echo $NEXT
+#		PREV=$NEXT
+#	done
+
+#adios with coloc io nodes
+for tran in ${trans}
+do
+	for f in `ls ${script_dir}/coloc.${system}.p${pc}.f${fc}.${tran}.*.sh`
+	do
+		echo "qsub -W depend=after:$PREV ${f}"
+		NEXT=`qsub -W depend=after:$PREV ${f}`
+		echo $NEXT
+		PREV=$NEXT
+	done
+done
+##adios collocated io nodes
+#	for f in `ls ${script_dir}/co-loc.${system}.p${pc}.*.sh`
+#	do
+#		echo "qsub -W depend=after:$PREV ${f}"
+#		NEXT=`qsub -W depend=after:$PREV ${f}`
+#		echo $NEXT
+#		PREV=$NEXT
+#	done
+done
+
+
+
+

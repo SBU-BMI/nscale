@@ -1,0 +1,52 @@
+#!/bin/bash
+
+script_dir=`dirname $0`
+system="keeneland"
+
+pcs="100"
+transports="@CAPABILITY_ADIOS_TRANSPORTS@"
+trans="${transports//;/ }"
+
+
+PREV=""
+NEXT=""
+
+for pc in ${pcs}
+do
+	fc=$((${pc}*@TILE_COUNT_PER_PROC@*12))
+## baseline.  us PROC_COUNTS because we'd like to sort the submission order.
+	for f in `ls ${script_dir}/baseline.${system}.n${pc}.f${fc}.sh`
+	do
+		echo "qsub -W depend=after:$PREV ${f}"
+		NEXT=`qsub -W depend=after:$PREV ${f}`
+		echo $NEXT
+		PREV=$NEXT
+	done
+
+#adios with separate io nodes
+for tran in ${trans}
+do
+	for f in `ls ${script_dir}/separate.${system}.n${pc}.f${fc}.${tran}.*.sh`
+	do
+		echo "qsub -W depend=after:$PREV ${f}"
+		NEXT=`qsub -W depend=after:$PREV ${f}`
+		echo $NEXT
+		PREV=$NEXT
+	done
+done
+##adios collocated io nodes
+for tran in ${trans}
+do
+	for f in `ls ${script_dir}/coloc.${system}.n${pc}.f${fc}.${tran}.*.sh`
+	do
+		echo "qsub -W depend=after:$PREV ${f}"
+		NEXT=`qsub -W depend=after:$PREV ${f}`
+		echo $NEXT
+		PREV=$NEXT
+	done
+done
+done
+
+
+
+

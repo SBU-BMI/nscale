@@ -21,20 +21,10 @@ cd $OUTDIR
 
 
 date
-aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is1-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu 1 1 0
+echo "aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu @ADIOS_TRANSPORT_GROUPSIZE@ 1 0"
+aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu @ADIOS_TRANSPORT_GROUPSIZE@ 1 0
 date
-rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.1-1
-date
-aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is16-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu 16 1 0
-date
-rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.16-1
-date
-aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio-adios.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is@PROC_COUNT@-1 @ADIOS_TRANSPORT@ @TILE_COUNT@ @BUFFER_SIZE@ cpu @PROC_COUNT@ 1 0
-date
-rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.@PROC_COUNT@-1
-date
-
-rm ${OUTDIR}/TCGA.@RUN_NAME@.*.bp
+rm -rf ${OUTDIR}/TCGA.@RUN_NAME@
 
 
 exit 0

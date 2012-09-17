@@ -1,7 +1,7 @@
 #!/bin/bash
 
 script_dir=`dirname $0`
-system="keeneland"
+system="jaguar"
 
 node_counts="@SUB_NODE_COUNTS@"
 ncs="${node_counts//;/ }"
@@ -11,9 +11,9 @@ NEXT=""
 
 for pc in ${ncs}
 do
-	fc=$((${pc}*@TILE_COUNT_PER_PROC@*12))
+	fc=$((${pc}*@TILE_COUNT_PER_PROC@))
 # baseline.  us PROC_COUNTS because we'd like to sort the submission order.
-        for f in `ls ${script_dir}/baseline.${system}.n${pc}.f${fc}.sh`
+        for f in `ls ${script_dir}/baseline.${system}.p${pc}.f${fc}.sh`
         do
                 echo "qsub -W depend=after:$PREV ${f}"
                 NEXT=`qsub -W depend=after:$PREV ${f}`

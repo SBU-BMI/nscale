@@ -20,10 +20,10 @@ OUTDIR=/lustre/widow2/proj/csc025/pantc
 cd $OUTDIR
 
 date
+echo "aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ 0-200 cpu"
 aprun -S 8 -n @PROC_COUNT@ ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ 0-200 cpu
 date
 
 rm -rf ${OUTDIR}/TCGA.@RUN_NAME@
-rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.*.bp
 
 exit 0
