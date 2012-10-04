@@ -6,10 +6,7 @@ system="jaguar"
 proc_counts="@PROC_COUNTS@"
 pcs="${proc_counts//;/ }"
 
-echo "qsub ${script_dir}/warmup.sh"
-PREV=`qsub ${script_dir}/warmup.sh`
-echo $PREV
-
+PREV=$1
 NEXT=""
 
 for pc in ${pcs}

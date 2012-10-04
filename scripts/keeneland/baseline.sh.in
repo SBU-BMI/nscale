@@ -40,18 +40,18 @@ rm -rf ${OUTDIR}/TCGA.@RUN_NAME@
 rm ${OUTDIR}/TCGA.@RUN_NAME@.*.bp
 
 
-DATADIR_OST=/lustre/medusa/tcpan/bcrTCGA_osts0_14
-OUTDIR_OST=/lustre/medusa/tcpan/output/baseline
+#DATADIR_OST=/lustre/medusa/tcpan/bcrTCGA_osts0_14
+#OUTDIR_OST=/lustre/medusa/tcpan/output/baseline
 
-cd ${OUTDIR_OST}
+#cd ${OUTDIR_OST}
 
-date
-echo "==== baseline sep osts==="
-echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR_OST} ${OUTDIR_OST} @TILE_COUNT@ 0-200 cpu"
-mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR_OST} ${OUTDIR_OST} @TILE_COUNT@ 0-200 cpu
-date
+#date
+#echo "==== baseline sep osts==="
+#echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR_OST} ${OUTDIR_OST} @TILE_COUNT@ 0-200 cpu"
+#mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/nu-segment-scio.exe ${DATADIR_OST} ${OUTDIR_OST} @TILE_COUNT@ 0-200 cpu
+#date
 
-mv ${OUTDIR_OST}.csv ${OUTDIR_OST}/../TCGA.@RUN_NAME@.ost.csv
+#mv ${OUTDIR_OST}.csv ${OUTDIR_OST}/../TCGA.@RUN_NAME@.ost.csv
 
 exit 0
 # eof

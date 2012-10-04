@@ -9,7 +9,7 @@ transports="@SUB_ADIOS_TRANSPORTS@"
 trans="${transports//;/ }"
 
 
-PREV=""
+PREV=$1
 NEXT=""
 
 for pc in ${pcs}

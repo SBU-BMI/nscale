@@ -6,7 +6,7 @@ system="keeneland"
 node_counts="@SUB_NODE_COUNTS@"
 ncs="${node_counts//;/ }"
 
-PREV=""
+PREV=$1
 NEXT=""
 
 for pc in ${ncs}
