@@ -21,10 +21,15 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     % filter "in" the workers only.
     % also calculate the max timestamp.
     mxx = zeros(size(proc_events,1), 1);
+    mnx = zeros(size(proc_events,1), 1);
     for p = 1:size(proc_events, 1) 
-        mxx(p) = max(proc_events{p, 7});
+        mxx(p) = max(proc_events{p, 7}, [], 1);
+        mnx(p) = min(proc_events{p, 6}, [], 1);
     end
-    mx = max(mxx);  % maximum end timestamp
+    mx = max(mxx, [], 1);  % maximum end timestamp
+    mn = min(mnx, [], 1)-1;  % min end timestamp
+
+    fprintf(fid, 'start time, %f, end time, %f\n', mn, mx);
     
     if strcmp(proc_type, '*')
         events = proc_events;
@@ -36,7 +41,7 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     
     % now check the sampling interval
     if (isempty(sample_interval))
-       sample_interval = min(mx / 50000, 1000000);
+       sample_interval = min((mx- mn) / 50000, 1000000);
     end
     if (sample_interval > 1000000)
         printf(2, 'ERROR: sample interval should not be greater than 1000000 microseconds\n');
@@ -65,7 +70,7 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     scaling = 1 / double(1024*1024*1024); % GB/s
     hasDataSizes = size(events, 2) > 7;
     kernel = ones(round(1000000 / sample_interval), 1, 'double');
-    cols = ceil(double(mx) / double(sample_interval));
+    cols = ceil(double(mx - mn) / double(sample_interval))+1;
     
     % application specific computation.
     num_tiles = zeros(p, 1);
@@ -112,8 +117,8 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
             ndata_sizes{i} = sparse(cols, num_ev_names);
 
             names = events{i, 4};
-            startt = double(events{i, 6});
-            endt = double(events{i, 7});
+            startt = double(events{i, 6} - mn) ;
+            endt = double(events{i, 7} - mn) ;
             datasize = double(events{i, 8});
 
             [~, idx] = ismember(names, event_names);
@@ -207,7 +212,7 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
         resampleDataByName2;
     end
         
-    computeTimeStats(fid, ntotals, ndurations, mx, p, event_names, hasDataSizes, ndata_time, kernel, scaling, ndata_proc);
+    computeTimeStats(fid, ntotals, ndurations, mx-mn, p, event_names, hasDataSizes, ndata_time, kernel, scaling, ndata_proc);
     clear ndata_time;
     clear num_ev_names;
     clear events;
@@ -248,7 +253,7 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     [~, locb] = ismember(unique_types, allEventTypes);
     typenames = allTypeNames(locb);
     clear locb;
-    computeTimeStats(fid, ttotals, tdurations, mx, p, typenames, hasDataSizes, tdata_time, kernel, scaling, tdata_proc);
+    computeTimeStats(fid, ttotals, tdurations, mx-mn, p, typenames, hasDataSizes, tdata_time, kernel, scaling, tdata_proc);
 
     clear tdata_time;
     clear tdata_proc;
@@ -347,7 +352,7 @@ function summarize( proc_events, sample_interval, fid, proc_type, allEventTypes,
     clear time_data_idx;
     clear num_comp_events;
     
-    computeTimeStats(fid, ctotals, cdurations, mx, p, labels, hasDataSizes, cdata_time, kernel, scaling, cdata_proc);
+    computeTimeStats(fid, ctotals, cdurations, mx-mn, p, labels, hasDataSizes, cdata_time, kernel, scaling, cdata_proc);
 
     clear cdata_time;
     clear cdata_proc;
@@ -501,7 +506,7 @@ end
 
 
 function [ ndata_time ndata_proc ndata_sizes] = ...
-    resampleDataByName(events, p, cols, sample_interval, event_names)
+    resampleDataByName(events, p, cols, sample_interval, event_names, mn)
     % p is number of cells (procs)
     % mx is maximum timestamp overall;
 
@@ -518,8 +523,8 @@ function [ ndata_time ndata_proc ndata_sizes] = ...
         ndata_sizes{i} = sparse(cols, num_ev_names);
         
         names = events{i, 4};
-        startt = double(events{i, 6});
-        endt = double(events{i, 7});
+        startt = double(events{i, 6} - mn) ;
+        endt = double(events{i, 7} - mn) ;
         datasize = double(events{i, 8});
         
         [~, idx] = ismember(names, event_names);

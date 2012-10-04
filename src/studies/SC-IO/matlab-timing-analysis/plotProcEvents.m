@@ -1,4 +1,4 @@
-function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname_prefix, allEventTypes, colorMap)
+function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname_prefix, allEventTypes, colorMap)
 %plotTiming draws an image that represents the different activities in MPI
 %   The function first parses the data and generate a normalized event map
 %   with dimension p x ((max t - min t)/pixelWidth) x eventTypes.  This has
@@ -31,13 +31,16 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
 
     % get global min and max and the unique events
     mx = 0;
+    mn = inf;
     for i = 1:p 
-	   mx = max([mx, max(proc_events{i, 7})]);
+	   mx = max([mx, max(proc_events{i, 7}, [], 1)], [], 2);
+       mn = min([mn, min(proc_events{i, 6}, [], 1)], [], 2);
     end
+    mn = mn - 1;  % do min as just out of range.
 
     % now check the sampling interval
     if (isempty(pixelWidth))
-       pixelWidth = min(mx / 50000, 1000000);
+       pixelWidth = min((mx-mn ) / 50000, 1000000);
     end
     if (pixelWidth > 1000000)
         printf(2, 'ERROR: sample interval should not be greater than 1000000 microseconds\n');
@@ -51,7 +54,7 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     
 
     % get the number of pixels
-    cols = ceil(double(mx) / pixelWidth);
+    cols = ceil(double(mx-mn) / pixelWidth) +1;
     clear mx;
     
     
@@ -77,8 +80,8 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
             norm_events{i} = sparse(cols, num_ev_types);
 
             types = proc_events{i, 5};
-            startt = double(proc_events{i, 6});
-            endt = double(proc_events{i, 7});
+            startt = double(proc_events{i, 6} - mn) ;
+            endt = double(proc_events{i, 7} - mn) ;
 
             [~, idx] = ismember(types, event_types);
             clear types;
@@ -144,6 +147,8 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
     
     %[norm_events sum_events] = resampleTimeByType(proc_events, p, cols, pixelWidth, allEventTypes);
     resampleTimeByType2;
+    
+    
     
     %% RENDER
     % allocate the image
@@ -273,7 +278,6 @@ function [ img norm_events ] = plotProcEvents( proc_events, barWidth, pixelWidth
        
     clear p;
     clear map;
-    clear sum_events;
 
 end
 
@@ -288,9 +292,9 @@ end
 
 
 function [ sampled_events sum_events ] = ...
-    resampleTimeByType(events, p, cols, sample_interval, event_types)
+    resampleTimeByType(events, p, cols, sample_interval, event_types, mn)
     % p is number of cells (procs)
-    % mx is maximum timestamp overall;
+    % mn is min timestamp, -1 timestamp overall;
 
     % get the number of pixels
     num_ev_types = length(event_types);
@@ -304,8 +308,8 @@ function [ sampled_events sum_events ] = ...
         sampled_events{i} = sparse(cols, num_ev_types);
         
         types = events{i, 5};
-        startt = double(events{i, 6});
-        endt = double(events{i, 7});
+        startt = double(events{i, 6}- mn);
+        endt = double(events{i, 7} - mn);
         
         [~, idx] = ismember(types, event_types);
         clear types;
