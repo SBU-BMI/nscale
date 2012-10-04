@@ -151,6 +151,8 @@ public:
 
 	std::vector<int> &getRoots() { return roots; };
 	std::vector<int> &getLeaves() { return leaves; };
+	virtual bool hasRoots() { return roots.size() > 0; };
+	virtual bool hasLeaves() { return leaves.size() > 0; };
 
 	virtual int getRootFromLeaf(int leafId) = 0;
 	virtual int getLeafFromRoot(int rootId) = 0;

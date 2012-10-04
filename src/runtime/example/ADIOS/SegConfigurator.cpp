@@ -143,7 +143,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 			sbuf = new MPISendDataBuffer(100);
 			handler = new PullCommHandler(&comm, compute_io_g, sbuf, sch, logger->getSession("pull"));
 		} else { // other compute
-			rbuf = new MPIRecvDataBuffer(2);
+			rbuf = new MPIRecvDataBuffer(4);
 			handler = new PullCommHandler(&comm, compute_io_g, rbuf, sch, logger->getSession("pull"));
 		}
 	}

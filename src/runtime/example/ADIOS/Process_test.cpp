@@ -88,7 +88,8 @@ int main (int argc, char **argv){
 	MPI_Comm_rank(comm, &rank);
 
 	// IMPORTANT: need to initialize random number generator right now.
-	srand(rank);
+	//srand(rank);
+	srand(cciutils::event::timestampInUS());
 
 	logger = new cciutils::SCIOLogger(rank, hostname, 0);\
 	cciutils::SCIOLogSession *logsession = logger->getSession("setup");

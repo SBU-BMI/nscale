@@ -155,9 +155,18 @@ CVImage::CVImage(MetadataType *_metadata,
 
 CVImage::~CVImage() {
 	if (type == MANAGE) {
-		if (data != NULL) delete [] data;
-		if (image_name != NULL) delete [] image_name;
-		if (source_file_name != NULL) delete [] source_file_name;
+		if (data != NULL) {
+			delete [] data;
+			data = NULL;
+		}
+		if (image_name != NULL) {
+			delete [] image_name;
+			image_name = NULL;
+		}
+		if (source_file_name != NULL) {
+			delete [] source_file_name;
+			source_file_name = NULL;
+		}
 	}
 }
 

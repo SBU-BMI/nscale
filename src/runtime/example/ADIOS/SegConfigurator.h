@@ -23,11 +23,9 @@ public:
 	SegConfigurator(SegmentCmdParser::ParamsType &_params, cciutils::SCIOLogger *_logger) :
 		ProcessConfigurator_I(_logger), iomanager(NULL), params(_params) {};
 	virtual ~SegConfigurator() {
-		if (iomanager != NULL) {
-			delete iomanager;
-			iomanager = NULL;
-		}
+		finalize();
 	};
+
 
 	virtual bool init();
 	virtual bool finalize();
