@@ -10,7 +10,6 @@
 #include "mpi.h"
 
 #include "FileUtils.h"
-
 #include "CVImage.h"
 #include "UtilsADIOS.h"
 
@@ -68,7 +67,7 @@ ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid
 }
 
 ADIOSSave_Reduce::~ADIOSSave_Reduce() {
-	Debug::print("%s destructor called.  total written out is %d\n", getClassName(), local_total);
+	Debug::print("%s destructor called.  total written out is %d over %d iterations\n", getClassName(), local_total, local_iter);
 
 
 	if (writer) writer->persistCountInfo();
@@ -121,7 +120,7 @@ int ADIOSSave_Reduce::run() {
 	max_iter = gbuffer[1];
 
 
-	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->getBufferSize());
+//	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->getBufferSize());
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -142,7 +141,7 @@ int ADIOSSave_Reduce::run() {
 	 */
 	// catch up.  so flush whatever's in buffer.
 	while (max_iter > local_iter) {
-		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, this->inputBuf->getBufferSize());
+//		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, this->inputBuf->getBufferSize());
 		process();
 	}
 

@@ -31,10 +31,10 @@ void writeLog() {
 
 
 	std::string logfile = parser->getParam(cci::rt::adios::SegmentCmdParser::PARAM_OUTPUTDIR);
+	int rank = 0;
 
 #if defined (WITH_MPI)
 	MPI_Comm comm = MPI_COMM_WORLD;
-	int rank;
 	MPI_Comm_rank(comm, &rank);
 	logger->writeCollectively(logfile, rank, 0, comm);
 #else
@@ -42,7 +42,7 @@ void writeLog() {
 #endif
 
 	t4= cciutils::event::timestampInUS();
-	cci::rt::Debug::print("finished writing log in %lu us.\n", long(t4-t3));
+	if (rank ==0) cci::rt::Debug::print("finished writing log in %lu us.\n", long(t4-t3));
 
 }
 
@@ -131,7 +131,7 @@ int main (int argc, char **argv){
 	if (conf != NULL) delete conf;
 
 	t4= cciutils::event::timestampInUS();
-	cci::rt::Debug::print("finished processing in %lu us.\n", long(t4-t3));
+	if (rank ==0) cci::rt::Debug::print("finished processing in %lu us.\n", long(t4-t3));
 
 	// cleaning up.
 	writeLog();

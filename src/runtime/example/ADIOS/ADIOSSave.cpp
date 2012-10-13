@@ -8,6 +8,7 @@
 #include "ADIOSSave.h"
 #include "Debug.h"
 #include "mpi.h"
+
 #include "FileUtils.h"
 #include "CVImage.h"
 #include "UtilsADIOS.h"
@@ -226,7 +227,7 @@ int ADIOSSave::run() {
 	 */
 	// catch up.  so flush whatever's in buffer.
 	while (max_iter > local_iter) {
-		Debug::print("%s rank %d catch up writing at iter %d, max_iter = %d\n", getClassName(), rank, local_iter, max_iter);
+//		Debug::print("%s rank %d catch up writing at iter %d, max_iter = %d\n", getClassName(), rank, local_iter, max_iter);
 		process();
 	}
 

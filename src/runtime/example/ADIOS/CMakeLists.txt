@@ -34,6 +34,7 @@ target_link_libraries(${libname} nu-io)
 target_link_libraries(${libname} scio-adios)
 target_link_libraries(${libname} ${ADIOS_LIBS})
 
+target_link_libraries(${libname} ${ZLIB_LIBRARIES})
 
 if(MPI_FOUND)
 	set_target_properties(${libname} PROPERTIES COMPILE_DEFINITIONS "WITH_MPI")

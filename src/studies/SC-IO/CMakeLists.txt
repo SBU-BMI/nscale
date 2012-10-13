@@ -103,7 +103,11 @@ if(ADIOS_FOUND)
 	set(POSIX_TRANSPORT_OPTION "")
 	set(MPI_TRANSPORT_OPTION "")
 	set(MPI_LUSTRE_TRANSPORT_OPTION "block_size=68157440")
+	if (SCRIPT_TEMPLATE_DIR STREQUAL "jaguar")
 	set(MPI_AMR_TRANSPORT_OPTION "num_aggregator=16;osts_to_skip=0-100;num_ost=200")
+	else(SCRIPT_TEMPLATE_DIR STREQUAL "jaguar")
+    	set(MPI_AMR_TRANSPORT_OPTION "num_aggregator=4;num_ost=30")
+	endif(SCRIPT_TEMPLATE_DIR STREQUAL "jaguar")
 	
 	foreach(ADIOS_XML_IN ${ADIOS_XMLS_IN})
 		# generate the xml files for different transports
@@ -189,7 +193,7 @@ if (ADIOS_FOUND)
 	set_target_properties(${adios_libname} PROPERTIES COMPILE_DEFINITIONS "${TARGET_DEFS}") 
 	set_target_properties(${adios_libname} PROPERTIES COMPILE_FLAGS "${TARGET_COMP_FLAGS}") 
 	
-	target_link_libraries(${adios_libname} segment ${io_libname} ${ADIOS_LIBS})
+	target_link_libraries(${adios_libname} segment ${io_libname} ${ADIOS_LIBS} ${ZLIB_LIBRARIES})
 	include_directories(${CMAKE_CURRENT_BINARY_DIR})
 	
 endif(ADIOS_FOUND)

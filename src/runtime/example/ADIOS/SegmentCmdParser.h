@@ -16,7 +16,7 @@ namespace rt {
 namespace adios {
 
 
-class SegmentCmdParser : public cci::rt::CmdlineParser_I<13> {
+class SegmentCmdParser : public cci::rt::CmdlineParser_I<14> {
 public:
 	SegmentCmdParser(MPI_Comm &_comm) : comm(_comm) {};
 	virtual ~SegmentCmdParser() {};
@@ -37,6 +37,7 @@ public:
 	static const int PARAM_PROCTYPE;
 	static const int PARAM_GPUDEVICEID;
 	static const int PARAM_IOBUFFERSIZE;
+	static const int PARAM_COMPRESSION;
 
 
 protected:

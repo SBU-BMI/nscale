@@ -27,6 +27,7 @@ private:
     std::vector<int> selectedStages;
     SCIOLogSession *session;
 
+    bool compression;
 
 	std::string getFileName(const int stage, const std::string &suf, const std::string &type);
 	bool selected(const int stage);
@@ -34,7 +35,7 @@ private:
 
 public:
 
-	SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages);
+	SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages, bool _compression);
 	virtual ~SCIOIntermediateResultWriter();
 
 	virtual void setLogSession(::cciutils::SCIOLogSession *_session) {

@@ -10,7 +10,6 @@
 #include "PullCommHandler.h"
 #include "PushCommHandler.h"
 
-#include "ADIOSSave.h"
 #include "ADIOSSave_Reduce.h"
 #include "POSIXRawSave.h"
 
@@ -148,7 +147,6 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		}
 	}
 
-
 	// then the compute to IO communication group
 	// separate masters in the compute group
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
@@ -189,6 +187,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 					new cci::rt::adios::Segment(&comm, -1, rbuf, sbuf,
 							params[SegmentCmdParser::PARAM_PROCTYPE],
 							atoi(params[SegmentCmdParser::PARAM_GPUDEVICEID].c_str()),
+							(strcmp(params[SegmentCmdParser::PARAM_COMPRESSION].c_str(), "on") == 0 ? true : false),
 							logger->getSession("seg"));
 			proc->addHandler(seg);
 			proc->addHandler(handler2);

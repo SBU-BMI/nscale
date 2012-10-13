@@ -20,9 +20,10 @@ namespace adios {
 
 Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
-		std::string &proctype, int gpuid,
+		std::string &proctype, int gpuid, bool _compress,
 		cciutils::SCIOLogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0) {
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0),
+ 	compress(_compress) {
 	assert(_input != NULL);
 	assert(_output != NULL);
 
@@ -86,7 +87,7 @@ int Segment::compute(int const &input_size , void * const &input,
 		return -1;
 	}
 
-	t1 = ::cciutils::event::timestampInUS();
+//	t1 = ::cciutils::event::timestampInUS();
 
 	// real computation:
 	int status = ::nscale::SCIOHistologicalEntities::SUCCESS;
@@ -107,14 +108,15 @@ int Segment::compute(int const &input_size , void * const &input,
 	printf(".");
 //	}
 
-	t2 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+//	t2 = ::cciutils::event::timestampInUS();
+//	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 		t1 = ::cciutils::event::timestampInUS();
 		CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
 //		CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
-		img->serialize(output_size, output);
+		if (compress) img->serialize(output_size, output, CVImage::ENCODE_Z);
+		else img->serialize(output_size, output);
 		// clean up
 		delete img;
 

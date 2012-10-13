@@ -36,12 +36,13 @@ private:
 	int rank;
 	bool gapped;
 	bool grouped;
+	bool compression;
 
 	std::vector<SCIOADIOSWriter *> writers;
 	cciutils::SCIOLogSession * logsession;
 
 public:
-	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session, bool _gapped = false, bool _groupped = true);
+	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session, bool _gapped = false, bool _groupped = true, bool _compress = false);
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
@@ -102,6 +103,7 @@ private:
 	cciutils::SCIOLogSession *logsession;
 
 	bool grouped;
+	bool compression;
 	bool gapped;
 	int chunkNumTiles;
 	long tileSize;
@@ -111,7 +113,7 @@ private:
 protected:
 	bool selected(const int stage);
 
-	SCIOADIOSWriter() : gapped(false), tileInfo_total(0), tile_total(0), imageName_total(0), sourceTileFile_total(0),
+	SCIOADIOSWriter() : gapped(false), compression(false), tileInfo_total(0), tile_total(0), imageName_total(0), sourceTileFile_total(0),
 		pg_tile_bytes(0), pg_tileInfo_count(0), pg_imageName_bytes(0), pg_sourceTileFile_bytes(0),
 		tileInfo_capacity(0), tile_capacity(0), imageName_capacity(0), sourceTileFile_capacity(0),
 		logsession(NULL), tileSize(0), chunkNumTiles(0), local_group(0) {};

@@ -110,7 +110,7 @@ int PushCommHandler::run() {
 						status = Communicator_I::DONE;
 						// if manager can't accept, then action can stop
 						buffer->stop();
-						Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
+//						Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
 					}
 
 					t2 = cciutils::event::timestampInUS();
@@ -143,7 +143,7 @@ int PushCommHandler::run() {
 						sprintf(len, "%lu", (long)(count));
 						if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("push data received"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
-						if (send_count % 100 == 0) Debug::print("%s manager received %d data messages from workers.\n", getClassName(), send_count);
+//						if (send_count % 100 == 0) Debug::print("%s manager received %d data messages from workers.\n", getClassName(), send_count);
 
 					} // else no room so leave the message in the MPI receive queue.
 
@@ -171,7 +171,7 @@ int PushCommHandler::run() {
 				status = Communicator_I::DONE;
 				// if manager can't accept, then action can stop
 				buffer->stop();
-				Debug::print("%s all managers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
+//				Debug::print("%s all managers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
 			}
 
 			t2 = cciutils::event::timestampInUS();

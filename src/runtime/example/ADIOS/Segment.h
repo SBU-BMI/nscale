@@ -18,7 +18,7 @@ class Segment: public cci::rt::Action_I {
 public:
 	Segment(MPI_Comm const * _parent_comm, int const _gid,
 			DataBuffer *_input, DataBuffer *_output,
-			std::string &proctype, int gpuid,
+			std::string &proctype, int gpuid, bool _compress,
 			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~Segment();
 	virtual int run();
@@ -30,6 +30,7 @@ protected:
 
 	int proc_code;
 	int output_count;
+	bool compress;
 
 };
 

@@ -84,7 +84,7 @@ int PullCommHandler::run() {
 				status = Communicator_I::DONE;
 				// if manager can't accept, then action can stop
 				buffer->stop();
-				Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
+//				Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
 			}
 
 			// check to see if there are any done messages from that node.
@@ -119,7 +119,7 @@ int PullCommHandler::run() {
 				MPI_Send(&lstatus, 1, MPI_INT, node_id, Communicator_I::DONE, comm);
 
 				if (scheduler->removeLeaf(node_id) == 0) {
-					Debug::print("%s manager marked all workers as DONE.\n", getClassName());
+//					Debug::print("%s manager marked all workers as DONE.\n", getClassName());
 					status = Communicator_I::DONE;
 					buffer->stop();
 				}
@@ -154,7 +154,7 @@ int PullCommHandler::run() {
 				sprintf(len, "%lu", (long)(count));
 				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("pull data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 
-				if (send_count % 100 == 0) Debug::print("%s manager sent %d data messages to workers.\n", getClassName(), send_count);
+//				if (send_count % 100 == 0) Debug::print("%s manager sent %d data messages to workers.\n", getClassName(), send_count);
 
 			} else {  // empty but not stopped.  wait state.  should have been caught earlier
 				// should not get here...

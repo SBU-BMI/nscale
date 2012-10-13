@@ -76,6 +76,7 @@ ADIOSWriter* ADIOSManager::allocateWriter(
 			_local_comm, this->grouped, _local_group);
 
 	w->transport = this->transport;
+
 	writers.push_back(w);
 
 	long long t2 = ::cciutils::event::timestampInUS();
@@ -221,7 +222,7 @@ int ADIOSWriter::open(const char* groupName) {
 		else
 			ss << this->prefix << "/" << transport << "." << this->suffix;
 
-		printf("opening %s for time appending writing\n", ss.str().c_str());
+//		printf("opening %s for time appending writing\n", ss.str().c_str());
 
 		if (newfile) {
 			err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", &comm);
@@ -235,7 +236,7 @@ int ADIOSWriter::open(const char* groupName) {
 		else
 			ss << this->prefix << "/" << transport << ".t" << this->write_session_id << "." << this->suffix;
 
-		printf("opening %s for time separated writing\n", ss.str().c_str());
+//		printf("opening %s for time separated writing\n", ss.str().c_str());
 
 		err = adios_open(&adios_handle, groupName, ss.str().c_str(), "w", &comm);
 	}

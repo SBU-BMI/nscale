@@ -5,13 +5,15 @@
 #include "gpu_utils.h"
 #include "adios.h"
 #include "adios_internals.h"
+#include "zlib.h"
 
 namespace cciutils {
 
 
-ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession *session, bool _gapped, bool _grouped ) {
+ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession *session, bool _gapped, bool _grouped, bool _compress) {
 	gapped = _gapped;
 	grouped = _grouped;
+	compression = _compress;
 
 	rank = _rank;
 	comm = _comm;
@@ -91,6 +93,7 @@ SCIOADIOSWriter* ADIOSManager::allocateWriter(const std::string &pref, const std
 	w->tileSize= _tileSize;
 	w->gapped = this->gapped;
 
+	w->compression = this->compression;
 //	if (w->local_rank == 0) printf("INITIALIZED group %d for %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->local_group, pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
 
 	return w;
@@ -267,6 +270,7 @@ int SCIOADIOSWriter::persist(int iter) {
 			imageName_size[i] = (long)(tile_cache[i].image_name.size());
 			sourceTileFile_size[i] = (long)(tile_cache[i].source_tile_file_name.size());
 			tile_size[i] = (long)(tm.dataend) - (long)(tm.datastart);
+			if (compression) tile_size[i] = compressBound(tile_size[i]);
 //			tile_size[i] = 0;
 
 			// update the offset (within the group for this time step)
@@ -274,7 +278,7 @@ int SCIOADIOSWriter::persist(int iter) {
 			// need to update to global coord later.
 			imageName_offset[i] = imageName_pg_size;
 			sourceTileFile_offset[i] = sourceTileFile_pg_size;
-			tile_offset[i] = tile_pg_size;
+			if (!compression) tile_offset[i] = tile_pg_size;
 			
 			// update the process group totals
 			imageName_pg_size += imageName_size[i];
@@ -299,12 +303,26 @@ int SCIOADIOSWriter::persist(int iter) {
 		tile = (unsigned char *)malloc(tile_pg_size);
 		memset(tile, 0, tile_pg_size);
 		
+		if (compression) tile_pg_size = 0;
 		for (int i = 0; i < tile_cache.size(); ++i) {
 			strncpy(imageName + imageName_offset[i], tile_cache[i].image_name.c_str(), imageName_size[i]);
 			//printf("filename cp'ed %s\n", tile_cache[i].source_tile_file_name.c_str());
 			strncpy(sourceTileFile + sourceTileFile_offset[i], tile_cache[i].source_tile_file_name.c_str(), sourceTileFile_size[i]);
+			if (compression) {
+
+				tile_offset[i] = tile_pg_size;
+				// compress directly into the buffer,  the tile_size field willbe updated.
+				compress(tile + tile_offset[i], (unsigned long*)(tile_size + i), tile_cache[i].tile.datastart, (unsigned long)tile_cache[i].tile.dataend-(unsigned long)tile_cache[i].tile.datastart);
+				// update the  new position in the data buffer.
+				tile_pg_size += tile_size[i];
+
+			} else {
 			memcpy(tile + tile_offset[i], tile_cache[i].tile.datastart, tile_size[i]);
 		}
+		}
+		// finally, compact the data
+		if (compression) tile = (unsigned char*)realloc(tile, tile_pg_size);
+
 //		printf("all filenames together %s\n", sourceTileFile);
 		t2 = ::cciutils::event::timestampInUS();
 		char len2[21];  // max length of uint64 is 20 digits

@@ -26,18 +26,20 @@ CommHandler_I::CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, MPID
 		status = Communicator_I::ERROR;
 	} else {
 
-		scheduler->configure(comm);
+		scheduler = _scheduler;
+		if (scheduler != NULL) {
+			scheduler->configure(comm);
 
-		if (scheduler->isRoot()) {
+			if (scheduler->isRoot()) {
 
-			std::vector<int> workers = scheduler->getLeaves();
-			for (std::vector<int>::iterator iter = workers.begin();
-					iter != workers.end(); ++iter) {
-				activeWorkers[*iter] = READY;
+				std::vector<int> workers = scheduler->getLeaves();
+				for (std::vector<int>::iterator iter = workers.begin();
+						iter != workers.end(); ++iter) {
+					activeWorkers[*iter] = READY;
+				}
+
 			}
-
 		}
-
 	}
 
 	DataBuffer::reference(buffer, this);	

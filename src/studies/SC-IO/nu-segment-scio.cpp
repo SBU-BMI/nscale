@@ -40,19 +40,21 @@ using namespace cv;
 
 void printUsage(char **argv);
 void parseStages(const char *stagestr, std::vector<int> &stages);
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages);
+int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages, bool &compression);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount);
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, const std::vector<int> &stages);
+void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, const std::vector<int> &stages, bool compression);
 
 void printUsage(char **argv) {
-	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir [imagecount] [stages,...] [cpu [numThreads] | gpu [numThreads] [id]] " << std::endl;
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir [imagecount] [stages,...] [cpu [numThreads] | gpu [numThreads] [id]] [compress]" << std::endl;
 	std::cout << "\t<image_filename | image_dir>: either an image filename or an image directory" << std::endl;
 	std::cout << "\tmask_dir: output directory" << std::endl;
 	std::cout << "\timagecount: number of images to process.  -1 means all images." << std::endl;
 	std::cout << "\tstages: the stages to capture.  syntax is a comma separated ranges.  Range could be a single value or a dash (-) separated range.  range is of form [...) " << std::endl;
 	std::cout << "\tcpu [numThreads]: use CPU computation.  number of threads relevant if compiled with OpenMP" << std::endl;
 	std::cout << "\tgpu [numThreads] [id]]: use GPU for computation.  number of threads relevant if compile with OpenMP.  id is the device ID." << std::endl;
+	std::cout << "\t[compression] = on|off: optional. turn on compression for MPI messages and IO. default off." << std::endl;
+
 }
 
 void parseStages(const char* stagestr, std::vector<int> &stages) {
@@ -83,25 +85,36 @@ void parseStages(const char* stagestr, std::vector<int> &stages) {
 	}
 }
 
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages) {
+int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages, bool &compression) {
 	if (argc < 4) {
 		printUsage(argv);
 		return -1;
 	}
-	imageName.assign(argv[1]);
-	outDir.assign(argv[2]);
-	if (argc > 3) imageCount = atoi(argv[3]);
-	if (argc > 4) {
-		parseStages(argv[4], stages);
+
+	int i = 1;
+	imageName.assign(argv[i]);
+
+	++i;
+	outDir.assign(argv[i]);
+
+	++i;
+	if (argc > i) imageCount = atoi(argv[i]);
+
+	++i;
+	if (argc > i) {
+		parseStages(argv[i], stages);
 	} else {
 		for (int stage = 0; stage <= 200; ++stage) {
 			stages.push_back(stage);
 		}
 	}
-	const char* mode = argc > 5 ? argv[5] : "cpu";
+
+	++i;
+	const char* mode = argc > i ? argv[i] : "cpu";
 
 	int threadCount;
-	if (argc > 6) threadCount = atoi(argv[6]);
+	++i;
+	if (argc > i) threadCount = atoi(argv[i]);
 	else threadCount = 1;
 
 #if defined (WITH_MPI)
@@ -129,14 +142,19 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 #if defined (_OPENMP)
 	omp_set_num_threads(1);
 #endif
-		if (argc > 7) {
-			gpu::setDevice(atoi(argv[7]));
+		++i;
+		if (argc > i) {
+			gpu::setDevice(atoi(argv[i]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
 		printUsage(argv);
 		return -1;
 	}
+
+	++i;
+	compression = (argc > i && strcmp(argv[i], "on") == 0 ? true : false);
+
 
 //	std::ostream_iterator< int > output( std::cout, " " );
 //	std::cout << "Selected stages: ";
@@ -194,7 +212,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 
 
 
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, const std::vector<int> &stages) {
+void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session,  const std::vector<int> &stages, bool compression) {
 	// compute
 
 	int status;
@@ -207,7 +225,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	std::string prefix = fu.replaceExt(fmask, ".mask.pbm", "");
 	std::string suffix;
 	suffix.assign(".mask.pbm");
-	::cciutils::cv::SCIOIntermediateResultWriter *iwrite = new ::cciutils::cv::SCIOIntermediateResultWriter(prefix, suffix, stages);
+	::cciutils::cv::SCIOIntermediateResultWriter *iwrite = new ::cciutils::cv::SCIOIntermediateResultWriter(prefix, suffix, stages, compression);
 	iwrite->setLogSession(session);
 
 	if (modecode == cciutils::DEVICE_GPU ) {
@@ -236,7 +254,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank);
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &imageName, std::string &outDir, const int imageCount, ::cciutils::SCIOLogSession *session);
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cciutils::SCIOLogSession *session);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cciutils::SCIOLogSession *session, bool compression);
 
 
 // initialize MPI
@@ -437,7 +455,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 }
 
-void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cciutils::SCIOLogSession *session) {
+void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cciutils::SCIOLogSession *session, bool compression ) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	int outputSize;
@@ -495,7 +513,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			t0 = cciutils::ClockGetTime();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
-			compute(input, mask, output, modecode, session, stages);
+			compute(input, mask, output, modecode, session, stages, compression);
 			++count;
 			// now do some work
 
@@ -528,7 +546,8 @@ int main (int argc, char **argv){
 	// parse the input
 	int modecode, imageCount;
 	std::string imageName, outDir, hostname;
-	int status = parseInput(argc, argv, modecode, imageName, outDir, imageCount, stages);
+	bool compression;
+	int status = parseInput(argc, argv, modecode, imageName, outDir, imageCount, stages, compression);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -594,7 +613,7 @@ int main (int argc, char **argv){
 			// per node
 			session = logger->getSession("w");
 
-			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages);
+			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages, compression);
 
 			//printf("processed %s\n", filenames[i].c_str());
 			++i;
@@ -620,7 +639,7 @@ int main (int argc, char **argv){
 
 		} else {
 			// worker bees
-			worker_process(comm_world, manager_rank, rank, modecode, hostname, stages, session);
+			worker_process(comm_world, manager_rank, rank, modecode, hostname, stages, session, compression );
 			t2 = cciutils::ClockGetTime();
 			//printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 

@@ -32,6 +32,7 @@ private:
 	int rank;
 	bool gapped;
 	bool grouped;
+
 	std::string transport;
 
 	std::vector<ADIOSWriter *> writers;
@@ -125,8 +126,7 @@ private:
 
 protected:
 
-	ADIOSWriter(std::string const &_prefix, std::string const &_suffix,
-			bool _newfile,
+	ADIOSWriter(std::string const &_prefix, std::string const &_suffix, bool _newfile,
 			bool _appendInTime, std::vector<int> const &_selected_stages,
 			int _mx_image_capacity, int _mx_local_image_capacity, bool _gapped,
 			int _mx_image_bytes, int _mx_imagename_bytes, int _mx_filename_bytes,

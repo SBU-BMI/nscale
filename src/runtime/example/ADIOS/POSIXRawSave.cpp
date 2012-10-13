@@ -65,7 +65,7 @@ POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 }
 
 POSIXRawSave::~POSIXRawSave() {
-	Debug::print("%s destructor called.  total written out is %d\n", getClassName(), local_total);
+	Debug::print("%s destructor called.  total written out is %d over %d iterations\n", getClassName(), local_total, local_iter);
 
 }
 
@@ -116,7 +116,7 @@ int POSIXRawSave::run() {
 	max_iter = gbuffer[1];
 
 
-	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, status, max_iter, local_iter, inputBuf->getBufferSize());
+//	if (status == DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, input_status, status, max_iter, local_iter, inputSizes.size());
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -137,7 +137,7 @@ int POSIXRawSave::run() {
 	 */
 	// catch up.  so flush whatever's in buffer.
 	while (max_iter > local_iter) {
-		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, inputBuf->getBufferSize());
+		//Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, inputSizes.size());
 		process();
 	}
 
@@ -160,7 +160,8 @@ int POSIXRawSave::process() {
 
 	FileUtils fu;
 
-	while (!this->inputBuf->isEmpty()) {
+	int output_size = 0;
+		while (!this->inputBuf->isEmpty()) {
 		result = this->inputBuf->pop(data);
 		input_size = data.first;
 		input = data.second;
@@ -177,18 +178,13 @@ int POSIXRawSave::process() {
 			std::string tmpfn = fu.replaceDir(sourcefn, fu.getDir(sourcefn), outdir);
 			std::string outfn = fu.replaceExt(tmpfn, fu.getExt(tmpfn), "out.raw");
 
-			printf("FILESNAMES: source %s, temp %s, out %s\n", sourcefn.c_str(), tmpfn.c_str(), outfn.c_str());
+//			printf("FILESNAMES: source %s, temp %s, out %s\n", sourcefn.c_str(), tmpfn.c_str(), outfn.c_str());
+
 			// write out as raw
-//			std::stringstream ss;
-//
-//			ss << outdir << "/" << imgname << "_tile_";
-//			ss << in_img->getMetadata().info.x_offset << "x" << in_img->getMetadata().info.y_offset;
-//	//		ss << "_type" << in_img->getMetadata().info.cvDataType;
-//			ss << ".out.raw";
 
 			FILE* fid = fopen(outfn.c_str(), "r");
 			if (!fid) {
-				printf("INFO: creating file %s for writing.\n", outfn.c_str());
+				//printf("INFO: creating file %s for writing.\n", outfn.c_str());
 			} else {
 				fclose(fid);
 			}
@@ -198,6 +194,7 @@ int POSIXRawSave::process() {
 				printf("ERROR: can't open %s to write\n", outfn.c_str());
 			} else {
 				fwrite(data, 1, datasize, fid);
+				output_size += datasize;
 				fclose(fid);
 			}
 
@@ -212,6 +209,9 @@ int POSIXRawSave::process() {
 	++local_iter;
 
 	t2 = ::cciutils::event::timestampInUS();
+	char len[21];
+	memset(len, 0, 21);
+	sprintf(len, "%ld", (long)output_size);	
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO POSIX Write"), t1, t2, std::string(), ::cciutils::event::FILE_O));
 
 	return 0;

@@ -26,22 +26,23 @@ using namespace cv;
 
 
 void printUsage(char ** argv);
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark);
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark, bool &compression);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount);
 void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, cciutils::SCIOADIOSWriter *writer);
 
 void printUsage(char **argv) {
-	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <transport> [imagecount] [buffersize] [cpu | gpu [id]] [groupsize] [groupInterleave] [benchmark]" << std::endl;
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <transport> [imagecount] [buffersize] [cpu | gpu [id]] [groupsize] [groupInterleave] [benchmark] [compression]" << std::endl;
 	std::cout << "transport is one of NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR" << std::endl;
 	std::cout << "imagecount: number of images to process.  -1 means all images." << std::endl;
 	std::cout << "buffersize: number of images to buffer by a process before adios write.  default is 4." << std::endl;
 	std::cout << "groupsize is the size of the adios IO subgroup (default -1 means all procs).  groupInterleave (integer) is how the groups mix together.  default is 1 for no interleaving: processes in a group have contiguous process ids." << std::endl;
 	std::cout << "  groupInterleave value of less than 1 is treated as 1.  numbers greater than 1 interleaves that many groups. e.g. 1 2 3 1 2 3.  This is useful to match interleaves to node's core count." << std::endl;
+	std::cout << "[compression] = on|off: optional. turn on compression for MPI messages and IO. default off." << std::endl;
 
 }
 
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark) {
+int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark, bool &compression) {
 	if (argc < 4) {
 		printUsage(argv);
 		return -1;
@@ -114,6 +115,9 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &i
 	++i;
 	benchmark = false;
 	if (argc > i && strcasecmp(argv[i], "benchmark") == 0) benchmark = true;
+
+	++i;
+	compression = (argc > i && strcmp(argv[i], "on") == 0 ? true : false);
 
 	return 0;
 }
@@ -706,9 +710,9 @@ int main (int argc, char **argv){
 	// parse the input
 	int modecode, groupSize, groupInterleave;
 	std::string imageName, outDir, hostname, workingDir, iocode;
-	bool benchmark;
+	bool benchmark, compression;
 	int imageCount= -1, maxBuf = 4;
-	int status = parseInput(argc, argv, modecode, iocode, imageCount, maxBuf, groupSize, groupInterleave, workingDir, imageName, outDir, benchmark);
+	int status = parseInput(argc, argv, modecode, iocode, imageCount, maxBuf, groupSize, groupInterleave, workingDir, imageName, outDir, benchmark, compression);
 	if (status != 0) return status;
 
 
@@ -779,7 +783,7 @@ int main (int argc, char **argv){
 	if (size == 1) {
 		logger = new cciutils::SCIOLogger(rank, hostname, 0);
 		session = logger->getSession("w");
-		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, false);
+		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, false, compression);
 
 		int i = 0;
 
@@ -830,7 +834,7 @@ int main (int argc, char **argv){
 
 		logger = new cciutils::SCIOLogger(rank, hostname, worker_group);
 		session = logger->getSession(rank == manager_rank ? "m" : "w");
-		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, true);
+		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, true, compression);
 
 		t1 = cciutils::ClockGetTime();
 

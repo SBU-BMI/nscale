@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include "gpu_utils.h"
+#include "zlib.h"
 
 namespace cciutils {
 
@@ -52,6 +53,7 @@ namespace cv {
 			break;
 		default:
 			ss << "USRTYPE1C";
+			break;
 		}
 		ss << intermediate.channels();
 
@@ -72,11 +74,12 @@ namespace cv {
 	};
 
 
-	SCIOIntermediateResultWriter::SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages) {
+	SCIOIntermediateResultWriter::SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages, bool _compression) {
 		prefix.assign(pref);
 		suffix.assign(suf);
 		selectedStages = selStages;
 		std::sort(selectedStages.begin(), selectedStages.end());
+		compression = _compression;
 	}
 
 	SCIOIntermediateResultWriter::~SCIOIntermediateResultWriter() {
@@ -90,21 +93,42 @@ namespace cv {
 		uint64_t t1, t2;
 
 		t1 = cciutils::event::timestampInUS();
-		if (intermediate.type() == CV_8UC1 || intermediate.type() == CV_8UC3 ||
-				intermediate.type() == CV_8SC1 || intermediate.type() == CV_8SC3) {
 
-			// write grayscale or RGB
-			std::string filename = getFileName(stage, suffix, std::string());
-			::cv::imwrite(filename, intermediate);
+		if (!compression) {
+			if (intermediate.type() == CV_8UC1 || intermediate.type() == CV_8UC3 ||
+					intermediate.type() == CV_8SC1 || intermediate.type() == CV_8SC3) {
+
+				// write grayscale or RGB
+				std::string filename = getFileName(stage, suffix, std::string());
+				::cv::imwrite(filename, intermediate);
+			} else {
+				imwriteRaw(intermediate, stage);
+			}
+			t2 = cciutils::event::timestampInUS();
+			char len[21];  // max length of uint64 is 20 digits
+			memset(len, 0, 21);
+			sprintf(len, "%lu", (long)(intermediate.dataend) - (long)(intermediate.datastart));
+			if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(len), ::cciutils::event::FILE_O));
 		} else {
-			imwriteRaw(intermediate, stage);
-		}
-		t2 = cciutils::event::timestampInUS();
-		char len[21];  // max length of uint64 is 20 digits
-		memset(len, 0, 21);
-		sprintf(len, "%lu", (long)(intermediate.dataend) - (long)(intermediate.datastart));
+			unsigned long destsize = compressBound((unsigned long)intermediate.dataend - (unsigned long)intermediate.datastart);
+			unsigned char *dest = (unsigned char*)malloc(destsize);
+			compress(dest, &destsize, intermediate.datastart, (unsigned long)intermediate.dataend - (unsigned long)intermediate.datastart);
 
-		if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(len), ::cciutils::event::FILE_O));
+			std::string filename = getFileName(stage, std::string("z"), std::string());
+			FILE* fid = fopen(filename.c_str(), "wb");
+			if (!fid) printf("ERROR: can't open %s to write\n", filename.c_str());
+
+			fwrite(dest, 1, destsize, fid);
+			fclose(fid);
+			free(dest);
+
+			t2 = cciutils::event::timestampInUS();
+			char len[21];  // max length of uint64 is 20 digits
+			memset(len, 0, 21);
+			sprintf(len, "%lu", destsize);
+			if (session != NULL) session->log(cciutils::event(stage, std::string("save compressed image"), t1, t2, std::string(len), ::cciutils::event::FILE_O));
+		}
+
 	}
 
 #if defined (WITH_CUDA)
@@ -115,7 +139,7 @@ namespace cv {
 		// first download the data
 		::cv::Mat output(intermediate.size(), intermediate.type());
 		intermediate.download(output);
-		saveIntermediate(output, stage);
+		saveIntermediate(output, stage, _image_name, _offsetX, _offsetY, _source_tile_file_name);
 		output.release();
 	}
 #else

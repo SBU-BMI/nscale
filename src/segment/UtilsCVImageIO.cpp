@@ -52,6 +52,7 @@ namespace cv {
 			break;
 		default:
 			ss << "USRTYPE1C";
+			break;
 		}
 		ss << intermediate.channels();
 
@@ -106,7 +107,7 @@ namespace cv {
 		// first download the data
 		::cv::Mat output(intermediate.size(), intermediate.type());
 		intermediate.download(output);
-		saveIntermediate(output, stage);
+		saveIntermediate(output, stage, _image_name, _offsetX, _offsetY, _source_tile_file_name);
 		output.release();
 	}
 #else

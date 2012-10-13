@@ -25,16 +25,15 @@ Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cc
 
 	long long t1, t2;
 	t1 = ::cciutils::event::timestampInUS();
-	pcomm_rank = -1;
+
+	MPI_Comm_rank(*parent_comm, &pcomm_rank);
+	MPI_Comm_size(*parent_comm, &pcomm_size);
+
 	rank = -1;
-	pcomm_size = 0;
 	size = 0;
 
 	if (groupid == -1) comm = MPI_COMM_NULL;
 	else {
-		MPI_Comm_rank(*parent_comm, &pcomm_rank);
-		MPI_Comm_size(*parent_comm, &pcomm_size);
-
 
 		MPI_Comm_split(*parent_comm, groupid, pcomm_rank, &comm);
 		MPI_Comm_rank(comm, &rank);

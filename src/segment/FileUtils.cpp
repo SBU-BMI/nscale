@@ -67,20 +67,36 @@ string FileUtils::getRelativePath(string& filename, const string& dir) {
 	return result;
 }
 
-string FileUtils::replaceDir(string& filename, const string& oldDir, const string& newDir) {
-	int pos = filename.find(oldDir);
+/***  directories are assume to have a trailing directory separator
+ * basically, use string replace.
+ */
+string FileUtils::replaceDir(string& filename, const string& oldStr, const string& newStr) {
+	if (filename.length() == 0) {
+		printf("WARNING: filename is empty.\n");
+		return std::string();
+	}
 
-    stringstream newname;
-    newname << newDir << filename.substr(pos + oldDir.length());
-	return newname.str();
+	if (strcmp(oldStr.c_str(), newStr.c_str()) == 0 ) {
+		printf("Overwrite WARNING: old %s and new %s are the same.  filename %s set to empty\n", oldStr.c_str(), newStr.c_str(), filename.c_str());
+		return std::string();
+}
+
+	int pos;
+	if (oldStr.length() == 0) pos = 0;
+	else pos = filename.find(oldStr);
+
+	if (pos == std::string::npos) {
+		printf("Overwrite WARNING: %s is not in filename %s.  filename set to empty\n", oldStr.c_str(), filename.c_str());
+		return std::string();
+	}
+
+	std::string output = filename;
+	return output.replace(pos, oldStr.length(), newStr);
+
 }
 
 string FileUtils::replaceExt(string& filename, const string& oldExt, const string& newExt) {
-	int pos = filename.rfind(oldExt);
-
-    stringstream newname;
-    newname << filename.substr(0, pos) << newExt;
-	return newname.str();
+	return replaceDir(filename, oldExt, newExt);
 }
 
 
