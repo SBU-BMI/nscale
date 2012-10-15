@@ -33,7 +33,7 @@ endif(MPI_FOUND)
 
 #### Runtime example code
 
-set(programs Assign_test Segment_test Save_test PullHandler_test PushHandler_test Scheduler_test)
+set(programs test-mpi-iprobe-orders test-mpi-send-delays Assign_test Segment_test Save_test PullHandler_test PushHandler_test Scheduler_test)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
