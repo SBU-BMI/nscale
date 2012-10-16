@@ -16,11 +16,15 @@ int main (int argc, char **argv) {
 	long long t1, t2, t3, t4;
 
 	// parse inputs
-	if (argc < 4) 
-		printf("syntax:  %s io_node_count output_count data_size\n", argv[0]);
+	if (argc < 5) 
+		printf("syntax:  %s io_node_count output_count data_size barrierOn\n", argv[0]);
 	int io_node_count = atoi(argv[1]);
 	int output_num = atoi(argv[2]);
 	int data_size = atoi(argv[3]);
+	bool barrierOn = strcmp(argv[4], "off") == 0 ? false : true;
+	if (barrierOn) printf("MPI Barrier on.\n");
+	else printf("MPI Barrier off.\n");
+
 	data_size = data_size * data_size * 4;
 
 	// init MPI
@@ -71,21 +75,26 @@ int main (int argc, char **argv) {
 		char fn[256];
 		unsigned char* dummy = NULL;
 		FILE *fid;
-		
+		int callCount;		
 	
 		// initialize buffer
 		data = malloc(data_size);
 		memset(data, 0, data_size);
 
 		int sender_count = size - io_node_count;
+		int sender_id;
 
-		MPI_Barrier(comm_world);
+if (barrierOn)	MPI_Barrier(comm_world);
 		// probe to get the data
-		printf("%d ", rank);
+		printf("[%d] ", rank);
 		while (sender_count > 0) {
-
-		        MPI_Iprobe(MPI_ANY_SOURCE, 1, comm_world, &hasMessage, &mstatus);
+			sender_id = rand() % (size - io_node_count) + io_node_count;			
+		        MPI_Iprobe(sender_id, 1, comm_world, &hasMessage, &mstatus);
         		if (hasMessage) {
+
+				if (callCount % 200 == 0) printf("\n[%d] ", rank);
+
+				callCount++;
 	                	node_id = mstatus.MPI_SOURCE;
         	                MPI_Get_count(&mstatus, MPI_CHAR, &recv_size);
 				if (recv_size == 0) {
@@ -112,7 +121,7 @@ int main (int argc, char **argv) {
 
 		// send fixed number of data items.
 
-		printf("%d ", rank);
+		printf("[%d] ", rank);
 	        MPI_Request *reqs = new MPI_Request[output_num];
 		for (int i = 0; i < output_num; ++i) {
 			sleep(1);
@@ -123,16 +132,11 @@ int main (int argc, char **argv) {
 			MPI_Isend(data, data_size, MPI_CHAR, node_id, 1, comm_world, &(reqs[i]));
 
 		}
-		MPI_Barrier(comm_world);
+if (barrierOn)	MPI_Barrier(comm_world);
 
 		MPI_Waitall(output_num, reqs, MPI_STATUSES_IGNORE);
 		delete [] reqs;			
 	
-		printf("\n");
-
-	
-	
-		printf("end %d ", rank);
                 reqs = new MPI_Request[io_node_count];
 		for (int i = 0; i < io_node_count; ++i) {
 			printf("(%d),", i);
