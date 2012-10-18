@@ -73,8 +73,7 @@ int PullCommHandler::run() {
 
 
 		// first update the scheduler with all workers that are done.
-		MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, comm, &hasMessage, &mstatus);
-		while (hasMessage) {
+		while (waComm->iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, &mstatus)) {
 			node_id = mstatus.MPI_SOURCE;
 
 			// status update, "DONE".  receive it and terminate.
@@ -87,8 +86,6 @@ int PullCommHandler::run() {
 //				Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
 			}
 
-			// check to see if there are any done messages from that node.
-			MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, comm, &hasMessage, &mstatus);
 		}
 		if (status == Communicator_I::DONE) return status;  // no workers left to do work.
 		// ELSE there is some worker.
@@ -100,8 +97,7 @@ int PullCommHandler::run() {
 
 
 		// READY.  now look for a request.
-		MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::READY, comm, &hasMessage, &mstatus);
-		if (hasMessage) {
+		if (waComm->iprobe(MPI_ANY_SOURCE, Communicator_I::READY, &mstatus)) {
 			node_id = mstatus.MPI_SOURCE;
 
 //			Debug::print("%s manager receiving request from %d\n", getClassName(), node_id);

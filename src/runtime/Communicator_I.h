@@ -13,6 +13,7 @@
 #include <mpi.h>
 #include <memory>
 #include <cassert>
+#include "waMPI.h"
 #include <tr1/unordered_set>
 
 #include "DataBuffer.h"
@@ -66,23 +67,25 @@ public:
 */
 
 protected:
-	MPI_Comm const *parent_comm;
+	//MPI_Comm const *parent_comm;
 	MPI_Comm comm;
 	int const groupid;
 	int rank;
 	int size;
-	int pcomm_rank;
-	int pcomm_size;
+	//int pcomm_rank;
+	//int pcomm_size;
 	char hostname[256];
 
 	// some basic metadata tracking.
 	long call_count;
 /*	std::tr1::unordered_set<void *> reference_sources;
 */
+
+
+
+
 	cciutils::SCIOLogSession *logsession;
-
-
-
+	cci::rt::mpi::waMPI *waComm;
 };
 
 

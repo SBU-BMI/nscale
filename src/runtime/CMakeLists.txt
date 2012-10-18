@@ -7,6 +7,7 @@ set(Runtime_VERSION_MINOR 0)
 # Make sure the compiler can find the includes
 include_directories(${Runtime_SOURCE_DIR})
 include_directories(${SCIOSegmentation_SOURCE_DIR})
+include_directories(${NScale_Common_SOURCE_DIR})
 
 
 # Make sure the compiler can find the library in Execution Engine directory

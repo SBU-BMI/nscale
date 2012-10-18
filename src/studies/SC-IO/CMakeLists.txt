@@ -79,6 +79,7 @@ endif(USE_ADIOS)
 
 # Make sure the compiler can find the includes
 include_directories(${Segmentation_SOURCE_DIR})
+include_directories(${NScale_Common_SOURCE_DIR})
 
 # Make sure the compiler can find the library in Execution Engine directory
 link_directories(${Segmentation_SOURCE_DIR})

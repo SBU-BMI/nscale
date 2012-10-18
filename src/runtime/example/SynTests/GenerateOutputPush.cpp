@@ -30,6 +30,8 @@ GenerateOutputPush::GenerateOutputPush(MPI_Comm const * _parent_comm, int const 
 	else if (strcmp(proctype.c_str(), "gpu")) {
 		proc_code = cciutils::DEVICE_GPU;
 	}
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
 }
 
 GenerateOutputPush::~GenerateOutputPush() {
@@ -50,8 +52,8 @@ int GenerateOutputPush::compute(int const &input_size , void * const &input,
 	char fnchars[21];
 	memset(inchars, 0, 21);
 	memset(fnchars, 0, 21);
-	sprintf(inchars, "%dx%d", pcomm_rank, count);
-	sprintf(fnchars, "/tmp/dummy/synthetic_%dx%d_%d.tiff", pcomm_rank, count, output_count);
+	sprintf(inchars, "%dx%d", world_rank, count);
+	sprintf(fnchars, "/tmp/dummy/synthetic_%dx%d_%d.tiff", world_rank, count, output_count);
 	string imagename = string(inchars);
 	string fn = string(fnchars);
 

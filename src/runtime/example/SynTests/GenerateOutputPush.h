@@ -34,7 +34,7 @@ protected:
 	int output_count;
 	int count;
 	bool compress;
-
+	int world_rank;
 };
 
 }

@@ -120,7 +120,7 @@ int main (int argc, char **argv) {
 					// data.  put into buffer
 //					printf("%d receiving from %d\n", rank, node_id);
 					printf("r");
-					MPI_Recv(data + recv_count * data_size, recv_size, MPI_CHAR, node_id, 1, comm_world, MPI_STATUS_IGNORE); 
+					MPI_Recv((unsigned char*)data + recv_count * data_size, recv_size, MPI_CHAR, node_id, 1, comm_world, MPI_STATUS_IGNORE);
 					++recv_count;
 	
 					t2 = ::cciutils::event::timestampInUS();
@@ -159,7 +159,7 @@ int main (int argc, char **argv) {
 				                        if (!fid) {
 	        	                		        printf("ERROR: can't open %s to write\n", fn);
 		        		                } else {
-                				                fwrite(data + j * data_size, 1, data_size, fid);
+                				                fwrite((unsigned char*)data + j * data_size, 1, data_size, fid);
 			                	                fclose(fid);
 	                        			}
 							t4 = ::cciutils::event::timestampInUS();

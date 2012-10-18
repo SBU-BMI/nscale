@@ -90,9 +90,7 @@ int PushCommHandler::run() {
 			//	READY.  probe for messages, and receive them (data payloads directly or notice of worker stop.
 			// probe for 1 message each call.
 
-			MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &hasMessage, &mstatus);
-			//		MPI_Probe(MPI_ANY_SOURCE, CONTROL_TAG, comm, &mstatus);
-			if (hasMessage) {
+			if (waComm->iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, &mstatus)) {
 				node_id = mstatus.MPI_SOURCE;
 				tag = mstatus.MPI_TAG;
 
@@ -159,8 +157,7 @@ int PushCommHandler::run() {
 		// get all pending messages
 //		Debug::print("%s updating manager status\n", getClassName());
 		// update with all received control_tag message received from roots.
-		MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, comm, &hasMessage, &mstatus);
-		while (hasMessage) {
+		while (waComm->iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, &mstatus)) {
 			node_id = mstatus.MPI_SOURCE;
 
 			MPI_Recv(&node_status, 1, MPI_INT, node_id, Communicator_I::DONE, comm, &mstatus);
@@ -177,8 +174,6 @@ int PushCommHandler::run() {
 			t2 = cciutils::event::timestampInUS();
 //				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 
-			// check to see if there are any done messages from that node.
-			MPI_Iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, comm, &hasMessage, &mstatus);
 		}
 		// now check status.  if all managers are done, then worker is done.
 		if (status == Communicator_I::DONE) return status;  // empty so nothing to be done.

@@ -18,6 +18,7 @@
 #include "SCIOUtilsLogger.h"
 #include "SCIOUtilsADIOS.h"
 #include <mpi.h>
+#include "waMPI.h"
 #include "SCIOHistologicalEntities.h"
 
 #include <unistd.h>
@@ -359,14 +360,14 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	t2 = ::cciutils::event::timestampInUS();
 
+	cci::rt::mpi::waMPI *waComm = new cci::rt::mpi::waMPI(comm_world);
+
+
 	while (curr < total || IOCount > 0) {
 		//usleep(1000);
 
 
-		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
-
-
-		if (hasMessage != 0) {
+		if (waComm->iprobe(MPI_ANY_SOURCE, TAG_CONTROL, &status)) {
 /* where is it coming from */
 
 // 			comment out to reduce amount of logging by master
@@ -511,9 +512,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	while (active_workers > 0) {
 		//usleep(1000);
 
-		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
-
-		if (hasMessage != 0) {
+		if (waComm->iprobe(MPI_ANY_SOURCE, TAG_CONTROL, &status)) {
 		/* where is it coming from */
 
 // conserve space...
@@ -549,6 +548,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	//printf("MANAGER waiting for MPI sync\n");
 	// now all child processes will be doing the collective IO
+	delete waComm;
 
 	MPI_Barrier(comm_world);
 

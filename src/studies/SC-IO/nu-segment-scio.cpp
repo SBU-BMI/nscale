@@ -20,6 +20,7 @@
 #include "SCIOHistologicalEntities.h"
 
 #include <unistd.h>
+#include "waMPI.h"
 
 using namespace cv;
 
@@ -335,15 +336,14 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 	t2 = ::cciutils::event::timestampInUS();
 
+	cci::rt::mpi::waMPI *waComm = new cci::rt::mpi::waMPI(comm_world);
+
 	while (curr < total) {
 		//usleep(1000);
 
 		managerStatus = MANAGER_READY;
 
-		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
-
-
-		if (hasMessage != 0) {
+		if (waComm->iprobe(MPI_ANY_SOURCE, TAG_CONTROL, &status)) {
 
 //			t3 = ::cciutils::event::timestampInUS();
 //			if (session != NULL) session->log(cciutils::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
@@ -424,8 +424,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		//usleep(1000);
 
 
-		MPI_Iprobe(MPI_ANY_SOURCE, TAG_CONTROL, comm_world, &hasMessage, &status);
-		if (hasMessage != 0) {
+		if (waComm->iprobe(MPI_ANY_SOURCE, TAG_CONTROL, &status)) {
 //			t3 = ::cciutils::event::timestampInUS();
 //			if (session != NULL) session->log(cciutils::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
 //
@@ -451,6 +450,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		}
 	}
 
+	delete waComm;
 	MPI_Barrier(comm_world);
 
 }

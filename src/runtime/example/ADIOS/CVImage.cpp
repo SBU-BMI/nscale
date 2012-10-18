@@ -351,7 +351,7 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 			// if need to compact, then compact first before compress
 			d2 = malloc(s2);
 			for (int i = 0; i < this->metadata.info.y_size; ++i) {
-				memcpy(d2 + i * row_size, this->data + i * this->metadata.info.step, row_size);
+				memcpy((unsigned char*)d2 + i * row_size, this->data + i * this->metadata.info.step, row_size);
 			}
 		} else {
 			// else just use the original pointer.

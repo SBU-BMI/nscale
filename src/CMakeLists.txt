@@ -1,3 +1,4 @@
+add_subdirectory(common)
 add_subdirectory(execEngine)
 add_subdirectory(features-cpu)
 add_subdirectory(features)
