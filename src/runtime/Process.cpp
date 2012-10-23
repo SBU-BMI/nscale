@@ -81,8 +81,8 @@ void Process::run() {
 				iter != handlers.end(); ) {
 			result = (*iter)->run();
 			if (result == Communicator_I::DONE || result == Communicator_I::ERROR) {
-				ss.str(std::string());
-				ss << "DELETING " << (*iter)->getClassName() << ". ";
+				//ss.str(std::string());
+				//ss << "DELETING " << (*iter)->getClassName() << ". ";
 //				Communicator_I::dereference((*iter), &handlers);
 				delete (*iter);
 				iter = handlers.erase(iter);
@@ -95,7 +95,7 @@ void Process::run() {
 //						ss << "(" << (*iter2)->getClassName() << ":" << (*iter2)->getStatus() << "), ";
 //					}
 //				}
-				Debug::print("Process %s\n", ss.str().c_str());
+				//Debug::print("Process %s\n", ss.str().c_str());
 			} else ++iter;
 		}
 	}

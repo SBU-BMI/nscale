@@ -85,7 +85,7 @@ int PushCommHandler::run() {
 		// if the buffer is stopped, then no more data.  notify workers and discard the data
         if (buffer->isStopped()) {
 			// worker buffer is finished.  let all roots know to remove this worker from list.
-        	Debug::print("%s master buffer is stopped\n", getClassName());
+        	//Debug::print("%s master buffer is stopped\n", getClassName());
 
 			// clear all pending done messages
             while (waComm->iprobe(MPI_ANY_SOURCE, tag, &mstatus)) {
@@ -99,10 +99,10 @@ int PushCommHandler::run() {
 					scheduler->removeLeaf(node_id);
 					data = NULL;
 				}
-				Debug::print("%s master receiving from %d\n", getClassName(), node_id);
+				//Debug::print("%s master receiving from %d\n", getClassName(), node_id);
 				MPI_Recv(data, count, MPI_CHAR, node_id, tag, comm, &mstatus);
 				if (data != NULL) free(data);
-				Debug::print("%s master received from %d\n", getClassName(), node_id);
+				//Debug::print("%s master received from %d\n", getClassName(), node_id);
 
 				// check to see if there are any done messages from that node.
             }
@@ -113,11 +113,11 @@ int PushCommHandler::run() {
 			std::random_shuffle(leaves.begin(), leaves.end());   // avoid synchronized notifications
 
 			// notify all leaves;
-			Debug::print("%s master buffer DONE\n", getClassName());
+			//Debug::print("%s master buffer DONE\n", getClassName());
 			MPI_Request *reqs = new MPI_Request[leaves.size()];
 			int i = 0;
 
-			Debug::print("%s master notifying all workers\n", getClassName());
+			//Debug::print("%s master notifying all workers\n", getClassName());
 			status = Communicator_I::DONE;
 			for (std::vector<int>::iterator iter=leaves.begin();
 							iter != leaves.end(); ++iter) {
@@ -150,14 +150,14 @@ int PushCommHandler::run() {
 
 			if (count <= 0) {
 				data = NULL;
-				Debug::print("%s master receiving done from %d\n", getClassName(), node_id);
+				//Debug::print("%s master receiving done from %d\n", getClassName(), node_id);
                 MPI_Recv(data, 0, MPI_CHAR, node_id, tag, comm, MPI_STATUS_IGNORE);
 				scheduler->removeLeaf(node_id);
 				Debug::print("%s master received done from %d\n", getClassName(), node_id);
 
 			} else {
 				if (buffer->canTransmit()) {
-					Debug::print("%s master receiving non-block from %d\n", getClassName(), node_id);
+					//Debug::print("%s master receiving non-block from %d\n", getClassName(), node_id);
 					buffer->transmit(node_id, tag, MPI_CHAR, comm, count);
 					++send_count;
 					// Debug::print("%s worker got data size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
@@ -189,7 +189,7 @@ int PushCommHandler::run() {
 	} else {
 		// sender:  clean up everything that's been sent.
 		completed = buffer->checkRequests();
-		if (completed > 0) Debug::print("%s worker completed %d requests\n", getClassName(), completed);
+		//if (completed > 0) Debug::print("%s worker completed %d requests\n", getClassName(), completed);
 
 		// first update the manager status
 		// only messages to receive from manager are "done" messages
@@ -201,10 +201,10 @@ int PushCommHandler::run() {
                 node_id = mstatus.MPI_SOURCE;
 
                 // status update, "DONE".  receive it and terminate.
-				Debug::print("%s worker receiving from %d\n", getClassName(), node_id);
+				//Debug::print("%s worker receiving from %d\n", getClassName(), node_id);
                 MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
                 scheduler->removeRoot(node_id);
-				Debug::print("%s worker received from %d\n", getClassName(), node_id);
+				//Debug::print("%s worker received from %d\n", getClassName(), node_id);
 
         }
 
@@ -232,7 +232,7 @@ int PushCommHandler::run() {
 
 			status = Communicator_I::DONE;
 			data = NULL;
-			Debug::print("%s buffer is finished.  worker notifying ALL managers with DONE\n", getClassName());
+			//Debug::print("%s buffer is finished.  worker notifying ALL managers with DONE\n", getClassName());
 			for (std::vector<int>::iterator iter=roots.begin();
 							iter != roots.end(); ++iter) {
 					MPI_Isend(data, 0, MPI_CHAR, *iter, tag, comm, &(reqs[i]));
@@ -256,11 +256,11 @@ int PushCommHandler::run() {
 			node_id = scheduler->getRootFromLeaf(rank);
 
 				// manager READY.  now set up the send.
-			Debug::print("%s worker sending to %d\n", getClassName(), node_id);
+			//Debug::print("%s worker sending to %d\n", getClassName(), node_id);
 			buffer->transmit(node_id, tag, MPI_CHAR, comm, -1);
 			++send_count;
 
-			Debug::print("%s worker sent %d items to %d\n", getClassName(), send_count, node_id);
+			//Debug::print("%s worker sent %d items to %d\n", getClassName(), send_count, node_id);
 			if (send_count % 100 == 0) Debug::print("%s worker sent %d data messages to managers.\n", getClassName(), send_count);
 			return status;
 		} else {

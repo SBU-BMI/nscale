@@ -150,7 +150,7 @@ int PullCommHandler::run() {
 
 		// 1. receiver:  clean up everything that's been sent.
 		completed = buffer->checkRequests();
-		if (completed > 0) Debug::print("%s worker completed %d requests\n", getClassName(), completed);
+		//if (completed > 0) Debug::print("%s worker completed %d requests\n", getClassName(), completed);
 
 		// no more managers to send requests to.  this is done.
 		if (!scheduler->hasRoots()) {
@@ -167,7 +167,7 @@ int PullCommHandler::run() {
 			std::vector<int> roots = scheduler->getRoots();
 			std::random_shuffle(roots.begin(), roots.end());  // avoid synchronized termination.
 
-			Debug::print("%s worker buffer DONE\n", getClassName());
+			//Debug::print("%s worker buffer DONE\n", getClassName());
 			MPI_Request *reqs = new MPI_Request[roots.size()];
 			int i = 0;
 
@@ -202,7 +202,7 @@ int PullCommHandler::run() {
 		t1 = cciutils::event::timestampInUS();
 		MPI_Probe(node_id, tag, comm, &mstatus);
 		t2 = cciutils::event::timestampInUS();
-		Debug::print("%s worker got data size from probe to %d in %ld us\n", getClassName(), node_id, (t2-t1));
+		//Debug::print("%s worker got data size from probe to %d in %ld us\n", getClassName(), node_id, (t2-t1));
 		// receive some data.
 		MPI_Get_count(&mstatus, MPI_CHAR, &count);
 
@@ -210,7 +210,7 @@ int PullCommHandler::run() {
 
 			buffer->transmit(node_id, tag, MPI_CHAR, comm, count);
 			++send_count;
-			Debug::print("%s worker got data size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
+			//Debug::print("%s worker got data size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
 		} else {
 			data = NULL;
 			// manager is done
