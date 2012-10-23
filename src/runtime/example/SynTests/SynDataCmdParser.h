@@ -16,7 +16,7 @@ namespace rt {
 namespace syntest {
 
 
-class SynDataCmdParser : public cci::rt::CmdlineParser_I<15> {
+class SynDataCmdParser : public cci::rt::CmdlineParser_I<16> {
 public:
 	SynDataCmdParser(MPI_Comm &_comm) : comm(_comm) {};
 	virtual ~SynDataCmdParser() {};
@@ -39,6 +39,7 @@ public:
 	static const int PARAM_IOBUFFERSIZE;
 	static const int PARAM_OUTPUTSIZE;
 	static const int PARAM_COMPRESSION;
+	static const int PARAM_NONBLOCKING;
 
 
 protected:

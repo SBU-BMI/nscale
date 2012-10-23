@@ -68,23 +68,23 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 	int tilex = atoi(xstr.c_str());
 	int tiley = atoi(ystr.c_str());
 
-	cv::Mat im = cv::imread(fn, -1);
+	//cv::Mat im = cv::imread(fn, -1);
 	//cv::Mat im = cv::Mat::zeros(4096, 4096, CV_8UC4);
 	// simulate computation
 	//sleep(rand() % 3 + 1);
-	t2 = ::cciutils::event::timestampInUS();
+//	t2 = ::cciutils::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
-	memset(len, 0, 21);
-	sprintf(len, "%lu", (long)(im.dataend) - (long)(im.datastart));
-	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("read"), t1, t2, std::string(len), ::cciutils::event::FILE_I));
-
-
-	if (!im.data) {
-		im.release();
-		return -1;
-	}
-
-	t1 = ::cciutils::event::timestampInUS();
+//	memset(len, 0, 21);
+//	sprintf(len, "%lu", (long)(im.dataend) - (long)(im.datastart));
+//	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("read"), t1, t2, std::string(len), ::cciutils::event::FILE_I));
+//
+//
+//	if (!im.data) {
+//		im.release();
+//		return -1;
+//	}
+//
+//	t1 = ::cciutils::event::timestampInUS();
 
 	// real computation:
 	int status = ::nscale::SCIOHistologicalEntities::SUCCESS;
@@ -109,7 +109,7 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 		if (logsession != NULL) logsession->log(cciutils::event(90, std::string("serialize"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
 
 	if (bbox != NULL) free(bbox);
-	im.release();
+//	im.release();
 
 	mask.release();
 	return status;
@@ -127,7 +127,7 @@ int GenerateOutput::run() {
 		this->inputBuf->stop();
 
 		return Communicator_I::DONE;
-	} else if (this->inputBuf->isEmpty() || this->outputBuf->isFull()) {
+	} else if (!this->inputBuf->canPop() || !this->outputBuf->canPush()) {
 		return Communicator_I::WAIT;
 	}
 

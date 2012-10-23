@@ -112,7 +112,7 @@ int ADIOSSave::run() {
 	// if input is done, it CANNOT use fence and wait - need to participate in persist.
 
 	int incr = 1;
-	int status = (this->inputBuf->isEmpty() ? Communicator_I::WAIT : Communicator_I::READY);
+	int status = (this->inputBuf->canPop() ? Communicator_I::READY : Communicator_I::WAIT);
 	int done_count;
 
 //	if (test_input_status == DONE)
@@ -171,7 +171,7 @@ int ADIOSSave::run() {
 		}
 		else status = Communicator_I::WAIT;
 
-		if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->getBufferSize());
+		if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->debugBufferSize());
 
 		//if (status == WAIT) Debug::print("%s DONE local rank %d status %d, local iter %d, local count %d, done_count = %d\n", getClassName(), rank, input_status, local_iter, inputSizes.size(), done_count);
 		t2 = ::cciutils::event::timestampInUS();
@@ -188,7 +188,7 @@ int ADIOSSave::run() {
 
 	// TODO: removed check for WAIT next to READY
 	if (this->inputBuf->isFull() ||
-			(!(this->inputBuf->isEmpty()) && this->inputBuf->isStopped())) {
+			(this->inputBuf->canPop() && this->inputBuf->isStopped())) {
 		// not done and has full buffer, or done and has some data
 		// increment self and accumulate
 		++local_iter;
@@ -206,7 +206,7 @@ int ADIOSSave::run() {
 	MPI_Get(&max_iter, 1, MPI_INT, 0, 0, 1, MPI_INT, iter_win);
 	MPI_Win_unlock(0, iter_win);
 
-	Debug::print("%s  max_iter = %d, global_iter = %d, local_iter = %d, buffer size = %ld, done marked = %d\n", getClassName(), max_iter, global_iter, local_iter, inputBuf->getBufferSize(), (done_marked ? 1 : 0));
+	Debug::print("%s  max_iter = %d, global_iter = %d, local_iter = %d, buffer size = %ld, done marked = %d\n", getClassName(), max_iter, global_iter, local_iter, inputBuf->debugBufferSize(), (done_marked ? 1 : 0));
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -239,7 +239,7 @@ int ADIOSSave::run() {
 }
 
 int ADIOSSave::process() {
-	Debug::print("%s: IO group %d rank %d, write iter %d, tile count %d\n", getClassName(), groupid, rank, local_iter, inputBuf->getBufferSize());
+	Debug::print("%s: IO group %d rank %d, write iter %d, tile count %d\n", getClassName(), groupid, rank, local_iter, inputBuf->debugBufferSize());
 
 	// move data from action's buffer to adios' buffer
 
@@ -248,7 +248,7 @@ int ADIOSSave::process() {
 	void *input;
 	int result;
 
-	while (!this->inputBuf->isEmpty()) {
+	while (this->inputBuf->canPop()) {
 		result = this->inputBuf->pop(data);
 		input_size = data.first;
 		input = data.second;
@@ -262,6 +262,8 @@ int ADIOSSave::process() {
 			input = NULL;
 
 			++local_total;
+		} else {
+			Debug::print("%s NULL INPUT from buffer!!!\n", getClassName());
 		}
 	}
 

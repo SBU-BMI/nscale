@@ -25,12 +25,12 @@ void RoundRobinScheduler::postConfigure() {
 
 	int s = roots.size();
 	if (s == 0) rootIdx = -1;
-	else if (s == 1) rootIdx = 1;
+	else if (s == 1) rootIdx = 0;
 	else rootIdx = rand() % s;
 
 	s = leaves.size();
 	if (s == 0) leafIdx = -1;
-	else if (s == 1) leafIdx = 1;
+	else if (s == 1) leafIdx = 0;
 	else leafIdx = rand() % s;
 
 }
@@ -66,6 +66,7 @@ int RoundRobinScheduler::getLeafFromRoot(int rootId) {
 int RoundRobinScheduler::removeRoot(int id) {
 
 	int count = Scheduler_I::removeRoot(id);
+
 	// reset the iterators
 	if (count == 0) rootIdx = -1;
 	else if (count == 1) rootIdx = 0;

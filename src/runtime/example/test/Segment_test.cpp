@@ -49,6 +49,7 @@ int main (int argc, char **argv){
 					stat == cci::rt::DataBuffer::BAD_DATA) {
 				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
 				free(data);
+				data = NULL;
 			}
 			printf("input added at iteration j %d: %d. data ptr %p, pair ptr %p\n", j, temp[0], data, dstr.second);
 			//free(data);
@@ -64,6 +65,7 @@ int main (int argc, char **argv){
 					stat == cci::rt::DataBuffer::BAD_DATA) {
 				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
 				free(data);
+				data = NULL;
 			}
 			//free(data);
 		} else if (j == 40)
@@ -82,7 +84,6 @@ int main (int argc, char **argv){
 			printf("iterating\n");
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
-				printf("input buffer has stuff %d, output buffer has stuff %d\n", (((cci::rt::Action_I*)(*iter))->getInputBuffer()->isEmpty() ? 0 : 1), (((cci::rt::Action_I*)(*iter))->getOutputBuffer()->isEmpty() ? 0 : 1));
 				printf("no output at iter j %d .  DONE or error state %d\n", j, result);
 				delete (*iter);
 
@@ -93,6 +94,7 @@ int main (int argc, char **argv){
 				if (dstr.second != NULL) {
 					printf("output deleted at %p\n", dstr.second);
 					free(dstr.second);
+					dstr.second = NULL;
 				}
 				++iter;
 			} else {

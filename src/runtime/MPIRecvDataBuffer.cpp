@@ -11,39 +11,59 @@
 namespace cci {
 namespace rt {
 
-MPIRecvDataBuffer::MPIRecvDataBuffer(int _capacity) : MPIDataBuffer(_capacity) {
-}
+int MPIRecvDataBuffer::transmit(int node, int tag, MPI_Datatype type, MPI_Comm &comm, int size) {
+	// first check the size to receive.
+	if (size < 0) return BAD_DATA;
 
-MPIRecvDataBuffer::~MPIRecvDataBuffer() { }
+	void *ldata = NULL;
 
-int MPIRecvDataBuffer::pushMPI(MPI_Request *req, DataBuffer::DataType const data) {
-
-	if (!canPushMPI()) {
-		if (isFull()) return FULL;
-		else return status;
+	if (size == 0) {
+		// size is zero, receive it and through it away (so the message is received.
+		MPI_Recv(ldata, size, type, node, tag, comm, MPI_STATUS_IGNORE);
+		return status;
 	}
-	if (data.first == 0 || data.second == NULL) return BAD_DATA;
 
-	int completed;
-	MPI_Test(req, &completed, MPI_STATUS_IGNORE);
-	if (completed == 0) mpi_buffer[req] = data;	
-	else buffer.push(data);
+	if (isStopped()) return status;
+	if (isFull()) return FULL;
 
-//	Debug::print("MPIRecvDataBuffer: pushMPI called.  %d load\n", mpi_buffer.size());
+	long long t1 = ::cciutils::event::timestampInUS();
 
-	if (this->isFull()) return FULL;
-	else return status;  // should have value READY.
+	// else size is greater than 1.
+	ldata = malloc(size);
+	memset(ldata, 0, size);
+
+	if (non_blocking) {
+		MPI_Request *req = new MPI_Request[1];
+		MPI_Irecv(ldata, size, type, node, tag, comm, req);
+
+		mpi_buffer[req] = std::make_pair(size, ldata);
+		mpi_req_starttimes[req] = t1;
+	} else {
+		MPI_Status mstat;
+
+		MPI_Recv(ldata, size, type, node, tag, comm, &mstat);
+		buffer.push(std::make_pair(size, ldata));
+
+		long long t2 = ::cciutils::event::timestampInUS();
+
+		char len[21];  // max length of uint64 is 20 digits
+		memset(len, 0, 21);
+		sprintf(len, "%d", size);
+		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI B RECV"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+
+
+	}
+	return status;
 }
 
-int MPIRecvDataBuffer::popMPI(DataBuffer::DataType* &data) {
 
-	if (mpi_buffer.size() == 0) return -1;
-	data = NULL;
+int MPIRecvDataBuffer::checkRequests(bool waitForAll) {
 
+	if (mpi_buffer.empty()) return 0;
+
+	if (!non_blocking) return 0;  // blocking comm.  should not have any in MPI queue.
 
 	// get all the requests together
-	MPI_Request *reqs = new MPI_Request[mpi_buffer.size()];
-	MPI_Request **reqptrs = new MPI_Request*[mpi_buffer.size()];
 	int active = 0;
 	for (std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType>::iterator iter = mpi_buffer.begin();
 			iter != mpi_buffer.end(); ++iter) {
@@ -53,41 +73,52 @@ int MPIRecvDataBuffer::popMPI(DataBuffer::DataType* &data) {
 	}
 
 	int completed = 0;
-	int *completedreqs = new int[mpi_buffer.size()];
-	MPI_Status *stati = new MPI_Status[mpi_buffer.size()];
-
-	MPI_Testsome(active, reqs, &completed, completedreqs, stati);
-
-	if (completed > 0) printf("recv active = %d, number completed = %d, total = %ld\n", active, completed, mpi_buffer.size());
-
-	int retcode;
-	if (completed == MPI_UNDEFINED) {
-		retcode = -1;
-	} else if (completed == 0) {
-		retcode = 0;
+	if (waitForAll) {
+		MPI_Waitall(active, reqs, MPI_STATUSES_IGNORE);
+		completed = active;
 	} else {
-		data = new DataBuffer::DataType[completed];
+		MPI_Testsome(active, reqs, &completed, completedreqs, MPI_STATUSES_IGNORE);
+	}
+
+	long long t2 = ::cciutils::event::timestampInUS();
+	long long t1;
+
+	int size;
+	MPI_Request* reqptr;
+
+	if (completed == MPI_UNDEFINED) {
+		Debug::print("ERROR: testing completion received a complete count of MPI_UNDEFINED\n");
+	} else if (completed == 0) {
+		// Debug::print("no mpi requests completed\n");
+	} else {
+		//Debug::print("MPI Recv Buffer active = %d, number completed = %d, total = %ld\n", active, completed, mpi_buffer.size());
+
+		char len[21];  // max length of uint64 is 20 digits
 
 		for (int i = 0; i < completed; ++i) {
-			//printf("recv MPI error status: %d\n", stati[i].MPI_ERROR);
-			data[i] = mpi_buffer[reqptrs[completedreqs[i]]];
-			mpi_buffer.erase(reqptrs[completedreqs[i]]);
+			reqptr = reqptrs[completedreqs[i]];
 
-			// also move into the regular buffer.
-			data[i].second = realloc(data[i].second, data[i].first);  // free as much memory as possible...
-			buffer.push(data[i]);
+			//printf("recv MPI error status: %d\n", stati[i].MPI_ERROR);
+			size = mpi_buffer[reqptr].first;
+
+			buffer.push(mpi_buffer[reqptr]);
+			mpi_buffer.erase(reqptr);
+
+			t1 = mpi_req_starttimes[reqptr];
+			mpi_req_starttimes.erase(reqptr);
+
+			memset(len, 0, 21);
+			sprintf(len, "%d", size);
+			if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI NB RECV"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
 		}
-		printf("recv new size: %ld\n", mpi_buffer.size());
-		retcode = completed;
+		//Debug::print("MPI Recv Buffer new size: %ld\n", mpi_buffer.size());
+
+		debug_complete_count += completed;
 	}
 
 //	Debug::print("MPIRecvDataBuffer: popMPI called.  %d load\n", mpi_buffer.size());
 
-	delete [] reqs;
-	delete [] reqptrs;
-	delete [] completedreqs;
-	delete [] stati;
-	return retcode;
+	return completed;
 }
 
 

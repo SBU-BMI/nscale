@@ -64,7 +64,7 @@ int main (int argc, char **argv){
 
 	int result = cci::rt::Communicator_I::READY, oresult = cci::rt::Communicator_I::READY;
 	while (!handlers.empty() ) {
-		printf("not empty\n");
+
 
 		if (j >= 10 & j < 30) {
 			data = malloc(count);
@@ -77,7 +77,10 @@ int main (int argc, char **argv){
 					stat == cci::rt::DataBuffer::BAD_DATA) {
 				printf("input added at iteration j %d: %d. data ptr %p, pair ptr %p\n", j, temp[0], data, dstr.second);
 				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
-				if (data != NULL) free(data);
+				if (data != NULL) {
+					free(data);
+					data = NULL;
+				}
 			}
 //			free(data);
 
@@ -91,10 +94,13 @@ int main (int argc, char **argv){
 					stat == cci::rt::DataBuffer::BAD_DATA) {
 				printf("input added at iteration j %d: %d. data ptr %p, pair ptr %p\n", j, temp[0], data, dstr.second);
 				printf("WARNING:  data was not inserted because stat is %d.  delete data\n", stat);
-				if (data != NULL) free(data);
+				if (data != NULL) {
+					free(data);
+					data = NULL;
+				}
 			}
 //			free(data);
-		} else if (j == 40)
+		} else if (j == 60)
 			save->getInputBuffer()->stop();
 
 		// j < 10: ready and waiting
@@ -106,7 +112,7 @@ int main (int argc, char **argv){
 
 		for (std::vector<cci::rt::Communicator_I *>::iterator iter = handlers.begin();
 				iter != handlers.end(); ) {
-			printf("iterating\n");
+
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
 				printf("no output at iter j %d .  DONE or error state %d\n", j, result);

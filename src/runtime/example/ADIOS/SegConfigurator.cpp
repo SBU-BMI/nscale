@@ -132,21 +132,27 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		else if (rank == 0) isroot = true;  // io root at rank = 0
 	}
 
-	sch = new RandomScheduler(isroot, !isroot);
+
 	// set up the buffers
 	if (compute_io_g == IO_GROUP) {  // io nodes
+		sch = new RandomScheduler(false, false);
 		// compute and io groups
 		handler = new PullCommHandler(&comm, compute_io_g, NULL, sch, logger->getSession("pull"));
 	} else {
+		sch = new RandomScheduler(isroot, !isroot);
 		if (isroot) {  // root of compute
-			sbuf = new MPISendDataBuffer(100);
+			sbuf = new MPISendDataBuffer(100,
+					(strcmp(params[SegmentCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			handler = new PullCommHandler(&comm, compute_io_g, sbuf, sch, logger->getSession("pull"));
 		} else { // other compute
-			rbuf = new MPIRecvDataBuffer(4);
+			rbuf = new MPIRecvDataBuffer(4,
+					(strcmp(params[SegmentCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			handler = new PullCommHandler(&comm, compute_io_g, rbuf, sch, logger->getSession("pull"));
 		}
 	}
 
+	MPI_Barrier(comm);
+	if (rank == 0) printf("comp and io communicators set\n");
 	// then the compute to IO communication group
 	// separate masters in the compute group
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
@@ -157,15 +163,19 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		handler2 = new PushCommHandler(&comm, compute_to_io_g, NULL, sch2, logger->getSession("push"));
 	} else {
 		if (compute_io_g == IO_GROUP) {
-			rbuf = new MPIRecvDataBuffer(atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()));
+			rbuf = new MPIRecvDataBuffer(atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+					(strcmp(params[SegmentCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
 			handler2 = new PushCommHandler(&comm, compute_to_io_g, rbuf, sch2, logger->getSession("push"));
 		} else {
-			sbuf = new MPISendDataBuffer(atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()));
+			sbuf = new MPISendDataBuffer(atoi(params[SegmentCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+					(strcmp(params[SegmentCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			sch2 = new RandomScheduler(false, true);
 			handler2 = new PushCommHandler(&comm, compute_to_io_g, sbuf, sch2, logger->getSession("push"));
 		}
 	}
+	MPI_Barrier(comm);
+	if (rank == 0) printf("comp to io communicators set\n");
 
 	t2 = cciutils::event::timestampInUS();
 	if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout comms"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
@@ -262,6 +272,29 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		proc->addHandler(save);
 		delete handler;
 	}
+	MPI_Barrier(comm);
+
+	std::ostream_iterator<int> osi(std::cout, ", ");
+	std::vector<int> roots;
+	std::vector<int> leaves;
+
+	roots = sch->getRoots();
+	std::cout << "io or compute scheduler - " << rank << " (" << (compute_io_g == COMPUTE_GROUP ? "cp" : "io") << ") roots: ";
+	std::copy(roots.begin(), roots.end(), osi);
+	std::cout << std::endl;
+	leaves = sch->getLeaves();
+	std::cout << "io or compute scheduler - " << rank << " (" << (compute_io_g == COMPUTE_GROUP ? "cp" : "io") << ") leaves: ";
+	std::copy(leaves.begin(), leaves.end(), osi);
+	std::cout << std::endl;
+
+	roots = sch2->getRoots();
+	std::cout << "compute to IO scheduler - " << rank << " (" << (compute_to_io_g == COMPUTE_TO_IO_GROUP ? "c2io" : "unknown") << ") roots: ";
+	std::copy(roots.begin(), roots.end(), osi);
+	std::cout << std::endl;
+	leaves = sch2->getLeaves();
+	std::cout << "compute to IO scheduler - " << rank << " (" << (compute_to_io_g == COMPUTE_TO_IO_GROUP ? "c2io" : "unknown") << ") leaves: ";
+	std::copy(leaves.begin(), leaves.end(), osi);
+	std::cout << std::endl;
 
 	return true;
 }

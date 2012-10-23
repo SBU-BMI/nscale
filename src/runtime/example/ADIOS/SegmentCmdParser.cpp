@@ -33,6 +33,7 @@ const int SegmentCmdParser::PARAM_SUBIOINTERLEAVE = 10;
 const int SegmentCmdParser::PARAM_BENCHMARK = 11;
 const int SegmentCmdParser::PARAM_IOBUFFERSIZE = 12;
 const int SegmentCmdParser::PARAM_COMPRESSION = 13;
+const int SegmentCmdParser::PARAM_NONBLOCKING = 14;
 
 
 
@@ -66,6 +67,7 @@ bool SegmentCmdParser::parse(int argc, char** argv) {
 	params[SegmentCmdParser::PARAM_GPUDEVICEID] = "0";
 	params[SegmentCmdParser::PARAM_IOBUFFERSIZE] = "7";
 	params[SegmentCmdParser::PARAM_COMPRESSION] = "off";
+	params[SegmentCmdParser::PARAM_NONBLOCKING] = "off";
 
 	int pos = 3;
 
@@ -137,15 +139,14 @@ bool SegmentCmdParser::parse(int argc, char** argv) {
 	} else return true;
 
 	if (argc > pos) {
-		params[SegmentCmdParser::PARAM_BENCHMARK] = argv[pos];
-		++pos;
-	}
-
-	if (argc > pos) {
 		params[SegmentCmdParser::PARAM_COMPRESSION] = argv[pos];
 		++pos;
 	}
 
+	if (argc > pos) {
+		params[SegmentCmdParser::PARAM_NONBLOCKING] = argv[pos];
+		++pos;
+	}
 
 	return true;
 }
@@ -157,7 +158,7 @@ void SegmentCmdParser::printUsage(char *cmd) {
 	if (rank == 0) {
 
 		std::stringstream ss;
-		ss << "Usage:  " << cmd << " <input_filename | input_dir> output_dir imagecount [cpu | gpu id] [tranport] [bufferSize] [IOSize] [IOInterleave] [subIOSize] [subIOInterleave] [benchmark] [compression]" << std::endl;
+		ss << "Usage:  " << cmd << " <input_filename | input_dir> output_dir imagecount [cpu | gpu id] [tranport] [bufferSize] [IOSize] [IOInterleave] [subIOSize] [subIOInterleave] [compression] [nonblocking]" << std::endl;
 		ss << "\t <input_filename | input_dir>: required. either an image filename or an image directory" << std::endl;
 		ss << "\t output_dir: required. output directory" << std::endl;
 		ss << "\t imagecount: required. number of images to process. no default." << std::endl;
@@ -174,10 +175,8 @@ void SegmentCmdParser::printUsage(char *cmd) {
 		ss << "\t\t subIOSize is clamped to [1, ioSize].  subIOInterleave is clamped to [1,...)." << std::endl;
 		ss << "\t\t IO group is split into g groups of max size subIOSize.  subIOInterleave number of subgroups interleave together." << std::endl;
 		ss << "\t\t\t e.g. 1 2 3 1 2 3. Default is subIOInterleave=1, subIOsize=IOsize (1 group)" << std::endl;
-		ss << "\t [benchmark]: optional. benchmark flag turns on IO benchmarking before and " << std::endl;
-		ss << "\t\t after the actual processing using the same ADIOS config as the processing. " << std::endl;
-		ss << "\t\t default = 0.  WARNING: could be really slow." << std::endl;
 		ss << "\t [compression] = on|off: optional. turn on compression for MPI messages and IO. default off." << std::endl;
+		ss << "\t [nonblocking]: optional. choosing to use blocking or non-blocking MPI.  default off " << std::endl;
 	//	ss << "\tstages: the stages to capture.  syntax is a comma separated ranges.  Range could be a single value or a dash (-) separated range.  range is of form [...) " << std::endl;
 
 		printf("%s\n", ss.str().c_str());

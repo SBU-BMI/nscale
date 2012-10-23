@@ -28,7 +28,7 @@ Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
 	assert(_output != NULL);
 
 	if (strcmp(proctype.c_str(), "cpu")) proc_code = cciutils::DEVICE_CPU;
-	else if (strcmp(proctype.c_str(), "cpu")) {
+	else if (strcmp(proctype.c_str(), "gpu")) {
 		proc_code = cciutils::DEVICE_GPU;
 	}
 
@@ -101,6 +101,8 @@ int Segment::compute(int const &input_size , void * const &input,
 //
 //	} else {
 	//Debug::print("%s running for %s\n", getClassName(), fn.c_str());
+
+/// //DEBUGGING ONLY
 	nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(fn);
 	status = seg->segmentNuclei(im, mask, compcount, bbox, logsession, NULL);
 	delete seg;
@@ -145,8 +147,9 @@ int Segment::run() {
 		Debug::print("%s output DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
 		this->inputBuf->stop();
 
+		if (!this->inputBuf->isFinished()) Debug::print("WARNING: %s input buffer is not empty.\n", getClassName());
 		return Communicator_I::DONE;
-	} else if (this->inputBuf->isEmpty() || this->outputBuf->isFull()) {
+	} else if (!this->inputBuf->canPop() || !this->outputBuf->canPush()) {
 		return Communicator_I::WAIT;
 	}
 

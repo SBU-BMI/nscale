@@ -88,7 +88,7 @@ int GenerateOutputPush::run() {
 	if (outputBuf->isStopped()) {
 		Debug::print("%s STOPPED. call count %d \n", getClassName(), call_count);
 		return Communicator_I::DONE;
-	} else if (outputBuf->isFull()){
+	} else if (!outputBuf->canPush()){
 		//Debug::print("%s FULL. call count %d \n", getClassName(), call_count);
 		return Communicator_I::WAIT;
 	} // else has room, and not stopped, so can push.

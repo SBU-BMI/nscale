@@ -39,7 +39,7 @@ int Save::run() {
 	if (this->inputBuf->isFinished()) {
 		Debug::print("%s input DONE.  input count = %d\n", getClassName(), call_count);
 		return Communicator_I::DONE;
-	} else if (this->inputBuf->isEmpty()) {
+	} else if (!this->inputBuf->canPop()) {
 		return Communicator_I::WAIT;
 	}
 
@@ -49,6 +49,7 @@ int Save::run() {
 
 	call_count++;
 	int bstat = this->inputBuf->pop(data);
+//	Debug::print("TCP:  pop status = %d, remaining data %d\n", bstat, this->inputBuf->debugBufferSize());
 	if (bstat == DataBuffer::EMPTY) {
 		return Communicator_I::WAIT;
 	}
@@ -59,6 +60,8 @@ int Save::run() {
 	if (input != NULL) {
 		free(input);
 		input = NULL;
+	} else {
+		Debug::print("%s NULL INPUT from buffer!!!\n", getClassName());
 	}
 
 	return Communicator_I::READY;

@@ -45,6 +45,7 @@ int main (int argc, char **argv){
 				oresult = ((cci::rt::Action_I*)(*iter))->getOutputBuffer()->pop(dstr);
 				printf("output generated at iteration j %d: %d.  output result = %d\n", j, *((int*)dstr.second), oresult);
 				free(dstr.second);
+				dstr.second = NULL;
 				++iter;
 			} else {
 				printf("no output at iter j %d .  wait state %d\n", j, result);

@@ -7,7 +7,7 @@
 
 #include "PullCommHandler.h"
 #include "Debug.h"
-
+#include <algorithm>
 
 namespace cci {
 namespace rt {
@@ -17,6 +17,7 @@ PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, 
 }
 
 PullCommHandler::~PullCommHandler() {
+	MPI_Barrier(comm);
 	if (isListener()) {
 		Debug::print("%s destructor called.  total of %d data messages sent.\n", getClassName(), send_count);
 	} else {
@@ -57,197 +58,167 @@ int PullCommHandler::run() {
 	int node_status = Communicator_I::READY;
 	MPI_Status mstatus;
 	MPI_Request myRequest;
-	int hasMessage;
 	int node_id;
-	int tag;
+	int tag = 1;
 	MPI_Datatype type;
 	int lstatus;
-
-	// status is only for checking error, done, and prescence of action.
-	if (this->status == Communicator_I::DONE) return status;
+	int numWorkToGet;
+	int completed;
 
 	if (isListener()) {
-		// using a different pattern than pushcommhanlder.  pull comm handler
-		// relies on explicit request and response.
-		// push comm handler:  presence of received data is same as request to send.
+		// logic:
+		// 1. clean up pending requests.
+		// 2. if all workers done, then stop buffer, mark as done, receive and discard other messages
+		// 3. if there are active workers,
+		//		if there are no messages, wait
+		//      if empty buffer and not stopped, wait
+		// 4. get the message
+		//		if done, remove worker from list
+		//		if ready (request),
+		//			if finished buffer, then send back 0
+		//			(empty but not stopped is already checked)
+		//			if buffer has content, send it back.
 
+		// 1. sender:  clean up everything that's been sent.
+		completed = buffer->checkRequests();
+		//if (completed > 0) Debug::print("%s master completed %d requests\n", getClassName(), completed);
 
-		// first update the scheduler with all workers that are done.
-		while (waComm->iprobe(MPI_ANY_SOURCE, Communicator_I::DONE, &mstatus)) {
-			node_id = mstatus.MPI_SOURCE;
+		if (!scheduler->hasLeaves()) {  // from previous runs - no more workers to consume
+			buffer->stop();
 
-			// status update, "DONE".  receive it and terminate.
-			MPI_Recv(&node_status, 1, MPI_INT, node_id, Communicator_I::DONE, comm, &mstatus);
+			// consume and discard all remaining messages - can't service them anyways.
+			while (waComm->iprobe(MPI_ANY_SOURCE, tag, &mstatus)) {
+				node_id = mstatus.MPI_SOURCE;
 
-			if (scheduler->removeLeaf(node_id) == 0)  {
-				status = Communicator_I::DONE;
-				// if manager can't accept, then action can stop
-				buffer->stop();
-//				Debug::print("%s all workers DONE.  buffer has %d entries\n", getClassName(), buffer->getBufferSize());
+				Debug::print("WARNING: %s there should not be any messages here\n", getClassName());
+
+				// status update, "DONE".  receive it and terminate.
+				MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
+
 			}
 
+			return Communicator_I::DONE;
 		}
-		if (status == Communicator_I::DONE) return status;  // no workers left to do work.
-		// ELSE there is some worker.
+
+		// else there is some worker requesting/listening
+		if (!waComm->iprobe(MPI_ANY_SOURCE, tag, &mstatus)) {
+			usleep(1000);
+			return Communicator_I::WAIT;  // message may come later.  need to make sure all workers eventually are done.
+		}
 
 		// if buffer is empty but not stopped, we wait to receive any further messages
-		if (buffer->isEmpty() && !buffer->isStopped()) return Communicator_I::WAIT;
-		// ELSE there is some worker and buffer is either stopped or not empty.
-		//     if stopped, need to let worker know.  if not empty, need to send back data when requested.
+		if (!buffer->canTransmit() && !buffer->isStopped()) return Communicator_I::WAIT;
 
+		// has a message.  now receive it.
+		node_id = mstatus.MPI_SOURCE;
+		MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
 
-		// READY.  now look for a request.
-		if (waComm->iprobe(MPI_ANY_SOURCE, Communicator_I::READY, &mstatus)) {
-			node_id = mstatus.MPI_SOURCE;
+		if (node_status == Communicator_I::DONE) {
+			// worker sent message that it's done
+			// remove it.
+			scheduler->removeLeaf(node_id);
 
-//			Debug::print("%s manager receiving request from %d\n", getClassName(), node_id);
-			MPI_Recv(&node_status, 1, MPI_INT, node_id, Communicator_I::READY, comm, &mstatus);
-//			Debug::print("%s manager received request from %d\n", getClassName(), node_id);
-
-			// if worker is already done.  return after receiving the message
-			if (!scheduler->isLeaf(node_id)) return status;
-			// ELSE worker is active, there is either status or data to send back
+			return Communicator_I::WAIT;
+		} else if (node_status == Communicator_I::READY) {
+			// worker send ready, so this is a request.
 
 			if (buffer->isFinished()) {
-				// DONE.  notify each worker as they request work.
+				// buffer finished, so send back 0 length data as response to indicate DONE
+				data = NULL;
+				MPI_Send(data, 0, MPI_CHAR, node_id, tag, comm);
 
-				lstatus = Communicator_I::DONE;
-				MPI_Send(&lstatus, 1, MPI_INT, node_id, Communicator_I::DONE, comm);
-
-				if (scheduler->removeLeaf(node_id) == 0) {
-//					Debug::print("%s manager marked all workers as DONE.\n", getClassName());
-					status = Communicator_I::DONE;
-					buffer->stop();
-				}
-//				Debug::print("%s manager notified worker %d it's DONE at time %lld.\n", getClassName(), node_id, cciutils::event::timestampInUS());
-
-				t2 = cciutils::event::timestampInUS();
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
-
-			} else if (!buffer->isEmpty()) {  // has data to send back
-
-				// worker ready.  send data please.
-				DataBuffer::DataType dstruct;
-				int stat = buffer->pop(dstruct);
-
-				//				Debug::print("%s listener sending %d bytes at %x to %d\n", getClassName(), dstruct.first, dstruct.second, node_id);
-				if (stat == DataBuffer::EMPTY) {
-					dstruct.first = 0;
-					dstruct.second = NULL;
-				}
-
-				// status is ready, send data.
-				++send_count;
-	//			Debug::print("%s manager sending data to %d\n", getClassName(), node_id);
-				MPI_Send(dstruct.second, dstruct.first, MPI_CHAR, node_id, Communicator_I::READY, comm);
-	//			Debug::print("%s manager sent data to %d\n", getClassName(), node_id);
-
-				if (dstruct.first > 0 && dstruct.second != NULL) {
-					free(dstruct.second);
-				}
-
-				t2 = cciutils::event::timestampInUS();
-				sprintf(len, "%lu", (long)(count));
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("pull data sent"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
-
-//				if (send_count % 100 == 0) Debug::print("%s manager sent %d data messages to workers.\n", getClassName(), send_count);
-
-			} else {  // empty but not stopped.  wait state.  should have been caught earlier
-				// should not get here...
+				scheduler->removeLeaf(node_id);
+				Debug::print("%s manager: worker %d finished\n", getClassName(), node_id);
 				return Communicator_I::WAIT;
+			} else if (buffer->canTransmit()){
+				// has data
 
+				buffer->transmit(node_id, tag, MPI_CHAR, comm, -1);
+				++send_count;
+				//Debug::print("%s manager sending %d data to %d\n", getClassName(), send_count, node_id);
 
-			}
+				if (send_count % 100 == 0) Debug::print("%s manager sent %d data messages to workers.\n", getClassName(), send_count);
 
-		} // ELSE no message.
-		return status;
+			} // else cannot transmit, and not stopped.  already handled before receiving
+
+			return status;
+
+		}
 
 	} else {
 
 
-		// worker
+		// 1. receiver:  clean up everything that's been sent.
+		completed = buffer->checkRequests();
+		if (completed > 0) Debug::print("%s worker completed %d requests\n", getClassName(), completed);
+
+		// no more managers to send requests to.  this is done.
+		if (!scheduler->hasRoots()) {
+			buffer->stop();
+			// no requests to send.  all responses should have been processed.
+			return Communicator_I::DONE;
+		}
+
+		// NOTE:  enforce that worker has to send request and wait for the response.
+		// if buffer can't accept any more (stopped), than we are done.  send messages to roots, and done.
 		if (buffer->isStopped()) {
 			// worker buffer is finished.  let all roots know to remove this worker from list.
 			// notify all the roots
 			std::vector<int> roots = scheduler->getRoots();
+			std::random_shuffle(roots.begin(), roots.end());  // avoid synchronized termination.
 
-//			Debug::print("%s worker buffer DONE\n", getClassName());
+			Debug::print("%s worker buffer DONE\n", getClassName());
+			MPI_Request *reqs = new MPI_Request[roots.size()];
+			int i = 0;
+
 			status = Communicator_I::DONE;
 			for (std::vector<int>::iterator iter=roots.begin();
 					iter != roots.end(); ++iter) {
 
-				//                              MPI_Isend(&buffer_status, 1, MPI_INT, *iter, CONTROL_TAG, comm, &myRequest);
-				MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
+				MPI_Isend(&status, 1, MPI_INT, *iter, tag, comm, &(reqs[i]));
+				++i;
+//				MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
 			}
+			MPI_Waitall(i, reqs, MPI_STATUSES_IGNORE);
 			Debug::print("%s worker notified ALL MANAGERS with DONE\n", getClassName());
-			// TODO do waitall here.
-
-			t2 = cciutils::event::timestampInUS();
-			if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("worker done"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
-
+			delete [] reqs;
 			return status;
-		} else if (buffer->isFull()) {
-			return Communicator_I::WAIT;
-		} else {
 
-			// local buffer is READY.  send request and get data or status back.
+		} else if (!buffer->canTransmit()) return Communicator_I::WAIT;  // full buffer, or stopped buffer. but it's not stopped here.
+		
+		// else buffer is ready and not full.  send 1 request.
+		// local buffer is READY.  send request and get data or status back.
+		node_id = scheduler->getRootFromLeaf(rank);
 
-			node_id = scheduler->getRootFromLeaf(rank);
+		// double check to make sure that buffer is not full.
+		//			Debug::print("%s worker sending request to %d with status %d\n", getClassName(), node_id, status);
+		MPI_Send(&status, 1, MPI_INT, node_id, tag, comm);   // send the current status
+//		Debug::print("%s worker sent request to %d with status %d\n", getClassName(), node_id, status);
 
-			// double check to make sure that buffer is not full.
-			int manager_status;
-//			Debug::print("%s worker sending request to %d with status %d\n", getClassName(), node_id, status);
-			MPI_Send(&status, 1, MPI_INT, node_id, Communicator_I::READY, comm);   // send the current status
-//			Debug::print("%s worker sent request to %d with status %d\n", getClassName(), node_id, status);
+		// handle all the received data (may be from the request just sent, or from an earlier request.  Doesn't matter.)
 
 			// need to get data size.  use Probe.
-//			Debug::print("%s worker getting data size from probe to %d\n", getClassName(), node_id);
-			MPI_Probe(node_id, MPI_ANY_TAG, comm, &mstatus);
-			tag = mstatus.MPI_TAG;
+//		Debug::print("%s worker getting data size from probe to %d\n", getClassName(), node_id);
+		t1 = cciutils::event::timestampInUS();
+		MPI_Probe(node_id, tag, comm, &mstatus);
+		t2 = cciutils::event::timestampInUS();
+		Debug::print("%s worker got data size from probe to %d in %ld us\n", getClassName(), node_id, (t2-t1));
+		// receive some data.
+		MPI_Get_count(&mstatus, MPI_CHAR, &count);
 
-			if (tag == Communicator_I::DONE) {
-				// get the message
-				MPI_Recv(&lstatus, 1, MPI_INT, node_id, Communicator_I::DONE, comm, &mstatus);
+		if (count > 0) {  // receiving data!
 
-				// now mark the root as done
-				if (scheduler->removeRoot(node_id) == 0) {
-					Debug::print("%s worker marked all managers as DONE.\n", getClassName());
-					status = Communicator_I::DONE;
-					buffer->stop();
-				}
+			buffer->transmit(node_id, tag, MPI_CHAR, comm, count);
+			++send_count;
+			Debug::print("%s worker got data size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
+		} else {
+			data = NULL;
+			// manager is done
+			MPI_Recv(data, 0, MPI_CHAR, node_id, tag, comm, MPI_STATUS_IGNORE);
 
-
-			} else {  // tag == READY
-				MPI_Get_count(&mstatus, MPI_CHAR, &count);
-//				Debug::print("%s worker got data size from probe to %d\n", getClassName(), node_id);
-
-				if (count > 0) {
-					data = malloc(count);
-				} else data = NULL;
-
-//				Debug::print("%s worker receiving data from %d\n", getClassName(), node_id);
-				MPI_Recv(data, count, MPI_CHAR, node_id, Communicator_I::READY, comm, &mstatus);
-//				Debug::print("%s worker received data from %d\n", getClassName(), node_id);
-
-				if (count > 0) {
-					int stat = buffer->push(std::make_pair(count, data));
-
-					if (stat != DataBuffer::READY) {
-						Debug::print("%s ERROR: status has changed during a single invocation of run().  TODO: handle this better.\n", getClassName());
-						free(data);
-					}
-				} else {
-					Debug::print("%s RECVING nothing!\n", getClassName());
-					// status remain the same.
-				}
-				t2 = cciutils::event::timestampInUS();
-				sprintf(len, "%lu", (long)(count));
-				if (this->logsession != NULL) logsession->log(cciutils::event(0, std::string("pull data received"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
-
-			}
-
-			return status;
-		} // end buffer status if.
+			scheduler->removeRoot(node_id);
+		}
+		return status;
 
 	}  // end worker.
 }

@@ -21,16 +21,39 @@ namespace rt {
 class MPIRecvDataBuffer: public cci::rt::MPIDataBuffer {
 public:
 
-	MPIRecvDataBuffer(int _capacity) ;
-	virtual ~MPIRecvDataBuffer();
+	MPIRecvDataBuffer(int _capacity, bool _non_blocking = true, cciutils::SCIOLogSession *_logsession = NULL) :
+		MPIDataBuffer(_capacity, _non_blocking, _logsession) {};
 
-	// check to see if there is room for more MPI requests
-	virtual bool canPushMPI() { return canPush(); };
+	// for MPI send/recv.  this takes the place of push.
+	virtual int transmit(int node, int tag, MPI_Datatype type, MPI_Comm &comm, int size=-1);
+	virtual int canTransmit() { return !isStopped() && (buffer.size() + mpi_buffer.size()) < capacity; };
 
-	// add data to a different buffer during MPI transmission
-	virtual int pushMPI(MPI_Request *req, DataBuffer::DataType const data);
-	// check to see transfer is completed.  return completed data for further buffering or deletion.
-	virtual int popMPI(DataBuffer::DataType* &data);
+	// overridden to add flushRequests capability.
+	virtual bool canPush() {
+		assert(false); return false;
+	};
+	virtual int push(DataType const data) { assert(false); return UNSUPPORTED_OP; };  // cannot push directly to a recv buffer.
+	// pop is standard.
+
+	virtual bool isFull() {
+		checkRequests();
+		return buffer.size() >= capacity;
+	};
+	virtual bool canPop() {
+		checkRequests();
+		return buffer.size() > 0;
+	};
+
+	// this is called by getBufferSize(), which is called by most other function, specifically by pop.
+	// this function handles checking the requests, and for all the completed, put into regular buffer.
+	virtual int checkRequests(bool waitForAll = false);
+
+	virtual ~MPIRecvDataBuffer() {
+		if (mpi_buffer.size() > 0) Debug::print("WARNING: clearning MPISendBuffer\n");
+
+		int completed = checkRequests(true);
+		if (completed > 0) Debug::print("WARNING: removed %d from MPISendBuffer\n", completed);
+	};
 
 
 };

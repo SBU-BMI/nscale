@@ -86,7 +86,7 @@ int ADIOSSave_Reduce::run() {
 	int max_iter = 0;
 
 	// status is set to WAIT or READY, since we can be DONE only if everyone is DONE
-	int status = (this->inputBuf->isEmpty() ? Communicator_I::WAIT : Communicator_I::READY);
+	int status = (this->inputBuf->canPop() ?  Communicator_I::READY :Communicator_I::WAIT );
 
 	int buffer[2], gbuffer[2];
 
@@ -103,7 +103,7 @@ int ADIOSSave_Reduce::run() {
 	}
 	// next predict the local iterations.  write either when full, or when done.
 	if (this->inputBuf->isFull() ||
-			(!(this->inputBuf->isEmpty()) && this->inputBuf->isStopped())) {
+			(this->inputBuf->canPop() && this->inputBuf->isStopped())) {
 		// not done and has full buffer, or done and has some data
 		// increment self and accumulate
 		buffer[1] = local_iter + 1;
@@ -120,7 +120,7 @@ int ADIOSSave_Reduce::run() {
 	max_iter = gbuffer[1];
 
 
-//	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->getBufferSize());
+	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, this->inputBuf->debugBufferSize());
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -141,7 +141,7 @@ int ADIOSSave_Reduce::run() {
 	 */
 	// catch up.  so flush whatever's in buffer.
 	while (max_iter > local_iter) {
-//		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, this->inputBuf->getBufferSize());
+//		Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, this->inputBuf->debugBufferSize());
 		process();
 	}
 
@@ -161,7 +161,7 @@ int ADIOSSave_Reduce::process() {
 	void *input;
 	int result;
 
-	while (!this->inputBuf->isEmpty()) {
+	while (this->inputBuf->canPop()) {
 		result = this->inputBuf->pop(data);
 		input_size = data.first;
 		input = data.second;
@@ -175,6 +175,8 @@ int ADIOSSave_Reduce::process() {
 			input = NULL;
 
 			++local_total;
+		} else {
+			Debug::print("%s NULL INPUT from buffer!!!\n", getClassName());
 		}
 	}
 

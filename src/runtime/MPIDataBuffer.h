@@ -22,54 +22,46 @@ namespace rt {
 class MPIDataBuffer: public cci::rt::DataBuffer {
 public:
 
-	MPIDataBuffer(int _capacity) : DataBuffer(_capacity) {};
-	virtual ~MPIDataBuffer() {};
+	MPIDataBuffer(int _capacity, bool _non_blocking = true, cciutils::SCIOLogSession *_logsession = NULL)
+		: DataBuffer(_capacity, _logsession), debug_complete_count(0), non_blocking(_non_blocking) {
+		reqs = new MPI_Request[_capacity];
+		reqptrs = new MPI_Request*[_capacity];
+		completedreqs = new int[_capacity];
+	};
 
-	// for data addition
-	virtual int getBufferSize() { return buffer.size() + mpi_buffer.size(); };
-	virtual bool canPop() { return buffer.size() > 0; };
+	virtual int debugBufferSize() { return buffer.size()+ mpi_buffer.size(); };
 
-	// for data undergoing MPI transmission
-	virtual int getMPIBufferSize() { return mpi_buffer.size(); };
-	// check to see if there is room for more MPI requests
-	virtual bool canPushMPI() = 0;
-	virtual bool canPopMPI() { return getMPIBufferSize() > 0; };
+	virtual bool isFinished() {
+		this->checkRequests();
+		return isStopped() && buffer.size() <= 0 && mpi_buffer.size() <= 0;
+	};
 
-	// add data to a different buffer during MPI transmission
-	virtual int pushMPI(MPI_Request *req, DataBuffer::DataType const data) = 0;
-	// check to see transfer is completed.  return completed data for further buffering or deletion.
-	virtual int popMPI(DataBuffer::DataType* &data) = 0;
+	// canPop need to be overridden in subclass.
+	// for MPI send/recv.  this is how we send or receive a message.
+	virtual int transmit(int node, int tag, MPI_Datatype type, MPI_Comm &comm, int size=-1) = 0;
+	virtual int canTransmit() = 0;
+
+	// either check for some requests tht completed, or wait for all requests to complete.
+	// should check to make sure that there are requests
+	virtual int checkRequests(bool waitForAll = false) = 0;
+
+	int debug_complete_count;
+
+	virtual ~MPIDataBuffer() {
+		delete [] reqs;
+		delete [] reqptrs;
+		delete [] completedreqs;
+	};
 
 
 protected:
 	std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType> mpi_buffer;
+	MPI_Request *reqs;
+	MPI_Request **reqptrs;
+	int *completedreqs;
+	bool non_blocking;
 
-	virtual void dumpBuffer() {
-	        DataBuffer::dumpBuffer();
-
-        	// get all the requests together
-	        MPI_Request *reqs = new MPI_Request[mpi_buffer.size()];
-        	int active = 0;
-	        for (std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType>::iterator iter = mpi_buffer.begin();
-        	                iter != mpi_buffer.end(); ++iter) {
-	                reqs[active] = *(iter->first);
-        	        ++active;
-	        }
-
-        	MPI_Status *stati = new MPI_Status[mpi_buffer.size()];
-
-	        // wait for everything to finish.
-        	MPI_Waitall(active, reqs, stati);
-
-	        for (std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType>::iterator iter = mpi_buffer.begin();
-        	                iter != mpi_buffer.end(); ++iter) {
-                	free(iter->second.second);
-	        }
-        	mpi_buffer.clear();
-
-	};
-
-
+	std::tr1::unordered_map<MPI_Request*, long long> mpi_req_starttimes;
 };
 
 } /* namespace rt */

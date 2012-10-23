@@ -82,14 +82,14 @@ int main (int argc, char **argv){
 	for (int i = 0; i < 5; ++i) {
 		in = std::make_pair(output_size, output);
 		status = buffer.push(in);
-		printf("buffer testing: iter %d, buffer push status %d, size %d, outdata %d %p\n", i, status, buffer.getBufferSize(), in.first, in.second);
+		printf("buffer testing: iter %d, buffer push status %d, size %d, outdata %d %p\n", i, status, buffer.debugBufferSize(), in.first, in.second);
 	}
 
 	// pop out;
 	DataBuffer::DataType out;
 	for (int i = 0; i < 5; ++i) {
 		status = buffer.pop(out);
-		printf("buffer testing: iter %d, buffer pop status %d, size %d, outdata %d %p\n", i, status, buffer.getBufferSize(), out.first, out.second);
+		printf("buffer testing: iter %d, buffer pop status %d, size %d, outdata %d %p\n", i, status, buffer.debugBufferSize(), out.first, out.second);
 	}
 
 #if defined(WITH_MPI)
@@ -158,23 +158,13 @@ int main (int argc, char **argv){
 					}
 
 
-					if (mbuffer.canPushMPI()) {
+					if (mbuffer.canPush()) {
 						printf("receiving %d bytes from source %d, tag %d\n", input_size, stat.MPI_SOURCE, stat.MPI_TAG);
 
-						input = malloc(input_size);
-						in = std::make_pair(input_size, input);
+						status = mbuffer.transmit(stat.MPI_SOURCE, stat.MPI_TAG, MPI_CHAR, comm_world, input_size);
 
 
-						MPI_Request *req = new MPI_Request[1];
-						MPI_Irecv(input, input_size, MPI_CHAR, stat.MPI_SOURCE, stat.MPI_TAG, comm_world, req);
-	//					int completed;
-	//					MPI_Test(&req, &completed, MPI_STATUS_IGNORE);
-	//					MPI_Recv(input, input_size, MPI_CHAR, target, tag, comm_world, MPI_STATUS_IGNORE);
-//						if (completed == 0) {
-
-						status = mbuffer.pushMPI(req, in);
-
-						printf("MPIRecvDataBuffer size %d, %d, current status is %d \n", mbuffer.getMPIBufferSize(), mbuffer.getBufferSize(), status);
+						printf("MPIRecvDataBuffer size %d, current status is %d \n", mbuffer.debugBufferSize(), status);
 //						} else {
 //							printf("already completed \n");
 //							if (mbuffer.canPush()) {
@@ -183,18 +173,12 @@ int main (int argc, char **argv){
 //						}
 					}
 					if (mbuffer.isFull()) {
-						if (mbuffer.canPopMPI()) {
-							count = mbuffer.popMPI(dataitems);
-							for (int i = 0; i < count; ++i) {
-								printf("MPI receiv buffer completed: count %d, remain %d, outdata %d %p \n", count, mbuffer.getMPIBufferSize(), dataitems[i].first, dataitems[i].second);
-							}
-							if (dataitems != NULL) delete [] dataitems;
-						}
 
 						while (mbuffer.canPop()) {
 							status = mbuffer.pop(out);
-							printf("mpi recv buffer testing: buffer pop status %d, size %d, outdata %d %p\n", status, mbuffer.getBufferSize(), out.first, out.second);
+							printf("mpi recv buffer testing: buffer pop status %d, size %d, outdata %d %p\n", status, mbuffer.debugBufferSize(), out.first, out.second);
 							free(out.second);
+							out.second = NULL;
 						}
 
 
@@ -205,20 +189,14 @@ int main (int argc, char **argv){
 			}
 
 
-			if (mbuffer.canPopMPI()) {
-				count = mbuffer.popMPI(dataitems);
-				for (int i = 0; i < count; ++i) {
-					printf("MPI receiv buffer completed: count %d, remain %d, outdata %d %p \n", count, mbuffer.getMPIBufferSize(), dataitems[i].first, dataitems[i].second);
-				}
-				if (dataitems != NULL) delete [] dataitems;
-			}
 
 			while (mbuffer.canPop()) {
 				status = mbuffer.pop(out);
-				printf("mpi recv buffer testing: buffer pop status %d, size %d, outdata %d %p\n", status, mbuffer.getBufferSize(), out.first, out.second);
+				printf("mpi recv buffer testing: buffer pop status %d, size %d, outdata %d %p\n", status, mbuffer.debugBufferSize(), out.first, out.second);
 				free(out.second);
+				out.second = NULL;
 			}
-			printf("buffer size = %d, %d\n", mbuffer.getBufferSize(), mbuffer.getMPIBufferSize());
+			printf("buffer size = %d\n", mbuffer.debugBufferSize());
 
 		} else {
 
@@ -232,40 +210,20 @@ int main (int argc, char **argv){
 				status = mbuffer.push(in);
 //				printf("mpi send buffer testing: iter %d, buffer push status %d, size %d, outdata %d %p\n", i, status, mbuffer.getBufferSize(), in.first, in.second);
 			}
+			printf("MPI send worker set up done.\n");
 
 			// pop out and push into MPI one...;
 			while (mbuffer.canPop()) {
-				status = mbuffer.pop(out);
-				printf("mpi send buffer testing: buffer pop status %d, size %d, outdata %d %p\n", status, mbuffer.getBufferSize(), out.first, out.second);
-
-				if (mbuffer.canPushMPI()) {
-					MPI_Request *req = new MPI_Request[1];
-					MPI_Isend(out.second, out.first, MPI_CHAR, 0, 0, comm_world, req);
-
-//					int test = 0;
-//					while (test == 0) {
-//						MPI_Test(&req, &test, MPI_STATUS_IGNORE);
-//					}
-//					printf("completed\n");
-					status = mbuffer.pushMPI(req, out);
-				} else {
-					mbuffer.push(out);
-					printf("unable to push MPI?\n");
-				}
+//				printf("%d sending data to manager\n", rank);
+				mbuffer.transmit(0, 0, MPI_CHAR, comm_world, -1);
 			}
 
+			mbuffer.stop();
 			DataBuffer::DataType* dataitems = NULL;
 			int count = 0;
-			while (mbuffer.canPopMPI()) {
+			while (!mbuffer.isFinished()) ;
 			
-				count = mbuffer.popMPI(dataitems);
-				for (int i = 0; i < count; ++i) {
-					printf("MPI send buffer completed: count %d of %d, remain %d, outdata %d %p \n", i+1, count, mbuffer.getMPIBufferSize(), dataitems[i].first, dataitems[i].second);
-					free(dataitems[i].second);
-				}
-				delete [] dataitems;
-				dataitems = NULL;
-			}
+			printf("MPI send buffer completed: count %d, remain %d \n", mbuffer.debug_complete_count, mbuffer.debugBufferSize());
 
 			char done = 1;
 			MPI_Send(&done, 1, MPI_CHAR, 0, 1, comm_world);

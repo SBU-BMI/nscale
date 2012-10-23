@@ -42,8 +42,8 @@ public:
 		it = unique(leaves.begin(), leaves.end());
 		leaves.resize( it - leaves.begin() );
 
-		printf("superclass roots.size = %ld\n", roots.size());
-		printf("superclass leaves.size = %ld\n", leaves.size());
+//		printf("superclass roots.size = %ld\n", roots.size());
+//		printf("superclass leaves.size = %ld\n", leaves.size());
 
 
 	};
@@ -113,7 +113,6 @@ public:
 		if (it != leaves.end()) leaves.erase(it);
 		if (rank == id) leaf = false;
 		return leaves.size();
-
 	}
 	virtual int addRoot(int id) {
 //		printf("add Scheduler Root called\n");
@@ -135,7 +134,6 @@ public:
 		sort(leaves.begin(), leaves.end());
 
 		if (rank == id) leaf = true;
-
 		return leaves.size();
 	}
 

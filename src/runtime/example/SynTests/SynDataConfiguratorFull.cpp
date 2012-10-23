@@ -139,10 +139,12 @@ bool SynDataConfiguratorFull::configure(MPI_Comm &comm, Process *proc) {
 		handler = new PullCommHandler(&comm, compute_io_g, NULL, sch, logger->getSession("pull"));
 	} else {
 		if (isroot) {  // root of compute
-			sbuf = new MPISendDataBuffer(100);
+			sbuf = new MPISendDataBuffer(100,
+					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			handler = new PullCommHandler(&comm, compute_io_g, sbuf, sch, logger->getSession("pull"));
 		} else { // other compute
-			rbuf = new MPIRecvDataBuffer(4);
+			rbuf = new MPIRecvDataBuffer(4,
+					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			handler = new PullCommHandler(&comm, compute_io_g, rbuf, sch, logger->getSession("pull"));
 		}
 	}
@@ -157,11 +159,13 @@ bool SynDataConfiguratorFull::configure(MPI_Comm &comm, Process *proc) {
 		handler2 = new PushCommHandler(&comm, compute_to_io_g, NULL, sch2, logger->getSession("push"));
 	} else {
 		if (compute_io_g == IO_GROUP) {
-			rbuf = new MPIRecvDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()));
+			rbuf = new MPIRecvDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
 			handler2 = new PushCommHandler(&comm, compute_to_io_g, rbuf, sch2, logger->getSession("push"));
 		} else {
-			sbuf = new MPISendDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()));
+			sbuf = new MPISendDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
+					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
 			sch2 = new RandomScheduler(false, true);
 			handler2 = new PushCommHandler(&comm, compute_to_io_g, sbuf, sch2, logger->getSession("push"));
 		}

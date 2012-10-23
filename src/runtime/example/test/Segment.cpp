@@ -43,7 +43,7 @@ int Segment::run() {
 		this->inputBuf->stop();
 
 		return Communicator_I::DONE;
-	} else if (this->inputBuf->isEmpty() || this->outputBuf->isFull()) {
+	} else if (!this->inputBuf->canPop() || this->outputBuf->isFull()) {
 		return Communicator_I::WAIT;
 	}
 

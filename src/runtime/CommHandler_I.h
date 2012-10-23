@@ -35,17 +35,14 @@ public:
 	virtual const char* getClassName() { return "CommHandler_I"; };
 
 	virtual int run() = 0;
-	virtual bool isListener() { return scheduler->isRoot(); };
+	virtual bool isListener() { return (scheduler == NULL ? false : scheduler->isRoot()); };
 //	virtual bool isReady() { return buffer != NULL && !buffer->isStopped(); };
 
 //	virtual int getStatus() { return status; };
-	MPIDataBuffer *getBuffer() {return buffer; };
+	DataBuffer *getBuffer() {return buffer; };
 
 protected:
 	Scheduler_I *scheduler;
-
-	std::tr1::unordered_map<int, int> activeWorkers;
-
 	MPIDataBuffer *buffer;
 
 	int status;

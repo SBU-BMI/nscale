@@ -78,7 +78,7 @@ int main (int argc, char **argv){
 				//cci::rt::Debug::print("%s output generated at iteration j %d.  result = %d\n", (*iter)->getClassName(), j, result);
 				++iter;
 			} else {
-				cci::rt::Debug::print("%s no output at iter j %d .  wait state %d\n", (*iter)->getClassName(), j, result);
+				//cci::rt::Debug::print("%s no output at iter j %d .  wait state %d\n", (*iter)->getClassName(), j, result);
 				++iter;
 			}
 		}

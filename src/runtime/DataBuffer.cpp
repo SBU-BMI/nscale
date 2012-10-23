@@ -17,24 +17,28 @@ const int DataBuffer::STOP = 10;
 const int DataBuffer::EMPTY = 12;
 const int DataBuffer::FULL = 13;
 const int DataBuffer::BAD_DATA = -11;
+const int DataBuffer::UNSUPPORTED_OP = -12;
 
 
 
-DataBuffer::DataBuffer(int _capacity) : capacity(_capacity), status(DataBuffer::READY) {
-
+DataBuffer::DataBuffer(int _capacity, cciutils::SCIOLogSession *_logsession) :
+		capacity(_capacity), status(DataBuffer::READY), logsession(_logsession) {
 }
 
 DataBuffer::~DataBuffer() {
 	if (!buffer.empty()) {
-		Debug::print("WARNING:  DataBuffer is not empty.  likely to have leaked memory.\n");
+		Debug::print("WARNING: DataBuffer has %d entries left in buffer.  likely to have leaked memory.\n", buffer.size());
 	}
+	dumpBuffer();
 }
 
 void DataBuffer::dumpBuffer() {
-	while (~buffer.empty()) {
+	if (!buffer.empty()) Debug::print("WARNING: dumpbuffer called...\n");
+	while (!buffer.empty()) {
 		DataType d = buffer.front();
 		buffer.pop();
 		free(d.second);
+		d.second = NULL;
 	}
 }
 
@@ -49,10 +53,11 @@ int DataBuffer::push(DataType const data) {
 
 	//Debug::print("DataBuffer: push called.  %d load\n", buffer.size());
 
-	return status;  // should have value READY.
+	return READY;  // should have value READY.
 }
 
 int DataBuffer::pop(DataType &data) {
+	if (isFinished()) return STOP;
 	if (!canPop()) return EMPTY;
 
 	data = buffer.front();
@@ -60,7 +65,7 @@ int DataBuffer::pop(DataType &data) {
 
 	//Debug::print("DataBuffer: pop called.  %d load\n", buffer.size());
 
-	return status;
+	return READY;
 }
 
 

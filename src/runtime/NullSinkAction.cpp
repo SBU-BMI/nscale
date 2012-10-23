@@ -30,7 +30,7 @@ int NullSinkAction::run() {
 	if (this->inputBuf->isFinished()) {
 		Debug::print("%s input DONE.  input count = %d\n", getClassName(), call_count);
 		return Communicator_I::DONE;
-	} else if (this->inputBuf->isEmpty()) {
+	} else if (!this->inputBuf->canPop()) {
 		return Communicator_I::WAIT;
 	}
 
@@ -47,6 +47,8 @@ int NullSinkAction::run() {
 	if (input != NULL) {
 		free(input);
 		input = NULL;
+	} else {
+		Debug::print("%s NULL INPUT from buffer!!!\n", getClassName());
 	}
 
 	return Communicator_I::READY;

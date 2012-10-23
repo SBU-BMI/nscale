@@ -78,7 +78,7 @@ int POSIXRawSave::run() {
 	int max_iter = 0;
 
 	// status is set to WAIT or READY, since we can be DONE only if everyone is DONE
-	int status = (this->inputBuf->isEmpty() ? Communicator_I::WAIT : Communicator_I::READY);
+	int status = (this->inputBuf->canPop() ? Communicator_I::READY : Communicator_I::WAIT );
 
 	int buffer[2], gbuffer[2];
 
@@ -96,7 +96,7 @@ int POSIXRawSave::run() {
 
 	// next predict the local iterations.  write either when full, or when done.
 	if (this->inputBuf->isFull() ||
-			(!(this->inputBuf->isEmpty()) && this->inputBuf->isStopped())) {
+			(this->inputBuf->canPop() && this->inputBuf->isStopped())) {
 		// not done and has full buffer, or done and has some data
 		// increment self and accumulate
 		buffer[1] = local_iter + 1;
@@ -116,7 +116,7 @@ int POSIXRawSave::run() {
 	max_iter = gbuffer[1];
 
 
-//	if (status == DONE) Debug::print("%s call_count = %ld, input_status = %d, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, input_status, status, max_iter, local_iter, inputSizes.size());
+	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n", getClassName(), c, status, max_iter, local_iter, inputBuf->debugBufferSize());
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -137,7 +137,7 @@ int POSIXRawSave::run() {
 	 */
 	// catch up.  so flush whatever's in buffer.
 	while (max_iter > local_iter) {
-		//Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, inputSizes.size());
+		//Debug::print("%s write out: IO group %d rank %d, write iter %d, max_iter = %d, tile count %d\n", getClassName(), groupid, rank, local_iter, max_iter, inputBuf->debugBufferSize());
 		process();
 	}
 
@@ -160,8 +160,8 @@ int POSIXRawSave::process() {
 
 	FileUtils fu;
 
-	int output_size = 0;
-		while (!this->inputBuf->isEmpty()) {
+	long output_size = 0;
+	while (this->inputBuf->canPop()) {
 		result = this->inputBuf->pop(data);
 		input_size = data.first;
 		input = data.second;
@@ -203,6 +203,8 @@ int POSIXRawSave::process() {
 			input = NULL;
 
 			++local_total;
+		} else {
+			Debug::print("%s NULL INPUT from buffer!!!\n", getClassName());
 		}
 	}
 
@@ -211,8 +213,8 @@ int POSIXRawSave::process() {
 	t2 = ::cciutils::event::timestampInUS();
 	char len[21];
 	memset(len, 0, 21);
-	sprintf(len, "%ld", (long)output_size);	
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO POSIX Write"), t1, t2, std::string(), ::cciutils::event::FILE_O));
+	sprintf(len, "%ld", output_size);
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO POSIX Write"), t1, t2, std::string(len), ::cciutils::event::FILE_O));
 
 	return 0;
 }

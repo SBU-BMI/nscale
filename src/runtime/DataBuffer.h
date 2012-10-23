@@ -12,6 +12,8 @@
 #include <queue>
 #include <tr1/unordered_set>
 #include "Debug.h"
+#include "SCIOUtilsLogger.h"
+#include "assert.h"
 
 namespace cci {
 namespace rt {
@@ -23,28 +25,35 @@ public:
 	static const int FULL;
 	static const int EMPTY;
 	static const int BAD_DATA;
+	static const int UNSUPPORTED_OP;
 
 	typedef std::pair<int, void *> DataType;
 
-	DataBuffer(int _capacity);
-	virtual ~DataBuffer();
+	DataBuffer(int _capacity, cciutils::SCIOLogSession *_logsession = NULL);
 
 	// for data addition
-	virtual int getBufferSize() { return buffer.size(); };
+	virtual int debugBufferSize() { return buffer.size(); };
 
-	virtual bool isEmpty() { return getBufferSize() == 0; };
-	virtual bool isFull() { return getBufferSize() >= capacity; };
-	virtual bool isStopped() { return status == STOP; };
+//	bool isEmpty() { return getBufferSize() == 0; };
+	virtual bool isFull() { return buffer.size() >= capacity; };
+	bool isStopped() { return status == STOP; };
 	// FINISHED - stopped and everything is consumed.
-	virtual bool isFinished() { return isStopped() && isEmpty(); };
+	virtual bool isFinished() { return isStopped() && buffer.size() <= 0; };
 
 	// finish makes the buffer stop accept data permanently.  Buffer continues to flush
-	virtual void stop() { status = STOP; };
-	// forceStop makes the buffer stop accept data permanently, and discard everything that's in buffer and MPI buffer.
-	virtual void kill() { status = STOP; dumpBuffer(); };
+	void stop() {
+		status = STOP;
+	};
+//	// kill makes the buffer stop accept data permanently, and discard everything that's in buffer and MPI buffer.
+//	void kill() {
+//		status = STOP;
+//		dumpBuffer();
+//	};
 
-	virtual bool canPush() { return !isStopped() && !isFull(); };
-	virtual bool canPop() { return !isEmpty(); };
+	// can push only when the entire memory usage is under a threshold
+	virtual bool canPush() { return !isStopped() && buffer.size() < capacity; };
+	// can pop if there is something in the front of queue (i.e. in buffer, not counting mpi_buffer)
+	virtual bool canPop() { return buffer.size() > 0; };
 
 
 	// add and remove data to buffer
@@ -52,36 +61,37 @@ public:
 
 	virtual int pop(DataType &data);
 
-        static int reference(DataBuffer* self, void *obj) {
-                if (self == NULL) return -1;
-                if (obj == NULL) return self->reference_sources.size();
+	static int reference(DataBuffer* self, void *obj) {
+			if (self == NULL) return -1;
+			if (obj == NULL) return self->reference_sources.size();
 
-                self->reference_sources.insert(obj);
-                return self->reference_sources.size();
-        };
-        static int dereference(DataBuffer* self, void *obj) {
-                if (self == NULL) return -1;
-                if (obj == NULL) return self->reference_sources.size();
+			self->reference_sources.insert(obj);
+			return self->reference_sources.size();
+	};
+	static int dereference(DataBuffer* self, void *obj) {
+			if (self == NULL) return -1;
+			if (obj == NULL) return self->reference_sources.size();
 
-                self->reference_sources.erase(obj);
-                int result = self->reference_sources.size();
-                if (result == 0) {
-                        delete self;
-                }
-                return result;
-        };
+			self->reference_sources.erase(obj);
+			int result = self->reference_sources.size();
+			if (result == 0) {
+					delete self;
+			}
+			return result;
+	};
 
+	virtual ~DataBuffer();
 
 protected:
 	std::queue<DataType> buffer;
 	int status;
 	int capacity;
 
+	cciutils::SCIOLogSession *logsession;
+
 	std::tr1::unordered_set<void *> reference_sources;
 
-
-
-	virtual void dumpBuffer();
+	void dumpBuffer();
 
 };
 

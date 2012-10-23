@@ -26,23 +26,11 @@ CommHandler_I::CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, MPID
 		status = Communicator_I::ERROR;
 	} else {
 
-		scheduler = _scheduler;
-		if (scheduler != NULL) {
-			scheduler->configure(comm);
+		if (scheduler != NULL) scheduler->configure(comm);
 
-			if (scheduler->isRoot()) {
-
-				std::vector<int> workers = scheduler->getLeaves();
-				for (std::vector<int>::iterator iter = workers.begin();
-						iter != workers.end(); ++iter) {
-					activeWorkers[*iter] = READY;
-				}
-
-			}
-		}
 	}
 
-	DataBuffer::reference(buffer, this);	
+	if (buffer != NULL) DataBuffer::reference(buffer, this);
 
 	t2 = ::cciutils::event::timestampInUS();
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI scheduler"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
@@ -50,11 +38,9 @@ CommHandler_I::CommHandler_I(MPI_Comm const * _parent_comm, int const _gid, MPID
 
 CommHandler_I::~CommHandler_I() {
 	//printf("CommHandler destructor called\n");
-	if (!activeWorkers.empty()) {
-		activeWorkers.clear();
-	}
 
-	DataBuffer::dereference(buffer, this);
+
+	if (buffer != NULL) DataBuffer::dereference(buffer, this);
 	if (scheduler != NULL) delete scheduler;
 }
 
