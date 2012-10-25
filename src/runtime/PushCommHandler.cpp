@@ -153,7 +153,7 @@ int PushCommHandler::run() {
 				//Debug::print("%s master receiving done from %d\n", getClassName(), node_id);
                 MPI_Recv(data, 0, MPI_CHAR, node_id, tag, comm, MPI_STATUS_IGNORE);
 				scheduler->removeLeaf(node_id);
-				Debug::print("%s master received done from %d\n", getClassName(), node_id);
+//				Debug::print("%s master received done from %d\n", getClassName(), node_id);
 
 			} else {
 				if (buffer->canTransmit()) {
@@ -163,7 +163,7 @@ int PushCommHandler::run() {
 					// Debug::print("%s worker got data size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
 					if (send_count % 100 == 0) Debug::print("%s manager received %d data messages from workers.\n", getClassName(), send_count);
 				} else {
-		        	Debug::print("INFO: %s buffer is full\n", getClassName());
+//		        	Debug::print("INFO: %s buffer is full\n", getClassName());
 
 					return Communicator_I::WAIT;  // full buffer - don't check to see if leaves are all done - just wait.
 				}
