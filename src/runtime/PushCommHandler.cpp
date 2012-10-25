@@ -250,8 +250,9 @@ int PushCommHandler::run() {
 			return status;
         }
 
-        // else - not stopped || buffer has entry || mpi_buffer has entry
-		if (buffer->canTransmit()) {
+        if (buffer->canTransmit()) {
+            // else - not stopped || buffer has entry || mpi_buffer has entry
+
 			// local buffer has entry (stopped or not, MPI_buffer has entry or not.  send.
 			node_id = scheduler->getRootFromLeaf(rank);
 

@@ -128,7 +128,7 @@ int PullCommHandler::run() {
 				MPI_Send(data, 0, MPI_CHAR, node_id, tag, comm);
 
 				scheduler->removeLeaf(node_id);
-				Debug::print("%s manager: worker %d finished\n", getClassName(), node_id);
+				//Debug::print("%s manager: worker %d finished\n", getClassName(), node_id);
 				return Communicator_I::WAIT;
 			} else if (buffer->canTransmit()){
 				// has data

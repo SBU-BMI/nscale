@@ -274,27 +274,27 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	}
 	MPI_Barrier(comm);
 
-	std::ostream_iterator<int> osi(std::cout, ", ");
-	std::vector<int> roots;
-	std::vector<int> leaves;
-
-	roots = sch->getRoots();
-	std::cout << "io or compute scheduler - " << rank << " (" << (compute_io_g == COMPUTE_GROUP ? "cp" : "io") << ") roots: ";
-	std::copy(roots.begin(), roots.end(), osi);
-	std::cout << std::endl;
-	leaves = sch->getLeaves();
-	std::cout << "io or compute scheduler - " << rank << " (" << (compute_io_g == COMPUTE_GROUP ? "cp" : "io") << ") leaves: ";
-	std::copy(leaves.begin(), leaves.end(), osi);
-	std::cout << std::endl;
-
-	roots = sch2->getRoots();
-	std::cout << "compute to IO scheduler - " << rank << " (" << (compute_to_io_g == COMPUTE_TO_IO_GROUP ? "c2io" : "unknown") << ") roots: ";
-	std::copy(roots.begin(), roots.end(), osi);
-	std::cout << std::endl;
-	leaves = sch2->getLeaves();
-	std::cout << "compute to IO scheduler - " << rank << " (" << (compute_to_io_g == COMPUTE_TO_IO_GROUP ? "c2io" : "unknown") << ") leaves: ";
-	std::copy(leaves.begin(), leaves.end(), osi);
-	std::cout << std::endl;
+//	std::ostream_iterator<int> osi(std::cout, ", ");
+//	std::vector<int> roots;
+//	std::vector<int> leaves;
+//
+//	roots = sch->getRoots();
+//	std::cout << "io or compute scheduler - " << rank << " (" << (compute_io_g == COMPUTE_GROUP ? "cp" : "io") << ") roots: ";
+//	std::copy(roots.begin(), roots.end(), osi);
+//	std::cout << std::endl;
+//	leaves = sch->getLeaves();
+//	std::cout << "io or compute scheduler - " << rank << " (" << (compute_io_g == COMPUTE_GROUP ? "cp" : "io") << ") leaves: ";
+//	std::copy(leaves.begin(), leaves.end(), osi);
+//	std::cout << std::endl;
+//
+//	roots = sch2->getRoots();
+//	std::cout << "compute to IO scheduler - " << rank << " (" << (compute_to_io_g == COMPUTE_TO_IO_GROUP ? "c2io" : "unknown") << ") roots: ";
+//	std::copy(roots.begin(), roots.end(), osi);
+//	std::cout << std::endl;
+//	leaves = sch2->getLeaves();
+//	std::cout << "compute to IO scheduler - " << rank << " (" << (compute_to_io_g == COMPUTE_TO_IO_GROUP ? "c2io" : "unknown") << ") leaves: ";
+//	std::copy(leaves.begin(), leaves.end(), osi);
+//	std::cout << std::endl;
 
 	return true;
 }
