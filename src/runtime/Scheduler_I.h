@@ -60,7 +60,16 @@ public:
 	};
 
 	void configure(MPI_Comm &_comm) {
+
 		comm = _comm;
+
+		if (comm == MPI_COMM_NULL) {
+			root = false;
+			leaf = false;
+			configured = false;
+			return;
+		}
+
 		MPI_Comm_rank(comm, &rank);
 
 		if (listform) {

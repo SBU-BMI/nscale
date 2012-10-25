@@ -75,7 +75,7 @@ CVImage::CVImage(int _data_max, int _name_max, int _source_name_max) :
 }
 
 // wrapping a contiguous block of memory.
-CVImage::CVImage(int const size, void const *data, bool decode) {
+CVImage::CVImage(int const size, void const *d, bool decode) {
 	if (size < CVIMAGE_METADATA_SIZE + 2) return;  // minimum size is metadata, zero data, 2 null terminated strings
 
 	if (decode) {
@@ -84,7 +84,7 @@ CVImage::CVImage(int const size, void const *data, bool decode) {
 
 		this->type = MANAGE;
 
-		CVImage temp(size, data, false);
+		CVImage temp(size, d, false);
 		this->copy(temp, true);
 
 	} else {
@@ -105,7 +105,7 @@ CVImage::CVImage(int const size, void const *data, bool decode) {
 		this->metadata.info.image_name_size = 0;
 		this->metadata.info.source_file_name_size = 0;
 
-		unsigned char const * cdata = (unsigned char const*)data;
+		unsigned char const * cdata = (unsigned char const*)d;
 		unsigned char * tdata = const_cast<unsigned char*>(cdata);
 		int temp = 0;
 		memcpy(this->metadata.bytes, tdata + temp, CVIMAGE_METADATA_SIZE); temp += CVIMAGE_METADATA_SIZE;
@@ -130,7 +130,7 @@ CVImage::CVImage(int const size, void const *data, bool decode) {
 }
 
 CVImage::CVImage(MetadataType *_metadata,
-			unsigned char *_data, int _data_max_size,
+			unsigned char *_d, int _data_max_size,
 			char * _image_name, int _image_name_max_size,
 			char * _source_file_name, int _source_file_name_max_size) {
 	this->type = READWRITE;
@@ -152,7 +152,7 @@ CVImage::CVImage(MetadataType *_metadata,
 	memcpy(this->metadata.bytes, _metadata, CVIMAGE_METADATA_SIZE);
 
 	this->data_max_size = (_data_max_size < 0 ? 0 : _data_max_size);
-	this->data = _data;
+	this->data = _d;
 
 	this->image_name_max_size = (_image_name_max_size < 0 ? 0 : _image_name_max_size);
 	this->image_name = _image_name;
@@ -321,7 +321,7 @@ bool CVImage::copy(CVImage const &other, bool decode) {
 
 }
 
-void CVImage::serialize(int &size, void* &data, int encoding) {
+void CVImage::serialize(int &size, void* &d, int encoding) {
 
 // first check to see if the data needs to be compressed.  If yes, check to see if the data needs to be compacted first.
 	unsigned long s2 = this->metadata.info.data_size;
@@ -343,7 +343,7 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 				this->metadata.info.image_name_size +
 				this->metadata.info.source_file_name_size;
 		// allocate the right size
-		data = malloc(size);
+		d = malloc(size);
 
 		// see if we need compaction
 		void * d2;
@@ -359,7 +359,7 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 		}
 
 		// compress into the new buffer
-		compress(((unsigned char *)data) + CVIMAGE_METADATA_SIZE, &destsize, (unsigned char*)d2, s2);
+		compress(((unsigned char *)d) + CVIMAGE_METADATA_SIZE, &destsize, (unsigned char*)d2, s2);
 
 		// clean up.
 		if (this->metadata.info.step > row_size) free(d2);
@@ -370,16 +370,16 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 				destsize +
 				this->metadata.info.image_name_size +
 				this->metadata.info.source_file_name_size;
-		d2 = realloc(data, size);
+		d2 = realloc(d, size);
 		if (d2 == NULL) {
 			printf("ERROR:  should not have NULL from realloc!\n");
 		} else {
-			data = d2;
+			d = d2;
 		}
 		meta.info.data_size = destsize;
 
 		// copy in the metadata
-		memcpy(((unsigned char *)data), meta.bytes, CVIMAGE_METADATA_SIZE);
+		memcpy(((unsigned char *)d), meta.bytes, CVIMAGE_METADATA_SIZE);
 
 		temp = CVIMAGE_METADATA_SIZE + destsize;
 
@@ -388,30 +388,30 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 				this->metadata.info.data_size +
 				this->metadata.info.image_name_size +
 				this->metadata.info.source_file_name_size;
-		data = malloc(size);
+		d = malloc(size);
 
 		// if not compressing, then put into the output directly.
-		memcpy(((unsigned char *)data), this->metadata.bytes, CVIMAGE_METADATA_SIZE);
+		memcpy(((unsigned char *)d), this->metadata.bytes, CVIMAGE_METADATA_SIZE);
 		temp = CVIMAGE_METADATA_SIZE;
 
 
 		// copy the data into the buffer.
 		if (this->metadata.info.step > row_size) {  // there are gaps
 			for (int i = 0; i < this->metadata.info.y_size; ++i) {
-				memcpy(((unsigned char *)data) + temp, this->data + i * this->metadata.info.step, row_size);
+				memcpy(((unsigned char *)d) + temp, this->data + i * this->metadata.info.step, row_size);
 				temp += row_size;
 			}
 		} else {
-			memcpy(((unsigned char *)data) + temp, this->data, this->metadata.info.data_size);
+			memcpy(((unsigned char *)d) + temp, this->data, this->metadata.info.data_size);
 			temp += this->metadata.info.data_size;
 		}
 
 	}
 
 	// copy the file and image names
-	memcpy(((unsigned char *)data) + temp, this->image_name, this->metadata.info.image_name_size);
+	memcpy(((unsigned char *)d) + temp, this->image_name, this->metadata.info.image_name_size);
 	temp += this->metadata.info.image_name_size;
-	memcpy(((unsigned char *)data) + temp, this->source_file_name, this->metadata.info.source_file_name_size);
+	memcpy(((unsigned char *)d) + temp, this->source_file_name, this->metadata.info.source_file_name_size);
 
 	// DONE.
 }

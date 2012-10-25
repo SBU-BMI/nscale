@@ -28,7 +28,7 @@ namespace cci {
 namespace rt {
 namespace adios {
 
-const int SegConfigurator::UNDEFINED_GROUP = -1;
+const int SegConfigurator::UNDEFINED_GROUP = MPI_UNDEFINED;
 const int SegConfigurator::COMPUTE_GROUP = 1;
 const int SegConfigurator::IO_GROUP = 2;
 const int SegConfigurator::COMPUTE_TO_IO_GROUP = 3;
@@ -186,7 +186,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		//Debug::print("in compute setup\n");
 		if (handler->isListener()) {  // master in the compute group
 			Action_I *assign =
-					new cci::rt::adios::AssignTiles(&comm, -1, NULL, sbuf,
+					new cci::rt::adios::AssignTiles(&comm, MPI_UNDEFINED, NULL, sbuf,
 							params[SegmentCmdParser::PARAM_INPUT],
 							atoi(params[SegmentCmdParser::PARAM_INPUTCOUNT].c_str()),
 							logger->getSession("assign"));
@@ -194,7 +194,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 			delete handler2;
 		} else {
 			Action_I *seg =
-					new cci::rt::adios::Segment(&comm, -1, rbuf, sbuf,
+					new cci::rt::adios::Segment(&comm, MPI_UNDEFINED, rbuf, sbuf,
 							params[SegmentCmdParser::PARAM_PROCTYPE],
 							atoi(params[SegmentCmdParser::PARAM_GPUDEVICEID].c_str()),
 							(strcmp(params[SegmentCmdParser::PARAM_COMPRESSION].c_str(), "on") == 0 ? true : false),

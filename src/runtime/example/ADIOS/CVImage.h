@@ -48,16 +48,16 @@ public:
 
 	CVImage(cv::Mat const &img, std::string const &_image_name, std::string const &_source_tile_file_name, int const _offsetX, int const _offsetY);
 	CVImage(int _data_max = 0, int _name_max = 0, int _source_name_max = 0);  // empty one
-	CVImage(int const size, void const *data, bool decode=false);  // data is referenced after the call.  point to a block of memory
+	CVImage(int const size, void const *d, bool decode=false);  // data is referenced after the call.  point to a block of memory
 	CVImage(MetadataType *metadata,
-			unsigned char *data, int data_max_size,
+			unsigned char *d, int data_max_size,
 			char * image_name, int image_name_max_size,
 			char * source_file_name, int source_file_name_max_size);
 	// point to memory already allocated externally, and possibly populated.
 
 	bool copy(CVImage const &other, bool decode=false);  // if error, return false;
 
-	void serialize(int &size, void* &data, int encoding = ENCODE_RAW);
+	void serialize(int &size, void* &d, int encoding = ENCODE_RAW);
 //	bool deserialize(int const size, void const *data);  // data is not referenced after the call
 
 	static const int READWRITE; // mapped to buffer memory.  can't new or delete pointers.  content is free to be changed
@@ -89,8 +89,8 @@ public:
 		delete [] meta;
 	}
 
-	static void freeSerializedData(void *data) {
-		free(data);
+	static void freeSerializedData(void *d) {
+		free(d);
 	}
 
 protected:
