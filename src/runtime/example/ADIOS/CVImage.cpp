@@ -89,43 +89,43 @@ CVImage::CVImage(int const size, void const *data, bool decode) {
 
 	} else {
 		// if not decoding, then just map the memory.
-	this->type = READ;
+		this->type = READ;
 
-	this->metadata.info.x_offset = 0;
-	this->metadata.info.y_offset = 0;
+		this->metadata.info.x_offset = 0;
+		this->metadata.info.y_offset = 0;
 
-	this->metadata.info.x_size = 0;
-	this->metadata.info.y_size = 0;
-	this->metadata.info.nChannels = 0;
-	this->metadata.info.elemSize1 = 0;
-	this->metadata.info.cvDataType = 0;
+		this->metadata.info.x_size = 0;
+		this->metadata.info.y_size = 0;
+		this->metadata.info.nChannels = 0;
+		this->metadata.info.elemSize1 = 0;
+		this->metadata.info.cvDataType = 0;
 
-	this->metadata.info.encoding = ENCODE_RAW;
-	this->metadata.info.data_size = 0;
-	this->metadata.info.image_name_size = 0;
-	this->metadata.info.source_file_name_size = 0;
+		this->metadata.info.encoding = ENCODE_RAW;
+		this->metadata.info.data_size = 0;
+		this->metadata.info.image_name_size = 0;
+		this->metadata.info.source_file_name_size = 0;
 
-	unsigned char const * cdata = (unsigned char const*)data;
-	unsigned char * tdata = const_cast<unsigned char*>(cdata);
-	int temp = 0;
-	memcpy(this->metadata.bytes, tdata + temp, CVIMAGE_METADATA_SIZE); temp += CVIMAGE_METADATA_SIZE;
+		unsigned char const * cdata = (unsigned char const*)data;
+		unsigned char * tdata = const_cast<unsigned char*>(cdata);
+		int temp = 0;
+		memcpy(this->metadata.bytes, tdata + temp, CVIMAGE_METADATA_SIZE); temp += CVIMAGE_METADATA_SIZE;
 
-	if (this->metadata.info.data_size < 0) this->metadata.info.data_size = 0;
-	if (this->metadata.info.image_name_size < 1) this->metadata.info.image_name_size = 1;
-	if (this->metadata.info.source_file_name_size < 1) this->metadata.info.source_file_name_size = 1;
+		if (this->metadata.info.data_size < 0) this->metadata.info.data_size = 0;
+		if (this->metadata.info.image_name_size < 1) this->metadata.info.image_name_size = 1;
+		if (this->metadata.info.source_file_name_size < 1) this->metadata.info.source_file_name_size = 1;
 
-	this->data = tdata+temp; temp += this->metadata.info.data_size;
-	this->data_max_size = this->metadata.info.data_size;
+		this->data = tdata+temp; temp += this->metadata.info.data_size;
+		this->data_max_size = this->metadata.info.data_size;
 
-	char *sdata = (char *)tdata;
-	this->image_name = sdata+temp; temp += this->metadata.info.image_name_size;
-	this->image_name_max_size = this->metadata.info.image_name_size;
+		char *sdata = (char *)tdata;
+		this->image_name = sdata+temp; temp += this->metadata.info.image_name_size;
+		this->image_name_max_size = this->metadata.info.image_name_size;
 
-	this->source_file_name = sdata + temp; temp += this->metadata.info.source_file_name_size;
-	this->source_file_name_max_size = this->metadata.info.source_file_name_size;
+		this->source_file_name = sdata + temp; temp += this->metadata.info.source_file_name_size;
+		this->source_file_name_max_size = this->metadata.info.source_file_name_size;
 
-	this->metadata.info.step = this->metadata.info.x_size * this->metadata.info.nChannels * this->metadata.info.elemSize1;
-	this->stage = -1;
+		this->metadata.info.step = this->metadata.info.x_size * this->metadata.info.nChannels * this->metadata.info.elemSize1;
+		this->stage = -1;
 	}
 }
 
@@ -338,10 +338,10 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 		// first we figure out the likely compressed size:
 		unsigned long destsize = compressBound(s2);
 		// estimated size
-	size = CVIMAGE_METADATA_SIZE +
+		size = CVIMAGE_METADATA_SIZE +
 				destsize +
-			this->metadata.info.image_name_size +
-			this->metadata.info.source_file_name_size;
+				this->metadata.info.image_name_size +
+				this->metadata.info.source_file_name_size;
 		// allocate the right size
 		data = malloc(size);
 
@@ -370,7 +370,12 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 				destsize +
 				this->metadata.info.image_name_size +
 				this->metadata.info.source_file_name_size;
-		data = realloc(data, size);
+		d2 = realloc(data, size);
+		if (d2 == NULL) {
+			printf("ERROR:  should not have NULL from realloc!\n");
+		} else {
+			data = d2;
+		}
 		meta.info.data_size = destsize;
 
 		// copy in the metadata
@@ -383,8 +388,7 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 				this->metadata.info.data_size +
 				this->metadata.info.image_name_size +
 				this->metadata.info.source_file_name_size;
-	data = malloc(size);
-
+		data = malloc(size);
 
 		// if not compressing, then put into the output directly.
 		memcpy(((unsigned char *)data), this->metadata.bytes, CVIMAGE_METADATA_SIZE);
@@ -394,13 +398,12 @@ void CVImage::serialize(int &size, void* &data, int encoding) {
 		// copy the data into the buffer.
 		if (this->metadata.info.step > row_size) {  // there are gaps
 			for (int i = 0; i < this->metadata.info.y_size; ++i) {
-					memcpy(((unsigned char *)data) + temp, this->data + i * this->metadata.info.step, row_size);
+				memcpy(((unsigned char *)data) + temp, this->data + i * this->metadata.info.step, row_size);
 				temp += row_size;
-
 			}
 		} else {
-				memcpy(((unsigned char *)data) + temp, this->data, this->metadata.info.data_size);
-				temp += this->metadata.info.data_size;
+			memcpy(((unsigned char *)data) + temp, this->data, this->metadata.info.data_size);
+			temp += this->metadata.info.data_size;
 		}
 
 	}

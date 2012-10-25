@@ -50,6 +50,9 @@ bool SynDataCmdParser::parse(int argc, char** argv) {
 	params[SynDataCmdParser::PARAM_EXECUTABLEDIR] = futils.getDir(executable);
 	params[SynDataCmdParser::PARAM_INPUT] = argv[1];
 	params[SynDataCmdParser::PARAM_OUTPUTDIR] = argv[2];
+//	printf(" progname: %s\n", argv[0]);
+//	printf(" input: %s\n", argv[1]);
+//	printf(" outputdir: %s\n", argv[2]);
 
 	// put in the defaults
 	params[SynDataCmdParser::PARAM_INPUTCOUNT] = "1";
@@ -70,6 +73,8 @@ bool SynDataCmdParser::parse(int argc, char** argv) {
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_INPUTCOUNT] = argv[pos];
+//		printf(" inputcount: %s\n", argv[pos]);
+
 		++pos;
 	} else return true;
 
@@ -80,9 +85,11 @@ bool SynDataCmdParser::parse(int argc, char** argv) {
 			return false;
 		}
  		params[SynDataCmdParser::PARAM_PROCTYPE] = argv[pos];
+//		printf(" proctype: %s\n", argv[pos]);
 		if (strcmp(argv[pos], "gpu") == 0) {
 			++pos;
 			params[SynDataCmdParser::PARAM_GPUDEVICEID] = argv[pos];
+//			printf(" gpuid: %s\n", argv[pos]);
 		}
 
 		++pos;
@@ -105,6 +112,7 @@ bool SynDataCmdParser::parse(int argc, char** argv) {
 			return false;
 		}
 		params[SynDataCmdParser::PARAM_TRANSPORT] = argv[pos];
+//		printf(" transport: %s\n", argv[pos]);
 		++pos;
 	} else {
 		return true;
@@ -112,42 +120,50 @@ bool SynDataCmdParser::parse(int argc, char** argv) {
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_IOBUFFERSIZE] = argv[pos];
+//		printf(" io buffersize: %s\n", argv[pos]);
 		++pos;
 	} else return true;
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_IOSIZE] = argv[pos];
+//		printf(" iosize: %s\n", argv[pos]);
 		++pos;
 	} else return true;
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_IOINTERLEAVE] = argv[pos];
+//		printf(" iointerleave: %s\n", argv[pos]);
 		++pos;
 	} else return true;
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_SUBIOSIZE] = argv[pos];
+//		printf(" subiosize: %s\n", argv[pos]);
 		++pos;
 	} else return true;
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_SUBIOINTERLEAVE] = argv[pos];
+//		printf(" subiointerleave: %s\n", argv[pos]);
 		++pos;
 	} else return true;
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_OUTPUTSIZE] = argv[pos];
+//		printf(" output size: %s\n", argv[pos]);
 		++pos;
-	}
+	} else return true;
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_COMPRESSION] = argv[pos];
+//		printf(" compression: %s\n", argv[pos]);
 		++pos;
-	}
+	} else return true;
 
 	if (argc > pos) {
 		params[SynDataCmdParser::PARAM_NONBLOCKING] = argv[pos];
+//		printf(" nonblocking: %s\n", argv[pos]);
 		++pos;
-	} else return true;
+	} 
 
 
 	return true;

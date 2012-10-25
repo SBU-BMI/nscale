@@ -317,11 +317,20 @@ int SCIOADIOSWriter::persist(int iter) {
 				tile_pg_size += tile_size[i];
 
 			} else {
-			memcpy(tile + tile_offset[i], tile_cache[i].tile.datastart, tile_size[i]);
-		}
+				memcpy(tile + tile_offset[i], tile_cache[i].tile.datastart, tile_size[i]);
+			}
 		}
 		// finally, compact the data
-		if (compression) tile = (unsigned char*)realloc(tile, tile_pg_size);
+		if (compression) {
+			void * d2;
+			d2 = realloc(tile, tile_pg_size);
+			if (d2 == NULL) {
+				printf("ERROR:  should not have NULL from realloc!\n");
+			} else {
+				tile = (unsigned char*)d2;
+			}
+
+		}
 
 //		printf("all filenames together %s\n", sourceTileFile);
 		t2 = ::cciutils::event::timestampInUS();

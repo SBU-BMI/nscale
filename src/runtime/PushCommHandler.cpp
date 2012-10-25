@@ -22,7 +22,7 @@ PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, 
 }
 
 PushCommHandler::~PushCommHandler() {
-	MPI_Barrier(comm);
+//	MPI_Barrier(comm);
 
 	if (isListener()) {
 		Debug::print("%s destructor called.  total of %d data messages received.\n", getClassName(), send_count);
@@ -101,7 +101,7 @@ int PushCommHandler::run() {
 				}
 				//Debug::print("%s master receiving from %d\n", getClassName(), node_id);
 				MPI_Recv(data, count, MPI_CHAR, node_id, tag, comm, &mstatus);
-				if (data != NULL) free(data);
+				if (count > 0) free(data);
 				//Debug::print("%s master received from %d\n", getClassName(), node_id);
 
 				// check to see if there are any done messages from that node.

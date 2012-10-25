@@ -48,14 +48,14 @@ int GenerateOutputPush::compute(int const &input_size , void * const &input,
 	char len[21];
 	int tilex = 0;
 	int tiley = 0;
-	char inchars[21];
-	char fnchars[21];
-	memset(inchars, 0, 21);
-	memset(fnchars, 0, 21);
+	char inchars[256];
+	char fnchars[1024];
+	memset(inchars, 0, 256);
+	memset(fnchars, 0, 1024);
 	sprintf(inchars, "%dx%d", world_rank, count);
 	sprintf(fnchars, "/tmp/dummy/synthetic_%dx%d_%d.tiff", world_rank, count, output_count);
-	string imagename = string(inchars);
-	string fn = string(fnchars);
+	string imagename(inchars);
+	string fn(fnchars);
 
 	t1 = ::cciutils::event::timestampInUS();
 
@@ -75,7 +75,7 @@ int GenerateOutputPush::compute(int const &input_size , void * const &input,
 
 		t2 = ::cciutils::event::timestampInUS();
 		memset(len, 0, 21);
-		sprintf(len, "%lu", (long)output_size);
+		sprintf(len, "%d", output_size);
 		if (logsession != NULL) logsession->log(cciutils::event(90, std::string("serialize"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
 
 	mask.release();
