@@ -27,7 +27,7 @@ namespace cci {
 namespace rt {
 namespace syntest {
 
-const int SynDataConfiguratorPush::UNDEFINED_GROUP = -1;
+const int SynDataConfiguratorPush::UNDEFINED_GROUP = MPI_UNDEFINED;
 const int SynDataConfiguratorPush::COMPUTE_GROUP = 1;
 const int SynDataConfiguratorPush::IO_GROUP = 2;
 const int SynDataConfiguratorPush::COMPUTE_TO_IO_GROUP = 3;
@@ -146,7 +146,7 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 	// now set up the workers
 	if (compute_io_g == COMPUTE_GROUP) {
 			Action_I *seg =
-					new cci::rt::syntest::GenerateOutputPush(&comm, -1, NULL, sbuf,
+					new cci::rt::syntest::GenerateOutputPush(&comm, MPI_UNDEFINED, NULL, sbuf,
 							params[SynDataCmdParser::PARAM_PROCTYPE],
 		atoi(params[SynDataCmdParser::PARAM_OUTPUTSIZE].c_str()),
 		atoi(params[SynDataCmdParser::PARAM_INPUTCOUNT].c_str()),

@@ -28,7 +28,7 @@ namespace cci {
 namespace rt {
 namespace syntest {
 
-const int SynDataConfiguratorFull::UNDEFINED_GROUP = -1;
+const int SynDataConfiguratorFull::UNDEFINED_GROUP = MPI_UNDEFINED;
 const int SynDataConfiguratorFull::COMPUTE_GROUP = 1;
 const int SynDataConfiguratorFull::IO_GROUP = 2;
 const int SynDataConfiguratorFull::COMPUTE_TO_IO_GROUP = 3;
@@ -180,7 +180,7 @@ bool SynDataConfiguratorFull::configure(MPI_Comm &comm, Process *proc) {
 		//Debug::print("in compute setup\n");
 		if (handler->isListener()) {  // master in the compute group
 			Action_I *assign =
-					new cci::rt::adios::AssignTiles(&comm, -1, NULL, sbuf,
+					new cci::rt::adios::AssignTiles(&comm, MPI_UNDEFINED, NULL, sbuf,
 							params[SynDataCmdParser::PARAM_INPUT],
 							atoi(params[SynDataCmdParser::PARAM_INPUTCOUNT].c_str()),
 							logger->getSession("assign"));
@@ -188,7 +188,7 @@ bool SynDataConfiguratorFull::configure(MPI_Comm &comm, Process *proc) {
 			delete handler2;
 		} else {
 			Action_I *seg =
-					new cci::rt::syntest::GenerateOutput(&comm, -1, rbuf, sbuf,
+					new cci::rt::syntest::GenerateOutput(&comm, MPI_UNDEFINED, rbuf, sbuf,
 							params[SynDataCmdParser::PARAM_PROCTYPE],
 							atoi(params[SynDataCmdParser::PARAM_OUTPUTSIZE].c_str()),
 							atoi(params[SynDataCmdParser::PARAM_GPUDEVICEID].c_str()),

@@ -25,7 +25,7 @@ public:
 
 	    va_list args;
 	    va_start(args,fmt);
-	    vsprintf(msg, fmt,args);
+	    vsprintf(msg, fmt, args);
 	    va_end(args);
 
 	    if (!checked) {
