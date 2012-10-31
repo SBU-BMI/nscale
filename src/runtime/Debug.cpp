@@ -13,7 +13,7 @@ namespace rt {
 
 char Debug::msg[4096];
 bool Debug::checked = false;
-int Debug::rank = -1;
+int Debug::rank = MPI_UNDEFINED;
 
 } /* namespace rt */
 } /* namespace cci */

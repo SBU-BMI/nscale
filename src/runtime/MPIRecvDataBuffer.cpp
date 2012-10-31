@@ -33,11 +33,12 @@ int MPIRecvDataBuffer::transmit(int node, int tag, MPI_Datatype type, MPI_Comm &
 	memset(ldata, 0, size);
 
 	if (non_blocking) {
-		MPI_Request *req = new MPI_Request[1];
+		MPI_Request *req = (MPI_Request *)malloc(sizeof(MPI_Request));
 		MPI_Irecv(ldata, size, type, node, tag, comm, req);
 
 		mpi_buffer[req] = std::make_pair(size, ldata);
 		mpi_req_starttimes[req] = t1;
+
 	} else {
 		MPI_Status mstat;
 
@@ -81,10 +82,10 @@ int MPIRecvDataBuffer::checkRequests(bool waitForAll) {
 	}
 
 	long long t2 = ::cciutils::event::timestampInUS();
-	long long t1;
+	long long t1 = -1;
 
-	int size;
-	MPI_Request* reqptr;
+	int size = 0;
+	MPI_Request* reqptr = NULL;
 
 	if (completed == MPI_UNDEFINED) {
 		Debug::print("ERROR: testing completion received a complete count of MPI_UNDEFINED\n");
@@ -106,6 +107,8 @@ int MPIRecvDataBuffer::checkRequests(bool waitForAll) {
 
 			t1 = mpi_req_starttimes[reqptr];
 			mpi_req_starttimes.erase(reqptr);
+
+			free(reqptr);
 
 			memset(len, 0, 21);
 			sprintf(len, "%d", size);

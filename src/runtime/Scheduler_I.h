@@ -31,7 +31,7 @@ public:
 	 * within the specified communicator.
 	 */
 	Scheduler_I(std::vector<int> const &_roots, std::vector<int> const &_leaves) :
-		configured(false), root(false), leaf(false), comm(MPI_COMM_NULL), roots(_roots), leaves(_leaves), listform(true) {
+		configured(false), root(false), leaf(false), comm(MPI_COMM_NULL), roots(_roots), leaves(_leaves), listform(true), rank(MPI_UNDEFINED) {
 
 		// remove any duplicates
 		sort(roots.begin(), roots.end());
@@ -52,7 +52,10 @@ public:
 	 * the list.  all gather uses the communicator specified.
 	 */
 	Scheduler_I(bool _root, bool _leaf) :
-		configured(false), root(_root), leaf(_leaf), comm(MPI_COMM_NULL), listform(false) {};
+		configured(false), root(_root), leaf(_leaf), comm(MPI_COMM_NULL), listform(false), rank(MPI_UNDEFINED) {
+		roots.clear();
+		leaves.clear();
+	};
 
 	virtual ~Scheduler_I() {
 		roots.clear();
@@ -77,7 +80,7 @@ public:
 			if (binary_search(roots.begin(), roots.end(), rank)) root = true;
 			if (binary_search(leaves.begin(), leaves.end(), rank)) leaf = true;
 		} else {
-			int size;
+			int size = 0;
 			MPI_Comm_size(comm, &size);
 
 			// get the other node's info

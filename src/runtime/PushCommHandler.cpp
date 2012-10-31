@@ -17,12 +17,9 @@ namespace rt {
 
 PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, MPIDataBuffer *_buffer, Scheduler_I * _scheduler, cciutils::SCIOLogSession *_logsession)
 : CommHandler_I(_parent_comm, _gid, _buffer, _scheduler, _logsession), send_count(0) {
-//	hascompletedworker = false;
-//	test_input_status = ERROR;
 }
 
 PushCommHandler::~PushCommHandler() {
-//	MPI_Barrier(comm);
 
 	if (isListener()) {
 		Debug::print("%s destructor called.  total of %d data messages received.\n", getClassName(), send_count);
@@ -45,7 +42,7 @@ PushCommHandler::~PushCommHandler() {
 int PushCommHandler::run() {
 
 	// not need to check for action== NULL. NULL action sets status to ERROR
-	long long t1, t2;
+	long long t1 = -1, t2 = -1;
 	t1 = cciutils::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
@@ -53,17 +50,13 @@ int PushCommHandler::run() {
 	call_count++;
 	//if (call_count % 100 == 0) Debug::print("PushCommHandler %s run called %d. \n", (isListener() ? "listener" : "requester"), call_count);
 
-	int count;
+	int count = 0;
 	void * data = NULL;
 	int node_status = Communicator_I::READY;
 	MPI_Status mstatus;
-	MPI_Request myRequest;
-	int node_id;
+	int node_id = MPI_UNDEFINED;
 	int tag = 2;
-	MPI_Datatype type;
-	MPI_Request *req;
-	int completed;
-
+	int completed = 0;
 
 	if (isListener()) {
                 // logic:
@@ -172,8 +165,6 @@ int PushCommHandler::run() {
         }
     	//Debug::print("%s master done receiving %d messages\n", getClassName(), iter_send_count);
 
-
-
 		// finally take care of whether there are workers left.
 		if (!scheduler->hasLeaves()) {
         	Debug::print("%s master has no more workers. buffer is stopped\n", getClassName());
@@ -182,7 +173,6 @@ int PushCommHandler::run() {
 			// no requests to send.  all responses should have been processed.
 			return Communicator_I::DONE;
 		}
-
 
         return status;
 
@@ -198,13 +188,13 @@ int PushCommHandler::run() {
         if (!waComm->iprobe(MPI_ANY_SOURCE,tag, &mstatus)) usleep(1000);
 
         while (waComm->iprobe(MPI_ANY_SOURCE, tag, &mstatus)) {
-                node_id = mstatus.MPI_SOURCE;
+			node_id = mstatus.MPI_SOURCE;
 
-                // status update, "DONE".  receive it and terminate.
-				//Debug::print("%s worker receiving from %d\n", getClassName(), node_id);
-                MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
-                scheduler->removeRoot(node_id);
-				//Debug::print("%s worker received from %d\n", getClassName(), node_id);
+			// status update, "DONE".  receive it and terminate.
+			//Debug::print("%s worker receiving from %d\n", getClassName(), node_id);
+			MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
+			scheduler->removeRoot(node_id);
+			//Debug::print("%s worker received from %d\n", getClassName(), node_id);
 
         }
 
@@ -235,9 +225,9 @@ int PushCommHandler::run() {
 			//Debug::print("%s buffer is finished.  worker notifying ALL managers with DONE\n", getClassName());
 			for (std::vector<int>::iterator iter=roots.begin();
 							iter != roots.end(); ++iter) {
-					MPI_Isend(data, 0, MPI_CHAR, *iter, tag, comm, &(reqs[i]));
-					++i;
-//                              MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
+				MPI_Isend(data, 0, MPI_CHAR, *iter, tag, comm, &(reqs[i]));
+				++i;
+//              MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
 			}
 			MPI_Waitall(i, reqs, MPI_STATUSES_IGNORE);
 			Debug::print("%s buffer is finished.  worker notified ALL managers with DONE\n", getClassName());

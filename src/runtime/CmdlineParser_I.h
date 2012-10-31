@@ -19,8 +19,11 @@ class CmdlineParser_I {
 public:
 	typedef std::tr1::array<std::string, N> ParamsType;
 
-
-	CmdlineParser_I() {};
+	CmdlineParser_I() {
+		for (int i = 0; i < N; ++i) {
+			params.at(i) = std::string();
+		}
+	};
 	virtual ~CmdlineParser_I() {};
 
 	virtual bool parse(int argc, char** argv) = 0;

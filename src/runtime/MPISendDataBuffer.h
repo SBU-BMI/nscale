@@ -10,8 +10,6 @@
 #ifndef MPISENDDATABUFFER_H_
 #define MPISENDDATABUFFER_H_
 
-#include "mpi.h"
-#include <tr1/unordered_map>
 #include "MPIDataBuffer.h"
 
 namespace cci {
@@ -41,7 +39,7 @@ public:
 
 	virtual ~MPISendDataBuffer() {
 		if (mpi_buffer.size() > 0) Debug::print("WARNING: clearning MPISendBuffer\n");
-		
+
 		int completed = checkRequests(true);
 		if (completed > 0) Debug::print("WARNING: completed %d from MPISendBuffer\n", completed);
 	};

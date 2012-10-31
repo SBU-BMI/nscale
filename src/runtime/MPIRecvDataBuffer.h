@@ -10,10 +10,7 @@
 #ifndef MPIRECVDATABUFFER_H_
 #define MPIRECVDATABUFFER_H_
 
-#include "mpi.h"
-#include <tr1/unordered_map>
 #include "MPIDataBuffer.h"
-
 
 namespace cci {
 namespace rt {
@@ -52,9 +49,8 @@ public:
 		if (mpi_buffer.size() > 0) Debug::print("WARNING: clearning MPISendBuffer\n");
 
 		int completed = checkRequests(true);
-		if (completed > 0) Debug::print("WARNING: removed %d from MPISendBuffer\n", completed);
+		if (completed > 0) Debug::print("WARNING: completed %d from MPISendBuffer\n", completed);
 	};
-
 
 };
 

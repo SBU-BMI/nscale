@@ -13,7 +13,6 @@
 #include <tr1/unordered_set>
 #include "Debug.h"
 #include "SCIOUtilsLogger.h"
-#include "assert.h"
 
 namespace cci {
 namespace rt {
@@ -91,7 +90,6 @@ protected:
 
 	std::tr1::unordered_set<void *> reference_sources;
 
-	void dumpBuffer();
 
 };
 

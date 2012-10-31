@@ -23,6 +23,7 @@ public:
 		if (inputBuf != NULL) DataBuffer::reference(inputBuf, this);
 		if (outputBuf != NULL) DataBuffer::reference(outputBuf, this);
 	};
+
 	virtual ~Action_I() {
 		if (inputBuf != NULL) DataBuffer::dereference(inputBuf, this);
 		if (outputBuf != NULL) DataBuffer::dereference(outputBuf,this);
@@ -38,8 +39,8 @@ public:
 	 void debugOff() {
 		 debug = false;
 	 };
-	 DataBuffer *getInputBuffer() {return inputBuf;};
-	 DataBuffer *getOutputBuffer() {return outputBuf;};
+	 DataBuffer *getInputBuffer() { return inputBuf;};
+	 DataBuffer *getOutputBuffer() { return outputBuf;};
 
 protected:
 	virtual int compute(int const &input_size , void * const &input,

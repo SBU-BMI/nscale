@@ -33,7 +33,7 @@ public:
 	 * through to MPI.
 	 */
 	bool iprobe(int source, int tag, MPI_Status *status) {
-		int hasMessage;
+		int hasMessage = 0;
 		if (source == MPI_ANY_SOURCE) {
 			// go once through all the nodes
 			for (int i = 0; i < size; ++i) {

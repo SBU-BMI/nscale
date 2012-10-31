@@ -23,17 +23,19 @@ const int DataBuffer::UNSUPPORTED_OP = -12;
 
 DataBuffer::DataBuffer(int _capacity, cciutils::SCIOLogSession *_logsession) :
 		capacity(_capacity), status(DataBuffer::READY), logsession(_logsession) {
+	while (!buffer.empty()) {
+		DataType d = buffer.front();
+		buffer.pop();
+		free(d.second);
+		d.second = NULL;
+	}
+	reference_sources.clear();
 }
 
 DataBuffer::~DataBuffer() {
 	if (!buffer.empty()) {
 		Debug::print("WARNING: DataBuffer has %d entries left in buffer.  likely to have leaked memory.\n", buffer.size());
 	}
-	dumpBuffer();
-}
-
-void DataBuffer::dumpBuffer() {
-	if (!buffer.empty()) Debug::print("WARNING: dumpbuffer called...\n");
 	while (!buffer.empty()) {
 		DataType d = buffer.front();
 		buffer.pop();

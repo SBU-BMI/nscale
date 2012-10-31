@@ -119,7 +119,6 @@ int POSIXRawSave::run() {
 	//printf("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, inputBuf->debugBufferSize());
 	if (status == Communicator_I::DONE) {
 		Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, inputBuf->debugBufferSize());
-//		Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, inputBuf->debugBufferSize() );
 	}
 
 

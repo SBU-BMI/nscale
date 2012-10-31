@@ -12,7 +12,6 @@
 #include <string.h>
 #include <mpi.h>
 #include <memory>
-#include <cassert>
 #include "waMPI.h"
 #include <tr1/unordered_set>
 

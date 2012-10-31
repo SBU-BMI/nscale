@@ -35,7 +35,7 @@ int NullSinkAction::run() {
 	}
 
 	DataBuffer::DataType data;
-	void *input;
+	void *input = NULL;
 
 
 	call_count++;

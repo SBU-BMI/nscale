@@ -12,11 +12,11 @@ namespace cci {
 namespace rt {
 
 RoundRobinScheduler::RoundRobinScheduler(std::vector<int> &_roots, std::vector<int> &_leaves) :
-	Scheduler_I(_roots, _leaves) {
+	Scheduler_I(_roots, _leaves), rootIdx(-1), leafIdx(-1) {
 }
 
 RoundRobinScheduler::RoundRobinScheduler(bool _root, bool _leaf) :
-	Scheduler_I(_root, _leaf) {
+	Scheduler_I(_root, _leaf), rootIdx(-1), leafIdx(-1) {
 }
 
 void RoundRobinScheduler::postConfigure() {

@@ -39,7 +39,7 @@ public:
 //	virtual bool isReady() { return buffer != NULL && !buffer->isStopped(); };
 
 //	virtual int getStatus() { return status; };
-	DataBuffer *getBuffer() {return buffer; };
+	DataBuffer *getBuffer() { return buffer; };
 
 protected:
 	Scheduler_I *scheduler;

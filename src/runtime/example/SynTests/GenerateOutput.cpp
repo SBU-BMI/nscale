@@ -14,7 +14,6 @@
 #include "utils.h"
 #include "SCIOHistologicalEntities.h"
 #include <unistd.h>
-#include "CVImage.h"
 
 namespace cci {
 namespace rt {
@@ -88,8 +87,6 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 
 	// real computation:
 	int status = ::nscale::SCIOHistologicalEntities::SUCCESS;
-	int *bbox = NULL;
-	int compcount;
 	cv::Mat mask = cv::Mat::zeros(output_dim, output_dim, CV_32SC1);
 	sleep(1);
 	t2 = ::cciutils::event::timestampInUS();
@@ -108,7 +105,6 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 		sprintf(len, "%lu", (long)output_size);
 		if (logsession != NULL) logsession->log(cciutils::event(90, std::string("serialize"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
 
-	if (bbox != NULL) free(bbox);
 //	im.release();
 
 	mask.release();
@@ -126,6 +122,7 @@ int GenerateOutput::run() {
 		Debug::print("%s output DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
 		this->inputBuf->stop();
 
+		if (!this->inputBuf->isFinished()) Debug::print("WARNING: %s input buffer is not empty.\n", getClassName());
 		return Communicator_I::DONE;
 	} else if (!this->inputBuf->canPop() || !this->outputBuf->canPush()) {
 		return Communicator_I::WAIT;
@@ -133,7 +130,7 @@ int GenerateOutput::run() {
 
 	DataBuffer::DataType data;
 	int output_size, input_size;
-	void *output, *input;
+	void *output = NULL, *input = NULL;
 
 
 	int bstat = this->inputBuf->pop(data);

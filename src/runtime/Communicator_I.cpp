@@ -21,22 +21,18 @@ const int Communicator_I::DONE = 0;
 const int Communicator_I::ERROR = -1;
 
 Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cciutils::SCIOLogSession *_logsession) :
-	groupid(_gid), call_count(0), logsession(_logsession) {
+	groupid(_gid), call_count(0), logsession(_logsession), waComm(NULL), comm(MPI_COMM_NULL), rank(MPI_UNDEFINED), size(0) {
+
+	memset(hostname, 0, 256);
 
 	if (*_parent_comm == MPI_COMM_NULL) {
 		Debug::print("ERROR: parent comm is NULL\n");
 	}
 
-	long long t1, t2;
-	t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cciutils::event::timestampInUS();
 
-	int pcomm_rank;
+	int pcomm_rank = MPI_UNDEFINED;
 	MPI_Comm_rank(*_parent_comm, &pcomm_rank);
-
-	rank = -1;
-	size = 0;
-	comm = MPI_COMM_NULL;
-	waComm = NULL;
 
 	if (groupid == MPI_UNDEFINED) {
 	} else if (groupid >= 0){
@@ -49,7 +45,7 @@ Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cc
 		Debug::print("ERROR: groupid has to be non-negative or MPI_UNDEFINED.\n");
 	}
 	gethostname(hostname, 255);  // from <iostream>
-	t2 = ::cciutils::event::timestampInUS();
+	long long t2 = ::cciutils::event::timestampInUS();
 	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI setup"), t1, t2, std::string(), ::cciutils::event::NETWORK_IO));
 };
 Communicator_I::~Communicator_I() {

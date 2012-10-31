@@ -23,7 +23,6 @@ public:
 
 	virtual const char* getClassName() { return "PullCommHandler"; };
 
-
 	virtual int run();
 
 private:

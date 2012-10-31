@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <limits>
+#include <cassert>
 
 namespace cci {
 namespace rt {

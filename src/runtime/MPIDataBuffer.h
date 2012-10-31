@@ -27,6 +27,10 @@ public:
 		reqs = new MPI_Request[_capacity];
 		reqptrs = new MPI_Request*[_capacity];
 		completedreqs = new int[_capacity];
+
+		if (!mpi_buffer.empty()) Debug::print("WARNING: constructing.  mpi_buffer is not empty.\n");
+		mpi_buffer.clear();
+		mpi_req_starttimes.clear();
 	};
 
 	virtual int debugBufferSize() { return buffer.size()+ mpi_buffer.size(); };
@@ -45,20 +49,21 @@ public:
 	// should check to make sure that there are requests
 	virtual int checkRequests(bool waitForAll = false) = 0;
 
-	int debug_complete_count;
-
 	virtual ~MPIDataBuffer() {
 		delete [] reqs;
 		delete [] reqptrs;
 		delete [] completedreqs;
 	};
 
+	int debug_complete_count;
 
 protected:
 	std::tr1::unordered_map<MPI_Request*, DataBuffer::DataType> mpi_buffer;
+
 	MPI_Request *reqs;
 	MPI_Request **reqptrs;
 	int *completedreqs;
+
 	bool non_blocking;
 
 	std::tr1::unordered_map<MPI_Request*, long long> mpi_req_starttimes;

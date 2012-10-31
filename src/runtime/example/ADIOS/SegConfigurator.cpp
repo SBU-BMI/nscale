@@ -151,9 +151,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		}
 	}
 
-	MPI_Barrier(comm);
-	if (rank == 0) printf("comp and io communicators set\n");
-	// then the compute to IO communication group
+//	// then the compute to IO communication group
 	// separate masters in the compute group
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
@@ -174,9 +172,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 			handler2 = new PushCommHandler(&comm, compute_to_io_g, sbuf, sch2, logger->getSession("push"));
 		}
 	}
-	MPI_Barrier(comm);
-	if (rank == 0) printf("comp to io communicators set\n");
-
+//
 	t2 = cciutils::event::timestampInUS();
 	if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout comms"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
@@ -272,7 +268,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		proc->addHandler(save);
 		delete handler;
 	}
-	MPI_Barrier(comm);
+//	MPI_Barrier(comm);
 
 //	std::ostream_iterator<int> osi(std::cout, ", ");
 //	std::vector<int> roots;

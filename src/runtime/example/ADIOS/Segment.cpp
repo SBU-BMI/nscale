@@ -155,7 +155,7 @@ int Segment::run() {
 
 	DataBuffer::DataType data;
 	int output_size, input_size;
-	void *output, *input;
+	void *output = NULL, *input = NULL;
 
 
 	int bstat = this->inputBuf->pop(data);

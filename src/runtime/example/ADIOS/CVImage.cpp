@@ -337,6 +337,9 @@ void CVImage::serialize(int &size, void* &d, int encoding) {
 
 		// first we figure out the likely compressed size:
 		unsigned long destsize = compressBound(s2);
+
+		printf("CVImage sizes: data %d, compressed data %lu, image name %d, src file name %d", this->metadata.info.data_size, destsize, this->metadata.info.image_name_size, this->metadata.info.source_file_name_size);
+
 		// estimated size
 		size = CVIMAGE_METADATA_SIZE +
 				destsize +

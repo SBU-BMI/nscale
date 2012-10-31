@@ -24,9 +24,12 @@ namespace rt {
 Process::Process(MPI_Comm &_comm_world, int argc, char **argv, ProcessConfigurator_I *_conf) :
 		conf(_conf), configured(false), comm_world(_comm_world) {
 	// common initialization
+	handlers.clear();
 
-
+	world_rank = MPI_UNDEFINED;
 	MPI_Comm_rank(comm_world, &world_rank);
+
+	memset(hostname, 0, 256);
 
 	if (conf != NULL) conf->init();
 
@@ -49,7 +52,6 @@ void Process::setup() {
 	if (configured) teardown();
 
 	configured = conf->configure(comm_world, this);
-
 
 
 	MPI_Barrier(comm_world);

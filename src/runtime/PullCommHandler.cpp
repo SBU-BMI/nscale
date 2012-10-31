@@ -43,27 +43,21 @@ PullCommHandler::~PullCommHandler() {
 int PullCommHandler::run() {
 
 	// not need to check for action== NULL. NULL action sets status to ERROR
-	long long t1, t2;
+	long long t1 = 0, t2 = 0;
 	t1 = cciutils::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
 
-
 	call_count++;
-
 	//	if (call_count % 100 == 0) Debug::print("%s %s run called %d. \n", getClassName(), (isListener() ? "listener" : "requester"), call_count);
 
 	int count = 0;
 	void * data = NULL;
 	int node_status = Communicator_I::READY;
 	MPI_Status mstatus;
-	MPI_Request myRequest;
-	int node_id;
+	int node_id = MPI_UNDEFINED;
 	int tag = 1;
-	MPI_Datatype type;
-	int lstatus;
-	int numWorkToGet;
-	int completed;
+	int completed = 0;
 
 	if (isListener()) {
 		// logic:
@@ -113,13 +107,7 @@ int PullCommHandler::run() {
 		node_id = mstatus.MPI_SOURCE;
 		MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
 
-		if (node_status == Communicator_I::DONE) {
-			// worker sent message that it's done
-			// remove it.
-			scheduler->removeLeaf(node_id);
-
-			return Communicator_I::WAIT;
-		} else if (node_status == Communicator_I::READY) {
+		if (node_status == Communicator_I::READY) {
 			// worker send ready, so this is a request.
 
 			if (buffer->isFinished()) {
@@ -143,6 +131,13 @@ int PullCommHandler::run() {
 
 			return status;
 
+		} else {  // node is not ready. or is done.  return wait.
+			if (node_status == Communicator_I::DONE) {
+				// worker sent message that it's done
+				// remove it.
+				scheduler->removeLeaf(node_id);
+			}
+			return Communicator_I::WAIT;
 		}
 
 	} else {
@@ -182,6 +177,7 @@ int PullCommHandler::run() {
 			MPI_Waitall(i, reqs, MPI_STATUSES_IGNORE);
 			Debug::print("%s worker notified ALL MANAGERS with DONE\n", getClassName());
 			delete [] reqs;
+
 			return status;
 
 		} else if (!buffer->canTransmit()) return Communicator_I::WAIT;  // full buffer, or stopped buffer. but it's not stopped here.
