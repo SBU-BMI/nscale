@@ -130,12 +130,12 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 	Scheduler_I *sch2 = NULL;
 		if (compute_io_g == IO_GROUP) {
 			rbuf = new MPIRecvDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
+					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false), logger->getSession("push"));
 			sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
 			handler2 = new PushCommHandler(&comm, 1, rbuf, sch2, logger->getSession("push"));
 		} else {
 			sbuf = new MPISendDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false));
+					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false), logger->getSession("push"));
 			sch2 = new RandomScheduler(false, true);
 			handler2 = new PushCommHandler(&comm, 1, sbuf, sch2, logger->getSession("push"));
 		}
