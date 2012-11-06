@@ -14,66 +14,81 @@ if (USE_ADIOS)
 	message(STATUS "ADIOS dir = ${ADIOS_DIR}")
 
 	if ( ADIOS_DIR )
-	set(TEMP $ENV{ADIOS_INC}) 
-	if ( NOT TEMP )
-		if (MPI_FOUND)
-			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -c
-				OUTPUT_VARIABLE TEMP
-				OUTPUT_STRIP_TRAILING_WHITESPACE)
-#			message(STATUS "ADIOS INC FLAGS = ${TEMP}")
-		else(MPI_FOUND)
-			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -c -s
-				OUTPUT_VARIABLE TEMP
-				OUTPUT_STRIP_TRAILING_WHITESPACE)
-#			message(STATUS "ADIOS INC FLAGS = ${TEMP}")
-		endif(MPI_FOUND)
-	endif(NOT TEMP)
-	set(ADIOS_COMP_FLAGS ${TEMP} CACHE STRING "ADIOS compilation flags")
-	mark_as_advanced(ADIOS_COMP_FLAGS)
-	if (MPI_FOUND)
-		set(ADIOS_LINK_FLAGS $ENV{ADIOS_CLIB} CACHE INTERNAL "ADIOS link flags including link dir and libs")
-		if ( NOT ADIOS_LINK_FLAGS )
-			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -l
-				OUTPUT_VARIABLE ADIOS_LINK_FLAGS
-				OUTPUT_STRIP_TRAILING_WHITESPACE)
-#			message(STATUS "ADIOS LIB FLAGS = ${ADIOS_LINK_FLAGS}")
-		endif(NOT ADIOS_LINK_FLAGS)
-	else(MPI_FOUND)
-		set(ADIOS_LINK_FLAGS $ENV{ADIOS_SEQ_CLIB})
-		if ( NOT ADIOS_LINK_FLAGS )
-			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -l -s
-				OUTPUT_VARIABLE ADIOS_LINK_FLAGS
-				OUTPUT_STRIP_TRAILING_WHITESPACE)
-#			message(STATUS "ADIOS LIB FLAGS = ${ADIOS_LINK_FLAGS}")
-		endif(NOT ADIOS_LINK_FLAGS)
-	endif(MPI_FOUND)
-
-    # parse out the libs and libdirectories.
-    string(REGEX MATCHALL "-L[^ ]+" TEMP ${ADIOS_LINK_FLAGS})
-    string(REPLACE "-L" " " TEMP ${TEMP})
-    string(STRIP ${TEMP} TEMP)
-	string(REPLACE " " ";" TEMP ${TEMP})
-	set(ADIOS_LIB_DIRS ${TEMP} CACHE STRING "paths where to search for adios libraries and referenced libraries")  
-	mark_as_advanced(ADIOS_LIB_DIRS)
-#    message(STATUS " lib dirs = ${ADIOS_LIB_DIRS}")
-    string(REGEX MATCHALL "-l[^ ]+" TEMP ${ADIOS_LINK_FLAGS})
-    string(REPLACE "-l" " " TEMP ${TEMP})
-    string(STRIP ${TEMP} TEMP)
-	string(REPLACE " " ";" TEMP ${TEMP})
-    set(ADIOS_LIBS ${TEMP} CACHE STRING "ADIOS libraries and referenced libraries")  
-    mark_as_advanced(ADIOS_LIBS)
-#    message(STATUS "libraries = ${ADIOS_LIBS}")
+    	set(TEMP $ENV{ADIOS_INC}) 
+    	if ( NOT TEMP )
+    		if (MPI_FOUND)
+    			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -c
+    				OUTPUT_VARIABLE TEMP
+    				OUTPUT_STRIP_TRAILING_WHITESPACE)
+    #			message(STATUS "ADIOS INC FLAGS = ${TEMP}")
+    		else(MPI_FOUND)
+    			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -c -s
+    				OUTPUT_VARIABLE TEMP
+    				OUTPUT_STRIP_TRAILING_WHITESPACE)
+    #			message(STATUS "ADIOS INC FLAGS = ${TEMP}")
+    		endif(MPI_FOUND)
+    	endif(NOT TEMP)
+    	if (ADIOS_COMP_FLAGS STREQUAL "")
+    	    set(ADIOS_COMP_FLAGS ${TEMP} CACHE STRING "ADIOS compilation flags" FORCE)
+    	else (ADIOS_COMP_FLAGS STREQUAL "")
+        	set(ADIOS_COMP_FLAGS ${TEMP} CACHE STRING "ADIOS compilation flags")
+    	endif (ADIOS_COMP_FLAGS STREQUAL "")
+    	mark_as_advanced(ADIOS_COMP_FLAGS)
+    	
+    	if (MPI_FOUND)
+    		set(ADIOS_LINK_FLAGS $ENV{ADIOS_CLIB})
+    		if ( NOT ADIOS_LINK_FLAGS )
+    			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -l
+    				OUTPUT_VARIABLE ADIOS_LINK_FLAGS
+    				OUTPUT_STRIP_TRAILING_WHITESPACE)
+    #			message(STATUS "ADIOS LIB FLAGS = ${ADIOS_LINK_FLAGS}")
+    		endif(NOT ADIOS_LINK_FLAGS)
+    	else(MPI_FOUND)
+    		set(ADIOS_LINK_FLAGS $ENV{ADIOS_SEQ_CLIB})
+    		if ( NOT ADIOS_LINK_FLAGS )
+    			EXECUTE_PROCESS(COMMAND ${ADIOS_DIR}/bin/adios_config -l -s
+    				OUTPUT_VARIABLE ADIOS_LINK_FLAGS
+    				OUTPUT_STRIP_TRAILING_WHITESPACE)
+    #			message(STATUS "ADIOS LIB FLAGS = ${ADIOS_LINK_FLAGS}")
+    		endif(NOT ADIOS_LINK_FLAGS)
+    	endif(MPI_FOUND)
     
-    link_directories(${ADIOS_LIB_DIRS})
-
-    set(ADIOS_FOUND 1)
+        # parse out the libs and libdirectories.
+        string(REGEX MATCHALL "-L[^ ]+" TEMP ${ADIOS_LINK_FLAGS})
+        string(REPLACE "-L" " " TEMP ${TEMP})
+        string(STRIP ${TEMP} TEMP)
+    	string(REPLACE " " ";" TEMP ${TEMP})
+    	if (ADIOS_LIB_DIRS STREQUAL "")
+    	    set(ADIOS_LIB_DIRS ${TEMP} CACHE STRING "paths where to search for adios libraries and referenced libraries" FORCE)
+    	else (ADIOS_LIB_DIRS STREQUAL "")
+    	    set(ADIOS_LIB_DIRS ${TEMP} CACHE STRING "paths where to search for adios libraries and referenced libraries")
+    	endif (ADIOS_LIB_DIRS STREQUAL "")
+    	      
+    	mark_as_advanced(ADIOS_LIB_DIRS)
+    	
+    #    message(STATUS " lib dirs = ${ADIOS_LIB_DIRS}")
+        string(REGEX MATCHALL "-l[^ ]+" TEMP ${ADIOS_LINK_FLAGS})
+        string(REPLACE "-l" " " TEMP ${TEMP})
+        string(STRIP ${TEMP} TEMP)
+    	string(REPLACE " " ";" TEMP ${TEMP})
+    	if (ADIOS_LIBS STREQUAL "")
+            set(ADIOS_LIBS ${TEMP} CACHE STRING "ADIOS libraries and referenced libraries" FORCE)  
+    	else (ADIOS_LIBS STREQUAL "")
+        	set(ADIOS_LIBS ${TEMP} CACHE STRING "ADIOS libraries and referenced libraries")
+    	endif (ADIOS_LIBS STREQUAL "")
+        mark_as_advanced(ADIOS_LIBS)
+        
+    #    message(STATUS "libraries = ${ADIOS_LIBS}")
+        
+        link_directories(${ADIOS_LIB_DIRS})
+    
+        set(ADIOS_FOUND 1)
     else(ADIOS_DIR)
-	message(SEND_ERROR "ERROR: Cannot find ADIOS root.  please specify manually")
-	set(ADIOS_FOUND 0)
+    	message(SEND_ERROR "ERROR: Cannot find ADIOS root.  please specify manually")
+    	set(ADIOS_FOUND 0)
 	endif(ADIOS_DIR)
 else(USE_ADIOS)
     set(ADIOS_FOUND 0)
-
 endif(USE_ADIOS)
 
 
