@@ -22,9 +22,8 @@ link_directories(${FeaturesComputation_SOURCE_DIR})
 ####  also note that HDF5 is not compiled with CMake on keeneland, so there is not HDF5-config.cmake file for the 
 ####  FindHDF5.cmake file in the HDF5 source directory to work against.
 set(ENV{HDF5_ROOT} $ENV{HDF5_DIR})
-# has no downstream effect... set(HDF5_DIR $ENV{HDF5_DIR})
-
 #### HDF5
+set (HDF5_USE_STATIC_LIBRARIES OFF)
 find_package(HDF5 REQUIRED)
 if (HDF5_FOUND)
 #	message(STATUS "HDF5_DEF = ${HDF5_DEFINITIONS}")

@@ -4,6 +4,25 @@ project( Runtime )
 set(Runtime_VERSION_MAJOR 1)
 set(Runtime_VERSION_MINOR 0)
 
+#### BZIP Library
+find_package(BZip2)
+if (BZIP2_FOUND)
+    include_directories( ${BZIP2_INCLUDE_DIR} )
+    set (LIBS ${LIBS} ${BZIP2_LIBRARIES})
+endif (BZIP2_FOUND)
+
+#### Boost Library
+set(Boost_USE_MULTITHREADED OFF)
+set(Boost_ADDITIONAL_VERSIONS "1.52" "1.52.0")
+set(Boost_DETAILED_FAILURE_MSG ON)
+find_path(BOOST_ROOT NAMES include/boost/circular_buffer.hpp
+	HINTS /usr /usr/local /usr/local/share /opt/local ENV BOOST_HOME
+	DOC "path to Boost root directory")
+find_package( Boost REQUIRED )
+if (Boost_FOUND)
+    include_directories( ${Boost_INCLUDE_DIRS} )
+endif(Boost_FOUND)
+
 # Make sure the compiler can find the includes
 include_directories(${Runtime_SOURCE_DIR})
 include_directories(${SCIOSegmentation_SOURCE_DIR})

@@ -53,12 +53,14 @@ else()
     endif()
 endif()
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-
 #### OpenCV
+find_path(OpenCV_CMAKE_DIR NAMES FindOpenCV.cmake OpenCVConfig.cmake
+	HINTS ${CMAKE_MODULE_PATH} ENV OPENCV_HOME
+	DOC "path to FindOpenCV.cmake or OpenCVConfig.cmake file") 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${OpenCV_CMAKE_DIR})
 find_package( OpenCV REQUIRED )
 #message(STATUS "openCV lib = ${OpenCV_LIBS}")
+
 #### CUDA
 set(USE_CUDA OFF CACHE BOOL "Include NVidia Cuda Runtime support")
 if(USE_CUDA)
@@ -100,7 +102,7 @@ endif(ZLIB_FOUND)
 set(USE_OPENMP OFF CACHE BOOL "Build with OpenMP support")
 if (USE_OPENMP)
     include(FindOpenMP)
-    
+
 	 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 	 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif(USE_OPENMP)
