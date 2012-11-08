@@ -25,11 +25,10 @@ OUTDIR=/lustre/medusa/tcpan/output/${JOB_PREFIX}
 
 cd $OUTDIR
 
-#buffer_sizes="2 4 6"
-buffer_sizes="4"
-data_sizes="128 256 512 1024 2048 4096 8192"
-io_sizes="30 60 120 240 360 480"
-transports="na-NULL NULL na-POSIX POSIX MPI_AMR"
+buffer_sizes="4 6 2"
+data_sizes="4096 8192 2048 1024 512 256 128"
+io_sizes="60 480 120 240 360 30"
+transports="na-POSIX POSIX MPI_AMR na-NULL NULL"
 
 date
 
