@@ -251,7 +251,8 @@ bool SynDataConfiguratorFull::configure(MPI_Comm &comm, Process *proc) {
 				iocode,
 				total,
 				atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-				4096 * 4096 * 4, 256, 1024,
+				atoi(params[SynDataCmdParser::PARAM_OUTPUTSIZE].c_str()) * 
+				atoi(params[SynDataCmdParser::PARAM_OUTPUTSIZE].c_str()) * 4, 256, 1024,
 				logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
 		else
 			save = new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
@@ -260,7 +261,8 @@ bool SynDataConfiguratorFull::configure(MPI_Comm &comm, Process *proc) {
 				iocode,
 				total,
 				atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-				4096 * 4096 * 4, 256, 1024,
+				atoi(params[SynDataCmdParser::PARAM_OUTPUTSIZE].c_str()) * 
+				atoi(params[SynDataCmdParser::PARAM_OUTPUTSIZE].c_str()) * 4, 256, 1024,
 				iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
 
 		proc->addHandler(handler2);
