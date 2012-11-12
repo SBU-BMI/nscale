@@ -6,8 +6,8 @@ function analyzeDir ( dirname, allEventTypes, allTypeNames, colorMap )
 
     timeInterval = 100000;
     procWidth = 1;
-    proc_types_to_exclude = {'pull', 'm'};
-
+    proc_types_to_exclude = {'m'};
+    event_names_to_exclude = {'MPI NB SEND', 'MPI NB RECV', 'MPI B SEND', 'MPI B RECV'};
 
 
     fid = fopen([dirname, '.summary.csv'], 'w');
@@ -19,17 +19,23 @@ function analyzeDir ( dirname, allEventTypes, allTypeNames, colorMap )
          try
             clear proc_events;
 
-            proc_events = readComputeAndIOTimingOneLineFormat(dirname, files(i), proc_types_to_exclude);
+            proc_events = readComputeAndIOTimingOneLineFormat(dirname, files(i), proc_types_to_exclude, event_names_to_exclude);
 
+% FIX THIS IN THE INPUT CSV files instead...
             tic;
-            %hack to fix the missing na-POSIX write size.
             if (~isempty(strfind(files(i).name, 'na-POSIX')))
-                fprintf(1, 'hacking %s to have na-POSIX write size\n', files(i).name);
+                fprintf(1, 'checking %s to have na-POSIX write size\n', files(i).name);
                 for k = 1:size(proc_events, 1)
                     idx = strcmp('IO POSIX Write', proc_events{k, 4});
-                    proc_events{k, 8}(idx) = 67109117;
+                    if (length(idx) > 0)
+                        idx1 = idx(1);
+                        if (proc_events{k, 8}(idx1) == 0)
+                            fprintf(1, 'missing na-POSIX write size in %s\n', files(i).name);
+                           %proc_events{k, 8}(idx) = 67109117;
+                        end 
+                    end
                 end
-                fprintf(1, 'finished hacking %s to have na-POSIX write size\n', files(i).name);
+                fprintf(1, 'finished checking %s to have na-POSIX write size\n', files(i).name);
 
             end
             toc

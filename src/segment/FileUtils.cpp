@@ -77,26 +77,51 @@ string FileUtils::replaceDir(string& filename, const string& oldStr, const strin
 	}
 
 	if (strcmp(oldStr.c_str(), newStr.c_str()) == 0 ) {
-		printf("Overwrite WARNING: old %s and new %s are the same.  filename %s set to empty\n", oldStr.c_str(), newStr.c_str(), filename.c_str());
+		printf("Overwrite WARNING: old %s and new %s are the same.  filename %s unchanged\n", oldStr.c_str(), newStr.c_str(), filename.c_str());
 		return std::string();
 }
 
 	int pos;
-	if (oldStr.length() == 0) pos = 0;
+	std::string output;
+	if (oldStr.length() == 0) {
+		return output.assign(newStr).append(filename);
+	}
 	else pos = filename.find(oldStr);
 
 	if (pos == std::string::npos) {
 		printf("Overwrite WARNING: %s is not in filename %s.  filename set to empty\n", oldStr.c_str(), filename.c_str());
 		return std::string();
 	}
-
-	std::string output = filename;
+	output = filename;
 	return output.replace(pos, oldStr.length(), newStr);
 
 }
 
 string FileUtils::replaceExt(string& filename, const string& oldExt, const string& newExt) {
-	return replaceDir(filename, oldExt, newExt);
+	if (filename.length() == 0) {
+		printf("WARNING: filename is empty.\n");
+		return std::string();
+	}
+
+	if (strcmp(oldExt.c_str(), newExt.c_str()) == 0 ) {
+		printf("Overwrite WARNING: old %s and new %s are the same.  filename %s set to empty\n", oldExt.c_str(), newExt.c_str(), filename.c_str());
+		return std::string();
+	}
+
+	int pos;
+	std::string output = filename;
+	if (oldExt.length() == 0) {
+		return output.append(newExt);
+	}
+
+	std::string ex = filename.substr(filename.length() - oldExt.length(), oldExt.length());
+	std::string name = filename.substr(0, filename.length() - oldExt.length());
+	if (strcmp(ex.c_str(), oldExt.c_str()) == 0) {
+		return name.append(newExt);
+	} else {
+		printf("ERROR: filename %s does not have %s extension\n", filename.c_str(), oldExt.c_str());
+		return std::string();
+	}
 }
 
 
@@ -133,7 +158,8 @@ void FileUtils::traverseDirectoryRecursive(const string & directory, vector<stri
 			closedir(dir);
 		} else {
 			// a file.  add to the fullList
-            if (ext.empty() || d.rfind(ext) != std::string::npos) {
+			std::string ex = getExt(d);
+            if (ext.empty() || strcmp(ex.c_str(), ext.c_str()) == 0) {
         		fullList.push_back(d);
         	}
 		}
@@ -163,7 +189,8 @@ void FileUtils::getFilesInDirectory(const string & directory, vector<string> & f
 
 				// now check to see if it's a directory.
 				if ((dir2=opendir(s.c_str())) == NULL) {
-					if (ext.empty() || s.rfind(ext) != std::string::npos) {
+					std::string ex = getExt(s);
+					if (ext.empty() || strcmp(ex.c_str(), ext.c_str()) == 0) {
 						fileList.push_back(s);
 						//printf("TESTING: %s\n", s.c_str());
 					}

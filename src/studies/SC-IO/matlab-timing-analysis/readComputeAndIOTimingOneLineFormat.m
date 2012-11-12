@@ -1,4 +1,4 @@
-function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct, proc_type )
+function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct, proc_type, event_names )
 %readComputeAndIOTiming reads the timing file
 %   format of timing file is :
 %       pid, hostname, filename, stagename, stagetype, stagename, stagetype, ...
@@ -50,6 +50,15 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
                 if (length(tline(pos+1:end)) > 0)
                     temp2 = textscan(tline(pos+1:end), '%s %d %u64 %u64 %u64', 'delimiter', ',', 'emptyvalue', 0);
 
+                    % TODO: NEED TO PUT IN THE MECHANISM TO FILTER OUT SOME
+                    % EVENTS BY NAME
+                    for i=1:size(event_names, 2)
+                        idx = ~strcmp(event_names{i}, temp2{1});
+                        for j = 1:size(temp2, 2)
+                            temp2{j} = temp2{j}(idx);
+                        end
+                    end
+                    
                     %proc_events = [proc_events; temp1, temp2];
                     proc_events(outlinenum, 1:3) = temp1;
                     proc_events(outlinenum, 4:8) = temp2;
