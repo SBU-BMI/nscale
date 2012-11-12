@@ -114,9 +114,11 @@ string FileUtils::replaceExt(string& filename, const string& oldExt, const strin
 		return output.append(newExt);
 	}
 
-	std::string ex = filename.substr(filename.length() - oldExt.length(), oldExt.length());
-	std::string name = filename.substr(0, filename.length() - oldExt.length());
-	if (strcmp(ex.c_str(), oldExt.c_str()) == 0) {
+	std::string ex = getExt(filename);
+	std::string old_ext = oldExt;
+	std::string oex = getExt(old_ext);
+	std::string name = filename.substr(0, filename.rfind("."));
+	if (strcmp(ex.c_str(), oex.c_str()) == 0) {
 		return name.append(newExt);
 	} else {
 		printf("ERROR: filename %s does not have %s extension\n", filename.c_str(), oldExt.c_str());
@@ -134,6 +136,8 @@ void FileUtils::traverseDirectoryRecursive(const string & directory, vector<stri
 	DIR *dir;
     struct dirent *ent;
     string d, s;
+    string fext = ext;
+    string fe = getExt(fext);
 
     while (!dirList.empty()) {
     	d = dirList.front();
@@ -159,7 +163,7 @@ void FileUtils::traverseDirectoryRecursive(const string & directory, vector<stri
 		} else {
 			// a file.  add to the fullList
 			std::string ex = getExt(d);
-            if (ext.empty() || strcmp(ex.c_str(), ext.c_str()) == 0) {
+            if (ext.empty() || strcmp(ex.c_str(), fe.c_str()) == 0) {
         		fullList.push_back(d);
         	}
 		}
@@ -172,6 +176,8 @@ void FileUtils::getFilesInDirectory(const string & directory, vector<string> & f
 	DIR *dir, *dir2;
     struct dirent *ent;
     string s;
+    string fext = ext;
+    string fe = getExt(fext);
 
 
 	// open the name to see if it's a directory
@@ -190,7 +196,7 @@ void FileUtils::getFilesInDirectory(const string & directory, vector<string> & f
 				// now check to see if it's a directory.
 				if ((dir2=opendir(s.c_str())) == NULL) {
 					std::string ex = getExt(s);
-					if (ext.empty() || strcmp(ex.c_str(), ext.c_str()) == 0) {
+					if (ext.empty() || strcmp(ex.c_str(), fe.c_str()) == 0) {
 						fileList.push_back(s);
 						//printf("TESTING: %s\n", s.c_str());
 					}
