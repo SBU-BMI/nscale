@@ -9,7 +9,6 @@
 #include <iostream>
 #include "SCIOUtilsLogger.h"
 #include "Debug.h"
-#include "FileUtils.h"
 
 #include "SegConfigurator.h"
 #include "SegmentCmdParser.h"

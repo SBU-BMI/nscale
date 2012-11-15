@@ -28,11 +28,12 @@ AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
 	t1 = ::cciutils::event::timestampInUS();
 
 	// check to see if it's a directory or a file
-	std::string suffix;
-	suffix.assign(".tif");
+	std::vector<std::string> exts;
+	exts.push_back(std::string(".tif"));
+	exts.push_back(std::string(".tiff"));
 
-	FileUtils futils(suffix);
-	futils.traverseDirectoryRecursive(dirName, filenames);
+	FileUtils futils(exts);
+	futils.traverseDirectory(dirName, filenames, FileUtils::FILE, true);
 
 	std::string dirname = dirName;
 	if (filenames.size() == 1) {

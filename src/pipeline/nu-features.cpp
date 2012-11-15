@@ -400,9 +400,8 @@ void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cy
 		// version 0.2 stuff below.
 
 		// parse the input string
-		string suffix;
-		suffix.assign(".tif");
-		FileUtils futils(suffix);
+
+		FileUtils futils;
 		string infile;
 		infile.assign(input);
 		string filename = futils.getFile(infile);

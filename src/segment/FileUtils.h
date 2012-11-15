@@ -15,28 +15,82 @@
 
 using namespace std;
 
-
+/**
+ *
+ *
+ * notes:  stat() follows symlink in reporting.  perfect.
+ */
 class FileUtils
 {
     public:
         FileUtils();
-        FileUtils(const std::string & suffix);
+        FileUtils(const std::string & _suffix);
+        FileUtils(const std::vector<std::string> _suffixes);
         virtual ~FileUtils();
 
-        void traverseDirectoryRecursive(const string& directory, vector<string> & fullList);
-        void getFilesInDirectory(const string& directory, vector<string> &fileList);
-        void getDirectoriesInDirectory(const string& directory, vector<string> &dirList);
+        static const int DIRECTORY;
+        static const int FILE;
+        static const char *DIR_SEPARATOR;
 
-        string getDir(string& filename);
-        string getFile(string& filename);
-        string getExt(string& filename);
-        string getRelativePath(string& filename, const string& dir);
-        string replaceDir(string& filename, const string& oldDir, const string& newDir);
-        string replaceExt(string& filename, const string& oldExt, const string& newExt);
+        /**
+         * get parts of the filename
+         * TODO: change to static methods
+         */
+        string getDir(const string& name);
+        string getFile(const string& filename);
+        string getExt(const string& filename);
+
+        /**
+         * for matching names.  extension is at the end of string, directory is at beginning of string
+         * common directory is basically the least common leading directories of the name.
+         * TODO: change to static methods
+         */
+        bool hasExt(const string &filename, const string &ext);
+        bool inDir(const string &name, const string &dir);
+        /**
+         * input - if dir name, need to terminate with /
+         * TODO: change to static methods
+         */
+        string getCommonDir(const string& name1, const string& name2);
+
+        /**
+         * for constructing new names
+         * if filename does not contain the old string, then new string is prepended or appended respectively.
+         * if filename contains the old string as extensions or prefix, then new string replaces the old string
+         * the delimiter characters for dir, or for ext should be present.
+         * TODO: change to static methods
+         */
+        string replaceDir(const string& filename, const string& oldDir, const string& newDir);
+        string replaceExt(const string& filename, const string& oldExt, const string& newExt);
+
+        /**
+         * same as the other replaceExt, but uses the preset extensions.
+         */
+        string replaceExt(const string& filename, const string& newExt);
+
+
+        /**
+         * traverse the directory, recursively if specified.
+         * type is the capture type - directories and/or files.
+         * types can be a bit-wise AND of DIRECTORY and FILE.
+         */
+        bool traverseDirectory(const string& directory, vector<string> &list, int types, bool recursive);
+
+
+        /**
+         * for backward compatibility.  use TraverseDirectory if possible.
+         */
+        void traverseDirectoryRecursive(const string& directory, vector<string> & fullList) __attribute__ ((deprecated));;
+        void getFilesInDirectory(const string& directory, vector<string> &fileList) __attribute__ ((deprecated));;
+        void getDirectoriesInDirectory(const string& directory, vector<string> &dirList) __attribute__ ((deprecated));;
+
+        /**
+         * TODO: change to static methods
+         */
         bool mkdirs(const string& dirname);
 
     protected:
-        const std::string ext;
+        std::vector<std::string> exts;
     private:
 };
 

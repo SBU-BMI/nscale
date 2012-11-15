@@ -16,7 +16,7 @@ endif()
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
-set(programs bwareaopenTest diff deconvTest distTransform copyMakeBorder imfillTest imhminTest imreconChunkTest imreconExperiments imreconOptimizeProfiler imreconTest localMaximaTest miscTest nu-segmentChunkTest nu-segmentTest queueTest watershedTest imreconMulticore)
+set(programs FileUtilsTest bwareaopenTest diff deconvTest distTransform copyMakeBorder imfillTest imhminTest imreconChunkTest imreconExperiments imreconOptimizeProfiler imreconTest localMaximaTest miscTest nu-segmentChunkTest nu-segmentTest queueTest watershedTest imreconMulticore)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)

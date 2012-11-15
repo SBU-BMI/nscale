@@ -31,9 +31,7 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 	t1 = ::cciutils::event::timestampInUS();
 
 	// parse the input string
-	string suffix2;
-	suffix2.assign(".tif");
-	FileUtils futils(suffix2);
+	FileUtils futils;
 	string filename = futils.getFile(const_cast<std::string&>(in));
 	// get the image name
 	size_t pos = filename.rfind('.');

@@ -10,7 +10,8 @@
 
 #include <limits>
 #include <sys/time.h>
-#include <math.h>
+#include <cmath>
+#include <algorithm>
 
 namespace cciutils {
 

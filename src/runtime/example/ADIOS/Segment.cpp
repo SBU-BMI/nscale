@@ -9,10 +9,10 @@
 #include "Debug.h"
 #include "opencv2/opencv.hpp"
 #include "CVImage.h"
-#include "FileUtils.h"
 #include <string>
 #include "utils.h"
 #include "SCIOHistologicalEntities.h"
+#include "FileUtils.h"
 
 namespace cci {
 namespace rt {
@@ -58,16 +58,16 @@ int Segment::compute(int const &input_size , void * const &input,
 	// get the image name
 	size_t pos = filename.rfind('.');
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", fn.c_str());
-	string prefix = filename.substr(0, pos);
+	std::string prefix = filename.substr(0, pos);
 	pos = prefix.rfind("-");
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", fn.c_str());
-	string ystr = prefix.substr(pos + 1);
+	std::string ystr = prefix.substr(pos + 1);
 	prefix = prefix.substr(0, pos);
 	pos = prefix.rfind("-");
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", fn.c_str());
-	string xstr = prefix.substr(pos + 1);
+	std::string xstr = prefix.substr(pos + 1);
 
-	string imagename = prefix.substr(0, pos);
+	std::string imagename = prefix.substr(0, pos);
 	int tilex = atoi(xstr.c_str());
 	int tiley = atoi(ystr.c_str());
 

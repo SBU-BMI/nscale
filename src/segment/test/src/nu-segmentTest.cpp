@@ -93,10 +93,11 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output) {
 
 	// check to see if it's a directory or a file
-	std::string suffix;
-	suffix.assign(".tif");
+	std::vector<std::string> exts;
+	exts.push_back(std::string(".tif"));
+	exts.push_back(std::string(".tiff"));
 
-	FileUtils futils(suffix);
+	FileUtils futils(exts);
 	futils.traverseDirectoryRecursive(imageName, filenames);
 	std::string dirname;
 	if (filenames.size() == 1) {
@@ -109,13 +110,13 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	std::string temp, tempdir;
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
-		temp = futils.replaceExt(filenames[i], ".tif", ".mask.pbm");
+		temp = futils.replaceExt(filenames[i], ".mask.pbm");
 		temp = futils.replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
 		futils.mkdirs(tempdir);
 		seg_output.push_back(temp);
 		// generate the bounds output file name
-		temp = futils.replaceExt(filenames[i], ".tif", ".bounds.csv");
+		temp = futils.replaceExt(filenames[i], ".bounds.csv");
 		temp = futils.replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
 		futils.mkdirs(tempdir);
