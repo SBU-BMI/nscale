@@ -31,12 +31,119 @@ int* ObjFeatures::area(const int* boundingBoxesInfo, int compCount, const cv::Ma
 				}
 			}
 			std::cout << "area=" << area<<std::endl;
+			areaRes[i] = area;
 		}
 	}
 
 	return areaRes;
 
 }
+
+/*THIS FUNCTION FITS AN ELLIPSE TO THE NUCLEUS.*/
+void *ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const int compCount , const cv::Mat& labeledMask, double *majorAxis, double *minorAxis, double *ecc)
+{
+	if(compCount > 0)
+	{
+		double xbar,ybar,ssqx,ssqy,sx,sy,sxy;
+		double mxx,myy,mxy;
+			
+		//Calculate the sums
+		for(i = 0; i < compCount ; i++)
+		{
+			ssqx = 0.0;
+			ssqy = 0.0;
+			sx = 0.0;
+			sy = 0.0;
+			sxy = 0.0;
+			const int* labeledImgPtr;
+			label = boundingBoxesInfo[i]
+			
+			//Walk through the tile
+			for(y = boundingBoxesInfo[3*compCount + i];y<=boundingBoxesInfo[4*compCount + i];y++)
+			{
+				labeledImgPtr = labeledMask.ptr<int>(y);
+				for(x = boundingBoxesInfo[compCount + i];x<=boundingBoxesInfo[2*compCount + i];x++)
+				{
+					if(labeledImgPtr[x] == label)
+					{
+						sx = sx + x;
+						sy = sy + x;
+						sxy = sxy + x*y;
+						ssqx = ssqx + x*x;
+						ssqy = ssqy + y*y;
+					}
+				}
+			}
+			
+			//Calculate mxx,myy,mxy,xbar,ybar
+			xbar = (double)sx/(double)areaRes[i];
+			ybar = (double)sy/(double)areaRes[i];
+			
+			mxx = ((double)(ssqx + areaRes[i] * xbar * xbar - 2 * xbar * sx)/(double)areaRes[i]) + (double)1/(double)12;
+		  myy = ((double)(ssqy + areaRes[i] * ybar * ybar - 2 * ybar * sy)/(double)areaRes[i]) + (double)1/(double)12;
+			mxy = (double)(sxy - ybar * sx - xbar * sy + xbar * ybar)/(double)areaRes[i];
+	
+			//Calculate the major axis, minor axis and eccentricity
+			delta = sqrt((mxx-myy)*(mxx-myy) + 4 * mxy * mxy); //discriminant = sqrt(b*b-4*a*c)
+			majorAxis[i] = 2*sqrt(2)*sqrt(mxx+myy+delta);
+			minorAxis[i] = 2*sqrt(2)*sqrt(mxx+myy-delta);
+			ecc[i] = (double)(2 * sqrt((double)(majorAxis[i] * majorAxis[i] - minorAxis * minorAxis)/(double)4))/(double)majorAxis[i];
+		}
+	}
+	return;
+}
+
+
+/*THIS FUNCTION CALCULATES THE PERIMETER OF EVERY OBJECT IN THE IMAGE AND STORES IT IN AN ARRAY CALLED perimeterRes*/
+/*perimeterRes[i] = perimeter of the object with label boundingBoxInfo[i]*/
+//Algorithm : For each row of pixels, walk from right until you hit border. Walk from left until you hit border.
+//Add two to the perimeter count.
+int *ObjFeatures::perimeter(const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask){
+	int* perimeterRES = NULL;
+	if(compCount > 0)
+	{
+		printf("CompCount = %d\n",compCount);
+		perimeterRes = (int * )malloc(sizeof(int) * compCount);
+		for(int i = 0 ; i < compCount ; i++)
+		{
+			//Print out information about the bounding boxes of different objects
+			std::cout << "comp["<<i<<"] - > label = "<< boundingBoxesInfo[0 + i] << "minX = "<<boundingBoxesInfo[compCount + i]<<"maxX = "<<boundingBoxesInfo[2 * compCount + i] <<"minY = "<<boundingBoxesInfo[compCount * 3 + i] << " maxY = "<<boundingBoxesInfo[compCount * 4 +i]<<std::endl;
+		
+			const int *labeledImgPtr;
+			int perimeter = 0;
+			int label = boundingBoxesInfo[i];
+			for(int y = boundingBoxesInfo[3*compCount+i]; y<=boundingBoxesInfo[4*compCount+i];y++)
+			{
+				labeledImgPtr = labeledMask.ptr<int>(y);
+				
+				//Walk from the left
+				for(x = boundingBoxesInfo[compCount + i];x<=boundingBoxesInfo[2*compCount+i];x++)
+				{
+					if(labeledImgPtr[x] == label)
+					{
+						perimeter++;
+						break;
+					}
+				}
+				//Walk from the right
+				for(x = boundingBoxesInfo[2*compCount + i];x>=boundingBoxesInfo[compCount+i];x--)
+				{
+					if(labeledImgPtr[x] == label)
+					{
+						perimeter++;
+						break;
+					}
+				}
+			}
+			perimeterRes[i] = perimeter;
+		}
+	}
+	return perimeterRes;
+}
+
+
+
+
 float* ObjFeatures::cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::Mat& grayImage) {
 	float* intensityFeatures = NULL;
 //	printf("intensityFeatures. compcount=%d\n", compCount);
