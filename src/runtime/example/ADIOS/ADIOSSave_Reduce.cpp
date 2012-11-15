@@ -51,8 +51,7 @@ ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid
 			!(strcmp(iocode.c_str(), "NULL") == 0 ||
 			strcmp(iocode.c_str(), "gap-NULL") == 0)) {
 		// create the directory
-		FileUtils futils;
-		futils.mkdirs(outDir);
+		FileUtils::mkdirs(outDir);
 		printf("made directories for %s\n", outDir.c_str());
 	}
 

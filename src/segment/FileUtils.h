@@ -36,22 +36,22 @@ class FileUtils
          * get parts of the filename
          * TODO: change to static methods
          */
-        string getDir(const string& name);
-        string getFile(const string& filename);
-        string getExt(const string& filename);
+        static string getDir(const string& name);
+        static string getFile(const string& filename);
+        static string getExt(const string& filename);
 
         /**
          * for matching names.  extension is at the end of string, directory is at beginning of string
          * common directory is basically the least common leading directories of the name.
          * TODO: change to static methods
          */
-        bool hasExt(const string &filename, const string &ext);
-        bool inDir(const string &name, const string &dir);
+        static bool hasExt(const string &filename, const string &ext);
+        static bool inDir(const string &name, const string &dir);
         /**
          * input - if dir name, need to terminate with /
          * TODO: change to static methods
          */
-        string getCommonDir(const string& name1, const string& name2);
+        static string getCommonDir(const string& name1, const string& name2);
 
         /**
          * for constructing new names
@@ -60,8 +60,8 @@ class FileUtils
          * the delimiter characters for dir, or for ext should be present.
          * TODO: change to static methods
          */
-        string replaceDir(const string& filename, const string& oldDir, const string& newDir);
-        string replaceExt(const string& filename, const string& oldExt, const string& newExt);
+        static string replaceDir(const string& filename, const string& oldDir, const string& newDir);
+        static string replaceExt(const string& filename, const string& oldExt, const string& newExt);
 
         /**
          * same as the other replaceExt, but uses the preset extensions.
@@ -87,7 +87,7 @@ class FileUtils
         /**
          * TODO: change to static methods
          */
-        bool mkdirs(const string& dirname);
+        static bool mkdirs(const string& dirname);
 
     protected:
         std::vector<std::string> exts;

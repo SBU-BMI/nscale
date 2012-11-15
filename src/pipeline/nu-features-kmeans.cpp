@@ -79,8 +79,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &runid, std::st
 	thresh = atof(argv[4]);
 	runid.assign(argv[5]);
 	printf("outfile directory = %s\n", argv[2]);
-	FileUtils futils;
-	futils.mkdirs(outDir);
+	FileUtils::mkdirs(outDir);
 
 	const char* mode = argc > 6 ? argv[6] : "cpu";
 

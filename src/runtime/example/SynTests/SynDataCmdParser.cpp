@@ -43,11 +43,9 @@ bool SynDataCmdParser::parse(int argc, char** argv) {
 		return false;
 	}
 
-	FileUtils futils;
-
 	std::string executable(argv[0]);
 
-	params[SynDataCmdParser::PARAM_EXECUTABLEDIR] = futils.getDir(executable);
+	params[SynDataCmdParser::PARAM_EXECUTABLEDIR] = FileUtils::getDir(executable);
 	params[SynDataCmdParser::PARAM_INPUT] = argv[1];
 	params[SynDataCmdParser::PARAM_OUTPUTDIR] = argv[2];
 //	printf(" progname: %s\n", argv[0]);

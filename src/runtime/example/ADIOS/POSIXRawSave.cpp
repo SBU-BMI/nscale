@@ -46,8 +46,7 @@ POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 	MPI_Allreduce(&rank, &minRank, 1, MPI_INT, MPI_MIN, comm);
 	if (rank == minRank) {
 		// create the directory
-		FileUtils futils;
-		futils.mkdirs(outdir);
+		FileUtils::mkdirs(outdir);
 		printf("made directories for %s\n", outdir.c_str());
 	}
 
@@ -163,8 +162,6 @@ int POSIXRawSave::process() {
 	void *input;
 	int result;
 
-	FileUtils fu;
-
 	long output_size = 0;
 	while (this->inputBuf->canPop()) {
 		result = this->inputBuf->pop(data);
@@ -180,8 +177,8 @@ int POSIXRawSave::process() {
 			int maxsize;
 			const unsigned char * data = in_img->getData(maxsize, datasize);
 			std::string sourcefn(in_img->getSourceFileName(maxsize, namesize));
-			std::string tmpfn = fu.replaceDir(sourcefn, fu.getDir(sourcefn), outdir);
-			std::string outfn = fu.replaceExt(tmpfn, fu.getExt(tmpfn), "out.raw");
+			std::string tmpfn = FileUtils::replaceDir(sourcefn, FileUtils::getDir(sourcefn), outdir);
+			std::string outfn = FileUtils::replaceExt(tmpfn, FileUtils::getExt(tmpfn), "out.raw");
 
 //			printf("FILESNAMES: source %s, temp %s, out %s\n", sourcefn.c_str(), tmpfn.c_str(), outfn.c_str());
 

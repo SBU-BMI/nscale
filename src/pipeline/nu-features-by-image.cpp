@@ -53,8 +53,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 	}
 	maskName.assign(argv[1]);
 	outdir.assign(argv[2]);
-	FileUtils futils;
-	futils.mkdirs(outdir);
+	FileUtils::mkdirs(outdir);
 
 	const char* mode = argc > 4 ? argv[4] : "cpu";
 
@@ -89,7 +88,7 @@ void getDirs(const std::string &dirName, std::vector<std::string> &dirnames) {
 	// check to see if it's a directory or a file
 
 	FileUtils futils;
-	futils.getDirectoriesInDirectory(dirName, dirnames);
+	futils.traverseDirectory(dirName, dirnames, FileUtils::DIRECTORY, false);
 
 	if (dirnames.empty()) {  // no subdir, so must be operating on the current directory.
 		dirnames.push_back(dirName);
@@ -101,11 +100,9 @@ void getDirs(const std::string &dirName, std::vector<std::string> &dirnames) {
 void getFiles(const std::string &dirName, std::vector<std::string> &filenames) {
 
 	// check to see if it's a directory or a file
-	std::string suffix;
-	suffix.assign(".features.h5");
 
-	FileUtils futils(suffix);
-	futils.getFilesInDirectory(dirName, filenames);
+	FileUtils futils(std::string(".features.h5"));
+	futils.traverseDirectory(dirName, filenames, FileUtils::FILE, false);
 }
 
 

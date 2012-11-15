@@ -135,28 +135,28 @@ int main (int argc, char **argv){
 	string s7("/aa/bb/");
 	
 
-	cout << "Dir s1:" <<    fu1.getDir(s1).compare("") << endl;
-	cout << "Dir s2:" <<    fu1.getDir(s2).compare("/") << endl;
-	cout << "Dir s3:" <<    fu1.getDir(s3).compare("") << endl;
-	cout << "Dir s3_1:" <<  fu1.getDir(s3_1).compare("/") << endl;
-	cout << "Dir s3_2:" <<  fu1.getDir(s3_2).compare("aa") << endl;
-	cout << "Dir s4:" <<    fu1.getDir(s4).compare("aa") << endl;
-	cout << "Dir s5:" <<    fu1.getDir(s5).compare("aa/bb") << endl;
-	cout << "Dir s6:" <<    fu1.getDir(s6).compare("/aa") << endl;	
-	cout << "Dir s7:" <<    fu1.getDir(s7).compare("/aa/bb") << endl;
+	cout << "Dir s1:" <<    FileUtils::getDir(s1).compare("") << endl;
+	cout << "Dir s2:" <<    FileUtils::getDir(s2).compare("/") << endl;
+	cout << "Dir s3:" <<    FileUtils::getDir(s3).compare("") << endl;
+	cout << "Dir s3_1:" <<  FileUtils::getDir(s3_1).compare("/") << endl;
+	cout << "Dir s3_2:" <<  FileUtils::getDir(s3_2).compare("aa") << endl;
+	cout << "Dir s4:" <<    FileUtils::getDir(s4).compare("aa") << endl;
+	cout << "Dir s5:" <<    FileUtils::getDir(s5).compare("aa/bb") << endl;
+	cout << "Dir s6:" <<    FileUtils::getDir(s6).compare("/aa") << endl;
+	cout << "Dir s7:" <<    FileUtils::getDir(s7).compare("/aa/bb") << endl;
 	
-	cout << "File s1:" <<   fu1.getFile(s1).compare("") << endl;
-	cout << "File s2:" <<   fu1.getFile(s2).compare("") << endl;
-	cout << "File s3:" <<   fu1.getFile(s3).compare("aa") << endl;
-	cout << "File s3_1:" << fu1.getFile(s3_1).compare("aa") << endl;
-	cout << "File s3_2:" << fu1.getFile(s3_2).compare("") << endl;
-	cout << "File s4:" <<   fu1.getFile(s4).compare("bb") << endl;
-	cout << "File s5:" <<   fu1.getFile(s5).compare("") << endl;
-	cout << "File s6:" <<   fu1.getFile(s6).compare("bb") << endl;	
-	cout << "File s7:" <<   fu1.getFile(s7).compare("") << endl;
+	cout << "File s1:" <<   FileUtils::getFile(s1).compare("") << endl;
+	cout << "File s2:" <<   FileUtils::getFile(s2).compare("") << endl;
+	cout << "File s3:" <<   FileUtils::getFile(s3).compare("aa") << endl;
+	cout << "File s3_1:" << FileUtils::getFile(s3_1).compare("aa") << endl;
+	cout << "File s3_2:" << FileUtils::getFile(s3_2).compare("") << endl;
+	cout << "File s4:" <<   FileUtils::getFile(s4).compare("bb") << endl;
+	cout << "File s5:" <<   FileUtils::getFile(s5).compare("") << endl;
+	cout << "File s6:" <<   FileUtils::getFile(s6).compare("bb") << endl;
+	cout << "File s7:" <<   FileUtils::getFile(s7).compare("") << endl;
 	
-	cout << "In Dir " << fu1.inDir(s1, s2) << " gold = 0" << endl;
-	cout << "In Dir " << fu1.inDir(s7, s6) << " gold = 1" << endl;
+	cout << "In Dir " << FileUtils::inDir(s1, s2) << " gold = 0" << endl;
+	cout << "In Dir " << FileUtils::inDir(s7, s6) << " gold = 1" << endl;
 	
 	
 	string t2(".");
@@ -168,18 +168,18 @@ int main (int argc, char **argv){
 	string t6(".aa.cc");
 	string t7(".aa.cc.");
 		
-	cout << "Ext t1:" <<   fu1.getExt(s1).compare("") << endl;
-	cout << "Ext s2:" <<   fu1.getExt(t2).compare("") << endl;
-	cout << "Ext s3:" <<   fu1.getExt(t3).compare("") << endl;
-	cout << "Ext s3_1:" << fu1.getExt(t3_1).compare("cc") << endl;
-	cout << "Ext s3_2:" << fu1.getExt(t3_2).compare("") << endl;
-	cout << "Ext s4:" <<   fu1.getExt(t4).compare("cc") << endl;
-	cout << "Ext s5:" <<   fu1.getExt(t5).compare("") << endl;
-	cout << "Ext s6:" <<   fu1.getExt(t6).compare("cc") << endl;	
-	cout << "Ext s7:" <<   fu1.getExt(t7).compare("") << endl;
+	cout << "Ext t1:" <<   FileUtils::getExt(s1).compare("") << endl;
+	cout << "Ext s2:" <<   FileUtils::getExt(t2).compare("") << endl;
+	cout << "Ext s3:" <<   FileUtils::getExt(t3).compare("") << endl;
+	cout << "Ext s3_1:" << FileUtils::getExt(t3_1).compare("cc") << endl;
+	cout << "Ext s3_2:" << FileUtils::getExt(t3_2).compare("") << endl;
+	cout << "Ext s4:" <<   FileUtils::getExt(t4).compare("cc") << endl;
+	cout << "Ext s5:" <<   FileUtils::getExt(t5).compare("") << endl;
+	cout << "Ext s6:" <<   FileUtils::getExt(t6).compare("cc") << endl;
+	cout << "Ext s7:" <<   FileUtils::getExt(t7).compare("") << endl;
 
-	cout << "Ext compare " << fu1.hasExt(t3_1, "cc") << " gold = 1 " << endl;
-	cout << "Ext compare " << fu1.hasExt(t3_1, "aa") << " gold = 0 " << endl;
+	cout << "Ext compare " << FileUtils::hasExt(t3_1, "cc") << " gold = 1 " << endl;
+	cout << "Ext compare " << FileUtils::hasExt(t3_1, "aa") << " gold = 0 " << endl;
 		
 
 	printf("no filter:\n");

@@ -75,7 +75,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	exts.push_back(std::string(".tiff"));
 
 	FileUtils futils(exts);
-	futils.traverseDirectoryRecursive(imageName, filenames);
+	futils.traverseDirectory(imageName, filenames, FileUtils::FILE, true);
 	std::string dirname = imageName;
 	if (filenames.size() == 1) {
 		// if the maskname is actually a file, then the dirname is extracted from the maskname.
@@ -88,9 +88,9 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
 		temp = futils.replaceExt(filenames[i], ".mask.pbm");
-		temp = futils.replaceDir(temp, dirname, outDir);
+		temp = FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
+		FileUtils::mkdirs(tempdir);
 		seg_output.push_back(temp);
 	}
 

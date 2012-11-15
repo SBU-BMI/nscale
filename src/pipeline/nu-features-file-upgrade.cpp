@@ -84,11 +84,8 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName) {
 void getFiles(const std::string &maskName, std::vector<std::string> &filenames) {
 
 	// check to see if it's a directory or a file
-	std::string suffix;
-	suffix.assign(".features.h5");
-
-	FileUtils futils(suffix);
-	futils.traverseDirectoryRecursive(maskName, filenames);
+	FileUtils futils(std::string(".features.h5"));
+	futils.traverseDirectory(maskName, filenames, FileUtils::FILE, true);
 	std::string dirname = maskName;
 	if (filenames.size() == 1) {
 		// if the maskname is actually a file, then the dirname is extracted from the maskname.
@@ -407,12 +404,9 @@ void compute(const char *input) {
 //		H5Gclose(group_id);
 
 		// parse the input string
-		string suffix;
-		suffix.assign(".tif");
-		FileUtils futils(suffix);
 		string infile;
 		infile.assign(imgfilename);
-		string filename = futils.getFile(infile);
+		string filename = FileUtils::getFile(infile);
 		// get the image name
 		size_t pos = filename.rfind('.');
 		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", imgfilename);
@@ -507,12 +501,9 @@ void compute(const char *input) {
 //		H5Gclose(group_id);
 
 		// parse the input string
-		string suffix;
-		suffix.assign(".tif");
-		FileUtils futils(suffix);
 		string infile;
 		infile.assign(imgfilename);
-		string filename = futils.getFile(infile);
+		string filename = FileUtils::getFile(infile);
 		// get the image name
 		size_t pos = filename.rfind('.');
 		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", imgfilename);

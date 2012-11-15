@@ -118,11 +118,8 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		std::vector<std::string> &seg_output, std::vector<std::string> &features_output, bool overwrite) {
 
 	// check to see if it's a directory or a file
-	std::string suffix;
-	suffix.assign(".mask.pbm");
-
-	FileUtils futils(suffix);
-	futils.traverseDirectoryRecursive(maskName, seg_output);
+	FileUtils futils(std::string(".mask.pbm"));
+	futils.traverseDirectory(maskName, seg_output, FileUtils::FILE, true);
 	std::string dirname = maskName;
 	if (seg_output.size() == 1) {
 		// if the maskname is actually a file, then the dirname is extracted from the maskname.
@@ -138,10 +135,10 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 	for (unsigned int i = 0; i < seg_output.size(); ++i) {
 
 		// generate the output file name
-		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
-		temp = futils.replaceDir(temp, dirname, outDir);
+		temp = FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
+		temp = FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
+		FileUtils::mkdirs(tempdir);
 		if (!overwrite && (file = fopen(temp.c_str(), "r"))) {
 			fclose(file);
 			continue;
@@ -151,10 +148,10 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		}
 
 		// generate the input file name
-		temp = futils.replaceExt(seg_output[i], ".mask.pbm", ".tif");
-		temp = futils.replaceDir(temp, dirname, imgDir);
-		temp2 = futils.replaceExt(seg_output[i], ".mask.pbm", ".tiff");
-		temp2 = futils.replaceDir(temp2, dirname, imgDir);
+		temp = FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tif");
+		temp = FileUtils::replaceDir(temp, dirname, imgDir);
+		temp2 = FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tiff");
+		temp2 = FileUtils::replaceDir(temp2, dirname, imgDir);
 
 //		printf("image file names: %s %s\n", temp.c_str(), temp2.c_str());
 

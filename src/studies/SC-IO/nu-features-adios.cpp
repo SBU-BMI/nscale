@@ -203,9 +203,8 @@ int main (int argc, char **argv) {
 	}
 
 	std::string executable(argv[0]);
-	FileUtils futils;
 	std::string workingDir;
-	workingDir.assign(futils.getDir(executable));
+	workingDir.assign(FileUtils::getDir(executable));
 
 	std::string iocode;
 	if (argc > 4 && strcmp(argv[4], "NULL") != 0 &&

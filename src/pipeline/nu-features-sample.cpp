@@ -91,11 +91,8 @@ void getFiles(const std::string &maskName, const std::string &outDir, std::vecto
 		std::vector<std::string> &output) {
 
 	// check to see if it's a directory or a file
-	std::string suffix;
-	suffix.assign(".features.h5");
-
-	FileUtils futils(suffix);
-	futils.traverseDirectoryRecursive(maskName, filenames);
+	FileUtils futils(std::string(".features.h5"));
+	futils.traverseDirectory(maskName, filenames, FileUtils::FILE, true);
 	std::string dirname = maskName;
 	if (filenames.size() == 1) {
 		// if the maskname is actually a file, then the dirname is extracted from the maskname.
@@ -108,9 +105,9 @@ void getFiles(const std::string &maskName, const std::string &outDir, std::vecto
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the input file name
 		temp = futils.replaceExt(filenames[i], ".features.h5", ".sampled.features.h5");
-		temp = futils.replaceDir(temp, dirname, outDir);
+		temp = FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
+		FileUtils::mkdirs(tempdir);
 		output.push_back(temp);
 	}
 }

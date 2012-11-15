@@ -45,13 +45,11 @@ bool SegmentCmdParser::parse(int argc, char** argv) {
 		return false;
 	}
 
-	FileUtils futils;
-
 	std::string executable(argv[0]);
 	std::string indir(argv[1]);
 	std::string outdir(argv[2]);
 
-	params[SegmentCmdParser::PARAM_EXECUTABLEDIR] = futils.getDir(executable);
+	params[SegmentCmdParser::PARAM_EXECUTABLEDIR] = FileUtils::getDir(executable);
 	params[SegmentCmdParser::PARAM_INPUT] = indir;
 	params[SegmentCmdParser::PARAM_OUTPUTDIR] = outdir;
 

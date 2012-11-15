@@ -122,7 +122,7 @@ string FileUtils::getCommonDir(const string& name1, const string &name2) {
 	string dirname = ln.substr(0, p+1);
 
 	// and run it through getDir
-	return getDir(dirname);
+	return FileUtils::getDir(dirname);
 }
 
 
@@ -440,7 +440,7 @@ bool FileUtils::mkdirs(const string & d)
 	DIR *dir = opendir(d.c_str());
 	if (dir == 0 && d.size() > 0) {
 		// find the parent
-		string parent = getDir(d);
+		string parent = FileUtils::getDir(d);
 		printf("dir to create: %s, parent: %s\n", d.c_str(), parent.c_str());
 		if (FileUtils::mkdirs(parent)) {
 			int n = mkdir(d.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);

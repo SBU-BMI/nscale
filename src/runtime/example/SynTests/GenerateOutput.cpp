@@ -49,8 +49,7 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 
 
 	// parse the input string
-	FileUtils futils;
-	std::string filename = futils.getFile(const_cast<std::string&>(fn));
+	std::string filename = FileUtils::getFile(const_cast<std::string&>(fn));
 	// get the image name
 	size_t pos = filename.rfind('.');
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", fn.c_str());

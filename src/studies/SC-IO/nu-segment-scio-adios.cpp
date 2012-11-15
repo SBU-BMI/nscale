@@ -50,8 +50,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &i
 	}
 
 	std::string executable(argv[0]);
-	FileUtils futils;
-	workingDir.assign(futils.getDir(executable));
+	workingDir.assign(FileUtils::getDir(executable));
 
 	imageName.assign(argv[1]);
 	outDir.assign(argv[2]);
@@ -133,7 +132,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	exts.push_back(std::string(".tiff"));
 
 	FileUtils futils(exts);
-	futils.traverseDirectoryRecursive(imageName, filenames);
+	futils.traverseDirectory(imageName, filenames, FileUtils::FILE, true);
 
 	std::string dirname = imageName;
 	if (filenames.size() == 1) {
@@ -154,15 +153,15 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
 		temp = futils.replaceExt(filenames[i], ".mask.pbm");
-		temp = futils.replaceDir(temp, dirname, outDir);
+		temp = FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
+		FileUtils::mkdirs(tempdir);
 		seg_output.push_back(temp);
 		// generate the bounds output file name
 		temp = futils.replaceExt(filenames[i], ".bounds.csv");
-		temp = futils.replaceDir(temp, dirname, outDir);
+		temp = FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		futils.mkdirs(tempdir);
+		FileUtils::mkdirs(tempdir);
 		bounds_output.push_back(temp);
 	}
 

@@ -31,8 +31,7 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 	t1 = ::cciutils::event::timestampInUS();
 
 	// parse the input string
-	FileUtils futils;
-	string filename = futils.getFile(const_cast<std::string&>(in));
+	string filename = FileUtils::getFile(const_cast<std::string&>(in));
 	// get the image name
 	size_t pos = filename.rfind('.');
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", in.c_str());
