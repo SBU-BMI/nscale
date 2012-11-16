@@ -19,6 +19,8 @@ namespace nscale{
 class ObjFeatures {
 public:
 	static int* area(const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask);
+	void ellipse(const int* boundingBoxesInfo,const int* areaRes, const int compCount , const cv::Mat& labeledMask, double *majorAxis, double *minorAxis, double *ecc);
+
 
 	static const int N_INTENSITY_FEATURES=8;
 	static const int N_GRADIENT_FEATURES=6;
