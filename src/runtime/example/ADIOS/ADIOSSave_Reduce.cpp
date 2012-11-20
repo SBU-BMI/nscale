@@ -45,16 +45,6 @@ ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid
 		stages.push_back(i);
 	}
 
-	int minRank = 0;
-	MPI_Allreduce(&rank, &minRank, 1, MPI_INT, MPI_MIN, comm);
-	if (rank == minRank &&
-			!(strcmp(iocode.c_str(), "NULL") == 0 ||
-			strcmp(iocode.c_str(), "gap-NULL") == 0)) {
-		// create the directory
-		FileUtils::mkdirs(outDir);
-		printf("made directories for %s\n", outDir.c_str());
-	}
-
 
 	writer = iomanager->allocateWriter(outDir, std::string("bp"), overwrite,
 			appendInTime, stages,

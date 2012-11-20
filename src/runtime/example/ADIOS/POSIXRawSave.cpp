@@ -42,14 +42,6 @@ POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 		stages.push_back(i);
 	}
 
-	int minRank = 0;
-	MPI_Allreduce(&rank, &minRank, 1, MPI_INT, MPI_MIN, comm);
-	if (rank == minRank) {
-		// create the directory
-		FileUtils::mkdirs(outdir);
-		printf("made directories for %s\n", outdir.c_str());
-	}
-
 	size_t pos = outdir.rfind('/');
 	if (pos == outdir.length() - 1) {
 		if (outdir.length() == 1) {

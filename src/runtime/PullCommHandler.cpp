@@ -175,7 +175,7 @@ int PullCommHandler::run() {
 //				MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
 			}
 			MPI_Waitall(i, reqs, MPI_STATUSES_IGNORE);
-			Debug::print("%s worker notified ALL MANAGERS with DONE\n", getClassName());
+			// Debug::print("%s worker notified ALL MANAGERS DONE\n", getClassName());
 			delete [] reqs;
 
 			return status;

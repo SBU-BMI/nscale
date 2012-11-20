@@ -86,7 +86,7 @@ int main (int argc, char **argv){
 	int rank;
 	MPI_Comm_rank(comm, &rank);
 
-	printf("initialized MPI\n");
+	if (rank == 0) printf("initialized MPI\n");
 	// IMPORTANT: need to initialize random number generator right now.
 	//srand(rank);
 	srand(cciutils::event::timestampInUS());

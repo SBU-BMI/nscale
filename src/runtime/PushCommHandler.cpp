@@ -120,7 +120,7 @@ int PushCommHandler::run() {
 //                              MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
 			}
 			MPI_Waitall(i, reqs, MPI_STATUSES_IGNORE);
-			Debug::print("%s master notified ALL WORKERS with DONE\n", getClassName());
+			Debug::print("%s master notified ALL WORKERS DONE\n", getClassName());
 			delete [] reqs;
 
 			// all done.  all messages were already cleared.
@@ -167,7 +167,7 @@ int PushCommHandler::run() {
 
 		// finally take care of whether there are workers left.
 		if (!scheduler->hasLeaves()) {
-        	Debug::print("%s master has no more workers. buffer is stopped\n", getClassName());
+        	// Debug::print("%s master has no more workers. buffer stopped\n", getClassName());
 
 			buffer->stop();
 			// no requests to send.  all responses should have been processed.
@@ -230,7 +230,7 @@ int PushCommHandler::run() {
 //              MPI_Send(&status, 1, MPI_INT, *iter, Communicator_I::DONE, comm);
 			}
 			MPI_Waitall(i, reqs, MPI_STATUSES_IGNORE);
-			Debug::print("%s buffer is finished.  worker notified ALL managers with DONE\n", getClassName());
+			// Debug::print("%s buffer finished.  worker managers DONE\n", getClassName());
 			delete [] reqs;
 
 

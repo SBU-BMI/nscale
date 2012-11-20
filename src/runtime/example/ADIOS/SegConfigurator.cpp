@@ -102,6 +102,12 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	// now set up/
 	int compute_io_g=-1, io_sub_g=-1, compute_to_io_g = -1;
 
+	// create the output directory
+	if (rank == 0) {
+		// create the directory
+		FileUtils::mkdirs(params[SegmentCmdParser::PARAM_OUTPUTDIR]);
+		printf("made directories for %s\n", params[SegmentCmdParser::PARAM_OUTPUTDIR].c_str());
+	}
 
 	///// first set up the comm handlers
 
