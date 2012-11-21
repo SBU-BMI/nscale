@@ -9,7 +9,7 @@ link_directories(${SCIOSegmentation_SOURCE_DIR})
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
 if(MPI_FOUND)
-	set(programs test-mpi)
+	set(programs test-mpi test-cpp)
 	foreach(program ${programs})
 		# Add an executable to be built from the files listed
 		add_executable(${program} ${program}.cpp)

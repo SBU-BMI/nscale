@@ -81,14 +81,14 @@ int main (int argc, char **argv){
 	for (int i = 0; i < 5; ++i) {
 		in = std::make_pair(output_size, output);
 		status = buffer.push(in);
-		printf("buffer testing: iter %d, buffer push status %d, size %d, outdata %d %p\n", i, status, buffer.debugBufferSize(), in.first, in.second);
+		printf("buffer testing: iter %d, buffer push status %d, size %ld, outdata %d %p\n", i, status, buffer.debugBufferSize(), in.first, in.second);
 	}
 
 	// pop out;
 	DataBuffer::DataType out;
 	for (int i = 0; i < 5; ++i) {
 		status = buffer.pop(out);
-		printf("buffer testing: iter %d, buffer pop status %d, size %d, outdata %d %p\n", i, status, buffer.debugBufferSize(), out.first, out.second);
+		printf("buffer testing: iter %d, buffer pop status %d, size %ld, outdata %d %p\n", i, status, buffer.debugBufferSize(), out.first, out.second);
 	}
 
 #if defined(WITH_MPI)
@@ -163,7 +163,7 @@ int main (int argc, char **argv){
 						status = mbuffer.transmit(stat.MPI_SOURCE, stat.MPI_TAG, MPI_CHAR, comm_world, input_size);
 
 
-						printf("MPIRecvDataBuffer size %d, current status is %d \n", mbuffer.debugBufferSize(), status);
+						printf("MPIRecvDataBuffer size %ld, current status is %d \n", mbuffer.debugBufferSize(), status);
 //						} else {
 //							printf("already completed \n");
 //							if (mbuffer.canPush()) {
@@ -175,7 +175,7 @@ int main (int argc, char **argv){
 
 						while (mbuffer.canPop()) {
 							status = mbuffer.pop(out);
-							printf("mpi recv buffer testing: buffer pop status %d, size %d, outdata %d %p\n", status, mbuffer.debugBufferSize(), out.first, out.second);
+							printf("mpi recv buffer testing: buffer pop status %d, size %ld, outdata %d %p\n", status, mbuffer.debugBufferSize(), out.first, out.second);
 							free(out.second);
 							out.second = NULL;
 						}
@@ -191,11 +191,11 @@ int main (int argc, char **argv){
 
 			while (mbuffer.canPop()) {
 				status = mbuffer.pop(out);
-				printf("mpi recv buffer testing: buffer pop status %d, size %d, outdata %d %p\n", status, mbuffer.debugBufferSize(), out.first, out.second);
+				printf("mpi recv buffer testing: buffer pop status %d, size %ld, outdata %d %p\n", status, mbuffer.debugBufferSize(), out.first, out.second);
 				free(out.second);
 				out.second = NULL;
 			}
-			printf("buffer size = %d\n", mbuffer.debugBufferSize());
+			printf("buffer size = %ld\n", mbuffer.debugBufferSize());
 
 		} else {
 
@@ -222,7 +222,7 @@ int main (int argc, char **argv){
 			int count = 0;
 			while (!mbuffer.isFinished()) ;
 			
-			printf("MPI send buffer completed: count %d, remain %d \n", mbuffer.debug_complete_count, mbuffer.debugBufferSize());
+			printf("MPI send buffer completed: count %d, remain %ld \n", mbuffer.debug_complete_count, mbuffer.debugBufferSize());
 
 			char done = 1;
 			MPI_Send(&done, 1, MPI_CHAR, 0, 1, comm_world);

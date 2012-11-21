@@ -113,12 +113,12 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 int GenerateOutput::run() {
 
 	if (this->inputBuf->isFinished()) {
-		Debug::print("%s input DONE.  input = %d, output = %d\n", getClassName(), call_count, output_count);
+		//Debug::print("%s input DONE.  input = %d, output = %d\n", getClassName(), call_count, output_count);
 		this->outputBuf->stop();
 
 		return Communicator_I::DONE;
 	} else if (this->outputBuf->isStopped()) {
-		Debug::print("%s output DONE.  input = %d, output = %d\n", getClassName(), call_count, output_count);
+		//Debug::print("%s output DONE.  input = %d, output = %d\n", getClassName(), call_count, output_count);
 		this->inputBuf->stop();
 
 		if (!this->inputBuf->isFinished()) Debug::print("WARNING: %s input buffer is not empty.\n", getClassName());

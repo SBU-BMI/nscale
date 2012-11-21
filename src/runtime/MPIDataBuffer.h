@@ -33,7 +33,7 @@ public:
 		mpi_req_starttimes.clear();
 	};
 
-	virtual int debugBufferSize() { return buffer.size()+ mpi_buffer.size(); };
+	virtual size_t debugBufferSize() { return buffer.size()+ mpi_buffer.size(); };
 
 	virtual bool isFinished() {
 		this->checkRequests();

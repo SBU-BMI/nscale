@@ -19,7 +19,7 @@ PullCommHandler::PullCommHandler(MPI_Comm const * _parent_comm, int const _gid, 
 PullCommHandler::~PullCommHandler() {
 //	MPI_Barrier(comm);
 	if (isListener()) {
-		Debug::print("%s destructor called.  total of %d data messages sent.\n", getClassName(), send_count);
+		Debug::print("%s destructor: %d msgs sent.\n", getClassName(), send_count);
 	} else {
 //		Debug::print("%s destructor called.\n", getClassName());
 	}

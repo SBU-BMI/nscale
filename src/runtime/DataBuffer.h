@@ -31,7 +31,7 @@ public:
 	DataBuffer(int _capacity, cciutils::SCIOLogSession *_logsession = NULL);
 
 	// for data addition
-	virtual int debugBufferSize() { return buffer.size(); };
+	virtual size_t debugBufferSize() { return buffer.size(); };
 
 //	bool isEmpty() { return getBufferSize() == 0; };
 	virtual bool isFull() { return buffer.size() >= capacity; };

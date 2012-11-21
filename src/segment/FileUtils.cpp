@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
-#include <sstream>
 #include <sys/types.h>
 #include <dirent.h>
 #include <vector>
@@ -206,6 +205,7 @@ bool FileUtils::traverseDirectory(const string &directory, vector<string> &list,
 	}
 	if (S_ISDIR (st_buf.st_mode)) dirList.push(directory);
 
+
 	while (!dirList.empty()) {
 		d = dirList.front();
 		dirList.pop();
@@ -220,9 +220,11 @@ bool FileUtils::traverseDirectory(const string &directory, vector<string> &list,
 			// loop until the directory is traveled thru
 
 			// push directory or filename to the list
-			stringstream fullname;
-			fullname << d << "/" << ent->d_name;
-			s = fullname.str();
+			s.assign("");
+			s.append(d);
+			s.append(FileUtils::DIR_SEPARATOR);
+			s.append(ent->d_name);
+
 
 			status = stat (s.c_str(), &st_buf);
 

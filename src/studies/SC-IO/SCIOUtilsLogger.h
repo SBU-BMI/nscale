@@ -46,11 +46,11 @@ public:
 	static const int ADIOS_FINALIZE;
 	static const int OTHER;
 
-	event(const int &_id, const std::string &_name, const long long &_start, const long long &_end, const std::string &_annotation,
-			const int &_type = -1) :
+	event(const int _id, const std::string _name, const long long _start, const long long _end, const std::string _annotation,
+			const int _type = -1) :
 				id(_id), name(_name), starttime(_start), endtime(_end), annotation(_annotation), eventtype(_type) {};
-	event(const int &_id, const std::string &_name, const long long &_start, const std::string &_annotation,
-			const int &_type = -1) :
+	event(const int _id, const std::string _name, const long long _start, const std::string _annotation,
+			const int _type = -1) :
 				id(_id), name(_name), starttime(_start), endtime(-1), annotation(_annotation), eventtype(_type) {};
 	virtual ~event() {};
 

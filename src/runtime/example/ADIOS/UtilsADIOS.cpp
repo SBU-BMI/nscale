@@ -135,7 +135,7 @@ ADIOSWriter::ADIOSWriter(std::string const &_prefix, std::string const &_suffix,
 	local_sourceTileFile_capacity = mx_filename_bytes * tileInfo_buffer_capacity;
 
 	tile = (unsigned char*)calloc(local_tile_capacity, sizeof(unsigned char));
-	Debug::print("Local_tile_buffer at %p with capacity %d\n", tile, local_tile_capacity);
+	//Debug::print("Local_tile_buffer at %p with capacity %d\n", tile, local_tile_capacity);
 	imageName = (char*)calloc(local_imagename_capacity, sizeof(char));
 	sourceTileFile = (char*)calloc(local_sourceTileFile_capacity, sizeof(char));
 	this->buffer.clear();
