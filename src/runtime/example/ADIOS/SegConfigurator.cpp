@@ -54,7 +54,7 @@ bool SegConfigurator::init() {
 	// are the adios processes groupped into subgroups
 	bool grouped = false;
 	int groupsize = atoi(params[SegmentCmdParser::PARAM_SUBIOSIZE].c_str());
-	if (groupsize > 1) grouped = true;
+	if (groupsize > 0 && groupsize < atoi(params[SegmentCmdParser::PARAM_IOSIZE].c_str())) grouped = true;
 
 	MPI_Comm comm = MPI_COMM_WORLD;
 	int rank = -1;
