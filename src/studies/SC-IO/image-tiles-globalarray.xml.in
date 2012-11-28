@@ -54,5 +54,5 @@
     </adios-group>
     <method group="tileCount" method="@ADIOS_TRANSPORT@">@TRANSPORT_OPTIONS@</method>
     <method group="tileInfo" method="@ADIOS_TRANSPORT@">@TRANSPORT_OPTIONS@</method>
-    <buffer size-MB="524" allocate-time="now"/>
+    <buffer size-MB="260" allocate-time="now"/>
 </adios-config>

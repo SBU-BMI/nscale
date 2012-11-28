@@ -56,7 +56,7 @@ POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 }
 
 POSIXRawSave::~POSIXRawSave() {
-	Debug::print("%s destructor called.  total written out is %d over %d iterations\n", getClassName(), local_total, local_iter);
+	Debug::print("%s destructor:  wrote out %d over %d iters\n", getClassName(), local_total, local_iter);
 
 }
 
@@ -108,9 +108,9 @@ int POSIXRawSave::run() {
 
 
 	//printf("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, inputBuf->debugBufferSize());
-	if (status == Communicator_I::DONE) {
-		Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, inputBuf->debugBufferSize());
-	}
+//	if (status == Communicator_I::DONE) {
+//		Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %d\n", getClassName(), c, status, max_iter, local_iter, inputBuf->debugBufferSize());
+//	}
 
 
 
@@ -198,7 +198,7 @@ int POSIXRawSave::process() {
 
 			++local_total;
 		} else {
-			Debug::print("%s NULL INPUT from buffer!!!\n", getClassName());
+			Debug::print("ERROR: %s NULL INPUT from buffer!!!\n", getClassName());
 		}
 	}
 

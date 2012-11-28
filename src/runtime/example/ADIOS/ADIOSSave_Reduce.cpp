@@ -56,7 +56,7 @@ ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid
 }
 
 ADIOSSave_Reduce::~ADIOSSave_Reduce() {
-	Debug::print("%s destructor: written out %d over %d iters\n", getClassName(), local_total, local_iter);
+	Debug::print("%s destructor: wrote out %d over %d iters\n", getClassName(), local_total, local_iter);
 
 
 	if (writer) writer->persistCountInfo();
@@ -109,8 +109,8 @@ int ADIOSSave_Reduce::run() {
 	max_iter = gbuffer[1];
 
 
-	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n",
-			getClassName(), c, status, max_iter, local_iter, this->inputBuf->debugBufferSize());
+//	if (status == Communicator_I::DONE) Debug::print("%s call_count = %ld, status = %d, max_iter = %d, local_iter = %d, buffer size = %ld\n",
+//			getClassName(), c, status, max_iter, local_iter, this->inputBuf->debugBufferSize());
 
 //	if (test_input_status == DONE)
 //		Debug::print("TEST 2 input status = %d\n", input_status);
@@ -166,7 +166,7 @@ int ADIOSSave_Reduce::process() {
 
 			++local_total;
 		} else {
-			Debug::print("%s NULL INPUT from buffer!!!\n", getClassName());
+			Debug::print("ERROR: %s NULL INPUT from buffer!!!\n", getClassName());
 		}
 	}
 

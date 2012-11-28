@@ -72,7 +72,10 @@ int main (int argc, char **argv){
 //    if (old_action.sa_handler != SIG_IGN)
 //            if( sigaction (SIGTERM, &new_action, NULL) == -1)
 //                    perror("Failed to set new Handle");
-
+	time_t now = time(0);
+	// Convert now to tm struct for local timezone
+	tm* localtm = localtime(&now);
+	printf("The START local date and time is: %s\n", asctime(localtm));
 
 	// real work,
 	long long t3, t4;
@@ -84,7 +87,7 @@ int main (int argc, char **argv){
 	char hostname[256];
 	gethostname(hostname, 255);  // from <iostream>
 
-	int rank;
+	int rank=0;
 	MPI_Comm_rank(comm, &rank);
 
 	// IMPORTANT: need to initialize random number generator right now.
@@ -100,18 +103,23 @@ int main (int argc, char **argv){
 	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cciutils::event::OTHER));
 
 	if (!parser->parse(argc, argv)) {
+		t1 = cciutils::event::timestampInUS();
+
 		if (logger) delete logger;
 		delete parser;
+		t2 = cciutils::event::timestampInUS();
+		if (rank ==0) cci::rt::Debug::print("ERROR parse.  cleaned up parser and logger in %lu us.\n", long(t2-t1));
 
+		t1 = cciutils::event::timestampInUS();
 		MPI_Finalize();
+		t2 = cciutils::event::timestampInUS();
+		if (rank ==0) cci::rt::Debug::print("ERROR parse.  finalized MPI in %lu us.\n", long(t2-t1));
 		return 0;
 	}
 
-	cci::rt::ProcessConfigurator_I *conf = new cci::rt::syntest::SynDataConfiguratorFull(parser->getParams(), logger);
-
-	cci::rt::Process *p = new cci::rt::Process(comm, argc, argv, conf);
-
 	t1 = cciutils::event::timestampInUS();
+	cci::rt::ProcessConfigurator_I *conf = new cci::rt::syntest::SynDataConfiguratorFull(parser->getParams(), logger);
+	cci::rt::Process *p = new cci::rt::Process(comm, argc, argv, conf);
 	p->setup();
 	t2 = cciutils::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("proc setup"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
@@ -132,13 +140,23 @@ int main (int argc, char **argv){
 	// cleaning up.
 	writeLog();
 
+	t1 = cciutils::event::timestampInUS();
 	if (parser != NULL) delete parser;
 	if (logger != NULL) delete logger;
+	t2 = cciutils::event::timestampInUS();
+	if (rank ==0) cci::rt::Debug::print("cleaned up parser and logger in %lu us.\n", long(t2-t1));
 
+	t1 = cciutils::event::timestampInUS();
 	MPI_Finalize();
+	t2 = cciutils::event::timestampInUS();
+	if (rank ==0) cci::rt::Debug::print("finalized MPI in %lu us.\n", long(t2-t1));
 
+
+	now = time(0);
+	// Convert now to tm struct for local timezone
+	localtm = localtime(&now);
+	printf("The END local date and time is: %s\n", asctime(localtm));
 
 	return 0;
-
 
 }
