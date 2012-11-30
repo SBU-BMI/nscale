@@ -40,6 +40,7 @@ public:
 			checked = true;
 	    }
 	   	printf("[DEBUG rank %d] %s", rank, msg);
+	   	fflush(stdout);
 	}
 
 private:

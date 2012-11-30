@@ -62,7 +62,11 @@ void exit_handler() {
 	time_t now = time(0);
 	// Convert now to tm struct for local timezone
 	tm* localtm = localtime(&now);
-	if (rank == 0) printf("The END local date and time is: %s\n", asctime(localtm));
+	if (rank == 0) {
+		printf("The END local date and time is: %s\n", asctime(localtm));
+		fflush(stdout);
+	}
+
 
 
 }
@@ -87,11 +91,6 @@ int main (int argc, char **argv){
 //            if( sigaction (SIGTERM, &new_action, NULL) == -1)
 //                    perror("Failed to set new Handle");
 
-	time_t now = time(0);
-	// Convert now to tm struct for local timezone
-	tm* localtm = localtime(&now);
-	printf("The START local date and time is: %s\n", asctime(localtm));
-
 	atexit(exit_handler);
 
 	// real work,
@@ -107,7 +106,12 @@ int main (int argc, char **argv){
 	int rank=-1;
 	MPI_Comm_rank(comm, &rank);
 
-	if (rank == 0) printf("initialized MPI\n");
+	time_t now = time(0);
+	// Convert now to tm struct for local timezone
+	tm* localtm = localtime(&now);
+	if (rank == 0) cci::rt::Debug::print("The START local date and time is: %s\n", asctime(localtm));
+
+	if (rank == 0) cci::rt::Debug::print("initialized MPI\n");
 	// IMPORTANT: need to initialize random number generator right now.
 	//srand(rank);
 	srand(cciutils::event::timestampInUS());
@@ -135,6 +139,7 @@ int main (int argc, char **argv){
 
 	if (p != NULL) delete p;
 	if (conf != NULL) delete conf;
+	MPI_Barrier(comm);
 
 	t4= cciutils::event::timestampInUS();
 	if (rank ==0)	cci::rt::Debug::print("finished processing in %lu us.\n", long(t4-t3));
