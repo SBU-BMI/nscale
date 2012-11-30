@@ -14,25 +14,41 @@
 #include "SCIOHistologicalEntities.h"
 #include "FileUtils.h"
 
+#include "CmdlineParser.h"
+
 namespace cci {
 namespace rt {
 namespace adios {
 
+bool Segment::initParams() {
+	params.add_options()
+			("device_type,r", boost::program_options::value< std::string >()->default_value(std::string("cpu")), "processing device type. cpu/gpu")
+//			("device_id,w", boost::program_options::value<int>()->default_value(1), "device ID. (applies to GPU only)")
+			;
+	return true;
+}
+
+boost::program_options::options_description Segment::params("Compute Options");
+bool Segment::param_init = Segment::initParams();
+
+
 Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
-		std::string &proctype, int gpuid, bool _compress,
+		boost::program_options::variables_map &_vm,
 		cciutils::SCIOLogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0),
- 	compress(_compress) {
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0)
+ 	 {
 	assert(_input != NULL);
 	assert(_output != NULL);
+
+	compress = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
+	std::string proctype = cci::rt::CmdlineParser::getParamValueByName<std::string>(_vm, "device_type");
+
 
 	if (strcmp(proctype.c_str(), "cpu")) proc_code = cciutils::DEVICE_CPU;
 	else if (strcmp(proctype.c_str(), "gpu")) {
 		proc_code = cciutils::DEVICE_GPU;
 	}
-
-
 
 }
 

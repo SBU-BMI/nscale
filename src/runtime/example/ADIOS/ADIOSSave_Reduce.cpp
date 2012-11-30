@@ -12,7 +12,7 @@
 #include "FileUtils.h"
 #include "CVImage.h"
 #include "UtilsADIOS.h"
-
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -21,34 +21,37 @@ namespace adios {
 
 ADIOSSave_Reduce::ADIOSSave_Reduce(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
-		std::string &outDir, std::string &iocode, int total, int _buffer_max,
-		int tile_max, int imagename_max, int filename_max,
+		boost::program_options::variables_map &_vm,
+		const int tile_max, const int imagename_max, const int filename_max,
 		ADIOSManager *_iomanager, cciutils::SCIOLogSession *_logsession) :
 		Action_I(_parent_comm, _gid, _input, _output, _logsession), iomanager(_iomanager),
-		local_iter(0), local_total(0),
-		c(0),
-		buffer_max(_buffer_max) {
+		local_iter(0), local_total(0){
 
 	assert(_input != NULL);
 
 	// determine if we are using AMR, if so, don't append time points
-	bool appendInTime = true;
-	if (strcmp(iocode.c_str(), "MPI_AMR") == 0 ||
-		strcmp(iocode.c_str(), "gap-MPI_AMR") == 0) appendInTime = false;
 
 	// always overwrite.
 	bool overwrite = true;
 
-	// and the stages to capture.
-	std::vector<int> stages;
-	for (int i = 0; i < 200; i++) {
-		stages.push_back(i);
+//	// and the stages to capture.
+//	std::vector<int> stages;
+//	for (int i = 0; i < 200; i++) {
+//		stages.push_back(i);
+//	}
+	std::string transport = cci::rt::CmdlineParser::getParamValueByName<std::string>(_vm, cci::rt::CmdlineParser::PARAM_IOTRANSPORT);
+	bool gapped = false;
+	if (strncmp(transport.c_str(), "gap-", 4) == 0) gapped = true;
+
+	int comm1_size;
+	MPI_Comm_size(*_parent_comm, &comm1_size);
+	int total = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_INPUTCOUNT);
+	if (gapped) {
+		total = total * comm1_size;  // worst case : all data went to 1.
 	}
 
-
-	writer = iomanager->allocateWriter(outDir, std::string("bp"), overwrite,
-			appendInTime, stages,
-			total, buffer_max,
+	writer = iomanager->allocateWriter(_vm,
+			total,
 			tile_max, imagename_max, filename_max,
 			comm, groupid);
 	writer->setLogSession(this->logsession);
@@ -86,7 +89,6 @@ int ADIOSSave_Reduce::run() {
 	// first get the local states - active or inactive
 	if (this->inputBuf->isFinished()) {
 		buffer[0] = 0;
-		c++;
 	} else {
 		buffer[0] = 1;
 	}

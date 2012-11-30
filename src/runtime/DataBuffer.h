@@ -14,6 +14,8 @@
 #include "Debug.h"
 #include "SCIOUtilsLogger.h"
 
+#include "boost/program_options.hpp"
+
 namespace cci {
 namespace rt {
 
@@ -28,7 +30,12 @@ public:
 
 	typedef std::pair<int, void *> DataType;
 
-	DataBuffer(int _capacity, cciutils::SCIOLogSession *_logsession = NULL);
+	static boost::program_options::options_description params;
+	static const std::string PARAM_COMPRESSION;
+	static const std::string PARAM_BUFFERSIZE;
+
+	DataBuffer(int _capacity, bool _compression=false, cciutils::SCIOLogSession *_logsession = NULL) ;
+	DataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession = NULL);
 
 	// for data addition
 	virtual size_t debugBufferSize() { return buffer.size(); };
@@ -85,12 +92,15 @@ protected:
 	std::queue<DataType> buffer;
 	int status;
 	int capacity;
+	bool compression;
 
 	cciutils::SCIOLogSession *logsession;
 
 	std::tr1::unordered_set<void *> reference_sources;
 
-
+private:
+	static bool param_init;
+	static bool initParams();
 };
 
 } /* namespace rt */

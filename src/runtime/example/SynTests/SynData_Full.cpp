@@ -12,25 +12,23 @@
 #include "FileUtils.h"
 
 #include "SynDataConfiguratorFull.h"
-#include "SynDataCmdParser.h"
 
 #include <signal.h>
 #include <unistd.h>
 
+#include <string.h>
+#include <vector>
+#include <cstdlib>
+
 cciutils::SCIOLogger *logger = NULL;
-cci::rt::syntest::SynDataCmdParser *parser = NULL;
 
-
-void writeLog() {
-	if (parser == NULL) return;
+void writeLog(std::string logfile) {
 	if (logger == NULL) return;
 
 	long long t3, t4;
 
 	t3 = cciutils::event::timestampInUS();
 
-
-	std::string logfile = parser->getParam(cci::rt::syntest::SynDataCmdParser::PARAM_OUTPUTDIR);
 	int rank = 0;
 
 #if defined (WITH_MPI)
@@ -46,10 +44,26 @@ void writeLog() {
 
 }
 
-void ctrlc_handler(int value) {
-	cci::rt::Debug::print("%d terminating\n", value);
+void exit_handler() {
 
-	writeLog();
+	long long t1 = cciutils::event::timestampInUS();
+	int rank=0;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if (logger != NULL) delete logger;
+	long long t2 = cciutils::event::timestampInUS();
+	if (rank ==0) cci::rt::Debug::print("cleaned up logger in %lu us.\n", long(t2-t1));
+
+	t1 = cciutils::event::timestampInUS();
+	MPI_Finalize();
+	t2 = cciutils::event::timestampInUS();
+	if (rank ==0) cci::rt::Debug::print("finalized MPI in %lu us.\n", long(t2-t1));
+
+	time_t now = time(0);
+	// Convert now to tm struct for local timezone
+	tm* localtm = localtime(&now);
+	if (rank == 0) printf("The END local date and time is: %s\n", asctime(localtm));
+
 
 }
 
@@ -72,10 +86,13 @@ int main (int argc, char **argv){
 //    if (old_action.sa_handler != SIG_IGN)
 //            if( sigaction (SIGTERM, &new_action, NULL) == -1)
 //                    perror("Failed to set new Handle");
+
 	time_t now = time(0);
 	// Convert now to tm struct for local timezone
 	tm* localtm = localtime(&now);
 	printf("The START local date and time is: %s\n", asctime(localtm));
+
+	atexit(exit_handler);
 
 	// real work,
 	long long t3, t4;
@@ -87,38 +104,23 @@ int main (int argc, char **argv){
 	char hostname[256];
 	gethostname(hostname, 255);  // from <iostream>
 
-	int rank=0;
+	int rank=-1;
 	MPI_Comm_rank(comm, &rank);
 
+	if (rank == 0) printf("initialized MPI\n");
 	// IMPORTANT: need to initialize random number generator right now.
-	srand(rank);
+	//srand(rank);
+	srand(cciutils::event::timestampInUS());
 
-	logger = new cciutils::SCIOLogger(rank, hostname, 0);\
+	logger = new cciutils::SCIOLogger(rank, hostname, 0);
 	cciutils::SCIOLogSession *logsession = logger->getSession("setup");
 
 	long long t1, t2;
-	t1 = cciutils::event::timestampInUS();
-	parser = new cci::rt::syntest::SynDataCmdParser(comm);
-	t2 = cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cciutils::event::OTHER));
-
-	if (!parser->parse(argc, argv)) {
-		t1 = cciutils::event::timestampInUS();
-
-		if (logger) delete logger;
-		delete parser;
-		t2 = cciutils::event::timestampInUS();
-		if (rank ==0) cci::rt::Debug::print("ERROR parse.  cleaned up parser and logger in %lu us.\n", long(t2-t1));
-
-		t1 = cciutils::event::timestampInUS();
-		MPI_Finalize();
-		t2 = cciutils::event::timestampInUS();
-		if (rank ==0) cci::rt::Debug::print("ERROR parse.  finalized MPI in %lu us.\n", long(t2-t1));
-		return 0;
-	}
 
 	t1 = cciutils::event::timestampInUS();
-	cci::rt::ProcessConfigurator_I *conf = new cci::rt::syntest::SynDataConfiguratorFull(parser->getParams(), logger);
+	cci::rt::ProcessConfigurator_I *conf = new cci::rt::syntest::SynDataConfiguratorFull(argc, argv, logger);
+	std::string logfile = conf->getOutputDir();
+
 	cci::rt::Process *p = new cci::rt::Process(comm, argc, argv, conf);
 	p->setup();
 	t2 = cciutils::event::timestampInUS();
@@ -137,25 +139,10 @@ int main (int argc, char **argv){
 	t4= cciutils::event::timestampInUS();
 	if (rank ==0)	cci::rt::Debug::print("finished processing in %lu us.\n", long(t4-t3));
 
-	// cleaning up.
-	writeLog();
-
-	t1 = cciutils::event::timestampInUS();
-	if (parser != NULL) delete parser;
-	if (logger != NULL) delete logger;
-	t2 = cciutils::event::timestampInUS();
-	if (rank ==0) cci::rt::Debug::print("cleaned up parser and logger in %lu us.\n", long(t2-t1));
-
-	t1 = cciutils::event::timestampInUS();
-	MPI_Finalize();
-	t2 = cciutils::event::timestampInUS();
-	if (rank ==0) cci::rt::Debug::print("finalized MPI in %lu us.\n", long(t2-t1));
+	writeLog(logfile);
 
 
-	now = time(0);
-	// Convert now to tm struct for local timezone
-	localtm = localtime(&now);
-	printf("The END local date and time is: %s\n", asctime(localtm));
+	exit(0);
 
 	return 0;
 

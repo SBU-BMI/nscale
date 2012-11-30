@@ -18,11 +18,14 @@ class Segment: public cci::rt::Action_I {
 public:
 	Segment(MPI_Comm const * _parent_comm, int const _gid,
 			DataBuffer *_input, DataBuffer *_output,
-			std::string &proctype, int gpuid, bool _compress,
+			boost::program_options::variables_map &_vm,
 			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~Segment();
 	virtual int run();
 	virtual const char* getClassName() { return "Segment"; };
+
+	static boost::program_options::options_description params;
+
 
 protected:
 	virtual int compute(int const &input_size , void * const &input,
@@ -31,6 +34,10 @@ protected:
 	int proc_code;
 	int output_count;
 	bool compress;
+
+private:
+	static bool param_init;
+	static bool initParams();
 
 };
 

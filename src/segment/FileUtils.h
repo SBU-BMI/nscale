@@ -80,9 +80,9 @@ class FileUtils
         /**
          * for backward compatibility.  use TraverseDirectory if possible.
          */
-        void traverseDirectoryRecursive(const string& directory, vector<string> & fullList) __attribute__ ((deprecated));;
-        void getFilesInDirectory(const string& directory, vector<string> &fileList) __attribute__ ((deprecated));;
-        void getDirectoriesInDirectory(const string& directory, vector<string> &dirList) __attribute__ ((deprecated));;
+        void traverseDirectoryRecursive(const string& directory, vector<string> & fullList) __attribute__ ((deprecated));
+        void getFilesInDirectory(const string& directory, vector<string> &fileList) __attribute__ ((deprecated));
+        void getDirectoriesInDirectory(const string& directory, vector<string> &dirList) __attribute__ ((deprecated));
 
         /**
          * TODO: change to static methods

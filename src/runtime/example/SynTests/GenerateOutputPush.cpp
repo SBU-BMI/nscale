@@ -14,7 +14,7 @@
 #include "utils.h"
 #include "SCIOHistologicalEntities.h"
 #include <unistd.h>
-#include "CVImage.h"
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -22,20 +22,25 @@ namespace syntest {
 
 GenerateOutputPush::GenerateOutputPush(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
-		std::string &proctype, int imagedim, int imagecount, int gpuid, bool _compress,
+		boost::program_options::variables_map &_vm,
 		cciutils::SCIOLogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0), output_dim(imagedim), count(imagecount), compress(_compress) {
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0) {
 
-	if (strcmp(proctype.c_str(), "cpu")) proc_code = cciutils::DEVICE_CPU;
-	else if (strcmp(proctype.c_str(), "gpu")) {
-		proc_code = cciutils::DEVICE_GPU;
-	}
+	int size;
+	MPI_Comm_size(*_parent_comm, &size);
+
+	count = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_INPUTCOUNT);
+	count = (count + size - 1) / size;
+
+	output_dim = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_MAXIMGSIZE);
+	compress = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
+
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
 }
 
 GenerateOutputPush::~GenerateOutputPush() {
-	Debug::print("%s destructor called. %d messages\n", getClassName(), output_count);
+	//Debug::print("%s destructor called. %d messages\n", getClassName(), output_count);
 }
 
 int GenerateOutputPush::compute(int const &input_size , void * const &input,

@@ -22,16 +22,11 @@ namespace rt {
 class MPIDataBuffer: public cci::rt::DataBuffer {
 public:
 
-	MPIDataBuffer(int _capacity, bool _non_blocking = true, cciutils::SCIOLogSession *_logsession = NULL)
-		: DataBuffer(_capacity, _logsession), debug_complete_count(0), non_blocking(_non_blocking) {
-		reqs = new MPI_Request[_capacity];
-		reqptrs = new MPI_Request*[_capacity];
-		completedreqs = new int[_capacity];
+	static boost::program_options::options_description params;
+	static const std::string PARAM_NONBLOCKING;
 
-		if (!mpi_buffer.empty()) Debug::print("WARNING: constructing.  mpi_buffer is not empty.\n");
-		mpi_buffer.clear();
-		mpi_req_starttimes.clear();
-	};
+	MPIDataBuffer(int _capacity, bool _compression=false, bool _non_blocking = true, cciutils::SCIOLogSession *_logsession = NULL) ;
+	MPIDataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession = NULL);
 
 	virtual size_t debugBufferSize() { return buffer.size()+ mpi_buffer.size(); };
 
@@ -67,6 +62,10 @@ protected:
 	bool non_blocking;
 
 	std::tr1::unordered_map<MPI_Request*, long long> mpi_req_starttimes;
+
+private:
+	static bool param_init;
+	static bool initParams();
 };
 
 } /* namespace rt */

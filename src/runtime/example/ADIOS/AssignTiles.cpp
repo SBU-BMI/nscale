@@ -11,18 +11,32 @@
 #include <dirent.h>
 #include <string.h>
 #include <algorithm>
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
 namespace adios {
 
+bool AssignTiles::initParams() {
+	params.add_options()
+		("input_directory,i", boost::program_options::value< std::string >()->required(), "input directory.  REQUIRED")
+			;
+	return true;
+}
+
+boost::program_options::options_description AssignTiles::params("Input Options");
+bool AssignTiles::param_init = AssignTiles::initParams();
 
 AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
-		std::string &dirName, int count, cciutils::SCIOLogSession *_logsession)  :
+		boost::program_options::variables_map &_vm,
+		cciutils::SCIOLogSession *_logsession)  :
 	Action_I(_parent_comm, _gid, _input, _output, _logsession) {
 
 	assert(_output != NULL);
+
+	std::string dirName = cci::rt::CmdlineParser::getParamValueByName<std::string>(_vm, "input_directory");
+	int count = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_INPUTCOUNT);
 
 	long long t1, t2;
 	t1 = ::cciutils::event::timestampInUS();

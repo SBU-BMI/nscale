@@ -20,6 +20,8 @@ public:
 
 	MPISendDataBuffer(int _capacity, bool _non_blocking = true, cciutils::SCIOLogSession *_logsession = NULL) :
 		MPIDataBuffer(_capacity, _non_blocking, _logsession) {};
+	MPISendDataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession = NULL) :
+		MPIDataBuffer(_vm, _logsession) {};
 
 	// for MPI send/recv.  call this instead of pop.
 	virtual int transmit(int node, int tag, MPI_Datatype type, MPI_Comm &comm, int size=-1);

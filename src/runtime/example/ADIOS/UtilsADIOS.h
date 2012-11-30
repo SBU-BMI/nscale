@@ -17,6 +17,7 @@
 #include "UtilsCVImageIO.h"
 #include "SCIOUtilsLogger.h"
 #include "CVImage.h"
+#include "boost/program_options.hpp"
 
 namespace cci {
 namespace rt {
@@ -30,23 +31,31 @@ class ADIOSManager {
 private:
 	MPI_Comm comm;
 	int rank;
-	bool gapped;
-	bool grouped;
 
 	std::string transport;
+	bool grouped;
+	bool gapped;
 
 	std::vector<ADIOSWriter *> writers;
 	cciutils::SCIOLogSession * logsession;
+	boost::program_options::variables_map vm;
 
 public:
-	ADIOSManager(const char* configfilename, std::string const &_transport,
-			int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession * session, bool _gapped = false, bool _groupped = true);
+	ADIOSManager(const char* configfilename, boost::program_options::variables_map &_vm,
+			int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession * session = NULL);
+	ADIOSManager(const char* configfilename, std::string _transport,
+			int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession * session,
+			bool _grouped, bool _gapped) __attribute__ ((deprecated));
 	virtual ~ADIOSManager();
 
 	virtual ADIOSWriter *allocateWriter(std::string const &pref,
 			std::string const &suf, bool _newfile,
 			bool _appendInTime, std::vector<int> const &selStages,
 			int max_image_count, int local_image_count,
+			int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
+			MPI_Comm const &_local_comm, int _local_group) __attribute__ ((deprecated));
+	virtual ADIOSWriter *allocateWriter(boost::program_options::variables_map &_vm,
+			int max_image_count,
 			int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
 			MPI_Comm const &_local_comm, int _local_group);
 	virtual void freeWriter(ADIOSWriter *w);
@@ -59,6 +68,10 @@ class ADIOSWriter : public cciutils::cv::IntermediateResultHandler {
 			std::string const &suf, bool _newfile,
 			bool _appendInTime, std::vector<int> const &selStages,
 			int max_image_count, int local_image_count,
+			int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
+			MPI_Comm const &_local_comm, int _local_group);
+	friend ADIOSWriter *ADIOSManager::allocateWriter(boost::program_options::variables_map &_vm,
+			int max_image_count,
 			int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
 			MPI_Comm const &_local_comm, int _local_group);
 
@@ -131,8 +144,10 @@ protected:
 			int _mx_image_capacity, int _mx_local_image_capacity, bool _gapped,
 			int _mx_image_bytes, int _mx_imagename_bytes, int _mx_filename_bytes,
 			MPI_Comm const &_comm, bool _grouped, int _comm_group);
-
-	bool selected(const int stage);
+	ADIOSWriter(boost::program_options::variables_map &_vm,
+			int _mx_image_capacity,	int _mx_image_bytes, int _mx_imagename_bytes, int _mx_filename_bytes,
+			MPI_Comm const &_comm, int _comm_group);
+	bool selected(const int stage) __attribute__ ((deprecated));
 
 	CVImage *saveCVImage(CVImage const *img);
 

@@ -14,12 +14,12 @@ namespace cci {
 namespace rt {
 namespace syntest {
 
+
 class GenerateOutput: public cci::rt::Action_I {
 public:
 	GenerateOutput(MPI_Comm const * _parent_comm, int const _gid,
 			DataBuffer *_input, DataBuffer *_output,
-			std::string &proctype, int imagedim, int gpuid,
-			bool _compress,
+			boost::program_options::variables_map &_vm,
 			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~GenerateOutput();
 	virtual int run();
@@ -29,7 +29,6 @@ protected:
 	virtual int compute(int const &input_size , void * const &input,
 				int &output_size, void * &output);
 
-	int proc_code;
 	int output_dim;
 	int output_count;
 	bool compress;

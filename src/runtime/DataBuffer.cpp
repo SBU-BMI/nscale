@@ -8,6 +8,7 @@
 #include "DataBuffer.h"
 #include <cstdlib>
 #include <cstdio>
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -19,10 +20,36 @@ const int DataBuffer::FULL = 13;
 const int DataBuffer::BAD_DATA = -11;
 const int DataBuffer::UNSUPPORTED_OP = -12;
 
+const std::string DataBuffer::PARAM_COMPRESSION = "compression";
+const std::string DataBuffer::PARAM_BUFFERSIZE = "buffer_size";
+
+bool DataBuffer::initParams() {
+	DataBuffer::params.add_options()
+		("buffer_size,b", boost::program_options::value<int>()->default_value(4), "buffer size in number of tiles.")
+		("compression,c", boost::program_options::value<bool>()->default_value(false)->implicit_value(true), "MPI message compression on/off.")
+		;
+	return true;
+}
+boost::program_options::options_description DataBuffer::params("Buffer Options");
+bool DataBuffer::param_init = DataBuffer::initParams();
 
 
-DataBuffer::DataBuffer(int _capacity, cciutils::SCIOLogSession *_logsession) :
-		capacity(_capacity), status(DataBuffer::READY), logsession(_logsession) {
+DataBuffer::DataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession) :
+		status(DataBuffer::READY), logsession(_logsession) {
+	while (!buffer.empty()) {
+		DataType d = buffer.front();
+		buffer.pop();
+		free(d.second);
+		d.second = NULL;
+	}
+	reference_sources.clear();
+
+	capacity = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, "buffer_size");
+	compression = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, "compression");
+}
+
+DataBuffer::DataBuffer(int _capacity, bool _compression, cciutils::SCIOLogSession *_logsession) :
+		capacity(_capacity), status(DataBuffer::READY), logsession(_logsession), compression(_compression) {
 	while (!buffer.empty()) {
 		DataType d = buffer.front();
 		buffer.pop();
@@ -31,6 +58,7 @@ DataBuffer::DataBuffer(int _capacity, cciutils::SCIOLogSession *_logsession) :
 	}
 	reference_sources.clear();
 }
+
 
 DataBuffer::~DataBuffer() {
 	if (!buffer.empty()) {

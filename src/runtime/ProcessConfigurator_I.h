@@ -12,6 +12,8 @@
 #include "mpi.h"
 #include "Process.h"
 #include <vector>
+#include "boost/program_options.hpp"
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -27,9 +29,14 @@ public:
 	virtual bool finalize() = 0;
 
 	virtual bool configure(MPI_Comm &comm, Process * proc) = 0;
+	virtual std::string getOutputDir() {  return cci::rt::CmdlineParser::getParamValueByName<std::string>(params, cci::rt::CmdlineParser::PARAM_OUTPUTDIR); };
+
 
 protected:
 	cciutils::SCIOLogger *logger;
+	boost::program_options::variables_map params;
+	std::string executable;
+
 
 };
 

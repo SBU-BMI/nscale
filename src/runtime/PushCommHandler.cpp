@@ -21,11 +21,11 @@ PushCommHandler::PushCommHandler(MPI_Comm const * _parent_comm, int const _gid, 
 
 PushCommHandler::~PushCommHandler() {
 
-	if (isListener()) {
-		Debug::print("%s destructor:  %d msgs received.\n", getClassName(), send_count);
-	} else {
-//		Debug::print("%s destructor called.\n", getClassName());
-	}
+//	if (isListener()) {
+//		Debug::print("%s destructor:  %d msgs received.\n", getClassName(), send_count);
+//	} else {
+////		Debug::print("%s destructor called.\n", getClassName());
+//	}
 }
 
 /**

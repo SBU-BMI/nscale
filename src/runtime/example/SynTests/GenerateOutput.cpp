@@ -14,6 +14,7 @@
 #include "utils.h"
 #include "SCIOHistologicalEntities.h"
 #include <unistd.h>
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -21,15 +22,11 @@ namespace syntest {
 
 GenerateOutput::GenerateOutput(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
-		std::string &proctype, int imagedim, int gpuid,
-		bool _compress,
+		boost::program_options::variables_map &_vm,
 		cciutils::SCIOLogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0), output_dim(imagedim), compress(_compress) {
-
-	if (strcmp(proctype.c_str(), "cpu")) proc_code = cciutils::DEVICE_CPU;
-	else if (strcmp(proctype.c_str(), "gpu")) {
-		proc_code = cciutils::DEVICE_GPU;
-	}
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0) {
+	output_dim = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_MAXIMGSIZE);
+	compress = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
 }
 
 GenerateOutput::~GenerateOutput() {

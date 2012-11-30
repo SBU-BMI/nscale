@@ -33,41 +33,76 @@ const int SynDataConfiguratorPush::IO_GROUP = 2;
 const int SynDataConfiguratorPush::COMPUTE_TO_IO_GROUP = 3;
 const int SynDataConfiguratorPush::UNUSED_GROUP = 0;
 
+SynDataConfiguratorPush::SynDataConfiguratorPush(int argc, char** argv, cciutils::SCIOLogger *_logger) :
+	ProcessConfigurator_I(_logger), iomanager(NULL) {
+
+	long long t1, t2;
+	t1 = cciutils::event::timestampInUS();
+
+	///////
+		// Boost library program_options package:  for parsing
+	CmdlineParser *parser = new CmdlineParser();
+
+	parser->addParams(DataBuffer::params);
+	parser->addParams(MPIDataBuffer::params);
+
+	bool p_result = parser->parse(argc, argv);
+	if (!p_result) {
+		exit(-1);
+	}
+	params = parser->getParamValues();
+
+		// end Boost Program_Options configuration.
+	//////////
+	int rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	if (rank == 0) {
+		std::cout << "Recongized Options:" << std::endl;
+		std::cout << "\t" << DataBuffer::PARAM_COMPRESSION << ":\t" << CmdlineParser::getParamValueByName<bool>(params, DataBuffer::PARAM_COMPRESSION) << std::endl;
+		std::cout << "\t" << DataBuffer::PARAM_BUFFERSIZE <<  ":\t" << CmdlineParser::getParamValueByName<int>(params, DataBuffer::PARAM_BUFFERSIZE) << std::endl;
+		std::cout << "\t" << MPIDataBuffer::PARAM_NONBLOCKING << ":\t" << CmdlineParser::getParamValueByName<bool>(params, "nonblocking") << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_INPUTCOUNT << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_INPUTCOUNT) << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_OUTPUTDIR << ":\t" << CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_OUTPUTDIR) << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_IOTRANSPORT << ":\t" << CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_IOTRANSPORT) << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_IOSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOSIZE) << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_IOINTERLEAVE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOINTERLEAVE) << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPSIZE) << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPINTERLEAVE  << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPINTERLEAVE) << std::endl;
+		std::cout << "\t" << CmdlineParser::PARAM_MAXIMGSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) << std::endl;
+	}
+
+	delete parser;
+
+	executable = argv[0];
+
+	t2 = cciutils::event::timestampInUS();
+	cciutils::SCIOLogSession *logsession = logger->getSession("setup");
+	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cciutils::event::OTHER));
+};
 
 bool SynDataConfiguratorPush::init() {
 
 	// ONLY HAS THIS CODE HERE BECAUSE ADIOS USES HARDCODED COMM
 
-
 	// need to initialize ADIOS by everyone because it has HARDCODED MPI_COMM_WORLD instead of taking a parameter for the comm.
-
-	std::string iocode = params[SynDataCmdParser::PARAM_TRANSPORT];
-
-	// get the configuration file
-
-
-	// determine if we are looking at gapped output
-	bool gapped = false;
-	if (strncmp(iocode.c_str(), "gap-", 4) == 0) gapped = true;
-
-	// are the adios processes groupped into subgroups
-	bool grouped = false;
-	int groupsize = atoi(params[SynDataCmdParser::PARAM_SUBIOSIZE].c_str());
-	if (groupsize > 0 && groupsize < atoi(params[SynDataCmdParser::PARAM_IOSIZE].c_str())) grouped = true;
 
 	MPI_Comm comm = MPI_COMM_WORLD;
 	int rank = -1;
 	MPI_Comm_rank(comm, &rank);
 
 	cciutils::SCIOLogSession *session = logger->getSession("setup");
+
+	// get the configuration file
+	std::string iocode = CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_IOTRANSPORT);
+
 	if (strncmp(iocode.c_str(), "na-", 3) != 0) {
-		std::string adios_config(params[SynDataCmdParser::PARAM_EXECUTABLEDIR]);
+		std::string adios_config(FileUtils::getDir(executable));
 		adios_config.append("/../adios_xml/image-tiles-globalarray-");
 		adios_config.append(iocode);
 		adios_config.append(".xml");
 
 		//Debug::print("iomanager created for %s using config %s\n", iocode.c_str(), adios_config.c_str());
-		iomanager = new cci::rt::adios::ADIOSManager(adios_config.c_str(), params[SynDataCmdParser::PARAM_TRANSPORT], rank, comm, session, gapped, grouped);
+		iomanager = new cci::rt::adios::ADIOSManager(adios_config.c_str(), params, rank, comm, session);
 	}
 
 	return true;
@@ -104,8 +139,8 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 	// create the output directory
 	if (rank == 0) {
 		// create the directory
-		FileUtils::mkdirs(params[SynDataCmdParser::PARAM_OUTPUTDIR]);
-		printf("made directories for %s\n", params[SynDataCmdParser::PARAM_OUTPUTDIR].c_str());
+		FileUtils::mkdirs(CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_OUTPUTDIR));
+		printf("made directories for %s\n", CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_OUTPUTDIR).c_str());
 	}
 
 	///// first set up the comm handlers
@@ -115,8 +150,8 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 	MPISendDataBuffer *sbuf = NULL;
 	MPIRecvDataBuffer *rbuf = NULL;
 
-	int iointerleave = atoi(params[SynDataCmdParser::PARAM_IOINTERLEAVE].c_str());
-	int iosize = atoi(params[SynDataCmdParser::PARAM_IOSIZE].c_str());
+	int iointerleave = CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOINTERLEAVE);
+	int iosize = CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOSIZE);
 	if (iointerleave < 1) iointerleave = 1;
 	else if (iointerleave > size) iointerleave = size;
 	if (iosize < 1 || iosize > size) iosize = size/iointerleave;  // default
@@ -135,13 +170,11 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 
 	Scheduler_I *sch2 = NULL;
 		if (compute_io_g == IO_GROUP) {
-			rbuf = new MPIRecvDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false), logger->getSession("push"));
+			rbuf = new MPIRecvDataBuffer(params, logger->getSession("push"));
 			sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
 			handler2 = new PushCommHandler(&comm, 1, rbuf, sch2, logger->getSession("push"));
 		} else {
-			sbuf = new MPISendDataBuffer(atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-					(strcmp(params[SynDataCmdParser::PARAM_NONBLOCKING].c_str(), "on") == 0 ? true : false), logger->getSession("push"));
+			sbuf = new MPISendDataBuffer(params, logger->getSession("push"));
 			sch2 = new RandomScheduler(false, true);
 			handler2 = new PushCommHandler(&comm, 1, sbuf, sch2, logger->getSession("push"));
 		}
@@ -153,11 +186,7 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 	if (compute_io_g == COMPUTE_GROUP) {
 			Action_I *seg =
 					new cci::rt::syntest::GenerateOutputPush(&comm, MPI_UNDEFINED, NULL, sbuf,
-							params[SynDataCmdParser::PARAM_PROCTYPE],
-		atoi(params[SynDataCmdParser::PARAM_OUTPUTSIZE].c_str()),
-		atoi(params[SynDataCmdParser::PARAM_INPUTCOUNT].c_str()),
-		atoi(params[SynDataCmdParser::PARAM_GPUDEVICEID].c_str()),
-		(strcmp(params[SynDataCmdParser::PARAM_COMPRESSION].c_str(), "on") == 0 ? true : false),
+							params,
 							logger->getSession("seg"));
 			proc->addHandler(seg);
 			proc->addHandler(handler2);
@@ -170,8 +199,9 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 		MPI_Comm_rank(*(handler->getComm()), &comm1_rank);
 
 		// then within IO group, split to subgroups, for adios.
-		int subio_size = atoi(params[SynDataCmdParser::PARAM_SUBIOSIZE].c_str());
-		int subio_interleave = atoi(params[SynDataCmdParser::PARAM_SUBIOINTERLEAVE].c_str());
+		int subio_size = CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPSIZE);
+		int subio_interleave = CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPINTERLEAVE);
+
 		if (subio_interleave < 1) subio_interleave = 1;
 		else if (subio_interleave > comm1_size) subio_interleave = comm1_size;
 		if (subio_size < 1) subio_size = comm1_size / subio_interleave;
@@ -192,14 +222,8 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 			}
 		}
 		// io subgroups
-		std::string iocode = params[SynDataCmdParser::PARAM_TRANSPORT];
-		bool gapped = false;
-		if (strncmp(iocode.c_str(), "gap-", 4) == 0) gapped = true;
+		std::string iocode = CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_IOTRANSPORT);
 
-		int total = atoi(params[SynDataCmdParser::PARAM_INPUTCOUNT].c_str());
-		if (gapped) {
-			total = total * comm1_size;  // worst case : all data went to 1.
-		}
 		t2 = cciutils::event::timestampInUS();
 		if (this->logger != NULL) logger->getSession("setup")->log(cciutils::event(0, std::string("layout adios"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
 
@@ -211,20 +235,14 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 		else if (strcmp(iocode.c_str(), "na-POSIX") == 0)
 			save = new cci::rt::adios::POSIXRawSave(handler->getComm(), io_sub_g,
 					rbuf, NULL,
-				params[SynDataCmdParser::PARAM_OUTPUTDIR],
-				iocode,
-				total,
-				atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-				4096 * 4096 * 4, 256, 1024,
+				params,
 				logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
 		else
 			save = new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
 					rbuf, NULL,
-				params[SynDataCmdParser::PARAM_OUTPUTDIR],
-				iocode,
-				total,
-				atoi(params[SynDataCmdParser::PARAM_IOBUFFERSIZE].c_str()),
-				4096 * 4096 * 4, 256, 1024,
+				params,
+				CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) *
+				CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) * 4, 256, 1024,
 				iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
 
 		proc->addHandler(handler2);

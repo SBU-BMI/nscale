@@ -11,7 +11,8 @@
 #include <ProcessConfigurator_I.h>
 #include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
-#include "SegmentCmdParser.h"
+
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -20,10 +21,12 @@ namespace adios {
 
 class SegConfigurator : public cci::rt::ProcessConfigurator_I {
 public:
-	SegConfigurator(SegmentCmdParser::ParamsType &_params, cciutils::SCIOLogger *_logger) :
-		ProcessConfigurator_I(_logger), iomanager(NULL), params(_params) {};
+	SegConfigurator(int argc, char** argv, cciutils::SCIOLogger *_logger=NULL);
 	virtual ~SegConfigurator() {
-		finalize();
+		if (iomanager != NULL) {
+			delete iomanager;
+			iomanager = NULL;
+		}
 	};
 
 
@@ -40,7 +43,6 @@ public:
 
 protected:
 	ADIOSManager *iomanager;
-	SegmentCmdParser::ParamsType params;
 };
 
 }

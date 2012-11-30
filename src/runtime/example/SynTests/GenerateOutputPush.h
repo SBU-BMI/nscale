@@ -18,8 +18,7 @@ class GenerateOutputPush: public cci::rt::Action_I {
 public:
 	GenerateOutputPush(MPI_Comm const * _parent_comm, int const _gid,
 			DataBuffer *_input, DataBuffer *_output,
-			std::string &proctype, int imagedim, int imagecount, int gpuid,
-			bool _compress,
+			boost::program_options::variables_map &_vm,
 			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~GenerateOutputPush();
 	virtual int run();
@@ -29,7 +28,6 @@ protected:
 	virtual int compute(int const &input_size , void * const &input,
 				int &output_size, void * &output);
 
-	int proc_code;
 	int output_dim;
 	int output_count;
 	int count;

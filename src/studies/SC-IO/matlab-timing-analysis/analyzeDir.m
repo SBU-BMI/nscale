@@ -18,7 +18,7 @@ function analyzeDir ( dirname, allEventTypes, allTypeNames, colorMap )
     for i = 1:length(files)
          try
             clear proc_events;
-
+            
             proc_events = readComputeAndIOTimingOneLineFormat(dirname, files(i), proc_types_to_exclude, event_names_to_exclude);
 
 % FIX THIS IN THE INPUT CSV files instead...

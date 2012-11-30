@@ -11,7 +11,8 @@
 #include <ProcessConfigurator_I.h>
 #include "UtilsADIOS.h"
 #include "SCIOUtilsLogger.h"
-#include "SynDataCmdParser.h"
+
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -20,8 +21,7 @@ namespace syntest {
 
 class SynDataConfiguratorPush : public cci::rt::ProcessConfigurator_I {
 public:
-	SynDataConfiguratorPush(SynDataCmdParser::ParamsType &_params, cciutils::SCIOLogger *_logger) :
-		ProcessConfigurator_I(_logger), iomanager(NULL), params(_params) {};
+	SynDataConfiguratorPush(int argc, char** argv, cciutils::SCIOLogger *_logger = NULL);
 	virtual ~SynDataConfiguratorPush() {
 		if (iomanager != NULL) {
 			delete iomanager;
@@ -42,7 +42,6 @@ public:
 
 protected:
 	cci::rt::adios::ADIOSManager *iomanager;
-	SynDataCmdParser::ParamsType params;
 };
 
 }

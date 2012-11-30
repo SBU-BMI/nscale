@@ -20,11 +20,13 @@ class AssignTiles: public cci::rt::Action_I {
 public:
 	AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
 			DataBuffer *_input, DataBuffer *_output,
-			std::string &dirName, int count, cciutils::SCIOLogSession *_logsession = NULL);
+			boost::program_options::variables_map &_vm,
+			cciutils::SCIOLogSession *_logsession = NULL);
 	virtual ~AssignTiles();
 	virtual int run();
 	virtual const char* getClassName() { return "AssignTiles"; };
 
+	static boost::program_options::options_description params;
 
 protected:
 
@@ -32,6 +34,10 @@ protected:
 				int &output_size, void * &output);
 
 	std::vector<std::string> filenames;
+
+private:
+	static bool param_init;
+	static bool initParams();
 };
 
 

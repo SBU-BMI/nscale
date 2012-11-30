@@ -6,22 +6,38 @@
 #include "adios.h"
 #include "adios_internals.h"
 #include "Debug.h"
+#include "CmdlineParser.h"
+#include "DataBuffer.h"
 
 namespace cci {
 namespace rt {
 namespace adios {
 
 
-ADIOSManager::ADIOSManager(const char* configfilename, std::string const &_transport,
-		int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession *session, bool _gapped, bool _grouped ) :
-		transport(_transport) {
-	gapped = _gapped;
-	grouped = _grouped;
-
-	rank = _rank;
+ADIOSManager::ADIOSManager(const char* configfilename, boost::program_options::variables_map &_vm,
+		int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession *session) :
+		rank(_rank), logsession(session)
+		{
 	comm = _comm;
-	logsession = session;
+	vm = _vm;
 
+	long long t1 = ::cciutils::event::timestampInUS();
+	adios_init(configfilename);
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios init"), t1, t2, std::string(), ::cciutils::event::ADIOS_INIT));
+
+	t1 = ::cciutils::event::timestampInUS();
+	writers.clear();
+	t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("clear Writers"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
+}
+
+ADIOSManager::ADIOSManager(const char* configfilename, std::string _transport,
+		int _rank, MPI_Comm &_comm, cciutils::SCIOLogSession *session, bool _grouped, bool _gapped) :
+		rank(_rank), logsession(session), transport(_transport), grouped(_grouped), gapped(_gapped)
+		{
+	comm = _comm;
 
 	long long t1 = ::cciutils::event::timestampInUS();
 	adios_init(configfilename);
@@ -87,6 +103,29 @@ ADIOSWriter* ADIOSManager::allocateWriter(
 	return w;
 }
 
+ADIOSWriter* ADIOSManager::allocateWriter(
+	boost::program_options::variables_map &_vm,
+	int max_image_count,
+	int mx_image_bytes, int mx_imagename_bytes, int mx_sourcetilefile_bytes,
+	MPI_Comm const &_local_comm, int _local_group) {
+
+	long long t1 = ::cciutils::event::timestampInUS();
+
+
+	ADIOSWriter *w = new ADIOSWriter(_vm,
+			max_image_count,
+			mx_image_bytes, mx_imagename_bytes, mx_sourcetilefile_bytes,
+			_local_comm, _local_group);
+
+	writers.push_back(w);
+
+	long long t2 = ::cciutils::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS Writer alloc"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+
+//	if (w->local_rank == 0) printf("INITIALIZED group %d for %s with tileinfo %ld, imagename %ld, sourcetile %ld, tile %ld\n", w->local_group, pref.c_str(), w->tileInfo_capacity, w->imageName_capacity, w->sourceTileFile_capacity, w->tile_capacity);
+
+	return w;
+}
 
 void ADIOSManager::freeWriter(ADIOSWriter *w) {
 	long long t1 = ::cciutils::event::timestampInUS();
@@ -122,6 +161,55 @@ ADIOSWriter::ADIOSWriter(std::string const &_prefix, std::string const &_suffix,
 		logsession(NULL) {
 
 	std::sort(selected_stages.begin(), selected_stages.end());
+
+	MPI_Comm_rank(_comm, &comm_rank);
+	MPI_Comm_size(_comm, &comm_size);
+
+	imageName_capacity = mx_imagename_bytes * tileInfo_capacity;
+	sourceTileFile_capacity = mx_filename_bytes * tileInfo_capacity;
+	tile_capacity = mx_image_bytes * tileInfo_capacity;
+
+	local_tile_capacity = mx_image_bytes * tileInfo_buffer_capacity;
+	local_imagename_capacity = mx_imagename_bytes * tileInfo_buffer_capacity;
+	local_sourceTileFile_capacity = mx_filename_bytes * tileInfo_buffer_capacity;
+
+	tile = (unsigned char*)calloc(local_tile_capacity, sizeof(unsigned char));
+	//Debug::print("Local_tile_buffer at %p with capacity %d\n", tile, local_tile_capacity);
+	imageName = (char*)calloc(local_imagename_capacity, sizeof(char));
+	sourceTileFile = (char*)calloc(local_sourceTileFile_capacity, sizeof(char));
+	this->buffer.clear();
+
+}
+
+ADIOSWriter::ADIOSWriter(boost::program_options::variables_map &_vm,
+	int _mx_image_capacity,
+	int _mx_image_bytes, int _mx_imagename_bytes, int _mx_filename_bytes,
+	MPI_Comm const &_comm, int _comm_group) :
+		suffix(".bp"), newfile(true),
+		tileInfo_capacity(_mx_image_capacity),
+		mx_image_bytes(_mx_image_bytes), mx_imagename_bytes(_mx_imagename_bytes), mx_filename_bytes( _mx_filename_bytes),
+		comm(_comm), comm_group(_comm_group),
+		adios_handle(-1),
+//		pg_tileInfo_count(0), pg_imageName_bytes(0), pg_filename_bytes(0), pg_image_bytes(0),
+		tileInfo_total(0), imageName_total(0), sourceTileFile_total(0), tile_total(0),
+		write_session_id(0),
+		data_pos(0), imageNames_pos(0), filenames_pos(0),
+		logsession(NULL) {
+
+	prefix = cci::rt::CmdlineParser::getParamValueByName<std::string>(_vm, cci::rt::CmdlineParser::PARAM_OUTPUTDIR);
+	transport = cci::rt::CmdlineParser::getParamValueByName<std::string>(_vm, cci::rt::CmdlineParser::PARAM_IOTRANSPORT);
+	appendInTime = true;
+	if (strcmp(transport.c_str(), "MPI_AMR") == 0 ||
+		strcmp(transport.c_str(), "gap-MPI_AMR") == 0) appendInTime = false;
+
+	tileInfo_buffer_capacity = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::DataBuffer::PARAM_BUFFERSIZE);
+
+	gapped = false;
+	if (strncmp(transport.c_str(), "gap-", 4) == 0) gapped = true;
+
+	grouped = false;
+	int groupsize = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_IOGROUPSIZE);
+	if ((groupsize > 0) && (groupsize < cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_IOSIZE))) grouped = true;
 
 	MPI_Comm_rank(_comm, &comm_rank);
 	MPI_Comm_size(_comm, &comm_size);

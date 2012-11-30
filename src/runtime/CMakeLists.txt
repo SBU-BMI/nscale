@@ -18,9 +18,12 @@ set(Boost_DETAILED_FAILURE_MSG ON)
 find_path(BOOST_ROOT NAMES include/boost/circular_buffer.hpp
 	HINTS /usr /usr/local /usr/local/share /opt/local ENV BOOST_HOME
 	DOC "path to Boost root directory")
-find_package( Boost REQUIRED )
+find_package( Boost REQUIRED COMPONENTS program_options )
+# must specify the components otherwise it's a header only usage
 if (Boost_FOUND)
     include_directories( ${Boost_INCLUDE_DIRS} )
+    link_directories( ${Boost_LIBRARY_DIRS} )
+    message(STATUS "Boost libs: " ${Boost_LIBRARIES})
 endif(Boost_FOUND)
 
 # Make sure the compiler can find the includes
@@ -36,7 +39,7 @@ link_directories(${SCIOSegmentation_BINARY_DIR})
 #### Runtime code
 
 # Source files used by Runtime
-set(libsrcs Debug.cpp Communicator_I.cpp CommHandler_I.cpp Process.cpp PullCommHandler.cpp PushCommHandler.cpp RandomScheduler.cpp RoundRobinScheduler.cpp NullSinkAction.cpp DataBuffer.cpp MPISendDataBuffer.cpp MPIRecvDataBuffer.cpp)
+set(libsrcs Debug.cpp CmdlineParser.cpp Communicator_I.cpp CommHandler_I.cpp Process.cpp PullCommHandler.cpp PushCommHandler.cpp RandomScheduler.cpp RoundRobinScheduler.cpp NullSinkAction.cpp DataBuffer.cpp MPIDataBuffer.cpp MPISendDataBuffer.cpp MPIRecvDataBuffer.cpp)
 
 set(libname runtime)
 # Add rule to generate execution engine, as a shared library (.so)
@@ -44,6 +47,7 @@ add_library("${libname}" SHARED ${libsrcs})
 # Link opencv stuff to the execution engine
 
 target_link_libraries(${libname} nu-io)
+target_link_libraries(${libname} ${Boost_LIBRARIES})
 
 if(MPI_FOUND)
 	set_target_properties(${libname} PROPERTIES COMPILE_DEFINITIONS "WITH_MPI")

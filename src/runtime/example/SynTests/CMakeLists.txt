@@ -24,7 +24,7 @@ link_directories(${ADIOS_LIB_DIRS})
 #### Runtime example library
 
 # Source files used by Runtime
-set(libsrcs GenerateOutput.cpp GenerateOutputPush.cpp SynDataConfiguratorFull.cpp SynDataConfiguratorPush.cpp SynDataCmdParser.cpp)
+set(libsrcs GenerateOutput.cpp GenerateOutputPush.cpp SynDataConfiguratorFull.cpp SynDataConfiguratorPush.cpp )
 
 set(libname rtSynTests)
 # Add rule to generate execution engine, as a shared library (.so)
@@ -53,7 +53,6 @@ endif(MPI_FOUND)
 
 
 #### Runtime code
-
 set(programs SynData_Full SynData_Push )
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
@@ -61,10 +60,11 @@ foreach(program ${programs})
 
 	# Link the executable to the Features Computation library
 	target_link_libraries(${program} runtime )
-target_link_libraries(${program} rt_adios )
+    target_link_libraries(${program} rt_adios )
     target_link_libraries(${program} ${libname})
     target_link_libraries(${program} segment)
     target_link_libraries(${program} ${ADIOS_LIBS})
+    target_link_libraries(${program} ${Boost_LIBRARIES})
 
 	if(MPI_FOUND)
 		set_target_properties(${program} PROPERTIES COMPILE_DEFINITIONS "WITH_MPI")

@@ -14,6 +14,7 @@
 #include "UtilsADIOS.h"
 #include <string>
 #include "FileUtils.h"
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
@@ -22,16 +23,14 @@ namespace adios {
 
 POSIXRawSave::POSIXRawSave(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
-
-		std::string &outDir, std::string &iocode, int total, int _buffer_max,
-		int tile_max, int imagename_max, int filename_max,
+		boost::program_options::variables_map &_vm,
 		cciutils::SCIOLogSession *_logsession) :
 		Action_I(_parent_comm, _gid, _input, _output, _logsession),
-		local_iter(0), local_total(0),
-		c(0), outdir(outDir),
-		buffer_max(_buffer_max) {
+		local_iter(0), local_total(0) {
 
 	assert(_input != NULL);
+
+	outdir = cci::rt::CmdlineParser::getParamValueByName<std::string>(_vm, cci::rt::CmdlineParser::PARAM_OUTPUTDIR);
 
 	// always overwrite.
 	bool overwrite = true;
@@ -80,7 +79,6 @@ int POSIXRawSave::run() {
 	// first get the local states - done or not done.
 	if (this->inputBuf->isFinished()) {
 		buffer[0] = 0;
-		c++;
 	} else {
 		buffer[0] = 1;
 	}

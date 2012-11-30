@@ -11,25 +11,23 @@
 #include "Debug.h"
 
 #include "SegConfigurator.h"
-#include "SegmentCmdParser.h"
 
 #include <signal.h>
 #include <unistd.h>
 
+#include <string.h>
+#include <vector>
+#include <cstdlib>
+
 cciutils::SCIOLogger *logger = NULL;
-cci::rt::adios::SegmentCmdParser *parser = NULL;
 
-
-void writeLog() {
-	if (parser == NULL) return;
+void writeLog(std::string logfile) {
 	if (logger == NULL) return;
 
 	long long t3, t4;
 
 	t3 = cciutils::event::timestampInUS();
 
-
-	std::string logfile = parser->getParam(cci::rt::adios::SegmentCmdParser::PARAM_OUTPUTDIR);
 	int rank = 0;
 
 #if defined (WITH_MPI)
@@ -41,14 +39,30 @@ void writeLog() {
 #endif
 
 	t4= cciutils::event::timestampInUS();
-	if (rank ==0) cci::rt::Debug::print("finished writing log in %lu us.\n", long(t4-t3));
+	if (rank == 0) cci::rt::Debug::print("finished writing log in %lu us.\n", long(t4-t3));
 
 }
 
-void ctrlc_handler(int value) {
-	cci::rt::Debug::print("%d terminating\n", value);
+void exit_handler() {
 
-	writeLog();
+	long long t1 = cciutils::event::timestampInUS();
+	int rank=0;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if (logger != NULL) delete logger;
+	long long t2 = cciutils::event::timestampInUS();
+	if (rank ==0) cci::rt::Debug::print("cleaned up logger in %lu us.\n", long(t2-t1));
+
+	t1 = cciutils::event::timestampInUS();
+	MPI_Finalize();
+	t2 = cciutils::event::timestampInUS();
+	if (rank ==0) cci::rt::Debug::print("finalized MPI in %lu us.\n", long(t2-t1));
+
+	time_t now = time(0);
+	// Convert now to tm struct for local timezone
+	tm* localtm = localtime(&now);
+	if (rank == 0) printf("The END local date and time is: %s\n", asctime(localtm));
+
 
 }
 
@@ -72,6 +86,12 @@ int main (int argc, char **argv){
 //            if( sigaction (SIGTERM, &new_action, NULL) == -1)
 //                    perror("Failed to set new Handle");
 
+	time_t now = time(0);
+	// Convert now to tm struct for local timezone
+	tm* localtm = localtime(&now);
+	printf("The START local date and time is: %s\n", asctime(localtm));
+
+	atexit(exit_handler);
 
 	// real work,
 	long long t3, t4;
@@ -83,7 +103,7 @@ int main (int argc, char **argv){
 	char hostname[256];
 	gethostname(hostname, 255);  // from <iostream>
 
-	int rank;
+	int rank=-1;
 	MPI_Comm_rank(comm, &rank);
 
 	if (rank == 0) printf("initialized MPI\n");
@@ -91,31 +111,16 @@ int main (int argc, char **argv){
 	//srand(rank);
 	srand(cciutils::event::timestampInUS());
 
-	logger = new cciutils::SCIOLogger(rank, hostname, 0);\
+	logger = new cciutils::SCIOLogger(rank, hostname, 0);
 	cciutils::SCIOLogSession *logsession = logger->getSession("setup");
 
 	long long t1, t2;
+
 	t1 = cciutils::event::timestampInUS();
-	parser = new cci::rt::adios::SegmentCmdParser(comm);
-
-	if (!parser->parse(argc, argv)) {
-		if (logger) delete logger;
-		delete parser;
-
-		MPI_Finalize();
-		return 0;
-	}
-
-
-	t2 = cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cciutils::event::OTHER));
-
-
-	cci::rt::ProcessConfigurator_I *conf = new cci::rt::adios::SegConfigurator(parser->getParams(), logger);
+	cci::rt::ProcessConfigurator_I *conf = new cci::rt::adios::SegConfigurator(argc, argv, logger);
+	std::string logfile = conf->getOutputDir();
 
 	cci::rt::Process *p = new cci::rt::Process(comm, argc, argv, conf);
-
-	t1 = cciutils::event::timestampInUS();
 	p->setup();
 	t2 = cciutils::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("proc setup"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
@@ -131,18 +136,13 @@ int main (int argc, char **argv){
 	if (conf != NULL) delete conf;
 
 	t4= cciutils::event::timestampInUS();
-	if (rank ==0) cci::rt::Debug::print("finished processing in %lu us.\n", long(t4-t3));
+	if (rank ==0)	cci::rt::Debug::print("finished processing in %lu us.\n", long(t4-t3));
 
-	// cleaning up.
-	writeLog();
+	writeLog(logfile);
 
-	if (parser != NULL) delete parser;
-	if (logger != NULL) delete logger;
 
-	MPI_Finalize();
-
+	exit(0);
 
 	return 0;
-
 
 }

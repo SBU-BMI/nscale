@@ -19,6 +19,8 @@
 #include "SCIOUtilsLogger.h"
 #include "Debug.h"
 
+#include "boost/program_options.hpp"
+
 namespace cci {
 namespace rt {
 
