@@ -24,7 +24,7 @@ link_directories(${ADIOS_LIB_DIRS})
 #### Runtime example library
 
 # Source files used by Runtime
-set(libsrcs GenerateOutput.cpp GenerateOutputPush.cpp SynDataConfiguratorFull.cpp SynDataConfiguratorPush.cpp )
+set(libsrcs AssignWork.cpp GenerateOutput.cpp GenerateOutputPush.cpp SynDataConfiguratorFull.cpp SynDataConfiguratorPush.cpp )
 
 set(libname rtSynTests)
 # Add rule to generate execution engine, as a shared library (.so)

@@ -13,7 +13,7 @@
 #include "ADIOSSave_Reduce.h"
 #include "POSIXRawSave.h"
 
-#include "AssignTiles.h"
+#include "AssignWork.h"
 #include "GenerateOutput.h"
 #include "RandomScheduler.h"
 #include "RoundRobinScheduler.h"
@@ -46,7 +46,7 @@ SynDataConfiguratorFull::SynDataConfiguratorFull(int argc, char** argv, cciutils
 
 	parser->addParams(DataBuffer::params);
 	parser->addParams(MPIDataBuffer::params);
-	parser->addParams(cci::rt::adios::AssignTiles::params);
+	parser->addParams(cci::rt::adios::AssignWork::params);
 
 	bool p_result = parser->parse(argc, argv);
 	if (!p_result) {
@@ -239,7 +239,7 @@ bool SynDataConfiguratorFull::configure(MPI_Comm &comm, Process *proc) {
 //			Debug::print("here5.1\n");
 
 			Action_I *assign =
-					new cci::rt::adios::AssignTiles(&comm, MPI_UNDEFINED, NULL, sbuf,
+					new cci::rt::adios::AssignWork(&comm, MPI_UNDEFINED, NULL, sbuf,
 							params,
 							logger->getSession("assign"));
 			proc->addHandler(assign);
