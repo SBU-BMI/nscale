@@ -31,8 +31,9 @@ do
 	for size in ${sizes}
 	do
 		date
-		echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/synthetic.datasizes.p1200 30000 cpu ${transport} 4 60 1 15 1 0 ${size}"
-		mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/synthetic.datasizes.p1200 30000 cpu ${transport} 4 60 1 15 1 0 ${size} 
+		echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.datasizes.p1200 -n 30000 -t ${transport} -b 4 -P 60 -p 15 -m ${size} -c 0 -l 1" 
+		mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.datasizes.p1200 -n 30000 -t ${transport} -b 4 -P 60 -p 15 -m ${size} -c 0 -l 1 
+		
 		
 		rm -rf ${OUTDIR}/synthetic.datasizes.p1200
         mv ${OUTDIR}/synthetic.datasizes.p1200.csv ${OUTDIR}/synthetic.datasizes.p1200.${transport}.${size}.csv

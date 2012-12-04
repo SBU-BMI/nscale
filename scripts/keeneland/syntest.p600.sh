@@ -42,12 +42,13 @@ do
 			for transport in ${transports}
 			do
 				date
-				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off off"
-				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off off
+				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 0" 
+				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 0 
+
 				rm -rf ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b
 
-				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off on"
-				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off on
+				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 1"
+				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 1
 
 				rm -rf ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb
 			done

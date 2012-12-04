@@ -27,8 +27,8 @@ do
 	for size in ${sizes}
 	do
 		date
-		echo "aprun -S 8 -n 5120 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/synthetic.datasizes.p5120 100000 cpu ${transport} 4 600 1 15 1 0 ${size}"
-		aprun -S 8 -n 5120 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/synthetic.datasizes.p5120 100000 cpu ${transport} 4 600 1 15 1 0 ${size} 
+		echo "aprun -S 8 -n 5120 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.datasizes.p5120 -n 100000 -t ${transport} -b 4 -P 600 -p 15 -m ${size} -c 0 -l 1" 
+		aprun -S 8 -n 5120 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.datasizes.p5120 -n 100000 -t ${transport} -b 4 -P 600 -p 15 -m ${size} -c 0 -l 1 
 
 		rm -rf ${OUTDIR}/synthetic.datasizes.p5120
         mv ${OUTDIR}/synthetic.datasizes.p5120.csv ${OUTDIR}/synthetic.datasizes.p5120.${transport}.${size}.csv

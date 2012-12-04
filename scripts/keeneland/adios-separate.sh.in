@@ -31,8 +31,8 @@ cd $OUTDIR
 
 date
 echo "==== separate io ===="
-echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0"
-mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@ @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0
+echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SegmentNuclei.exe -i ${DATADIR} -o ${OUTDIR}/TCGA.@RUN_NAME@ -n @TILE_COUNT@ -t @ADIOS_TRANSPORT@ -b @BUFFER_SIZE@ -P @IO_SIZE@ -V @IO_INTERLEAVE@ -p @ADIOS_TRANSPORT_GROUPSIZE@ -v 1 -c 1 -l 1"
+mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SegmentNuclei.exe -i ${DATADIR} -o ${OUTDIR}/TCGA.@RUN_NAME@ -n @TILE_COUNT@ -t @ADIOS_TRANSPORT@ -b @BUFFER_SIZE@ -P @IO_SIZE@ -V @IO_INTERLEAVE@ -p @ADIOS_TRANSPORT_GROUPSIZE@ -v 1 -c 1 -l 1
 date
 
 rm -rf ${OUTDIR}/TCGA.@RUN_NAME@
@@ -43,8 +43,8 @@ rm -rf ${OUTDIR}/TCGA.@RUN_NAME@
 
 #date
 #echo "==== separate io OSTS ===="
-#echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR_OST} ${OUTDIR}/TCGA.@RUN_NAME@.ost @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0"
-#mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/Process_test.exe ${DATADIR_OST} ${OUTDIR}/TCGA.@RUN_NAME@.ost @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @ADIOS_TRANSPORT_GROUPSIZE@ 1 0
+#echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SegmentNuclei.exe -i ${DATADIR_OST} -o ${OUTDIR}/TCGA.@RUN_NAME@.ost -n @TILE_COUNT@ -t @ADIOS_TRANSPORT@ -b @BUFFER_SIZE@ -P @IO_SIZE@ -V @IO_INTERLEAVE@ -p @ADIOS_TRANSPORT_GROUPSIZE@ -v 1 -c 1 -l 1"
+#mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SegmentNuclei.exe -i ${DATADIR_OST} -o ${OUTDIR}/TCGA.@RUN_NAME@.ost -n @TILE_COUNT@ -t @ADIOS_TRANSPORT@ -b @BUFFER_SIZE@ -P @IO_SIZE@ -V @IO_INTERLEAVE@ -p @ADIOS_TRANSPORT_GROUPSIZE@ -v 1 -c 1 -l 1
 #date
 
 #rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.ost

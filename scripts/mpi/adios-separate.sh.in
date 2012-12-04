@@ -6,15 +6,15 @@ OUTDIR=/mnt/scratch1/tcpan
 HOSTS=/data/tcpan/hostfiles/gpunodes
 
 date
-mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is1-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 1 1 0
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/SegmentNuclei.exe -i ${DATADIR} -o ${OUTDIR}/TCGA.@RUN_NAME@.is1-1 -n @TILE_COUNT@ -t @ADIOS_TRANSPORT@ -b @BUFFER_SIZE@ -P @IO_SIZE@ -V @IO_INTERLEAVE@ -p 1 -v 1 -c 1 -l 1
 date
 rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is1-1
 date
-mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is16-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ 16 1 0
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/SegmentNuclei.exe -i ${DATADIR} -o ${OUTDIR}/TCGA.@RUN_NAME@.is16-1 -n @TILE_COUNT@ -t @ADIOS_TRANSPORT@ -b @BUFFER_SIZE@ -P @IO_SIZE@ -V @IO_INTERLEAVE@ -p 16 -v 1 -c 1 -l 1
 date
 rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is16-1
 date
-mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/Process_test.exe ${DATADIR} ${OUTDIR}/TCGA.@RUN_NAME@.is@IO_SIZE@-1 @TILE_COUNT@ cpu @ADIOS_TRANSPORT@ @BUFFER_SIZE@ @IO_SIZE@ @IO_INTERLEAVE@ @IO_SIZE@ 1 0
+mpirun -hostfile ${HOSTS} --bynode -n @PROC_COUNT@ ${BINDIR}/bin/SegmentNuclei.exe -i ${DATADIR} -o ${OUTDIR}/TCGA.@RUN_NAME@.is@IO_SIZE@-1 -n @TILE_COUNT@ -t @ADIOS_TRANSPORT@ -b @BUFFER_SIZE@ -P @IO_SIZE@ -V @IO_INTERLEAVE@ -p @IO_SIZE@ -v 1 -c 1 -l 1
 date
 rm -rf ${OUTDIR}/TCGA.@RUN_NAME@.is@IO_SIZE@-1
 date

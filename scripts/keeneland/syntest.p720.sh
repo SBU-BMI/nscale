@@ -1,5 +1,5 @@
 #!/bin/sh
-#PBS -N synthetic.datasizes.p600
+#PBS -N synthetic.datasizes.p720
 #PBS -j oe
 #PBS -A UT-NTNL0111
 #PBS -m abe
@@ -11,12 +11,12 @@
 ##
 #PBS -l walltime=06:00:00
 ##PBS -l nodes=12:ppn=4:gpus=3
-#PBS -l nodes=50:ppn=12
+#PBS -l nodes=60:ppn=12
 ### End of PBS options ###
 
 source /nics/c/home/tcpan/keeneland_env.sh
 
-JOB_PREFIX="synthetic.datasizes.p600"
+JOB_PREFIX="synthetic.datasizes.p720"
 
 BINDIR=/nics/c/home/tcpan/builds/nscale-keeneland-cpu
 DATADIR=/lustre/medusa/tcpan/bcrTCGA
@@ -43,14 +43,15 @@ do
 			for transport in ${transports}
 			do
 				date
-				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off off"
-				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off off
-				rm -rf ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b
+				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n60.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 0" 
+				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n60.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 0 
 
-				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off on"
-				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe ${DATADIR} ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb 6000 cpu ${transport} ${buffer_size} ${io_size} 1 15 1 ${data_size} off on
+				rm -rf ${OUTDIR}/syntest.n60.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.b
 
-				rm -rf ${OUTDIR}/syntest.n50.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb
+				echo "mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n60.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 1"
+				mpirun --mca mpi_paffinity_alone 1 ${BINDIR}/bin/SynData_Full.exe -i ${DATADIR} -o ${OUTDIR}/synthetic.n60.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb -n 6000 -t ${transport} -b ${buffer_size} -P ${io_size} -p 15 -m ${data_size} -c 0 -l 1
+
+				rm -rf ${OUTDIR}/syntest.n60.f6000.${transport}.b${buffer_size}.io${io_size}.is15.data${data_size}.nb
 			done
 		done		
 	done
