@@ -86,11 +86,11 @@ endif(NS_SEGMENT)
 ### set to compile the pipeline directory
 
 if (NS_PIPELINE)
-    if(NS_SEGMENT AND NS_FEATURES) 
+    if(NS_SEGMENT AND NS_FEATURES AND USE_HDF5) 
     	add_subdirectory(pipeline)
-    else(NS_SEGMENT AND NS_FEATURES)
-        message(SEND_ERROR "PIPELINE requires SEGMENT and FEATURES")
-    endif(NS_SEGMENT AND NS_FEATURES)
+    else(NS_SEGMENT AND NS_FEATURES AND USE_HDF5)
+        message(SEND_ERROR "PIPELINE requires SEGMENT, FEATURES, and USE_HDF5")
+    endif(NS_SEGMENT AND NS_FEATURES AND USE_HDF5)
 endif(NS_PIPELINE)
 
 #### set to compile the SC-IO directory
@@ -104,11 +104,11 @@ if (NS_AdvIO)
 endif(NS_AdvIO)
 
 #if (NS_Tasks)
-#    if(SEGMENT AND FEATURES) 
+#    if(SEGMENT AND FEATURES AND HDF5_FOUND) 
 #    	add_subdirectory(tasks)
-#    else(SEGMENT AND FEATURES)
+#    else(SEGMENT AND FEATURES AND HDF5_FOUND)
 #        message(SEND_ERROR "Tasks requires SEGMENT and FEATURES")
-#    endif(SEGMENT AND FEATURES)
+#    endif(SEGMENT AND FEATURES AND HDF5_FOUND)
 #endif(NS_Tasks)
 #
 

@@ -12,14 +12,20 @@ set(cci_common_VERSION_MINOR 0)
 
 
 # HDF5
+set(USE_HDF5 OFF CACHE BOOL "Include HDF5 support")
 #### for Keeneland, and possibly Jaguar
 #### the default CMake module SHOULD work, if a hint of HDF5_ROOT is provided in the environment
 #### this is where bin/h5cc is.  Note that on Keeneland, there is a /usr/bin/h5cc which is not right.
 ####  also note that HDF5 is not compiled with CMake on keeneland, so there is not HDF5-config.cmake file for the 
 ####  FindHDF5.cmake file in the HDF5 source directory to work against.
-set(ENV{HDF5_ROOT} $ENV{HDF5_DIR})
-set(HDF5_USE_STATIC_LIBRARIES OFF)
-find_package(HDF5 REQUIRED)
+if(USE_HDF5)
+    set(ENV{HDF5_ROOT} $ENV{HDF5_DIR})
+    set(HDF5_USE_STATIC_LIBRARIES OFF)
+    find_package(HDF5 REQUIRED)
+else(USE_HDF5)
+    set(HDF5_FOUND 0)    
+endif(USE_HDF5)
+
 if (HDF5_FOUND)
 #	message(STATUS "HDF5_DEF = ${HDF5_DEFINITIONS}")
 #	message(STATUS "HDF5LIBRARY_DIRS flags: ${HDF5_LIBRARY_DIRS}")
@@ -38,11 +44,11 @@ if (HDF5_FOUND)
 	set(HDF5_LIBRARIES "hdf5_hl;hdf5;z;m")
 	message(STATUS "Redefined HDF5 libs: ${HDF5_LIBRARIES}")
     set(libsrcs Debug.cpp FileUtils.cpp Logger.cpp h5utils.cpp)
-        
+    
 else(HDF5_FOUND)
-    set(libsrcs Debug.cpp FileUtils.cpp Logger.cpp)
-        
+    set(libsrcs Debug.cpp FileUtils.cpp Logger.cpp)    
 endif(HDF5_FOUND)
+
 
 
 
