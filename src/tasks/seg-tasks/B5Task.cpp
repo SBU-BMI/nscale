@@ -39,7 +39,7 @@ bool B5Task::run(int procType, int tid) {
 	printf("B5\n");
 
 #if !defined (WITH_CUDA)
-	procType = ExecEngineconstants::CPU;
+	procType = ExecEngineConstants::CPU;
 #endif
 
 	if (procType == ExecEngineConstants::GPU) {  // GPU

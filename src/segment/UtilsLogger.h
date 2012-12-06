@@ -10,8 +10,8 @@
 
 #include <fstream>
 #include <iostream>
-#include <sys/time.h>
-#include "utils.h"
+#include "TypeUtils.h"
+#include "Logger.h"
 
 namespace cciutils {
 
@@ -129,18 +129,18 @@ public :
 	};
 
 	void logStart(const char *eventName) {
-		start = cciutils::ClockGetTime();
+		start = cci::common::event::timestampInUS();
 		log(eventName, start);
 	}
 	void logTimeSinceLastStart(const char *eventName) {
-		curr = cciutils::ClockGetTime();
+		curr = cci::common::event::timestampInUS();
 		uint64_t elapsed = curr - start;
 		if (start == 0) elapsed = 0UL;
 		log(eventName, elapsed);
 	}
 
 	void logTimeSinceLastLog(const char *eventName) {
-		curr = cciutils::ClockGetTime();
+		curr = cci::common::event::timestampInUS();
 		uint64_t elapsed = curr - last;
 		if (last == 0) elapsed = 0;
 		log(eventName, elapsed);
@@ -148,11 +148,11 @@ public :
 	}
 
 	void logT0(const char *eventName) {
-		t0 = cciutils::ClockGetTime();
+		t0 = cci::common::event::timestampInUS();
 		log(eventName, t0);
 	}
 	void logTimeSinceT0(const char *eventName) {
-		curr = cciutils::ClockGetTime();
+		curr = cci::common::event::timestampInUS();
 		uint64_t elapsed = curr - t0;
 		if (t0 == 0) elapsed = 0UL;
 		log(eventName, elapsed);

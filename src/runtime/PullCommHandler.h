@@ -17,7 +17,7 @@ class PullCommHandler: public cci::rt::CommHandler_I {
 public:
 	PullCommHandler(MPI_Comm const *_parent_comm, int const _gid,
 			MPIDataBuffer *_buffer, Scheduler_I * _scheduler,
-			cciutils::SCIOLogSession *_logsession = NULL);
+			cci::common::LogSession *_logsession = NULL);
 
 	virtual ~PullCommHandler();
 

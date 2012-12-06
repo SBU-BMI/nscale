@@ -19,7 +19,7 @@ int MPISendDataBuffer::transmit(int node, int tag, MPI_Datatype type, MPI_Comm &
 	buffer.pop();
 	if (ldata.first == 0 || ldata.second == NULL) return BAD_DATA;
 
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 
 	if (non_blocking) {
 		MPI_Request *reqptr = (MPI_Request *)malloc(sizeof(MPI_Request));
@@ -28,17 +28,17 @@ int MPISendDataBuffer::transmit(int node, int tag, MPI_Datatype type, MPI_Comm &
 		mpi_buffer[reqptr] = ldata;
 		mpi_req_starttimes[reqptr] = t1;
 
-		//	Debug::print("MPISendDataBuffer: pushMPI called.  %d load\n", mpi_buffer.size());
+		//	cci::common::Debug::print("MPISendDataBuffer: pushMPI called.  %d load\n", mpi_buffer.size());
 	} else {
 
 		MPI_Send(ldata.second, ldata.first, type, node, tag, comm);
 		free(ldata.second);
-		long long t2 = ::cciutils::event::timestampInUS();
+		long long t2 = ::cci::common::event::timestampInUS();
 
 		char len[21];  // max length of uint64 is 20 digits
 		memset(len, 0, 21);
 		sprintf(len, "%d", ldata.first);
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI B SEND"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI B SEND"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO));
 
 	}
 	return status;
@@ -67,18 +67,18 @@ int MPISendDataBuffer::checkRequests(bool waitForAll) {
 		MPI_Testsome(active, reqs, &completed, completedreqs, MPI_STATUSES_IGNORE);
 	}
 
-	long long t2 = ::cciutils::event::timestampInUS();
+	long long t2 = ::cci::common::event::timestampInUS();
 	long long t1 = -1;
 
 	int size = 0;
 	MPI_Request* reqptr = NULL;
 
 	if (completed == MPI_UNDEFINED) {
-		Debug::print("ERROR: testing completion received a complete count of MPI_UNDEFINED\n");
+		cci::common::Debug::print("ERROR: testing completion received a complete count of MPI_UNDEFINED\n");
 	} else if (completed == 0) {
-		// Debug::print("no mpi requests completed\n");
+		// cci::common::Debug::print("no mpi requests completed\n");
 	} else {
-		//Debug::print("MPI Send Buffer active = %d, number completed = %d, total = %ld\n", active, completed, mpi_buffer.size());
+		//cci::common::Debug::print("MPI Send Buffer active = %d, number completed = %d, total = %ld\n", active, completed, mpi_buffer.size());
 
 		char len[21];  // max length of uint64 is 20 digits
 
@@ -99,14 +99,14 @@ int MPISendDataBuffer::checkRequests(bool waitForAll) {
 			// clear the data itself.
 			memset(len, 0, 21);
 			sprintf(len, "%d", size);
-			if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI NB SEND"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+			if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI NB SEND"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO));
 		}
 //		printf("send new size: %ld\n", mpi_buffer.size());
 
 		debug_complete_count += completed;
 	}
 
-//	Debug::print("MPISendDataBuffer: popMPI called.  %d load\n", mpi_buffer.size());
+//	cci::common::Debug::print("MPISendDataBuffer: popMPI called.  %d load\n", mpi_buffer.size());
 
 	return completed;
 }

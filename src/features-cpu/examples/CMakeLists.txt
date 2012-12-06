@@ -2,10 +2,11 @@ project(Examples)
 
 # Make sure the compiler can find the includes in the Features Computation directory
 include_directories(${FeaturesComputation_SOURCE_DIR})
+include_directories(${cci_common_SOURCE_DIR})
 
 # Make sure the compiler can find the library in Features Computation directory
-link_directories(${FeaturesComputation_SOURCE_DIR})
-
+link_directories(${FeaturesComputation_BINARY_DIR})
+link_directories(${cci_common_BINARY_DIR})
 
 set(programs CompFeatures CompFeaturesPipeline)
 foreach(program ${programs})

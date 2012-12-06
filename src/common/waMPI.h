@@ -12,11 +12,13 @@
 #ifndef WAMPI_H_
 #define WAMPI_H_
 
-#include "mpi.h"
+#if defined (WITH_MPI)
+
 #include <cstdlib>
+#include "mpi.h"
 
 namespace cci {
-namespace rt {
+namespace common {
 namespace mpi {
 
 class waMPI {
@@ -67,6 +69,9 @@ private:
 };
 
 } /* namespace mpi */
-} /* namespace rt */
+} /* namespace common */
 } /* namespace cci */
+
+#endif
+
 #endif /* WAMPI_H_ */

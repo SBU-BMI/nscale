@@ -11,7 +11,9 @@
 #include <list>
 #include <limits>
 
-#include "utils.h"
+#include "Logger.h"
+#include "TypeUtils.h"
+
 #include "gpu_utils.h"
 
 #include "MorphologicOperations.h"
@@ -122,11 +124,11 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream, bool calcDist, int 
 	do{
 //		std::cout << "Call build queue rows= "<< mask.rows<< " cols="<< mask.cols << std::endl;
 
-		uint64_t t1 = cciutils::ClockGetTime();
+		uint64_t t1 = cci::common::event::timestampInUS();
 		// build queue with propagation frontier pixels
 		int *g_queue = nscale::gpu::distQueueBuildCaller(mask.rows, mask.cols, mask, g_nearestNeighbors, g_queue_size, StreamAccessor::getStream(stream));
 
-		uint64_t t2 = cciutils::ClockGetTime();
+		uint64_t t2 = cci::common::event::timestampInUS();
 		std::cout << "After Call build queue - queue size = "<< g_queue_size << " elapsedTime:"<<t2-t1 <<std::endl;
 
 		stream.waitForCompletion();
@@ -138,11 +140,11 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream, bool calcDist, int 
 	}while(retCode);
 
 	if(calcDist){
-		uint64_t t1 = cciutils::ClockGetTime();
+		uint64_t t1 = cci::common::event::timestampInUS();
 		GpuMat g_distanceMap(mask.size(), CV_32FC1);
 		nscale::gpu::distMapCalcCaller(g_nearestNeighbors.rows, g_nearestNeighbors.cols, g_nearestNeighbors, g_distanceMap, StreamAccessor::getStream(stream));
 		stream.waitForCompletion();
-		uint64_t t2 = cciutils::ClockGetTime();
+		uint64_t t2 = cci::common::event::timestampInUS();
 		std::cout << "DistMapCalc Time:" << t2-t1 << std::endl;
 
 		g_nearestNeighbors.release();
@@ -284,7 +286,7 @@ void gold_imreconstructIntCallerBuildQueue(GpuMat& marker, GpuMat mask, int *d_q
 template <typename T>
 GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks, bool binary) {
 //	cout << "Throughput 2"<<endl;
-	uint64_t t11 = cciutils::ClockGetTime();
+	uint64_t t11 = cci::common::event::timestampInUS();
 	CV_Assert(seeds.size() == image.size());
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
@@ -304,7 +306,7 @@ GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity,
 
 	GpuMat g_markerInt;
 
-	uint64_t endUpload = cciutils::ClockGetTime();
+	uint64_t endUpload = cci::common::event::timestampInUS();
 //	cout << "	Init+upload = "<< endUpload-t11 <<endl;
 	float queue_increase_factor =2;
 	int number_raster_passes = nItFirstPass;
@@ -321,7 +323,7 @@ GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity,
 		}else{
 			g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<T>(g_marker.data, g_mask.data, g_mask.cols, g_mask.rows, connectivity, queuePixelsGPUSize, number_raster_passes, StreamAccessor::getStream(stream));
 		}
-		uint64_t imreconBuildEnd = cciutils::ClockGetTime(); 
+		uint64_t imreconBuildEnd = cci::common::event::timestampInUS(); 
 //		cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
 
 		// Gold function implemented on CPU to validate calculate of pixels candidate to propagation in next step
@@ -334,12 +336,12 @@ GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity,
 
 		g_marker.convertTo(g_markerInt, CV_32S);
 
-		uint64_t t31 = cciutils::ClockGetTime();
+		uint64_t t31 = cci::common::event::timestampInUS();
 
 
 		// apply morphological reconstruction using the Queue based algorithm
 		morphRetCode = morphReconSpeedup(g_queuePixelsGPU, queuePixelsGPUSize, (int*)g_markerInt.data, g_mask.data, g_mask.cols, g_mask.rows, connectivity, nBlocks, queue_increase_factor);
-		uint64_t t41 = cciutils::ClockGetTime();
+		uint64_t t41 = cci::common::event::timestampInUS();
 //		cout << "	queue time = "<< t41-t31<<" nBlocks="<< nBlocks<<" morphRetCode="<<morphRetCode<<endl;
 
 		::nscale::gpu::PixelOperations::convertIntToChar(g_markerInt, g_marker, stream);
@@ -360,7 +362,7 @@ GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity,
 
 GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks) {
 //	cout << "Throughput 2"<<endl;
-	uint64_t t11 = cciutils::ClockGetTime();
+	uint64_t t11 = cci::common::event::timestampInUS();
 	CV_Assert(seeds.size() == image.size());
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
@@ -395,7 +397,7 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 
 	GpuMat g_markerInt;
 
-	uint64_t endUpload = cciutils::ClockGetTime();
+	uint64_t endUpload = cci::common::event::timestampInUS();
 	cout << "	Init+upload = "<< endUpload-t11 <<endl;
 	float queue_increase_factor =2;
 	int number_raster_passes = nItFirstPass;
@@ -411,12 +413,12 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 		std::cout << "QueueSize = "<< queuePixelsGPUSize << " numRasters="<< number_raster_passes <<std::endl;
 
 		stream.waitForCompletion();
-		uint64_t imreconBuildEnd = cciutils::ClockGetTime();
+		uint64_t imreconBuildEnd = cci::common::event::timestampInUS();
 		cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
 	
 //		// apply morphological reconstruction using the Queue based algorithm
 		morphRetCode = morphReconSpeedupFloat(g_queuePixelsGPU, queuePixelsGPUSize, (int*)g_marker_i.data, (int*)g_mask_i.data, g_mask_i.cols, g_mask_i.rows, connectivity, nBlocks, queue_increase_factor);
-		uint64_t t41 = cciutils::ClockGetTime();
+		uint64_t t41 = cci::common::event::timestampInUS();
 		cout << "	queue time = "<< t41-imreconBuildEnd<<" nBlocks="<< nBlocks<<" morphRetCode="<<morphRetCode<<endl;
 		number_raster_passes = 0;
 
@@ -445,7 +447,7 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 template <typename T>
 vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {
 	cout << "Throughput 2"<<endl;
-//	uint64_t t11 = cciutils::ClockGetTime();
+//	uint64_t t11 = cci::common::event::timestampInUS();
 	assert(seeds.size() == image.size());
 
 	vector<GpuMat> maskVector(seeds.size());
@@ -472,7 +474,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 	// Yep. Wait til copies are complete
 	stream.waitForCompletion();
 
-	uint64_t endUpload = cciutils::ClockGetTime();
+	uint64_t endUpload = cci::common::event::timestampInUS();
 //	cout << "	Init+upload = "<< endUpload-t11 <<endl;
 
 	int *queuePixelsGPUSizeVector = (int*)malloc(sizeof(int) * seeds.size());
@@ -487,7 +489,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 		queuePixelsGPUVector[i] = g_queuePixelsGPU;
 //		printf("	Queue[%d]Ptr = %p size = %d\n", i, queuePixelsGPUVector[i], queuePixelsGPUSizeVector[i]);
 	}
-	uint64_t imreconBuildEnd = cciutils::ClockGetTime(); 
+	uint64_t imreconBuildEnd = cci::common::event::timestampInUS(); 
 	cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
 	// Gold function implemented on CPU to validate calculate of pixels candidate to propagation in next step
 /////	gold_imreconstructIntCallerBuildQueue(marker, mask1, g_queuePixelsGPU, queuePixelsGPUSize);
@@ -503,7 +505,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 		markerVector[i].convertTo(markerIntVector[i], CV_32S);
 
 	}
-	uint64_t t31 = cciutils::ClockGetTime();
+	uint64_t t31 = cci::common::event::timestampInUS();
 
 	int **markerIntPtr = (int **)malloc(sizeof(int*) * seeds.size());
 	unsigned char **maskUcharPtr = (unsigned char **)malloc(sizeof(unsigned char*) * seeds.size());
@@ -520,7 +522,7 @@ vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMa
 
 	// apply morphological reconstruction using the Queue based algorithm
 	morphReconVector(seeds.size(), queuePixelsGPUVector, queuePixelsGPUSizeVector, markerIntPtr, maskUcharPtr, cols, rows, connectivity);
-	uint64_t t41 = cciutils::ClockGetTime();
+	uint64_t t41 = cci::common::event::timestampInUS();
 	cout << "	queue time = "<< t41-t31<<endl;
 
 	for(unsigned int i = 0; i < seeds.size(); i++){
@@ -550,7 +552,7 @@ GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connecti
 	CV_Assert(seeds.type() == CV_8UC1);
 	CV_Assert(image.type() == CV_8UC1);
 
-	uint64_t t11 = cciutils::ClockGetTime();
+	uint64_t t11 = cci::common::event::timestampInUS();
 
 	GpuMat mask1;
 
@@ -576,7 +578,7 @@ GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connecti
 	// Yep. Wait til copies are complete
 	stream.waitForCompletion();
 
-	uint64_t endUpload = cciutils::ClockGetTime();
+	uint64_t endUpload = cci::common::event::timestampInUS();
 //	cout << "	Init+upload = "<< endUpload-t11 <<endl;
 
 	// Will be used to store size of pixels candidate to propagation
@@ -584,7 +586,7 @@ GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connecti
 	int numIterationsFirstPass = 10;
 	// Perform first pass (parallell raster and anti-raster) as Pavlo's code does
 	int *g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<T>(marker.data, mask1.data, marker.cols, marker.rows, connectivity, queuePixelsGPUSize, numIterationsFirstPass, StreamAccessor::getStream(stream));
-	uint64_t imreconBuildEnd = cciutils::ClockGetTime(); 
+	uint64_t imreconBuildEnd = cci::common::event::timestampInUS(); 
 	cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
 	// Gold function implemente on CPU to validate calculate of pixels candidate to propagation in next step
 //	gold_imreconstructIntCallerBuildQueue(marker, mask1, g_queuePixelsGPU, queuePixelsGPUSize);
@@ -595,13 +597,13 @@ GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connecti
 	// Perform appropriate convertion from uchar to int
 	marker.convertTo(g_markerInt_1, CV_32S);
 	
-	uint64_t t31 = cciutils::ClockGetTime();
+	uint64_t t31 = cci::common::event::timestampInUS();
 	cout << "	ConvertToInt = "<< t31-imreconBuildEnd<<endl;
 	// apply morphological reconstruction using the Queue based algorithm
 	morphRecon(g_queuePixelsGPU, queuePixelsGPUSize, (int*)g_markerInt_1.data, mask1.data, mask1.cols, mask1.rows);
 
 
-	uint64_t t41 = cciutils::ClockGetTime();
+	uint64_t t41 = cci::common::event::timestampInUS();
 //	cout << "	queue time = "<< t41-t31<<endl;
 //	cout << "End morphRecon. time = " << t41-t11 <<endl;
 	// This is char matrix is used to save the uchar version of the result. 
@@ -613,7 +615,7 @@ GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connecti
 //	if(!image.isContinuous()){
 		mask1.release();
 //	}
-	uint64_t t21 = cciutils::ClockGetTime();
+	uint64_t t21 = cci::common::event::timestampInUS();
 
 	g_markerInt_1.release();
 	std::cout << "    total time = " << t21-t11 << "ms for. ConvertToChar = "<< t21-t41 << std::endl;
@@ -640,7 +642,7 @@ GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity
 //
 //	GpuMat output(c_output);
 //	return output;
-	T mn = cciutils::min<T>();
+	T mn = cci::common::type::min<T>();
 
     // allocate results
 	GpuMat temp1;
@@ -776,7 +778,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
     end
 	 */
 
-	T mn = cciutils::min<T>();
+	T mn = cci::common::type::min<T>();
 	T mx = std::numeric_limits<T>::max();
 
 
@@ -1218,7 +1220,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 //
 //	// now check the candidates
 //	// first pad the border
-//	T mn = cciutils::min<T>();
+//	T mn = cci::common::type::min<T>();
 //	T mx = std::numeric_limits<unsigned char>::max();
 //	Mat_<unsigned char> output(candidates.size() + Size(2,2));
 //	copyMakeBorder(candidates, output, 1, 1, 1, 1, BORDER_CONSTANT, mx);

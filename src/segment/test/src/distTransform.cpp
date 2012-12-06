@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 
 #include <iostream>
 #include <iomanip>
@@ -73,15 +73,15 @@ int main (int argc, char **argv){
 	Mat dist(point.size(), CV_32FC1);
 
 
-	uint64_t t1 = cciutils::ClockGetTime();
+	uint64_t t1 = cci::common::event::timestampInUS();
 	distanceTransform(input, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
-	uint64_t t2 = cciutils::ClockGetTime();
+	uint64_t t2 = cci::common::event::timestampInUS();
 	std::cout << "distTransf CPU  took " << t2-t1 <<" ms"<<std::endl;
 	dist.release();
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	Mat queueBasedDist = nscale::distanceTransform(input);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "distTranf CPU queue took "<< t2-t1 << " ms" << std::endl;
 	queueBasedDist.release();
 
@@ -91,9 +91,9 @@ int main (int argc, char **argv){
 	g_warm.release();
 #endif
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	Mat queueBasedTiled = nscale::distanceTransformParallelTile(input,4096, 8);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "distTranf CPU queue tiled took "<< t2-t1 << " ms" << std::endl;
 	queueBasedTiled.release();
 //	for(int x = 0; x < queueBasedDist.rows; x++){
@@ -105,22 +105,22 @@ int main (int argc, char **argv){
 //	}
 //
 #if defined (WITH_CUDA)
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	GpuMat g_mask(input);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "upload:"<< t2-t1 << std::endl;
 	Stream stream;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	GpuMat g_distance = nscale::gpu::distanceTransform(g_mask, stream);
 
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "distTransf GPU  took " << t2-t1 <<" ms"<<std::endl;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	Mat h_distance(g_distance);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 
 	std::cout << "download:"<< t2-t1 << std::endl;
 #endif

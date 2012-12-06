@@ -36,7 +36,7 @@ Process::Process(MPI_Comm &_comm_world, int argc, char **argv, ProcessConfigurat
 }
 
 Process::~Process() {
-	//Debug::print("Process destructor called\n");
+	//cci::common::Debug::print("Process destructor called\n");
 
 	teardown();
 
@@ -56,7 +56,7 @@ void Process::setup() {
 
 	MPI_Barrier(comm_world);
 
-	if (world_rank == 0) Debug::print("Processes configured\n");
+	if (world_rank == 0) cci::common::Debug::print("Processes configured\n");
 }
 
 /**
@@ -65,14 +65,14 @@ void Process::setup() {
 void Process::run() {
 
 	if (!configured) {
-		Debug::print("ERROR:  not configured\n");
+		cci::common::Debug::print("ERROR:  not configured\n");
 		return;
 	}
-	//Debug::print("Process running\n");
+	//cci::common::Debug::print("Process running\n");
 
 //	unsigned long working = std::numeric_limits<unsigned long>::max();
 //	working = working >> (sizeof(unsigned long) * 8 - handlers.size());
-//	Debug::print("listener has %d entries, working bit field = %x\n", handlers.size(), working);
+//	cci::common::Debug::print("listener has %d entries, working bit field = %x\n", handlers.size(), working);
 
 	std::stringstream ss;
 
@@ -97,7 +97,7 @@ void Process::run() {
 //						ss << "(" << (*iter2)->getClassName() << ":" << (*iter2)->getStatus() << "), ";
 //					}
 //				}
-				//Debug::print("Process %s\n", ss.str().c_str());
+				//cci::common::Debug::print("Process %s\n", ss.str().c_str());
 			} else ++iter;
 		}
 	}

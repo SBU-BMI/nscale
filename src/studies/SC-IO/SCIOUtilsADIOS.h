@@ -15,7 +15,7 @@
 #include "mpi.h"
 #include <vector>
 #include "UtilsCVImageIO.h"
-#include "SCIOUtilsLogger.h"
+#include "Logger.h"
 
 namespace cciutils {
 
@@ -39,10 +39,10 @@ private:
 	bool compression;
 
 	std::vector<SCIOADIOSWriter *> writers;
-	cciutils::SCIOLogSession * logsession;
+	cci::common::LogSession * logsession;
 
 public:
-	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession * session, bool _gapped = false, bool _groupped = true, bool _compress = false);
+	ADIOSManager(const char* configfilename,  int _rank, MPI_Comm *_comm, cci::common::LogSession * session, bool _gapped = false, bool _groupped = true, bool _compress = false);
 	virtual ~ADIOSManager();
 
 	virtual SCIOADIOSWriter *allocateWriter(const std::string &pref, const std::string &suf,
@@ -100,7 +100,7 @@ private:
 	int local_rank;
 	int local_size;
 	int local_group;
-	cciutils::SCIOLogSession *logsession;
+	cci::common::LogSession *logsession;
 
 	bool grouped;
 	bool compression;
@@ -139,7 +139,7 @@ public:
 	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
 			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name);
 
-	virtual void setLogSession(cciutils::SCIOLogSession *_logsession) {
+	virtual void setLogSession(cci::common::LogSession *_logsession) {
 		this->logsession = _logsession;
 	}
 };

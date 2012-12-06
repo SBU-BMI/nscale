@@ -14,7 +14,7 @@
 #include "PixelOperations.h"
 #include "NeighborOperations.h"
 
-#include "utils.h"
+#include "Logger.h"
 #include <stdio.h>
 
 
@@ -116,14 +116,14 @@ int main (int argc, char **argv){
 //	cvtColor(dist5, nuclei, CV_GRAY2BGR);
 	img.copyTo(nuclei, seg_big);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
 	Mat watermask = nscale::watershed(nuclei, distance2, 8);
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "cpu watershed loop took " << t2-t1 << "ms" << std::endl;
 	double mn, mx;
 	minMaxLoc(watermask, &mn, &mx);
@@ -131,14 +131,14 @@ int main (int argc, char **argv){
 
 	imwrite("test/out-cpu-watershed-oligoIII.1-1.png", watermask);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
 	watermask = nscale::watershed2(nuclei, distance2, 8);
 //	cciutils::cv::imwriteRaw("test/out-watershed", watermask);
 
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "cpu watershed2 loop took " << t2-t1 << "ms" << std::endl;
 
 	// cpu version of watershed.
@@ -161,10 +161,10 @@ int main (int argc, char **argv){
 	stream.waitForCompletion();
 	std::cout << "finished uploading" << std::endl;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	g_watermask = nscale::gpu::watershedDW(g_seg_big, g_distance2, -1, 8, stream);
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "gpu watershed DW loop took " << t2-t1 << "ms" << std::endl;
 
 	Mat temp(g_watermask.size(), g_watermask.type());
@@ -205,10 +205,10 @@ int main (int argc, char **argv){
 
 
 
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	g_watermask = nscale::gpu::watershedCA(g_dummy, g_distance2, 8, stream);
 //	stream.waitForCompletion();
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "gpu watershed CA loop took " << t2-t1 << "ms" << std::endl;
 //	g_watermask.download(watermask2);
 //	g_watermask.release();

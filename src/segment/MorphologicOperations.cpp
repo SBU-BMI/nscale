@@ -12,11 +12,13 @@
 #include <omp.h>
 #include "highgui.h"
 
-#include "utils.h"
+#include "Logger.h"
+#include "TypeUtils.h"
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
 #include "NeighborOperations.h"
 #include "ConnComponents.h"
+
 
 using namespace cv;
 
@@ -282,7 +284,7 @@ Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize, bool calcD
 	std::queue<int> xQ;
 	std::queue<int> yQ;
 
-	uint64_t t1 = cciutils::ClockGetTime();
+	uint64_t t1 = cci::common::event::timestampInUS();
 
 	std::cout << "nTiles="<< nTiles*nTiles << " tileSize="<<tileSize <<std::endl;
 	int count = 0;
@@ -303,7 +305,7 @@ Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize, bool calcD
 
 		}
 	}
-	uint64_t t2 = cciutils::ClockGetTime();
+	uint64_t t2 = cci::common::event::timestampInUS();
 	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries="<< xQ.size()<< std::endl;
 
 	count = 0;
@@ -319,7 +321,7 @@ Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize, bool calcD
 
 	}
 
-	uint64_t t3 = cciutils::ClockGetTime();
+	uint64_t t3 = cci::common::event::timestampInUS();
 	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 	if(calcDist){
 
@@ -366,7 +368,7 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 	int nTilesY=mask.rows/tileHeight;
 	uint64_t t1, t2; 
 	
-	uint64_t t1_tiled = cciutils::ClockGetTime();
+	uint64_t t1_tiled = cci::common::event::timestampInUS();
 	Mat nearestNeighbor(mask.size(), CV_32S);
 
 #pragma omp parallel for schedule(dynamic,1)
@@ -375,7 +377,7 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 		for(int tileX=0; tileX < nTilesX; tileX++){
 			Mat roiMask(mask, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
 			Mat roiNeighborMap(nearestNeighbor, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));	
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
         
 /*			Stream stream;
 			GpuMat g_mask(roiMask);
@@ -397,22 +399,22 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 
 				} 
 			}
-//			uint64_t t1_copy = cciutils::ClockGetTime();
+//			uint64_t t1_copy = cci::common::event::timestampInUS();
 			neighborMapTile.copyTo(roiNeighborMap);
-//			uint64_t t2_copy = cciutils::ClockGetTime();
+//			uint64_t t2_copy = cci::common::event::timestampInUS();
 //			std::cout << "copyDataInCPUMemory" << t2_copy-t1_copy << "ms" << std::endl;			
 
-			uint64_t t2 = cciutils::ClockGetTime();
+			uint64_t t2 = cci::common::event::timestampInUS();
 
 			std::cout << " Tile took " << t2-t1 << "ms" << std::endl;
 		}
 	}
-	uint64_t t2_tiled = cciutils::ClockGetTime();
+	uint64_t t2_tiled = cci::common::event::timestampInUS();
 	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	Mat distanceMap = nscale::distTransformFixTilingEffects(nearestNeighbor, tileSize, calcDist);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
 
 	return distanceMap;
@@ -512,7 +514,7 @@ void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 //	T* iPtrPlus;
 //	T* iPtrMinus;
 //
-//	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cci::common::event::timestampInUS();
 //
 //	// raster scan
 //	for (int y = 1; y < maxy; ++y) {
@@ -590,7 +592,7 @@ void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 //		}
 //	}
 //
-//	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cci::common::event::timestampInUS();
 //	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries."<< std::endl;
 //
 //	// "copy " pixels that are being modified to an array
@@ -626,9 +628,9 @@ void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 ////	stream.enqueueCopy(input, mask);
 //	mask.upload(input);
 //
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	listComputation(queueInt, xQ.size(), markerI.data, mask.data, output.cols, output.rows);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //
 //	std::cout << "	listTime = "<< t2-t1 << "ms."<< std::endl;
 //
@@ -638,7 +640,7 @@ void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 //	out1.convertTo(outputC, seeds.type());
 //
 //
-//	uint64_t t3 = cciutils::ClockGetTime();
+//	uint64_t t3 = cci::common::event::timestampInUS();
 //	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 //
 //
@@ -680,7 +682,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	T* iPtrPlus;
 	T* iPtrMinus;
 
-//	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cci::common::event::timestampInUS();
 
 	// raster scan
 	for (int y = 1; y < maxy; ++y) {
@@ -756,7 +758,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 		}
 	}
 
-//	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cci::common::event::timestampInUS();
 //	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries."<< std::endl;
 
 	// now process the queue.
@@ -822,7 +824,7 @@ Mat imreconstruct(const Mat& seeds, const Mat& image, int connectivity) {
 	}
 
 
-//	uint64_t t3 = cciutils::ClockGetTime();
+//	uint64_t t3 = cci::common::event::timestampInUS();
 //	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 
 //	std::cout <<  count << " queue entries "<< std::endl;
@@ -838,7 +840,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 	CV_Assert(seeds.channels() == 1);
 
 
-	uint64_t t1 = cciutils::ClockGetTime();
+	uint64_t t1 = cci::common::event::timestampInUS();
 	Mat input, output;
 
 	int nTiles = seeds.cols/tileSize;
@@ -856,7 +858,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 		nTiles = seeds.cols/tileSize;
 	}
 
-	std::cout << "Copy time="<< cciutils::ClockGetTime()-t1<<std::endl;
+	std::cout << "Copy time="<< cci::common::event::timestampInUS()-t1<<std::endl;
 
 	T pval, preval;
 	int xminus, xplus, yminus, yplus;
@@ -871,12 +873,12 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 	T* iPtrPlus;
 	T* iPtrMinus;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	std::cout << "nTiles="<< nTiles*nTiles << " tileSize="<<tileSize <<std::endl;
 	int count = 0;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	// pass over entire image image
 	for (int y = 1; y <= maxy-1; ++y) {
 		oPtr = output.ptr<T>(y);
@@ -929,7 +931,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 
 		}
 	}
-	uint64_t t2 = cciutils::ClockGetTime();
+	uint64_t t2 = cci::common::event::timestampInUS();
 	std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queue entries="<< xQ.size()<< std::endl;
 
 	// now process the queue.
@@ -995,7 +997,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 	}
 
 
-	uint64_t t3 = cciutils::ClockGetTime();
+	uint64_t t3 = cci::common::event::timestampInUS();
 	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 
 
@@ -1009,7 +1011,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	CV_Assert(seeds.channels() == 1);
 
 
-	uint64_t t1 = cciutils::ClockGetTime();
+	uint64_t t1 = cci::common::event::timestampInUS();
 	Mat input, output;
 
 	int nTiles;
@@ -1027,7 +1029,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 		nTiles = seeds.cols/tileSize;
 	}
 
-	std::cout << "Copy time="<< cciutils::ClockGetTime()-t1<<std::endl;
+	std::cout << "Copy time="<< cci::common::event::timestampInUS()-t1<<std::endl;
 //	omp_set_num_threads(1);
 	int nThreads;
 	#pragma omp parallel
@@ -1051,12 +1053,12 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	T* iPtrPlus;
 	T* iPtrMinus;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	std::cout << "nTiles="<< nTiles*nTiles << " tileSize="<<tileSize <<std::endl;
 	int count = 0;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	// pass over entire image image
 	int tid = 0;
 //	int tid = omp_get_thread_num();
@@ -1123,7 +1125,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 		}
 	}
 
-	uint64_t t2 = cciutils::ClockGetTime();
+	uint64_t t2 = cci::common::event::timestampInUS();
 	count = 0;
 	for(int i = 0; i < xQ.size(); i++){
 		std::cout << "Queue["<<i<<"]="<< xQ[i].size() << std::endl;
@@ -1210,7 +1212,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	}
 
 
-	uint64_t t3 = cciutils::ClockGetTime();
+	uint64_t t3 = cci::common::event::timestampInUS();
 	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 
 
@@ -1227,7 +1229,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 		omp_set_num_threads(nThreads);
 
 
-	uint64_t t1 = cciutils::ClockGetTime();
+	uint64_t t1 = cci::common::event::timestampInUS();
 	Mat input, output;
 
 	if(withBorder){
@@ -1241,7 +1243,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 		copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, 0);
 	}
 
-	std::cout << "Copy time="<< cciutils::ClockGetTime()-t1<<std::endl;
+	std::cout << "Copy time="<< cci::common::event::timestampInUS()-t1<<std::endl;
 //	omp_set_num_threads(2);
 //	int nThreads;
 	#pragma omp parallel
@@ -1265,11 +1267,11 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 	T* iPtrPlus;
 	T* iPtrMinus;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	int count = 0;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 
 	// raster scan
@@ -1374,7 +1376,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 			}
 		}
 	}
-	uint64_t t2 = cciutils::ClockGetTime();
+	uint64_t t2 = cci::common::event::timestampInUS();
 	count = 0;
 	for(int i = 0; i < xQ.size(); i++){
 		count+=xQ[i].size();
@@ -1445,7 +1447,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 	}
 
 
-	uint64_t t3 = cciutils::ClockGetTime();
+	uint64_t t3 = cci::common::event::timestampInUS();
 	std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queue entries "<< std::endl;
 
 	return output(Range(1, maxy), Range(1, maxx));
@@ -1464,7 +1466,7 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 	int nTilesX=seeds.cols/tileWidth;
 	int nTilesY=seeds.rows/tileHeight;
 	uint64_t t1, t2; 
-	uint64_t t1_tiled = cciutils::ClockGetTime();
+	uint64_t t1_tiled = cci::common::event::timestampInUS();
 
 	Mat marker_copy(seeds);
 
@@ -1475,23 +1477,23 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 			Mat roiMarker(marker_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight ));
 			Mat roiMask(image, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
 		
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 
 			Mat reconTile = nscale::imreconstruct<T>(roiMarker, roiMask, 8);
 			reconTile.copyTo(roiMarker);
-			uint64_t t2 = cciutils::ClockGetTime();
+			uint64_t t2 = cci::common::event::timestampInUS();
 
 			std::cout << " Tile took " << t2-t1 << "ms" << std::endl;
 		}
 	}
-	uint64_t t2_tiled = cciutils::ClockGetTime();
+	uint64_t t2_tiled = cci::common::event::timestampInUS();
 	std::cout << " Tile total took " << t2_tiled-t1_tiled << "ms" << std::endl;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	Mat reconCopy = nscale::imreconstructFixTilingEffects<T>(marker_copy, image, 8, 0, 0, tileSize);
 //	Mat reconCopy = nscale::imreconstructFixTilingEffectsParallel<T>(marker_copy, image, 8, tileSize);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "fix tiling recon8 took " << t2-t1 << "ms" << std::endl;
 
 	return reconCopy;
@@ -1693,7 +1695,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 	T* iPtrPlus;
 	T* iPtrMinus;
 
-//	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cci::common::event::timestampInUS();
 
 	int count = 0;
 	// contour pixel determination.  if any neighbor of a 1 pixel is 0, and the image is 1, then boundary
@@ -1740,7 +1742,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 		}
 	}
 
-//	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cci::common::event::timestampInUS();
 	//std::cout << "    scan time = " << t2-t1 << "ms for " << count << " queued "<< std::endl;
 
 
@@ -1806,7 +1808,7 @@ Mat imreconstructBinary(const Mat& seeds, const Mat& image, int connectivity) {
 
 	}
 
-//	uint64_t t3 = cciutils::ClockGetTime();
+//	uint64_t t3 = cci::common::event::timestampInUS();
 	//std::cout << "    queue time = " << t3-t2 << "ms for " << count << " queued" << std::endl;
 
 	return output(Range(1, maxy), Range(1, maxx));
@@ -1871,7 +1873,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
     end
 	 */
 
-	T mn = cciutils::min<T>();
+	T mn = cci::common::type::min<T>();
 	T mx = std::numeric_limits<T>::max();
 	Rect roi = Rect(1, 1, image.cols, image.rows);
 
@@ -1887,7 +1889,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 	// now do the work...
 	mask = nscale::PixelOperations::invert<T>(mask);
 
-//	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cci::common::event::timestampInUS();
 	Mat output;
 	if (binary == true) {
 //		imwrite("in-imrecon-binary-marker.pgm", marker);
@@ -1902,7 +1904,7 @@ Mat imfillHoles(const Mat& image, bool binary, int connectivity) {
 //		imwrite("test/in-fillholes-gray-mask.pgm", mask);
 		output = imreconstruct<T>(marker, mask, connectivity);
 	}
-//	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cci::common::event::timestampInUS();
 	//TODO: TEMP std::cout << "    imfill hole imrecon took " << t2-t1 << "ms" << std::endl;
 
 	output = nscale::PixelOperations::invert<T>(output);
@@ -1968,7 +1970,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity, bo
 	int j = 0;
 	if (contours.size() > 0) {
 		int color = 1;
-//		uint64_t t1 = cciutils::ClockGetTime();
+//		uint64_t t1 = cci::common::event::timestampInUS();
 		// iterate over all top level contours (all siblings, draw with own label color
 		for (int idx = 0; idx >= 0; idx = hierarchy[idx][0], ++color) {
 			// draw the outer bound.  holes are taken cared of by the function when hierarchy is used.
@@ -1985,7 +1987,7 @@ Mat_<int> bwlabel(const Mat& binaryImage, bool contourOnly, int connectivity, bo
 			}
 			j++;
 		}
-//		uint64_t t2 = cciutils::ClockGetTime();
+//		uint64_t t2 = cci::common::event::timestampInUS();
 		//TODO: TEMP std::cout << "    bwlabel drawing took " << t2-t1 << "ms" << std::endl;
 	}
 //	std::cout << "num contours = " << contours.size() << " vs outer contours " << j << std::endl;
@@ -2280,15 +2282,15 @@ Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connecti
 	 */
 
 	long long int t1, t2;
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 	Mat minima = localMinima<float>(image, connectivity);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    cpu localMinima = %lld\n", t2-t1);
 
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 	std::vector<Vec4i> dummy;
 	Mat_<int> labels = bwlabel(minima, false, connectivity, false, dummy);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    cpu opencv bwlabel = %lld\n", t2-t1);
 
 // need borders, else get edges at edge.
@@ -2296,14 +2298,14 @@ Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connecti
 	copyMakeBorder(labels, temp, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<int>(0));
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 	watershed(input, temp);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    cpu watershed = %lld\n", t2-t1);
 
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 	output = nscale::NeighborOperations::border<int>(temp, (int)-1);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    CPU watershed border fix = %lld\n", t2-t1);
 
 	return output(Rect(1,1, image.cols, image.rows));
@@ -2322,15 +2324,15 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 
 	 */
 //	long long int t1, t2;
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 	Mat minima = localMinima<float>(image, connectivity);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    cpu localMinima = %lld\n", t2-t1);
 
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 	// watershed is sensitive to label values.  need to relabel.
 	Mat_<int> labels = bwlabel2(minima, connectivity, true);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    cpu UF bwlabel2 = %lld\n", t2-t1);
 
 
@@ -2339,17 +2341,17 @@ Mat_<int> watershed2(const Mat& origImage, const Mat_<float>& image, int connect
 	copyMakeBorder(labels, temp, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<int>(0));
 	copyMakeBorder(origImage, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0, 0, 0));
 
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 
 		// input: seeds are labeled from 1 to n, with 0 as background or unknown regions
 	// output has -1 as borders.
 	watershed(input, temp);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    CPU watershed = %lld\n", t2-t1);
 
-//	t1 = ::cciutils::ClockGetTime();
+//	t1 = ::cci::common::event::timestampInUS();
 	output = nscale::NeighborOperations::border<int>(temp, (int)-1);
-//	t2 = ::cciutils::ClockGetTime();
+//	t2 = ::cci::common::event::timestampInUS();
 //	printf("    CPU watershed border fix = %lld\n", t2-t1);
 
 	return output(Rect(1,1, image.cols, image.rows));
@@ -2370,7 +2372,7 @@ Mat_<unsigned char> localMaxima(const Mat& image, int connectivity) {
 
 	// now check the candidates
 	// first pad the border
-	T mn = cciutils::min<T>();
+	T mn = cci::common::type::min<T>();
 	T mx = std::numeric_limits<unsigned char>::max();
 	Mat_<unsigned char> output(candidates.size() + Size(2,2));
 	copyMakeBorder(candidates, output, 1, 1, 1, 1, BORDER_CONSTANT, mx);

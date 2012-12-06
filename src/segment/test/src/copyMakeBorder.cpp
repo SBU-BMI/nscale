@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 #include "PixelOperations.h"
-#include "utils.h"
+#include "Logger.h"
 
 #include <iostream>
 #include <iomanip>
@@ -45,9 +45,9 @@ int main (int argc, char **argv){
 	std::cout << countNonZero(dst-cpu_dst) <<std::endl;
 	
 
-//	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cci::common::event::timestampInUS();
 //	distanceTransform(input, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
-//	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cci::common::event::timestampInUS();
 //
 //	std::cout << "distTransf CPU  took " << t2-t1 <<" ms"<<std::endl;
 ////	
@@ -63,11 +63,11 @@ int main (int argc, char **argv){
 //	
 //	Stream stream;
 //
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	GpuMat g_distance = nscale::gpu::distanceTransform(g_mask, stream);
 //
 //	stream.waitForCompletion();
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "distTransf GPU  took " << t2-t1 <<" ms"<<std::endl;
 //
 //	Mat h_distance(g_distance);

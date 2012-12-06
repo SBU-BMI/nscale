@@ -7,7 +7,7 @@
 
 #include "NeighborOperations.h"
 #include <limits>
-#include "utils.h"
+#include "Logger.h"
 #include "gpu_utils.h"
 
 

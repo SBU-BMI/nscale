@@ -6,11 +6,13 @@ set(Segmentation_VERSION_MINOR 0)
 
 
 # Source files used by Segmentation
-set(libsrcs HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp NeighborOperations.cpp FileUtils.cpp ConnComponents.cpp )
+set(libsrcs HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp NeighborOperations.cpp ConnComponents.cpp )
 set(gpulibsrcs HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperationsGPU.cpp NeighborOperationsGPU.cpp UtilsCVImageIO.cpp)
 set(cudalibsrcs cuda/ccl_uf.cu cuda/global_queue.cu cuda/global_queue_dist.cu cuda/global_queue_float.cu cuda/neighbor-ops.cu cuda/watershed-dw-korbes.cu cuda/queue.cu cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu )
 
 include_directories(${Segmentation_SOURCE_DIR}/cuda)
+include_directories(${cci_common_SOURCE_DIR})
+link_directories(${cci_common_BINARY_DIR})
 
 set(libname segment)
 
@@ -33,6 +35,7 @@ foreach(program ${programs})
 
 	# Link the executable to the Features Computation library
 	target_link_libraries(${program} segment)
+	target_link_libraries(${program} cci_common)
 	if(MPI_FOUND)
 		set_target_properties(${program} PROPERTIES COMPILE_DEFINITIONS "WITH_MPI")
   		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}") 

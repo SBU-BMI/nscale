@@ -14,7 +14,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
-#include "utils.h"
+#include "TypeUtils.h"
+#include "Logger.h"
 #include "FileUtils.h"
 #include <dirent.h>
 #include "RegionalMorphologyAnalysis.h"
@@ -80,17 +81,17 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std:
 #endif
 
 	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cciutils::DEVICE_CPU;
+		modecode = cci::common::type::DEVICE_CPU;
 		// get core count
 
 
 	} else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+		modecode = cci::common::type::DEVICE_MCORE;
 		// get core count
 
 
 	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
+		modecode = cci::common::type::DEVICE_GPU;
 		// get device count
 		int numGPU = gpu::getCudaEnabledDeviceCount();
 		if (numGPU < 1) {
@@ -118,8 +119,8 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		std::vector<std::string> &seg_output, std::vector<std::string> &features_output, bool overwrite) {
 
 	// check to see if it's a directory or a file
-	FileUtils futils(std::string(".mask.pbm"));
-	futils.traverseDirectory(maskName, seg_output, FileUtils::FILE, true);
+	cci::common::FileUtils futils(std::string(".mask.pbm"));
+	futils.traverseDirectory(maskName, seg_output, cci::common::FileUtils::FILE, true);
 	std::string dirname = maskName;
 	if (seg_output.size() == 1) {
 		// if the maskname is actually a file, then the dirname is extracted from the maskname.
@@ -135,10 +136,10 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 	for (unsigned int i = 0; i < seg_output.size(); ++i) {
 
 		// generate the output file name
-		temp = FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
-		temp = FileUtils::replaceDir(temp, dirname, outDir);
+		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		FileUtils::mkdirs(tempdir);
+		cci::common::FileUtils::mkdirs(tempdir);
 		if (!overwrite && (file = fopen(temp.c_str(), "r"))) {
 			fclose(file);
 			continue;
@@ -148,10 +149,10 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		}
 
 		// generate the input file name
-		temp = FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tif");
-		temp = FileUtils::replaceDir(temp, dirname, imgDir);
-		temp2 = FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tiff");
-		temp2 = FileUtils::replaceDir(temp2, dirname, imgDir);
+		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tif");
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, imgDir);
+		temp2 = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tiff");
+		temp2 = cci::common::FileUtils::replaceDir(temp2, dirname, imgDir);
 
 //		printf("image file names: %s %s\n", temp.c_str(), temp2.c_str());
 
@@ -398,7 +399,7 @@ void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cy
 
 		// parse the input string
 
-		FileUtils futils;
+		cci::common::FileUtils futils;
 		string infile;
 		infile.assign(input);
 		string filename = futils.getFile(infile);
@@ -491,10 +492,10 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	std::vector<std::string> features_output;
 	uint64_t t1, t0;
 
-	t0 = cciutils::ClockGetTime();
+	t0 = cci::common::event::timestampInUS();
 	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output, overwrite);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
 	comm_world.Barrier();
 
@@ -595,7 +596,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 	printf("worker %d ready\n", rank);
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
-		t0 = cciutils::ClockGetTime();
+		t0 = cci::common::event::timestampInUS();
 
 		// tell the manager - ready
 		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
@@ -623,7 +624,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			comm_world.Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA);
 			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
-			t0 = cciutils::ClockGetTime();
+			t0 = cci::common::event::timestampInUS();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 			printf("worker %d processing \"%s\"\n", rank, mask);
 
@@ -631,7 +632,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			// now do some work
 			compute(input, mask, output);
 
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 //			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
 			printf("worker %d processed \"%s\" in %lu us\n", rank, mask, t1 - t0);
 
@@ -666,7 +667,7 @@ int main (int argc, char **argv){
 		return -4;
 	}
 
-	if (modecode == cciutils::DEVICE_GPU) {
+	if (modecode == cci::common::type::DEVICE_GPU) {
 		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
 		return -4;
 	}
@@ -681,19 +682,19 @@ int main (int argc, char **argv){
 
 
 	uint64_t t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
 		manager_process(comm_world, manager_rank, worker_size, maskName, imgDir, outDir, overwrite);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 	} else {
 		// worker bees
 		worker_process(comm_world, manager_rank, rank);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
 
 	}
@@ -716,14 +717,14 @@ int main (int argc, char **argv){
 	if (status != 0) return status;
 
 	uint64_t t0 = 0, t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// first get the list of files to process
    	std::vector<std::string> filenames;
 	std::vector<std::string> seg_output;
 	std::vector<std::string> features_output;
 
-	t0 = cciutils::ClockGetTime();
+	t0 = cci::common::event::timestampInUS();
 	getFiles(maskName, imgDir, outDir, filenames, seg_output, features_output, overwrite);
 
 	printf("file read took %lu us\n", t1 - t0);
@@ -775,7 +776,7 @@ int main (int argc, char **argv){
 		++i;
 	}
 #endif
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	printf("FINISHED in %lu us\n", t2 - t1);
 
 	return 0;

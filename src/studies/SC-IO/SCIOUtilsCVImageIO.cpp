@@ -92,7 +92,7 @@ namespace cv {
 
 		uint64_t t1, t2;
 
-		t1 = cciutils::event::timestampInUS();
+		t1 = cci::common::event::timestampInUS();
 
 		if (!compression) {
 			if (intermediate.type() == CV_8UC1 || intermediate.type() == CV_8UC3 ||
@@ -104,11 +104,11 @@ namespace cv {
 			} else {
 				imwriteRaw(intermediate, stage);
 			}
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			char len[21];  // max length of uint64 is 20 digits
 			memset(len, 0, 21);
 			sprintf(len, "%lu", (long)(intermediate.dataend) - (long)(intermediate.datastart));
-			if (session != NULL) session->log(cciutils::event(stage, std::string("save image"), t1, t2, std::string(len), ::cciutils::event::FILE_O));
+			if (session != NULL) session->log(cci::common::event(stage, std::string("save image"), t1, t2, std::string(len), ::cci::common::event::FILE_O));
 		} else {
 			unsigned long destsize = compressBound((unsigned long)intermediate.dataend - (unsigned long)intermediate.datastart);
 			unsigned char *dest = (unsigned char*)malloc(destsize);
@@ -122,11 +122,11 @@ namespace cv {
 			fclose(fid);
 			free(dest);
 
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			char len[21];  // max length of uint64 is 20 digits
 			memset(len, 0, 21);
 			sprintf(len, "%lu", destsize);
-			if (session != NULL) session->log(cciutils::event(stage, std::string("save compressed image"), t1, t2, std::string(len), ::cciutils::event::FILE_O));
+			if (session != NULL) session->log(cci::common::event(stage, std::string("save compressed image"), t1, t2, std::string(len), ::cci::common::event::FILE_O));
 		}
 
 	}

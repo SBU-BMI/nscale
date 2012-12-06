@@ -9,7 +9,6 @@
 #include <iostream>
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
-#include "utils.h"
 #include "gpu_utils.h"
 #include "opencv2/gpu/gpu.hpp"
 #include "NeighborOperations.h"
@@ -34,32 +33,32 @@ using namespace cv::gpu;
 
 #if !defined (WITH_CUDA)
 GpuMat SCIOHistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 GpuMat SCIOHistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,
-				::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+				::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 int SCIOHistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 		int &compcount, int *&g_bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 		int &compcount, int *&bbox, cv::gpu::Stream *str,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 int SCIOHistologicalEntities::segmentNuclei(const std::string& input, const std::string& output,
 		int &compcount, int *&bbox, cv::gpu::Stream *str,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
 
 
 // the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
 int plFindNucleusCandidates(const cv::gpu::GpuMat& img, cv::gpu::GpuMat& nuclei,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }  // S1
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }  // S1
 int plSeparateNuclei(const cv::gpu::GpuMat& img, const cv::gpu::GpuMat& seg_open, cv::gpu::GpuMat& seg_nonoverlap,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }// A4
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }// A4
 
 
 
 #else
 
 GpuMat SCIOHistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	CV_Assert(bgr.size() >= 3);
 	/*
 	%T1=2.5; T2=2;
@@ -149,7 +148,7 @@ GpuMat SCIOHistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& 
 }
 
 GpuMat SCIOHistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	/*
 	* this part to decide if the tile is background or foreground
 	THR = 0.9;
@@ -183,7 +182,7 @@ GpuMat SCIOHistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr,
 // S1
 int SCIOHistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g_seg_norbc,
 		Stream& stream,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	std::vector<GpuMat> g_bgr;
 	split(g_img, g_bgr, stream);
@@ -443,7 +442,7 @@ printf(" gpu compcount 11-1000 = %d\n", compcount2);
 
 // A4
 int SCIOHistologicalEntities::plSeparateNuclei(const GpuMat& g_img, GpuMat& g_seg_open, GpuMat& g_seg_nonoverlap, Stream& stream,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	/*
 	 *
@@ -616,7 +615,7 @@ printf(" gpu compcount 30-1000 = %d\n", compcount2);
 
 int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
 		int &compcount, int *&bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	Mat input = imread(in);
 	if (!input.data) return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
@@ -637,7 +636,7 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 
 int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 		int &compcount, int *&bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	if (!img.data) return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
 	Stream *str1 = str;
@@ -673,7 +672,7 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 int SCIOHistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 		int &compcount, int *&g_bbox,  cv::gpu::Stream *str,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 
 	// image in BGR format

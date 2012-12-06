@@ -20,8 +20,8 @@ RoundRobinScheduler::RoundRobinScheduler(bool _root, bool _leaf) :
 }
 
 void RoundRobinScheduler::postConfigure() {
-//	Debug::print("roots.size = %ld\n", roots.size());
-//	Debug::print("leaves.size = %ld\n", leaves.size());
+//	cci::common::Debug::print("roots.size = %ld\n", roots.size());
+//	cci::common::Debug::print("leaves.size = %ld\n", leaves.size());
 
 	int s = roots.size();
 	if (s == 0) rootIdx = -1;

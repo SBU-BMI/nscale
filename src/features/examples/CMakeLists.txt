@@ -5,7 +5,7 @@ project(FeaturesAllTest)
 include_directories(${FeaturesAll_SOURCE_DIR})
 
 # Make sure the compiler can find the library in features directory
-link_directories(${FeaturesAll_SOURCE_DIR})
+link_directories(${FeaturesAll_BINARY_DIR})
 include_directories(${Segmentation_SOURCE_DIR})
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")

@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 #include "PixelOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include <stdio.h>
 
 #include "opencv2/gpu/gpu.hpp"
@@ -41,11 +41,11 @@ int main(int argc, char** argv) {
 	Mat H = Mat::zeros(image.size(), CV_8UC1);
 	Mat E = Mat::zeros(image.size(), CV_8UC1);
 
-	long t1 = cciutils::ClockGetTime();
+	long t1 = cci::common::event::timestampInUS();
 	//color deconvolution
 	nscale::PixelOperations::ColorDeconv( image, M, b, H, E, BGR2RGB);
 
-	long t2 = cciutils::ClockGetTime();
+	long t2 = cci::common::event::timestampInUS();
 	cout << "Conv original = "<< t2-t1<<endl;
 
 	Stream stream;
@@ -63,25 +63,25 @@ int main(int argc, char** argv) {
 	stream.enqueueUpload(image, g_image);
 	stream.waitForCompletion();
 
-	long t1_gpu = cciutils::ClockGetTime();
+	long t1_gpu = cci::common::event::timestampInUS();
 
 	nscale::gpu::PixelOperations::ColorDeconv( g_image, M, b, g_H, g_E, stream, BGR2RGB);
 
-	long t2_gpu = cciutils::ClockGetTime();
+	long t2_gpu = cci::common::event::timestampInUS();
 
 	cout << "Conv gpu = " << t2_gpu - t1_gpu <<endl;
 
 	Mat c_H(g_H);
 	Mat c_E(g_E);
 
-	long t3 = cciutils::ClockGetTime();
+	long t3 = cci::common::event::timestampInUS();
 	Mat gray = nscale::PixelOperations::bgr2gray(image);
-	long t4 = cciutils::ClockGetTime();
+	long t4 = cci::common::event::timestampInUS();
 
 
 	GpuMat g_gray = nscale::gpu::PixelOperations::bgr2gray(g_image, stream);
 	stream.waitForCompletion();
-	long t5 = cciutils::ClockGetTime();
+	long t5 = cci::common::event::timestampInUS();
 	cout << "	GrayCPU="<< t4-t3<<endl;
 	cout << "	GrayGPU="<< t5-t4<<endl;
 

@@ -10,7 +10,7 @@
 namespace cciutils {
 
 
-ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cciutils::SCIOLogSession *session, bool _gapped, bool _grouped, bool _compress) {
+ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_comm, cci::common::LogSession *session, bool _gapped, bool _grouped, bool _compress) {
 	gapped = _gapped;
 	grouped = _grouped;
 	compression = _compress;
@@ -18,15 +18,15 @@ ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_com
 	rank = _rank;
 	comm = _comm;
 	logsession = session;
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 	adios_init(configfilename);
-	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios init"), t1, t2, std::string(), ::cciutils::event::ADIOS_INIT));
+	long long t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios init"), t1, t2, std::string(), ::cci::common::event::ADIOS_INIT));
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	writers.clear();
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("clear Writers"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("clear Writers"), t1, t2, std::string(), ::cci::common::event::MEM_IO));
 
 }
 
@@ -34,7 +34,7 @@ ADIOSManager::ADIOSManager(const char* configfilename, int _rank, MPI_Comm *_com
 ADIOSManager::~ADIOSManager() {
 //	printf("cleaning up manager %d\n", rank);
 	// close all the entries in writer
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 
 	for (std::vector<SCIOADIOSWriter *>::iterator iter = writers.begin();
 			iter != writers.end(); ++iter) {
@@ -42,14 +42,14 @@ ADIOSManager::~ADIOSManager() {
 		freeWriter(*iter);
 		iter = writers.begin();
 	}
-	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS Writer Clear"), t1, t2, std::string(), ::cciutils::event::MEM_IO));
+	long long t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("ADIOS Writer Clear"), t1, t2, std::string(), ::cci::common::event::MEM_IO));
 
 //	printf("cleaned up manager %d\n", rank);
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	adios_finalize(rank);
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS finalize"), t1, t2, std::string(), ::cciutils::event::ADIOS_FINALIZE));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("ADIOS finalize"), t1, t2, std::string(), ::cci::common::event::ADIOS_FINALIZE));
 //	printf("finished cleaning up %d\n", rank);
 
 }
@@ -183,14 +183,14 @@ int SCIOADIOSWriter::persist(int iter) {
 	// all the data should be continuous now.
 
 	//printf("worker %d writing out %lu tiles to ADIOS\n", local_rank, tile_cache.size());
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 	MPI_Barrier(*local_comm);
-	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
+	long long t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cci::common::event::NETWORK_WAIT));
 	
 
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
@@ -217,16 +217,16 @@ int SCIOADIOSWriter::persist(int iter) {
 		*sourceTileFile_offset, *sourceTileFile_size,
 		*tile_offset, *tile_size;
 
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
 	sprintf(len, "%lu", tileInfo_pg_size);
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO define vars"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO define vars"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
 
 	if (tile_cache.size() > 0) {
 
-		t1 = ::cciutils::event::timestampInUS();
+		t1 = ::cci::common::event::timestampInUS();
 		/** initialize storage
 		*/ 
 		tileOffsetX = (int *)malloc(tile_cache.size() * sizeof(int));
@@ -245,11 +245,11 @@ int SCIOADIOSWriter::persist(int iter) {
 		tile_size = (long*) malloc(tile_cache.size() * sizeof(long));
 		tile_offset = (long*) malloc(tile_cache.size() * sizeof(long));
 
-		t2 = ::cciutils::event::timestampInUS();
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO malloc vars"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+		t2 = ::cci::common::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO malloc vars"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
 
-		t1 = ::cciutils::event::timestampInUS();
+		t1 = ::cci::common::event::timestampInUS();
 
 		/**  get tile metadata
 		*/
@@ -288,10 +288,10 @@ int SCIOADIOSWriter::persist(int iter) {
 
 //			printf("rank %d tile %d offset %dx%d, size %dx%dx%d, elemSize %d type %d encoding %d, tile bytes %ld at %ld, imagename %ld at %ld\n", local_rank, i, tileOffsetX[i], tileOffsetY[i], tileSizeX[i], tileSizeY[i], nChannels[i], elemSize1[i], cvDataType[i], encoding[i], tile_size[i], tile_offset[i], imageName_size[i], imageName_offset[i]);
 		}
-		t2 = ::cciutils::event::timestampInUS();
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO tile metadata"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+		t2 = ::cci::common::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO tile metadata"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
-		t1 = ::cciutils::event::timestampInUS();
+		t1 = ::cci::common::event::timestampInUS();
 
 		/** now allocate the space for tile and for imagename
 			and then get the data.
@@ -333,18 +333,18 @@ int SCIOADIOSWriter::persist(int iter) {
 		}
 
 //		printf("all filenames together %s\n", sourceTileFile);
-		t2 = ::cciutils::event::timestampInUS();
+		t2 = ::cci::common::event::timestampInUS();
 		char len2[21];  // max length of uint64 is 20 digits
 		memset(len2, 0, 21);
 		sprintf(len2, "%lu", tile_pg_size + sourceTileFile_pg_size + 1 + imageName_pg_size + 1);
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO tile data"), t1, t2, std::string(len2), ::cciutils::event::MEM_IO));
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO tile data"), t1, t2, std::string(len2), ::cci::common::event::MEM_IO));
 
 	}
 
 	/**
 	* compute the offset for each step, in global array coordinates
 	*/
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	long pg_sizes[4];
 	pg_sizes[0] = tileInfo_pg_size;
@@ -372,9 +372,9 @@ int SCIOADIOSWriter::persist(int iter) {
 //				tile_offset[i], imageName_size[i], imageName_offset[i], sourceTileFile_size[i], sourceTileFile_offset[i]);
 	}
 
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI scan"), t1, t2, std::string("1"), ::cciutils::event::NETWORK_IO));
-	t1 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO MPI scan"), t1, t2, std::string("1"), ::cci::common::event::NETWORK_IO));
+	t1 = ::cci::common::event::timestampInUS();
 
 	/**
 	* compute the total written out within this step, then update global total
@@ -401,19 +401,19 @@ int SCIOADIOSWriter::persist(int iter) {
 //	printf("totals %ld, %ld, %ld, %ld, proc %d total %ld, %ld, %ld\n", this->tileInfo_total, this->imageName_total, this->sourceTileFile_total, this->tile_total, local_rank, this->pg_tileInfo_count, this->pg_imageName_bytes, this->pg_sourceTileFile_bytes, this->pg_tile_bytes);
 
 
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI allreduce"), t1, t2, std::string("1"), ::cciutils::event::NETWORK_IO));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO MPI allreduce"), t1, t2, std::string("1"), ::cci::common::event::NETWORK_IO));
 
 
 	/**  write out the TileInfo group 
 	*/
 //	printf("data prepared.  writing out.\n");
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	open("tileInfo");
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios open"), t1, t2, std::string(), ::cciutils::event::ADIOS_OPEN));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios open"), t1, t2, std::string(), ::cci::common::event::ADIOS_OPEN));
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	if (tile_cache.size() <= 0) {
 		err = adios_group_size (adios_handle, 0, &adios_totalsize);
@@ -422,22 +422,22 @@ int SCIOADIOSWriter::persist(int iter) {
 #include "gwrite_tileInfo.ch"
 
 	}
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	memset(len, 0, 21);
 	sprintf(len, "%lu", adios_totalsize);
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE"), t1, t2, std::string(len), ::cciutils::event::ADIOS_WRITE));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("ADIOS WRITE"), t1, t2, std::string(len), ::cci::common::event::ADIOS_WRITE));
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	close(1);  // uses matcache.size();
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(len), ::cciutils::event::ADIOS_CLOSE));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios close"), t1, t2, std::string(len), ::cci::common::event::ADIOS_CLOSE));
 
 
 
 
 	/** now clean up
 	*/
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	if (tile_cache.size() > 0) {
 		free(tileOffsetX);
@@ -459,8 +459,8 @@ int SCIOADIOSWriter::persist(int iter) {
 		free(tile);
 	}
 	tile_cache.clear();
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO var clear"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO var clear"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
 	return 0;
 }
@@ -474,24 +474,24 @@ int SCIOADIOSWriter::persistCountInfo() {
 
 	long long t1, t2;
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	open("tileCount");
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios open"), t1, t2, std::string(), ::cciutils::event::ADIOS_OPEN));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios open"), t1, t2, std::string(), ::cci::common::event::ADIOS_OPEN));
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 #include "gwrite_tileCount.ch"
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
 	sprintf(len, "%lu", adios_totalsize);
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE Summary"), t1, t2, std::string(len), ::cciutils::event::ADIOS_WRITE));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("ADIOS WRITE Summary"), t1, t2, std::string(len), ::cci::common::event::ADIOS_WRITE));
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	close(0);
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(len), ::cciutils::event::ADIOS_CLOSE));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios close"), t1, t2, std::string(len), ::cci::common::event::ADIOS_CLOSE));
 
 	return 0;
 }
@@ -509,11 +509,11 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 	// all the data should be continuous now.
 
 	//printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", local_rank, tile_cache.size(), tileSize);
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 	MPI_Barrier(*local_comm);
-	long long t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
-	t1 = ::cciutils::event::timestampInUS();
+	long long t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO MPI Wait"), t1, t2, std::string(), ::cci::common::event::NETWORK_WAIT));
+	t1 = ::cci::common::event::timestampInUS();
 
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
@@ -534,16 +534,16 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 	int *tileOffsetX, *tileOffsetY, *tileSizeX, *tileSizeY, *nChannels,
 		*elemSize1, *cvDataType, *encoding;
 
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
 	sprintf(len, "%lu", tileInfo_pg_size);
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO define vars"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO define vars"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
 
 	if (tile_cache.size() > 0) {
 
-		t1 = ::cciutils::event::timestampInUS();
+		t1 = ::cci::common::event::timestampInUS();
 		/** initialize storage
 		*/ 
 		tileOffsetX = (int *)malloc(tile_cache.size() * sizeof(int));
@@ -555,11 +555,11 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 		cvDataType = (int *)malloc(tile_cache.size() * sizeof(int));
 		encoding = (int *)malloc(tile_cache.size() * sizeof(int));
 		
-		t2 = ::cciutils::event::timestampInUS();
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO malloc vars"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+		t2 = ::cci::common::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO malloc vars"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
 
-		t1 = ::cciutils::event::timestampInUS();
+		t1 = ::cci::common::event::timestampInUS();
 
 		/**  get tile metadata
 		*/
@@ -584,10 +584,10 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 		tileInfo_pg_offset = (iter * local_size + local_rank) * chunkNumTiles;
 		tile_pg_offset = tileInfo_pg_offset * tileSize;
 
-		t2 = ::cciutils::event::timestampInUS();
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO tile metadata"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+		t2 = ::cci::common::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO tile metadata"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
-		t1 = ::cciutils::event::timestampInUS();
+		t1 = ::cci::common::event::timestampInUS();
 
 		/** now allocate the space for tile and for imagename
 			and then get the data.
@@ -600,11 +600,11 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 			memcpy(tile + i * tileSize, tile_cache[i].tile.datastart, tile_cache[i].tile.dataend - tile_cache[i].tile.datastart);
 		}
 
-		t2 = ::cciutils::event::timestampInUS();
+		t2 = ::cci::common::event::timestampInUS();
 		char len2[21];  // max length of uint64 is 20 digits
 		memset(len2, 0, 21);
 		sprintf(len2, "%lu", tile_pg_size );
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO tile data"), t1, t2, std::string(len2), ::cciutils::event::MEM_IO));
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO tile data"), t1, t2, std::string(len2), ::cci::common::event::MEM_IO));
 //		printf("here!\n");
 	}
 
@@ -612,33 +612,33 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 	/**  write out the TileInfo group 
 	*/
 //	printf("data prepared.  writing out\n");
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	open("tileInfo-gap");
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios open"), t1, t2, std::string(), ::cciutils::event::ADIOS_OPEN));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios open"), t1, t2, std::string(), ::cci::common::event::ADIOS_OPEN));
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	if (tile_cache.size() <= 0) {
 		err = adios_group_size (adios_handle, 0, &adios_totalsize);
 	} else {
 #include "gwrite_tileInfo-gap.ch"
 	}
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	memset(len, 0, 21);
 	sprintf(len, "%lu", adios_totalsize);
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("ADIOS WRITE"), t1, t2, std::string(len), ::cciutils::event::ADIOS_WRITE));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("ADIOS WRITE"), t1, t2, std::string(len), ::cci::common::event::ADIOS_WRITE));
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	close(1);  // uses matcache.size();
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(len), ::cciutils::event::ADIOS_CLOSE));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios close"), t1, t2, std::string(len), ::cci::common::event::ADIOS_CLOSE));
 
 
 
 	/** now clean up
 	*/
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	if (tile_cache.size() > 0) {
 		free(tileOffsetX);
@@ -652,8 +652,8 @@ int SCIOADIOSWriter::persistGapped(int iter) {
 		free(tile);
 	}
 	tile_cache.clear();
-	t2 = ::cciutils::event::timestampInUS();
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO var clear"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	t2 = ::cci::common::event::timestampInUS();
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO var clear"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
 	return 0;
 }
@@ -665,14 +665,14 @@ int SCIOADIOSWriter::benchmark(int id) {
 	// all the data should be continuous now.
 
 	//printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", local_rank, tile_cache.size(), tileSize);
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 	MPI_Barrier(*local_comm);
-	long long t2 = ::cciutils::event::timestampInUS();
+	long long t2 = ::cci::common::event::timestampInUS();
 	ss << "BENCH " << id << " START MPI Wait";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(), ::cci::common::event::NETWORK_WAIT));
 	ss.str(std::string());
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	int err;
 	uint64_t adios_groupsize, adios_totalsize;
 
@@ -691,17 +691,17 @@ int SCIOADIOSWriter::benchmark(int id) {
 	int *tileOffsetX, *tileOffsetY, *tileSizeX, *tileSizeY, *nChannels,
 		*elemSize1, *cvDataType, *encoding;
 
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
 	sprintf(len, "%lu", tileInfo_pg_size);
 	ss << "BENCH " << id << " IO define vars";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 	ss.str(std::string());
 
 
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	/** initialize storage
 	*/
 	tileOffsetX = (int *)malloc(tileInfo_pg_size * sizeof(int));
@@ -713,12 +713,12 @@ int SCIOADIOSWriter::benchmark(int id) {
 	cvDataType = (int *)malloc(tileInfo_pg_size * sizeof(int));
 	encoding = (int *)malloc(tileInfo_pg_size * sizeof(int));
 
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	ss << "BENCH " << id << " IO malloc vars";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 	ss.str(std::string());
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	memset(tileOffsetX, 0, tileInfo_pg_size * sizeof(int));
 	memset(tileOffsetY, 0, tileInfo_pg_size * sizeof(int));
 	memset(cvDataType, 0, tileInfo_pg_size * sizeof(int));
@@ -738,24 +738,24 @@ int SCIOADIOSWriter::benchmark(int id) {
 	long tileInfo_pg_offset = local_rank * chunkNumTiles;
 	long tile_pg_offset = tileInfo_pg_offset * tileSize;
 
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	ss << "BENCH " << id << " IO tile metadata";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 	ss.str(std::string());
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	/** now allocate the space for tile and for imagename
 		and then get the data.
 	*/
 //		printf("rank %d tile_pg_size %lu\n", local_rank, tile_pg_size);
 	tile = (unsigned char *)malloc(tile_pg_size);
 	memset(tile, 0, tile_pg_size);
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	char len2[21];  // max length of uint64 is 20 digits
 	memset(len2, 0, 21);
 	sprintf(len2, "%lu", tile_pg_size );
 	ss << "BENCH " << id << " IO tile data";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len2), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(len2), ::cci::common::event::MEM_IO));
 	ss.str(std::string());
 //		printf("here!\n");
 
@@ -763,7 +763,7 @@ int SCIOADIOSWriter::benchmark(int id) {
 	/**  write out the TileInfo group
 	*/
 //	printf("data prepared.  writing out\n");
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	if (this->grouped)
 		ss << this->prefix << "/g" << this->local_group << ".benchmark." << this->suffix;
 	else
@@ -774,35 +774,35 @@ int SCIOADIOSWriter::benchmark(int id) {
 		err = adios_open(&adios_handle, "tileInfo", ss.str().c_str(), "w", local_comm);
 
 	ss.str(std::string());
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	ss << "BENCH " << id << " adios open";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(), ::cciutils::event::ADIOS_OPEN));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(), ::cci::common::event::ADIOS_OPEN));
 	ss.str(std::string());
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	if (tileInfo_pg_size <= 0) {
 		err = adios_group_size (adios_handle, 0, &adios_totalsize);
 	} else {
 #include "gwrite_tileInfo-gap.ch"
 	}
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	memset(len, 0, 21);
 	sprintf(len, "%lu", adios_totalsize);
 	ss << "BENCH " << id << " ADIOS WRITE";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len), ::cciutils::event::ADIOS_WRITE));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(len), ::cci::common::event::ADIOS_WRITE));
 	ss.str(std::string());
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	close(1);  // uses matcache.size();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	ss << "BENCH " << id << " adios close";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("adios close"), t1, t2, std::string(len), ::cciutils::event::ADIOS_CLOSE));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("adios close"), t1, t2, std::string(len), ::cci::common::event::ADIOS_CLOSE));
 	ss.str(std::string());
 
 
 	/** now clean up
 	*/
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	if (tileInfo_pg_size > 0) {
 		free(tileOffsetX);
@@ -816,18 +816,18 @@ int SCIOADIOSWriter::benchmark(int id) {
 		free(tile);
 	}
 	tile_cache.clear();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	ss << "BENCH " << id << " IO var clear";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 	ss.str(std::string());
 
 
 	//printf("worker %d writing out GAPPED %lu tiles to ADIOS, tileSize = %lu\n", local_rank, tileInfo_pg_size, tileSize);
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	MPI_Barrier(*local_comm);
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	ss << "BENCH " << id << " END MPI Wait";
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, ss.str(), t1, t2, std::string(), ::cciutils::event::NETWORK_WAIT));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, ss.str(), t1, t2, std::string(), ::cci::common::event::NETWORK_WAIT));
 	ss.str(std::string());
 
 
@@ -841,7 +841,7 @@ void SCIOADIOSWriter::saveIntermediate(const ::cv::Mat& intermediate, const int 
 		const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 	if (!selected(stage)) return;
 
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 
 	unsigned char *data;
 
@@ -859,12 +859,12 @@ void SCIOADIOSWriter::saveIntermediate(const ::cv::Mat& intermediate, const int 
 
 	// next add to cache
 	tile_cache.push_back(t);
-	long long t2 = ::cciutils::event::timestampInUS();
+	long long t2 = ::cci::common::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
 	sprintf(len, "%lu", (long)(out.dataend) - (long)(out.datastart));
 
-	if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO Buffer"), t1, t2, std::string(len), ::cciutils::event::MEM_IO));
+	if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO Buffer"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
 }
 
@@ -874,18 +874,18 @@ void SCIOADIOSWriter::saveIntermediate(const ::cv::Mat& intermediate, const int 
 			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) {
 		if (!selected(stage)) return;
 		// first download the data
-		long long t1 = ::cciutils::event::timestampInUS();
+		long long t1 = ::cci::common::event::timestampInUS();
 
 		::cv::Mat output(intermediate.size(), intermediate.type());
 		intermediate.download(output);
-		long long t2 = ::cciutils::event::timestampInUS();
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO GPU Download"), t1, t2, std::string("1"), ::cciutils::event::GPU_MEM_IO));
+		long long t2 = ::cci::common::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO GPU Download"), t1, t2, std::string("1"), ::cci::common::event::GPU_MEM_IO));
 		saveIntermediate(output, stage, _image_name, _offsetX, _offsetY, _source_tile_file_name);
-		t1 = ::cciutils::event::timestampInUS();
+		t1 = ::cci::common::event::timestampInUS();
 
 		output.release();
-		t2 = ::cciutils::event::timestampInUS();
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("IO GPU clear"), t1, t2, std::string("1"), ::cciutils::event::GPU_MEM_IO));
+		t2 = ::cci::common::event::timestampInUS();
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("IO GPU clear"), t1, t2, std::string("1"), ::cci::common::event::GPU_MEM_IO));
 
 	}
 #else

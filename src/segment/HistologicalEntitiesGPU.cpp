@@ -9,7 +9,7 @@
 #include <iostream>
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include "gpu_utils.h"
 #include "opencv2/gpu/gpu.hpp"
 #include "NeighborOperations.h"

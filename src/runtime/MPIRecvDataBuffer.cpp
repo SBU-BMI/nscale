@@ -26,7 +26,7 @@ int MPIRecvDataBuffer::transmit(int node, int tag, MPI_Datatype type, MPI_Comm &
 	if (isStopped()) return status;
 	if (isFull()) return FULL;
 
-	long long t1 = ::cciutils::event::timestampInUS();
+	long long t1 = ::cci::common::event::timestampInUS();
 
 	// else size is greater than 1.
 	ldata = malloc(size);
@@ -45,12 +45,12 @@ int MPIRecvDataBuffer::transmit(int node, int tag, MPI_Datatype type, MPI_Comm &
 		MPI_Recv(ldata, size, type, node, tag, comm, &mstat);
 		buffer.push(std::make_pair(size, ldata));
 
-		long long t2 = ::cciutils::event::timestampInUS();
+		long long t2 = ::cci::common::event::timestampInUS();
 
 		char len[21];  // max length of uint64 is 20 digits
 		memset(len, 0, 21);
 		sprintf(len, "%d", size);
-		if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI B RECV"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+		if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI B RECV"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO));
 
 
 	}
@@ -81,18 +81,18 @@ int MPIRecvDataBuffer::checkRequests(bool waitForAll) {
 		MPI_Testsome(active, reqs, &completed, completedreqs, MPI_STATUSES_IGNORE);
 	}
 
-	long long t2 = ::cciutils::event::timestampInUS();
+	long long t2 = ::cci::common::event::timestampInUS();
 	long long t1 = -1;
 
 	int size = 0;
 	MPI_Request* reqptr = NULL;
 
 	if (completed == MPI_UNDEFINED) {
-		Debug::print("ERROR: testing completion received a complete count of MPI_UNDEFINED\n");
+		cci::common::Debug::print("ERROR: testing completion received a complete count of MPI_UNDEFINED\n");
 	} else if (completed == 0) {
-		// Debug::print("no mpi requests completed\n");
+		// cci::common::Debug::print("no mpi requests completed\n");
 	} else {
-		//Debug::print("MPI Recv Buffer active = %d, number completed = %d, total = %ld\n", active, completed, mpi_buffer.size());
+		//cci::common::Debug::print("MPI Recv Buffer active = %d, number completed = %d, total = %ld\n", active, completed, mpi_buffer.size());
 
 		char len[21];  // max length of uint64 is 20 digits
 
@@ -112,14 +112,14 @@ int MPIRecvDataBuffer::checkRequests(bool waitForAll) {
 
 			memset(len, 0, 21);
 			sprintf(len, "%d", size);
-			if (this->logsession != NULL) this->logsession->log(cciutils::event(0, std::string("MPI NB RECV"), t1, t2, std::string(len), ::cciutils::event::NETWORK_IO));
+			if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI NB RECV"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO));
 		}
-		//Debug::print("MPI Recv Buffer new size: %ld\n", mpi_buffer.size());
+		//cci::common::Debug::print("MPI Recv Buffer new size: %ld\n", mpi_buffer.size());
 
 		debug_complete_count += completed;
 	}
 
-//	Debug::print("MPIRecvDataBuffer: popMPI called.  %d load\n", mpi_buffer.size());
+//	cci::common::Debug::print("MPIRecvDataBuffer: popMPI called.  %d load\n", mpi_buffer.size());
 
 	return completed;
 }

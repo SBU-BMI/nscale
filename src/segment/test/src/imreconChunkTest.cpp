@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include <stdio.h>
 
 #include "opencv2/gpu/gpu.hpp"
@@ -38,49 +38,49 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 	Size s = marker.size();
 ;
 	
-/*	t1 = cciutils::ClockGetTime();
+/*	t1 = cci::common::event::timestampInUS();
 	if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker, mask, 4);
 	else recon = nscale::imreconstruct<unsigned char>(marker, mask, 4);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tcpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 */
 	if (w == -1) {
-		t1 = cciutils::ClockGetTime();
+		t1 = cci::common::event::timestampInUS();
 		if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker, mask, 8);
 		else recon = nscale::imreconstruct<unsigned char>(marker, mask, 8);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		std::cout << "cpu,imrecon," << (binary ? "binary" : "grayscale") << ",8,"<<s.width << ",0," << t2-t1 << std::endl;
 	} else {
-		t1 = cciutils::ClockGetTime();
+		t1 = cci::common::event::timestampInUS();
 		for (int j = 0; j < s.height; j+=w) {
 			for (int i = 0; i < s.height; i+=w) {
-				uint64_t t3 = cciutils::ClockGetTime();
+				uint64_t t3 = cci::common::event::timestampInUS();
 		
 				Range rx = Range((i-b > 0 ? i-b : 0), (i+w+b < s.width ? i+w+b : s.width));
 				Range ry = Range((j-b > 0 ? j-b : 0), (j+w+b < s.height ? j+w+b : s.height));
 				
 				if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker(rx, ry), mask(rx, ry), 8);
 				else recon = nscale::imreconstruct<unsigned char>(marker(rx, ry), mask(rx, ry), 8);
-				uint64_t t4 = cciutils::ClockGetTime();
+				uint64_t t4 = cci::common::event::timestampInUS();
 
 				//std::cout << "\t\tchunk "<< i << "," << j << " took " << t4-t3 << "ms " <<  std::endl;
 			}
 		}
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		std::cout << "cpu,imrecon," << (binary ? "binary" : "grayscale") << ",8,"<< w << "," << b << "," << t2-t1 << std::endl;
 
 
 	}
 	
 /*	
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	recon = nscale::imreconstructUChar(marker, mask, 4);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tcpu reconUChar 4-con took " << t2-t1 << "ms" << std::endl;
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	recon = nscale::imreconstructUChar(marker, mask, 8);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tcpu reconUChar 8-con took " << t2-t1 << "ms" << std::endl;
 */
 	
@@ -92,44 +92,44 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 	stream.waitForCompletion();
 //	std::cout << "\tfinished uploading to GPU" << std::endl;
 
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 4, stream);
 //	stream.waitForCompletion();
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "\tgpu recon2 4-con took " << t2-t1 << "ms" << std::endl;
 //	g_recon.release();
 //
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 8, stream);
 //	stream.waitForCompletion();
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "\tgpu recon2 8-con took " << t2-t1 << "ms" << std::endl;
 //	g_recon.release();
 
 	
-/*	t1 = cciutils::ClockGetTime();
+/*	t1 = cci::common::event::timestampInUS();
 	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 4, stream);
 	else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tgpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 */
 	if (w == -1) {
-		t1 = cciutils::ClockGetTime();
+		t1 = cci::common::event::timestampInUS();
 		if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 8, stream);
 		else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 8, stream);
 		stream.waitForCompletion();
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		std::cout << "gpu,imrecon," << (binary ? "binary" : "grayscale") << ",8,"<< s.width <<",0,"<< t2-t1 << std::endl;
 		g_recon.release();
 	} else {
 		s = g_marker.size();
-		t1 = cciutils::ClockGetTime();
+		t1 = cci::common::event::timestampInUS();
 		unsigned int iter;
 		for (int j = 0; j < s.height; j+=w) {
 			for (int i = 0; i < s.height; i+=w) {
-				uint64_t t3 = cciutils::ClockGetTime();
+				uint64_t t3 = cci::common::event::timestampInUS();
 		
 				Range rx = Range((i-b > 0 ? i-b : 0), (i+w+b < s.width ? i+w+b : s.width));
 				Range ry = Range((j-b > 0 ? j-b : 0), (j+w+b < s.height ? j+w+b : s.height));
@@ -137,13 +137,13 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 				if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker(rx, ry), g_mask(rx, ry), 8, stream, iter);
 				else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker(rx, ry), g_mask(rx, ry), 8, stream, iter);
 				stream.waitForCompletion();
-				uint64_t t4 = cciutils::ClockGetTime();
+				uint64_t t4 = cci::common::event::timestampInUS();
 
 				g_recon.release();
 				//std::cout << "\t\tchunk "<< i << "," << j << " took " << t4-t3 << "ms with " << iter << " iters" <<  std::endl;
 			}
 		}
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		std::cout << "gpu,imrecon," << (binary ? "binary" : "grayscale") << ",8,"<< w << "," << b << "," << t2-t1 << std::endl;
 
 

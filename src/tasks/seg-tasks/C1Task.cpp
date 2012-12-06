@@ -54,7 +54,7 @@ bool C1Task::run(int procType, int tid) {
         ::cv::Mat M = (::cv::Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
 
 #if !defined (WITH_CUDA)
-	procType = ExecEngineconstants::CPU;
+	procType = ExecEngineConstants::CPU;
 #endif
 
 	if (procType == ExecEngineConstants::GPU) {  // GPU

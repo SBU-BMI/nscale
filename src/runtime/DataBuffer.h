@@ -12,7 +12,7 @@
 #include <queue>
 #include <tr1/unordered_set>
 #include "Debug.h"
-#include "SCIOUtilsLogger.h"
+#include "Logger.h"
 
 #include "boost/program_options.hpp"
 
@@ -34,8 +34,8 @@ public:
 	static const std::string PARAM_COMPRESSION;
 	static const std::string PARAM_BUFFERSIZE;
 
-	DataBuffer(int _capacity, bool _compression=false, cciutils::SCIOLogSession *_logsession = NULL) ;
-	DataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession = NULL);
+	DataBuffer(int _capacity, bool _compression=false, cci::common::LogSession *_logsession = NULL) ;
+	DataBuffer(boost::program_options::variables_map &_vm, cci::common::LogSession *_logsession = NULL);
 
 	// for data addition
 	virtual size_t debugBufferSize() { return buffer.size(); };
@@ -94,7 +94,7 @@ protected:
 	int capacity;
 	bool compression;
 
-	cciutils::SCIOLogSession *logsession;
+	cci::common::LogSession *logsession;
 
 	std::tr1::unordered_set<void *> reference_sources;
 

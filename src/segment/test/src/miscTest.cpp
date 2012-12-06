@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 
 
 using namespace cv;

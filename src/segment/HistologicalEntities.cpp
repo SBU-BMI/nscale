@@ -12,7 +12,7 @@
 #include "PixelOperations.h"
 #include "highgui.h"
 #include "float.h"
-#include "utils.h"
+#include "Logger.h"
 #include "ConnComponents.h"
 
 namespace nscale {

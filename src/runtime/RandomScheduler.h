@@ -8,7 +8,7 @@
 #ifndef RANDOMSCHEDULER_H_
 #define RANDOMSCHEDULER_H_
 
-#include <Scheduler_I.h>
+#include "Scheduler_I.h"
 
 namespace cci {
 namespace rt {

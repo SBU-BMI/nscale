@@ -12,7 +12,7 @@
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
 #include <time.h>
-#include "utils.h"
+#include "Logger.h"
 #include "FileUtils.h"
 
 
@@ -22,12 +22,12 @@ Mat computeGroundtruth(const Mat & img, cciutils::SimpleCSVLogger& logger, const
 	Mat out3(img.size(), CV_8U);
 	int status;
 	switch (modecode) {
-	case cciutils::DEVICE_CPU :
-	case cciutils::DEVICE_MCORE :
+	case cci::common::type::DEVICE_CPU :
+	case cci::common::type::DEVICE_MCORE :
 
 		status = nscale::HistologicalEntities::segmentNuclei(img, out3, &logger, 25);
 		break;
-	case cciutils::DEVICE_GPU :
+	case cci::common::type::DEVICE_GPU :
 		status = nscale::gpu::HistologicalEntities::segmentNuclei(img, out3, &logger, 25);
 		break;
 	default :
@@ -292,12 +292,12 @@ int main (int argc, char **argv){
 	const char* mode = argc > 8 ? argv[8] : "cpu";
 
 	int modecode = 0;
-	if (strcasecmp(mode, "cpu") == 0) modecode = cciutils::DEVICE_CPU;
+	if (strcasecmp(mode, "cpu") == 0) modecode = cci::common::type::DEVICE_CPU;
 	else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+		modecode = cci::common::type::DEVICE_MCORE;
 		// get core count
 	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
+		modecode = cci::common::type::DEVICE_GPU;
 		// get device count
 		int numGPU = gpu::getCudaEnabledDeviceCount();
 		if (numGPU < 1) {
@@ -351,8 +351,8 @@ int main (int argc, char **argv){
 	logger.log("filename", *niter);
 	logger.log("w", 4096);
 	logger.log("b", 0);
-//	uint64_t t1 = cciutils::ClockGetTime();
-//	logger.log("time", cciutils::ClockGetTime());
+//	uint64_t t1 = cci::common::event::timestampInUS();
+//	logger.log("time", cci::common::event::timestampInUS());
 	logger.log("type", "cpu");
 	logger.log("chunk x", 0);
 	logger.log("chunk y", 0);
@@ -408,17 +408,17 @@ int main (int argc, char **argv){
 
 				it = chunks.begin();
 				last = chunks.end();
-				t1 = cciutils::ClockGetTime();
+				t1 = cci::common::event::timestampInUS();
 				switch (modecode) {
-				case cciutils::DEVICE_CPU :
-				case cciutils::DEVICE_MCORE :
+				case cci::common::type::DEVICE_CPU :
+				case cci::common::type::DEVICE_MCORE :
 	//				logger.consoleOn();
 					for (; it < last; ++it) {
 						logger.log("run-id", runid);
 						logger.log("filename", *niter);
 						logger.log("w", w);
 						logger.log("b", b);
-						logger.log("time", cciutils::ClockGetTime());
+						logger.log("time", cci::common::event::timestampInUS());
 						logger.log("type", "cpu");
 
 						chunk = *it;
@@ -433,13 +433,13 @@ int main (int argc, char **argv){
 					}
 	//				logger.consoleOff();
 					break;
-				case cciutils::DEVICE_GPU :
+				case cci::common::type::DEVICE_GPU :
 					for (; it < last; ++it) {
 						logger.log("run-id", runid);
 						logger.log("filename", *niter);
 						logger.log("w", w);
 						logger.log("b", b);
-						logger.log("time", cciutils::ClockGetTime());
+						logger.log("time", cci::common::event::timestampInUS());
 						logger.log("type", "gpu");
 
 						chunk = *it;
@@ -456,7 +456,7 @@ int main (int argc, char **argv){
 				default :
 					break;
 				}
-				t2 = cciutils::ClockGetTime();
+				t2 = cci::common::event::timestampInUS();
 				std::cout << "**** SEGMENTATION took " << t2-t1 << "ms" << std::endl;
 
 				// concat.

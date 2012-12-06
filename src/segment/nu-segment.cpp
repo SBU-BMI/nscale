@@ -12,7 +12,7 @@
 #include <string.h>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include "FileUtils.h"
 #include <dirent.h>
 #include <unistd.h>
@@ -63,17 +63,17 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 #endif
 
 	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cciutils::DEVICE_CPU;
+		modecode = cci::common::type::DEVICE_CPU;
 		// get core count
 
 
 	} else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+		modecode = cci::common::type::DEVICE_MCORE;
 		// get core count
 
 
 	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
+		modecode = cci::common::type::DEVICE_GPU;
 		// get device count
 		int numGPU = gpu::getCudaEnabledDeviceCount();
 		if (numGPU < 1) {
@@ -104,8 +104,8 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	exts.push_back(std::string(".tif"));
 	exts.push_back(std::string(".tiff"));
 
-	FileUtils futils(exts);
-	futils.traverseDirectory(imageName, filenames, FileUtils::FILE, true);
+	cci::common::FileUtils futils(exts);
+	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
 
 	std::string dirname = imageName;
 	if (filenames.size() == 1) {
@@ -120,15 +120,15 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
 		temp = futils.replaceExt(filenames[i], ".mask.pbm");
-		temp = FileUtils::replaceDir(temp, dirname, outDir);
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		FileUtils::mkdirs(tempdir);
+		cci::common::FileUtils::mkdirs(tempdir);
 		seg_output.push_back(temp);
 		// generate the bounds output file name
 		temp = futils.replaceExt(filenames[i], ".bounds.csv");
-		temp = FileUtils::replaceDir(temp, dirname, outDir);
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		FileUtils::mkdirs(tempdir);
+		cci::common::FileUtils::mkdirs(tempdir);
 		bounds_output.push_back(temp);
 	}
 
@@ -145,12 +145,12 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	int compcount;
 
 	switch (modecode) {
-	case cciutils::DEVICE_CPU :
-	case cciutils::DEVICE_MCORE :
+	case cci::common::type::DEVICE_CPU :
+	case cci::common::type::DEVICE_MCORE :
 		status = nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox);
 
 		break;
-	case cciutils::DEVICE_GPU :
+	case cci::common::type::DEVICE_GPU :
 		status = nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox);
 		break;
 	default :
@@ -249,10 +249,10 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	std::vector<std::string> bounds_output;
 	uint64_t t1, t0;
 
-	t0 = cciutils::ClockGetTime();
+	t0 = cci::common::event::timestampInUS();
 	getFiles(maskName, outDir, filenames, seg_output, bounds_output);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
 	comm_world.Barrier();
 
@@ -354,7 +354,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 	printf("worker %d ready\n", rank);
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
-		t0 = cciutils::ClockGetTime();
+		t0 = cci::common::event::timestampInUS();
 
 		// tell the manager - ready
 		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
@@ -382,14 +382,14 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			comm_world.Recv(mask, maskSize, MPI::CHAR, manager_rank, TAG_DATA);
 			comm_world.Recv(output, outputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
-			t0 = cciutils::ClockGetTime();
+			t0 = cci::common::event::timestampInUS();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
 
 			compute(input, mask, output, modecode);
 			// now do some work
 
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 //			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
 			printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
@@ -421,7 +421,7 @@ int main (int argc, char **argv){
 		return -4;
 	}
 
-	if (modecode == cciutils::DEVICE_GPU) {
+	if (modecode == cci::common::type::DEVICE_GPU) {
 		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
 		return -4;
 	}
@@ -436,19 +436,19 @@ int main (int argc, char **argv){
 
 
 	uint64_t t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
 		manager_process(comm_world, manager_rank, worker_size, imageName, outDir);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 	} else {
 		// worker bees
 		worker_process(comm_world, manager_rank, rank, modecode);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 
 	}
@@ -471,17 +471,17 @@ int main (int argc, char **argv){
     	if (status != 0) return status;
 
     	uint64_t t0 = 0, t1 = 0, t2 = 0;
-    	t1 = cciutils::ClockGetTime();
+    	t1 = cci::common::event::timestampInUS();
 
     	// first get the list of files to process
        	std::vector<std::string> filenames;
     	std::vector<std::string> seg_output;
     	std::vector<std::string> bounds_output;
 
-    	t0 = cciutils::ClockGetTime();
+    	t0 = cci::common::event::timestampInUS();
     	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
 
-    	t1 = cciutils::ClockGetTime();
+    	t1 = cci::common::event::timestampInUS();
     	printf("file read took %lu us\n", t1 - t0);
 
     	int total = filenames.size();
@@ -529,7 +529,7 @@ int main (int argc, char **argv){
     		++i;
     	}
 #endif
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("FINISHED in %lu us\n", t2 - t1);
 
     	return 0;

@@ -16,7 +16,7 @@
 #include <tr1/unordered_set>
 
 #include "DataBuffer.h"
-#include "SCIOUtilsLogger.h"
+#include "Logger.h"
 #include "Debug.h"
 
 #include "boost/program_options.hpp"
@@ -32,7 +32,7 @@ namespace rt {
 class Communicator_I {
 public:
 	Communicator_I(MPI_Comm const * _parent_comm, int const _gid,
-			cciutils::SCIOLogSession *_logsession = NULL);
+			cci::common::LogSession *_logsession = NULL);
 	virtual ~Communicator_I();
 
 
@@ -85,8 +85,8 @@ protected:
 
 
 
-	cciutils::SCIOLogSession *logsession;
-	cci::rt::mpi::waMPI *waComm;
+	cci::common::LogSession *logsession;
+	cci::common::mpi::waMPI *waComm;
 };
 
 

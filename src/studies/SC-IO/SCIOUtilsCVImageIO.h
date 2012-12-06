@@ -13,7 +13,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include "UtilsCVImageIO.h"
-#include "SCIOUtilsLogger.h"
+#include "Logger.h"
 
 namespace cciutils {
 
@@ -25,7 +25,7 @@ private:
     std::string prefix;
     std::string suffix;
     std::vector<int> selectedStages;
-    SCIOLogSession *session;
+    cci::common::LogSession *session;
 
     bool compression;
 
@@ -38,7 +38,7 @@ public:
 	SCIOIntermediateResultWriter(const std::string &pref, const std::string &suf, const std::vector<int> &selStages, bool _compression);
 	virtual ~SCIOIntermediateResultWriter();
 
-	virtual void setLogSession(::cciutils::SCIOLogSession *_session) {
+	virtual void setLogSession(::cci::common::LogSession *_session) {
 		this->session = _session;
 	}
 

@@ -15,7 +15,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
-#include "utils.h"
+#include "TypeUtils.h"
+#include "Logger.h"
 #include "FileUtils.h"
 #include <dirent.h>
 
@@ -47,31 +48,19 @@ void compute(const char *input);
 
 int parseInput(int argc, char **argv, int &modecode, std::string &maskName) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> run-id [cpu [numThreads] | mcore [numThreads] ]" << std::endl;
 		return -1;
 	}
 	maskName.assign(argv[1]);
 	const char* mode = argc > 3 ? argv[3] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cciutils::DEVICE_CPU;
+		modecode = cci::common::type::DEVICE_CPU;
 		// get core count
 
 	} else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+		modecode = cci::common::type::DEVICE_MCORE;
 		// get core count
-	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
-		// get device count
-		int numGPU = gpu::getCudaEnabledDeviceCount();
-		if (numGPU < 1) {
-			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
-			return -2;
-		}
-		if (argc > 4) {
-			gpu::setDevice(atoi(argv[4]));
-		}
-		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
 		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
@@ -84,8 +73,8 @@ int parseInput(int argc, char **argv, int &modecode, std::string &maskName) {
 void getFiles(const std::string &maskName, std::vector<std::string> &filenames) {
 
 	// check to see if it's a directory or a file
-	FileUtils futils(std::string(".features.h5"));
-	futils.traverseDirectory(maskName, filenames, FileUtils::FILE, true);
+	cci::common::FileUtils futils(std::string(".features.h5"));
+	futils.traverseDirectory(maskName, filenames, cci::common::FileUtils::FILE, true);
 	std::string dirname = maskName;
 	if (filenames.size() == 1) {
 		// if the maskname is actually a file, then the dirname is extracted from the maskname.
@@ -160,19 +149,19 @@ int main (int argc, char **argv){
 
 
 	uint64_t t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
 		manager_process(comm_world, manager_rank, worker_size, maskName);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 	} else {
 		// worker bees
 		worker_process(comm_world, manager_rank, rank);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
 
 	}
@@ -196,11 +185,11 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
    	std::vector<std::string> filenames;
 	uint64_t t1, t0;
 
-	t0 = cciutils::ClockGetTime();
+	t0 = cci::common::event::timestampInUS();
 
 	getFiles(maskName, filenames);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
 
 	comm_world.Barrier();
@@ -275,7 +264,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
-		t0 = cciutils::ClockGetTime();
+		t0 = cci::common::event::timestampInUS();
 
 		// tell the manager - ready
 		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
@@ -295,13 +284,13 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			// get the file names
 			comm_world.Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
 			// now do some work
 			compute(input);
 
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 		//	printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
@@ -406,7 +395,7 @@ void compute(const char *input) {
 		// parse the input string
 		string infile;
 		infile.assign(imgfilename);
-		string filename = FileUtils::getFile(infile);
+		string filename = cci::common::FileUtils::getFile(infile);
 		// get the image name
 		size_t pos = filename.rfind('.');
 		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", imgfilename);
@@ -503,7 +492,7 @@ void compute(const char *input) {
 		// parse the input string
 		string infile;
 		infile.assign(imgfilename);
-		string filename = FileUtils::getFile(infile);
+		string filename = cci::common::FileUtils::getFile(infile);
 		// get the image name
 		size_t pos = filename.rfind('.');
 		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", imgfilename);

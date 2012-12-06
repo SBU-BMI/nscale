@@ -16,7 +16,8 @@
 #include <vector>
 #include <math.h>
 #include <algorithm>
-#include "utils.h"
+#include "TypeUtils.h"
+#include "Logger.h"
 #include "FileUtils.h"
 #include <dirent.h>
 
@@ -79,19 +80,19 @@ int parseInput(int argc, char **argv, int &modecode, std::string &runid, std::st
 	thresh = atof(argv[4]);
 	runid.assign(argv[5]);
 	printf("outfile directory = %s\n", argv[2]);
-	FileUtils::mkdirs(outDir);
+	cci::common::FileUtils::mkdirs(outDir);
 
 	const char* mode = argc > 6 ? argv[6] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cciutils::DEVICE_CPU;
+		modecode = cci::common::type::DEVICE_CPU;
 		// get core count
 
 	} else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+		modecode = cci::common::type::DEVICE_MCORE;
 		// get core count
 	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
+		modecode = cci::common::type::DEVICE_GPU;
 		// get device count
 		int numGPU = gpu::getCudaEnabledDeviceCount();
 		if (numGPU < 1) {
@@ -228,7 +229,7 @@ int main (int argc, char **argv){
 
 
 	uint64_t t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// decide based on rank of worker which way to process
 	// broadcast to everyone.
@@ -245,7 +246,7 @@ int main (int argc, char **argv){
 		uint64_t t1, t0;
 		unsigned long total;
 
-		t0 = cciutils::ClockGetTime();
+		t0 = cci::common::event::timestampInUS();
 
 		getFiles(infile, featurefiles, total, &mean, &stdev, n_cols);
 
@@ -293,7 +294,7 @@ int main (int argc, char **argv){
 			}
 		}
 
-		t1 = cciutils::ClockGetTime();
+		t1 = cci::common::event::timestampInUS();
 		printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
 
 

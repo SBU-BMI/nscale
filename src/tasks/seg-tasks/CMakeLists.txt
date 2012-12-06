@@ -4,13 +4,16 @@ project( SegmentationTasks )
 set(SegmentationTasks_VERSION_MAJOR 1)
 set(SegmentationTasks_VERSION_MINOR 0)
 
+include_directories(${cci_common_SOURCE_DIR})
+link_directories(${cci_common_BINARY_DIR})
 
 include_directories(${Segmentation_SOURCE_DIR})
-link_directories(${Segmentation_SOURCE_DIR})
+link_directories(${Segmentation_BINARY_DIR})
 include_directories(${FeaturesComputation_SOURCE_DIR})
-link_directories(${FeaturesComputation_SOURCE_DIR})
+link_directories(${FeaturesComputation_BINARY_DIR})
 include_directories(${ExecEngine_SOURCE_DIR})
-link_directories(${ExecEngine_SOURCE_DIR})
+link_directories(${ExecEngine_BINARY_DIR})
+
 
 # Source files used by seg tasks
 file(GLOB libsrcs "*Task.cpp")
@@ -24,6 +27,7 @@ if(CUDA_FOUND)
 endif(CUDA_FOUND)
 
 # Link opencv stuff to the execution engine
+target_link_libraries("${libname}" cci_common)
 target_link_libraries("${libname}" segment)
 target_link_libraries("${libname}" features)
 target_link_libraries("${libname}" execengine)
@@ -35,6 +39,7 @@ foreach(program ${programs})
 	add_executable(${program} ${program}.cpp)
 
 	# Link the executable to the Features Computation library
+    target_link_libraries(${program} cci_common)
 	target_link_libraries(${program} segment)
 	target_link_libraries(${program} segtasks)
 	target_link_libraries(${program} features)

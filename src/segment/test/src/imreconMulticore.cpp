@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include <stdio.h>
 #include <omp.h>
 
@@ -50,9 +50,9 @@ int main (int argc, char **argv){
                 marker = tempMarker;
                 mask = tempMask;
         }
-	uint64_t t1 = cciutils::ClockGetTime();
+	uint64_t t1 = cci::common::event::timestampInUS();
 //	Mat recon1 = nscale::imreconstruct<unsigned char>(marker, mask, 8);
-	uint64_t t2 = cciutils::ClockGetTime();
+	uint64_t t2 = cci::common::event::timestampInUS();
 //	std::cout << "SequentialTime="<< t2-t1 << std::endl;
 //
 	Mat marker_border(marker.size() + Size(2,2), marker.type());
@@ -64,14 +64,14 @@ int main (int argc, char **argv){
 	Mat marker_copy(marker_border, Rect(1,1,marker_border.cols-2,marker_border.rows-2));
 	Mat mask_copy(mask_border, Rect(1,1,mask_border.cols-2,mask_border.rows-2));
 	marker.release(); mask.release();
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	Mat reconQueue = nscale::imreconstructParallelQueue<unsigned char>(marker_border,mask_border,8,true, nThreads);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "QueueTime = "<< t2-t1 << std::endl;
 
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	Mat reconTile = nscale::imreconstructParallelTile<unsigned char>(marker,mask,8,tileSize, nThreads);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "TiledTime = "<< t2-t1 << std::endl;
 
 //	std::cout << "comp reconQueue= "<<countNonZero(recon1!=reconQueue) << std::endl;

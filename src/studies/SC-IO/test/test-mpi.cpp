@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <string>
 #include "pthread.h"
-#include "SCIOUtilsLogger.h"
+#include "Logger.h"
 
 #include <unistd.h>
 
@@ -146,13 +146,13 @@ int main (int argc, char **argv) {
 
 	// now test delays
 	MPI_Barrier(comm_world);
-	long long t1 = cciutils::event::timestampInUS();
+	long long t1 = cci::common::event::timestampInUS();
 
 	sleep(worker_group);  // WORKER_GROUP should have value >= 0.
 
 
 	MPI_Barrier(comm_worker);
-	long long t2 = cciutils::event::timestampInUS();
+	long long t2 = cci::common::event::timestampInUS();
 	printf("rank %d worker rank %d group %d elapsed %lld\n", rank, worker_rank, worker_group, t2 - t1);
 
 	MPI_Barrier(comm_world);
@@ -334,18 +334,18 @@ int main (int argc, char **argv) {
 			memset(data, 0, 64000000);
 
 
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Recv(data, 64000000, MPI_CHAR, 1, 0, comm_world, &stat);
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("recv completed in %d iters, %lld us. data = %d\n", iter, t2 - t1, data[0]);
 
 			MPI_Barrier(comm_world);
 
 			memset(data, 0, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Irecv(data, 64000000, MPI_CHAR, 1, 0, comm_world, &req);
 			MPI_Wait(&req, &stat);
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("irecv with wait completed in %d iters, %lld us. data = %d\n", iter, t2 - t1, data[0]);
 
 			MPI_Barrier(comm_world);
@@ -353,13 +353,13 @@ int main (int argc, char **argv) {
 			iter = 0;
 			completed = 0;
 			memset(data, 0, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Irecv(data, 64000000, MPI_CHAR, 1, 0, comm_world, &req);
 			while (completed == 0) {
 				++iter;
 				MPI_Test(&req, &completed, &stat);
 			}
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("irecv with test completed in %d iters, %lld us. data = %d\n", iter, t2 - t1, data[0]);
 
 			MPI_Barrier(comm_world);
@@ -367,46 +367,46 @@ int main (int argc, char **argv) {
 			iter = 0;
 			completed = 0;
 			memset(data, 0, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Irecv(data, 64000000, MPI_CHAR, 1, 0, comm_world, &req);
 			while (completed == 0) {
 				++iter;
 				usleep(100);
 				MPI_Test(&req, &completed, &stat);
 			}
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("irecv with test and usleep completed in %d iters, %lld us. data = %d\n", iter, t2 - t1, data[0]);
 
 
 			iter = 0;
 			completed = 0;
 			memset(data, 0, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Irecv(data, 64000000, MPI_CHAR, 1, 0, comm_world, &req);
 			while (completed == 0) {
 				++iter;
 				for (int i= 0; i < 10000; ++i);
 				MPI_Test(&req, &completed, &stat);
 			}
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("irecv with test and busyloop completed in %d iters, %lld us. data = %d\n", iter, t2 - t1, data[0]);
 
 
 		} else if (rank == 1){
 			memset(data, 1, 64000000);
 
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Send(data, 64000000, MPI_CHAR, 0, 0, comm_world);
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("send completed in %d iters, %lld us\n", iter, t2 - t1);
 
 			MPI_Barrier(comm_world);
 
 			memset(data, 2, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Isend(data, 64000000, MPI_CHAR, 0, 0, comm_world, &req);
 			MPI_Wait(&req, &stat);
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("isend with wait completed in %d iters, %lld us\n", iter, t2 - t1);
 
 			MPI_Barrier(comm_world);
@@ -414,13 +414,13 @@ int main (int argc, char **argv) {
 			iter = 0;
 			completed = 0;
 			memset(data, 3, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Isend(data, 64000000, MPI_CHAR, 0, 0, comm_world, &req);
 			while (completed == 0) {
 			    ++iter;
 				MPI_Test(&req, &completed, &stat);
 			}
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("isend with test completed in %d iters, %lld us\n", iter, t2 - t1);
 
 			MPI_Barrier(comm_world);
@@ -428,27 +428,27 @@ int main (int argc, char **argv) {
 			iter = 0;
 			completed = 0;
 			memset(data, 4, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Isend(data, 64000000, MPI_CHAR, 0, 0, comm_world, &req);
 			while (completed == 0) {
 			    ++iter;
 			    usleep(100);
 			    MPI_Test(&req, &completed, &stat);
 			}
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("isend with test and usleep completed in %d iters, %lld us\n", iter, t2 - t1);
 
 			iter = 0;
 			completed = 0;
 			memset(data, 4, 64000000);
-			t1 = cciutils::event::timestampInUS();
+			t1 = cci::common::event::timestampInUS();
 			MPI_Isend(data, 64000000, MPI_CHAR, 0, 0, comm_world, &req);
 			while (completed == 0) {
 			    ++iter;
 			    for (int i = 0; i < 10000; ++i);
 			    MPI_Test(&req, &completed, &stat);
 			}
-			t2 = cciutils::event::timestampInUS();
+			t2 = cci::common::event::timestampInUS();
 			printf("isend with test and busyloop completed in %d iters, %lld us\n", iter, t2 - t1);
 
 		} else {

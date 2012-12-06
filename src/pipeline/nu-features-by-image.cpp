@@ -15,10 +15,11 @@
 #include <stdio.h>
 #include <vector>
 #include <math.h>
-#include "utils.h"
+#include "TypeUtils.h"
+#include "Logger.h"
 #include "FileUtils.h"
 #include <dirent.h>
-
+#include <sstream>
 #include "hdf5.h"
 #include "hdf5_hl.h"
 
@@ -48,34 +49,22 @@ void compute(const char *dirname, std::string &outdir);
 
 int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &outdir) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " indir outdir run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " indir outdir run-id [cpu [numThreads] | mcore [numThreads]]" << std::endl;
 		return -1;
 	}
 	maskName.assign(argv[1]);
 	outdir.assign(argv[2]);
-	FileUtils::mkdirs(outdir);
+	cci::common::FileUtils::mkdirs(outdir);
 
 	const char* mode = argc > 4 ? argv[4] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cciutils::DEVICE_CPU;
+		modecode = cci::common::type::DEVICE_CPU;
 		// get core count
 
 	} else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+		modecode = cci::common::type::DEVICE_MCORE;
 		// get core count
-	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
-		// get device count
-		int numGPU = gpu::getCudaEnabledDeviceCount();
-		if (numGPU < 1) {
-			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
-			return -2;
-		}
-		if (argc > 5) {
-			gpu::setDevice(atoi(argv[5]));
-		}
-		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
 		std::cout << "Usage:  " << argv[0] << " indir outdir run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
@@ -87,8 +76,8 @@ void getDirs(const std::string &dirName, std::vector<std::string> &dirnames) {
 
 	// check to see if it's a directory or a file
 
-	FileUtils futils;
-	futils.traverseDirectory(dirName, dirnames, FileUtils::DIRECTORY, false);
+	cci::common::FileUtils futils;
+	futils.traverseDirectory(dirName, dirnames, cci::common::FileUtils::DIRECTORY, false);
 
 	if (dirnames.empty()) {  // no subdir, so must be operating on the current directory.
 		dirnames.push_back(dirName);
@@ -101,8 +90,8 @@ void getFiles(const std::string &dirName, std::vector<std::string> &filenames) {
 
 	// check to see if it's a directory or a file
 
-	FileUtils futils(std::string(".features.h5"));
-	futils.traverseDirectory(dirName, filenames, FileUtils::FILE, false);
+	cci::common::FileUtils futils(std::string(".features.h5"));
+	futils.traverseDirectory(dirName, filenames, cci::common::FileUtils::FILE, false);
 }
 
 
@@ -165,19 +154,19 @@ int main (int argc, char **argv){
 
 
 	uint64_t t1 = 0, t2 = 0;
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
 		manager_process(comm_world, manager_rank, worker_size, maskName);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("MANAGER %d : FINISHED in %lu us\n", rank, t2 - t1);
 
 	} else {
 		// worker bees
 		worker_process(comm_world, manager_rank, rank, outdir);
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
 
 	}
@@ -201,7 +190,7 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
    	std::vector<std::string> dirnames;
 	uint64_t t1, t0;
 
-	t0 = cciutils::ClockGetTime();
+	t0 = cci::common::event::timestampInUS();
 
 	getDirs(maskName, dirnames);
 	printf("dirname: %s\n", maskName.c_str());
@@ -209,7 +198,7 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 		printf("   dir: %s\n", dirnames[i].c_str());
 	}
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	printf("Manager ready at %d, file read took %lu us\n", manager_rank, t1 - t0);
 
 	comm_world.Barrier();
@@ -284,7 +273,7 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
-		t0 = cciutils::ClockGetTime();
+		t0 = cci::common::event::timestampInUS();
 
 		// tell the manager - ready
 		comm_world.Send(&WORKER_READY, 1, MPI::CHAR, manager_rank, TAG_CONTROL);
@@ -304,13 +293,13 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 			// get the file names
 			comm_world.Recv(input, inputSize, MPI::CHAR, manager_rank, TAG_DATA);
 
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
 			// now do some work
 			compute(input, outdir);
 
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 		//	printf("worker %d processed \"%s\" in %lu us\n", rank, input, t1 - t0);
 
 			// clean up
@@ -357,7 +346,7 @@ void compute(const char *dirname, std::string &outdir) {
 	
 	
 	// next set up the output h5 file.  this is just the dirname + ".features.all.h5"
-	stringstream ss;
+	std::stringstream ss;
 	ss << outdir << "/" << imagename << ".image.features.h5";
 	string ofn = ss.str();
 	hid_t out_file_id = H5Fcreate(ofn.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -366,14 +355,14 @@ void compute(const char *dirname, std::string &outdir) {
 	hsize_t maxdims[2] = {H5S_UNLIMITED, n_feat_cols};
 	hsize_t chunk[2] = {1000, n_feat_cols};
 
-	createExtensibleDataset(out_file_id, 2, maxdims, chunk, H5T_IEEE_F32LE, NS_FEATURE_SET);
+	cci::common::hdf5::createExtensibleDataset(out_file_id, 2, maxdims, chunk, H5T_IEEE_F32LE, NS_FEATURE_SET);
 
 	// create nu-info dataset as extensible
 	// create compound data type for dataset creation.
 	hid_t file_sum_type = createTileSumFiletype();
 	maxdims[0] = H5S_UNLIMITED;
 	chunk[0] = 4;
-	createExtensibleDataset(out_file_id, 1, maxdims, chunk, file_sum_type, NS_TILE_SUM_SET);
+	cci::common::hdf5::createExtensibleDataset(out_file_id, 1, maxdims, chunk, file_sum_type, NS_TILE_SUM_SET);
 	hstatus = H5Tclose(file_sum_type);
 
 
@@ -383,14 +372,14 @@ void compute(const char *dirname, std::string &outdir) {
 	hid_t file_nu_type = createNuInfoFiletype();
 	maxdims[0] = H5S_UNLIMITED;
 	chunk[0] = 1000;
-	createExtensibleDataset(out_file_id, 1, maxdims, chunk, file_nu_type, NS_NU_INFO_SET);
+	cci::common::hdf5::createExtensibleDataset(out_file_id, 1, maxdims, chunk, file_nu_type, NS_NU_INFO_SET);
 	hstatus = H5Tclose(file_nu_type);
 
 
 	// create the tile info types
 	hid_t file_tile_type = createTileInfoFiletype();
 	chunk[0] = 4;
-	createExtensibleDataset(out_file_id, 1, maxdims, chunk, file_tile_type, NS_TILE_INFO_SET);
+	cci::common::hdf5::createExtensibleDataset(out_file_id, 1, maxdims, chunk, file_tile_type, NS_TILE_INFO_SET);
 
 	hstatus = H5Tclose(file_tile_type);
 
@@ -445,7 +434,7 @@ void compute(const char *dirname, std::string &outdir) {
 		H5LTread_dataset (file_id, NS_FEATURE_SET, H5T_NATIVE_FLOAT, data);
 
 		// write to new file
-		extendAndWrite(out_file_id, NS_FEATURE_SET, 2, ldims, H5T_NATIVE_FLOAT, data, (i==0));
+		cci::common::hdf5::extendAndWrite(out_file_id, NS_FEATURE_SET, 2, ldims, H5T_NATIVE_FLOAT, data, (i==0));
 
 		//
 		// also compute the tile's partial sums
@@ -490,7 +479,7 @@ void compute(const char *dirname, std::string &outdir) {
 		// open same file again and update the attributes
 		// write out to file
 		ldims[0] = 1;
-		extendAndWrite(out_file_id, NS_TILE_SUM_SET, 1, ldims, mem_sum_type, &sinfo, (i==0));
+		cci::common::hdf5::extendAndWrite(out_file_id, NS_TILE_SUM_SET, 1, ldims, mem_sum_type, &sinfo, (i==0));
 
 		// done with getting partial results for tile
 
@@ -520,7 +509,7 @@ void compute(const char *dirname, std::string &outdir) {
 		}
 
 		// write to new file
-		extendAndWrite(out_file_id, NS_NU_INFO_SET, 1, ldims, mem_nu_type, info, (i==0));
+		cci::common::hdf5::extendAndWrite(out_file_id, NS_NU_INFO_SET, 1, ldims, mem_nu_type, info, (i==0));
 
 		delete [] data;
 		delete [] info;
@@ -553,7 +542,7 @@ void compute(const char *dirname, std::string &outdir) {
 		tinfo.tile_x = tile_x;
 		tinfo.tile_y = tile_y;
 		ldims[0] = 1;
-		extendAndWrite(out_file_id, NS_TILE_INFO_SET, 1, ldims, mem_tile_type, &tinfo, (i==0));
+		cci::common::hdf5::extendAndWrite(out_file_id, NS_TILE_INFO_SET, 1, ldims, mem_tile_type, &tinfo, (i==0));
 
 
 		// now add the attributes

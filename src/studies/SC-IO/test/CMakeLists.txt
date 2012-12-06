@@ -4,12 +4,19 @@ project(SCIOTest)
 include_directories(${SCIOSegmentation_SOURCE_DIR})
 
 # Make sure the compiler can find the library in Segmentation directory
-link_directories(${SCIOSegmentation_SOURCE_DIR})
+link_directories(${SCIOSegmentation_BINARY_DIR})
 
-set(CMAKE_EXECUTABLE_SUFFIX ".exe")
+set(programs test-cpp)
+foreach(program ${programs})
+	# Add an executable to be built from the files listed
+	add_executable(${program} ${program}.cpp)
+
+	# Link the executable to the Segmentation library
+endforeach(program)
+
 
 if(MPI_FOUND)
-	set(programs test-mpi test-cpp)
+	set(programs test-mpi)
 	foreach(program ${programs})
 		# Add an executable to be built from the files listed
 		add_executable(${program} ${program}.cpp)

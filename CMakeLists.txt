@@ -53,35 +53,9 @@ else()
     endif()
 endif()
 
-#### OpenCV
-find_path(OpenCV_CMAKE_DIR NAMES FindOpenCV.cmake OpenCVConfig.cmake
-	HINTS ${CMAKE_MODULE_PATH} ENV OPENCV_HOME
-	DOC "path to FindOpenCV.cmake or OpenCVConfig.cmake file") 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${OpenCV_CMAKE_DIR})
-find_package( OpenCV REQUIRED )
-#message(STATUS "openCV lib = ${OpenCV_LIBS}")
-
-#### CUDA
-set(USE_CUDA OFF CACHE BOOL "Include NVidia Cuda Runtime support")
-if(USE_CUDA)
-    find_package(CUDA 4.0)
-    
-    if(CUDA_FOUND) 		
-        message(STATUS "CUDA detected: " ${CUDA_VERSION})
-
-        # These vars will be processed in other scripts
-     	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --use_fast_math -arch=sm_20 -DPREFIX_SUM)
-     #	set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -G)  # too slow...
-       set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -DTHRUST_DEBUG)
-        message(STATUS "CUDA NVCC target flags: ${CUDA_NVCC_FLAGS}")
-	add_definitions( -DWITH_CUDA )
-    endif(CUDA_FOUND)
-else(USE_CUDA)
-	set(CUDA_FOUND 0)
-endif(USE_CUDA)
-
-# Find threads package which is linked to the execution engine library
-find_package( Threads REQUIRED )
+# ----------------------------------------------------------------------------
+#                       common libaries needed by all
+# ----------------------------------------------------------------------------
 
 #### MPI
 set(USE_MPI OFF CACHE BOOL "Build with MPI support")
@@ -91,12 +65,6 @@ if (USE_MPI)
 else(USE_MPI)
 	set(MPI_FOUND 0)
 endif(USE_MPI)
-
-find_package(ZLIB REQUIRED)
-if (ZLIB_FOUND)
-	include_directories(${ZLIB_INCLUDE_DIRS})
-endif(ZLIB_FOUND)
-
 
 #### OpenMP
 set(USE_OPENMP OFF CACHE BOOL "Build with OpenMP support")
@@ -108,24 +76,26 @@ if (USE_OPENMP)
 endif(USE_OPENMP)
 
 
+#### for compression
+find_package(ZLIB REQUIRED)
+if (ZLIB_FOUND)
+	include_directories(${ZLIB_INCLUDE_DIRS})
+endif(ZLIB_FOUND)
 
 
 # ----------------------------------------------------------------------------
 #                       PROCESS SUBDIRECTORIES:
-# -----------------------------------------------------s-----------------------
+# ----------------------------------------------------------------------------
 # Save libs and executables in the same place
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE PATH "Output directory for libraries" )
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE PATH "Output directory for applications" )
-
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
 # Check if the user want to build test applications
 option (BUILD_TEST_APPLICATIONS "Inform whether test applications should be built" ON)
 # Check if the user want to build sample applications
-option (BUILD_EXAMPLE_APPLICTIONS "Inform whether sample applications should be built" ON)
-
-
+option (BUILD_EXAMPLE_APPLICATIONS "Inform whether sample applications should be built" ON)
 
 add_subdirectory(src)
 add_subdirectory(scripts)

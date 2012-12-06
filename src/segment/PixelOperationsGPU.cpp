@@ -7,8 +7,9 @@
 
 #include "PixelOperations.h"
 #include <limits>
-#include "utils.h"
+#include "Logger.h"
 #include "gpu_utils.h"
+#include "TypeUtils.h"
 
 
 //#define WITH_CUDA
@@ -87,7 +88,7 @@ void PixelOperations::convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&resu
 };
 
 void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, GpuMat& g_H, GpuMat& g_E, Stream& stream, bool BGR2RGB){
-	long t1 = cciutils::ClockGetTime();
+	long t1 = cci::common::event::timestampInUS();
 	//initialize normalized stain deconvolution matrix
 	Mat normal_M;
 
@@ -138,7 +139,7 @@ void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, 
 	}
 	Q = T.rowRange(Range(1,T.rows));
 
-	long t2 = cciutils::ClockGetTime();
+	long t2 = cci::common::event::timestampInUS();
 
 	cout << "	Before normalized = "<< t2-t1 <<endl;
 	assert(g_image.channels() == 3);
@@ -148,7 +149,7 @@ void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, 
 	
 	convLoop1(nr, nc, g_image.channels(), g_image, g_dn, StreamAccessor::getStream(stream));
 
-	long t1loop = cciutils::ClockGetTime();
+	long t1loop = cci::common::event::timestampInUS();
 	cout << "	After first loop = "<< t1loop - t2 <<endl;
 
 	GpuMat g_cn = GpuMat(nr, nc, CV_64FC2);
@@ -163,14 +164,14 @@ void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, 
 
 	stream.waitForCompletion();
 
-	long t2loop = cciutils::ClockGetTime();
+	long t2loop = cci::common::event::timestampInUS();
 	cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
 
 
 	convLoop3(nr, nc, g_cn.channels(), g_cn, g_E, g_H, StreamAccessor::getStream(stream));
 
 	stream.waitForCompletion();
-	long t3loop = cciutils::ClockGetTime();
+	long t3loop = cci::common::event::timestampInUS();
 	cout << "	After 3 loop = "<< t3loop - t2loop <<endl;
 
 	g_dn.release();

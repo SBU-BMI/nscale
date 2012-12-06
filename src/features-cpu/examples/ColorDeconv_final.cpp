@@ -14,7 +14,7 @@ using namespace cv;
 #include <math.h>
 //#include <stdio.h>
 //#include <stdlib.h>
-#include "../../segment/utils.h"
+#include "Logger.h"
 
 using namespace std;
 
@@ -183,7 +183,7 @@ void ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, 
 
 void ColorDeconvOptimizedFloat( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB){
 
-	long t1 = cciutils::ClockGetTime();
+	long t1 = cci::common::event::timestampInUS();
 	//initialize normalized stain deconvolution matrix
 	Mat normal_M;
 
@@ -234,7 +234,7 @@ void ColorDeconvOptimizedFloat( const Mat& image, const Mat& M, const Mat& b, Ma
 	}
 	Q = T.rowRange(Range(1,T.rows));
 
-	long t2 = cciutils::ClockGetTime();
+	long t2 = cci::common::event::timestampInUS();
 
 	cout << "	Before normalized = "<< t2-t1 <<endl;
 
@@ -272,7 +272,7 @@ void ColorDeconvOptimizedFloat( const Mat& image, const Mat& M, const Mat& b, Ma
 		}
 	}
 
-	long t1loop = cciutils::ClockGetTime();
+	long t1loop = cci::common::event::timestampInUS();
 	cout << "	Perf. after 1 loop = "<< t1loop-t2 <<endl;
 
 	//channel deconvolution
@@ -338,14 +338,14 @@ void ColorDeconvOptimizedFloat( const Mat& image, const Mat& M, const Mat& b, Ma
 		}
 	}
 
-	long t3 = cciutils::ClockGetTime();
+	long t3 = cci::common::event::timestampInUS();
 	cout << "	Rest = "<< t3-t1loop<<endl;
 }
 
 
 void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB){
 
-	long t1 = cciutils::ClockGetTime();
+	long t1 = cci::common::event::timestampInUS();
 	//initialize normalized stain deconvolution matrix
 	Mat normal_M;
 
@@ -396,7 +396,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 	}
 	Q = T.rowRange(Range(1,T.rows));
 
-	long t2 = cciutils::ClockGetTime();
+	long t2 = cci::common::event::timestampInUS();
 
 	cout << "	Before normalized = "<< t2-t1 <<endl;
 
@@ -432,7 +432,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 		}
 	}
 
-	long t1loop = cciutils::ClockGetTime();
+	long t1loop = cci::common::event::timestampInUS();
 	cout << "	After first loop = "<< t1loop - t2 <<endl;
 
 	//channel deconvolution
@@ -479,7 +479,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 	if(!Q.isContinuous()){
 		free(Q_ptr);
 	}
-	long t2loop = cciutils::ClockGetTime();
+	long t2loop = cci::common::event::timestampInUS();
 	cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
 
 	//denormalized H and E channels
@@ -500,7 +500,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 		}
 	}
 
-	long t3 = cciutils::ClockGetTime();
+	long t3 = cci::common::event::timestampInUS();
 	cout << "	Rest = "<< t3-t2loop<<endl;
 }
 

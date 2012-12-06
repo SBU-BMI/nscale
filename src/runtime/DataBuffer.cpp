@@ -34,7 +34,7 @@ boost::program_options::options_description DataBuffer::params("Buffer Options")
 bool DataBuffer::param_init = DataBuffer::initParams();
 
 
-DataBuffer::DataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession) :
+DataBuffer::DataBuffer(boost::program_options::variables_map &_vm, cci::common::LogSession *_logsession) :
 		status(DataBuffer::READY), logsession(_logsession) {
 	while (!buffer.empty()) {
 		DataType d = buffer.front();
@@ -48,7 +48,7 @@ DataBuffer::DataBuffer(boost::program_options::variables_map &_vm, cciutils::SCI
 	compression = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, "compression");
 }
 
-DataBuffer::DataBuffer(int _capacity, bool _compression, cciutils::SCIOLogSession *_logsession) :
+DataBuffer::DataBuffer(int _capacity, bool _compression, cci::common::LogSession *_logsession) :
 		capacity(_capacity), status(DataBuffer::READY), logsession(_logsession), compression(_compression) {
 	while (!buffer.empty()) {
 		DataType d = buffer.front();
@@ -62,7 +62,7 @@ DataBuffer::DataBuffer(int _capacity, bool _compression, cciutils::SCIOLogSessio
 
 DataBuffer::~DataBuffer() {
 	if (!buffer.empty()) {
-		Debug::print("WARNING: DataBuffer has %d entries left in buffer.  likely to have leaked memory.\n", buffer.size());
+		cci::common::Debug::print("WARNING: DataBuffer has %d entries left in buffer.  likely to have leaked memory.\n", buffer.size());
 	}
 	while (!buffer.empty()) {
 		DataType d = buffer.front();
@@ -81,19 +81,21 @@ int DataBuffer::push(DataType const data) {
 
 	if (this->canPush()) buffer.push(data);
 
-	//Debug::print("DataBuffer: push called.  %d load\n", buffer.size());
+	//cci::common::Debug::print("DataBuffer: push called.  %d load\n", buffer.size());
 
 	return READY;  // should have value READY.
 }
 
 int DataBuffer::pop(DataType &data) {
+	data.second = NULL;
+	data.first = 0;
 	if (isFinished()) return STOP;
 	if (!canPop()) return EMPTY;
 
 	data = buffer.front();
 	buffer.pop();
 
-	//Debug::print("DataBuffer: pop called.  %d load\n", buffer.size());
+	//cci::common::Debug::print("DataBuffer: pop called.  %d load\n", buffer.size());
 
 	return READY;
 }

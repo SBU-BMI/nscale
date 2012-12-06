@@ -18,9 +18,9 @@ namespace rt {
 class MPISendDataBuffer: public cci::rt::MPIDataBuffer {
 public:
 
-	MPISendDataBuffer(int _capacity, bool _non_blocking = true, cciutils::SCIOLogSession *_logsession = NULL) :
+	MPISendDataBuffer(int _capacity, bool _non_blocking = true, cci::common::LogSession *_logsession = NULL) :
 		MPIDataBuffer(_capacity, _non_blocking, _logsession) {};
-	MPISendDataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession = NULL) :
+	MPISendDataBuffer(boost::program_options::variables_map &_vm, cci::common::LogSession *_logsession = NULL) :
 		MPIDataBuffer(_vm, _logsession) {};
 
 	// for MPI send/recv.  call this instead of pop.
@@ -40,10 +40,10 @@ public:
 	virtual int checkRequests(bool waitForAll = false);
 
 	virtual ~MPISendDataBuffer() {
-		if (mpi_buffer.size() > 0) Debug::print("WARNING: clearning MPISendBuffer\n");
+		if (mpi_buffer.size() > 0) cci::common::Debug::print("WARNING: clearning MPISendBuffer\n");
 
 		int completed = checkRequests(true);
-		if (completed > 0) Debug::print("WARNING: completed %d from MPISendBuffer\n", completed);
+		if (completed > 0) cci::common::Debug::print("WARNING: completed %d from MPISendBuffer\n", completed);
 	};
 
 

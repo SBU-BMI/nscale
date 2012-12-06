@@ -94,10 +94,11 @@ endif(USE_ADIOS)
 
 # Make sure the compiler can find the includes
 include_directories(${Segmentation_SOURCE_DIR})
-include_directories(${NScale_Common_SOURCE_DIR})
+include_directories(${cci_common_SOURCE_DIR})
 
 # Make sure the compiler can find the library in Execution Engine directory
-link_directories(${Segmentation_SOURCE_DIR})
+link_directories(${Segmentation_BINARY_DIR})
+link_directories(${cci_common_BINARY_DIR})
 
 
 if(ADIOS_FOUND)
@@ -157,27 +158,22 @@ endif(ADIOS_FOUND)
 
 #### Segmentation code
 #### ADIOS code
-set(io_libsrcs SCIOUtilsLogger.cpp)
 set(io_gpulibsrcs SCIOUtilsCVImageIO.cpp)
 set(io_libname nu-io)
 # Add rule to generate execution engine, as a shared library (.so)
 set(TARGET_DEFS "")
 set(TARGET_COMP_FLAGS "-fPIC")
 if(CUDA_FOUND)
-	cuda_add_library("${io_libname}" SHARED ${io_gpulibsrcs} ${io_libsrcs})
+	cuda_add_library("${io_libname}" SHARED ${io_gpulibsrcs})
 	set(TARGET_DEFS "${TARGET_DEFS} WITH_CUDA")
 else(CUDA_FOUND)
-	add_library("${io_libname}" SHARED ${io_gpulibsrcs} ${io_libsrcs})
+	add_library("${io_libname}" SHARED ${io_gpulibsrcs})
 endif(CUDA_FOUND)
 
-if (MPI_FOUND)	
-	set(TARGET_DEFS "${TARGET_DEFS} WITH_MPI")
-	set(TARGET_COMP_FLAGS "${TARGET_COMP_FLAGS} ${MPI_COMPILE_FLAGS}")
-	set_target_properties(${io_libname} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")			
-endif(MPI_FOUND)
 set_target_properties(${io_libname} PROPERTIES COMPILE_FLAGS "${TARGET_COMP_FLAGS}")
 set_target_properties(${io_libname} PROPERTIES COMPILE_DEFINITIONS "${TARGET_DEFS}")
 target_link_libraries(${io_libname} segment)
+target_link_libraries(${io_libname} cci_common)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 	
 

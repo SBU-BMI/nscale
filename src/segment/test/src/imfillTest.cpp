@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 
 
 using namespace cv;
@@ -54,25 +54,25 @@ int main (int argc, char **argv){
 //	seeds.ptr(2)[2] = 1;
 //	Mat imfillseeds = repeat(seeds, 512, 512);
 //
-//	uint64_t t1 = cciutils::ClockGetTime();
+//	uint64_t t1 = cci::common::event::timestampInUS();
 //	Mat filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 8);
-//	uint64_t t2 = cciutils::ClockGetTime();
+//	uint64_t t2 = cci::common::event::timestampInUS();
 //	std::cout << "imfill took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-imfilled.pbm", filled);
 //
 	Mat filled;
 	// imfill holes
-	uint64_t t1 = cciutils::ClockGetTime();
+	uint64_t t1 = cci::common::event::timestampInUS();
 	filled = nscale::imfillHoles<unsigned char>(imfilldata, true, 8);
-	uint64_t t2 = cciutils::ClockGetTime();
+	uint64_t t2 = cci::common::event::timestampInUS();
 	std::cout << "imfill holes took " << t2-t1 << "ms" << std::endl;
 	imwrite("out-holesfilledCPU.pbm", filled);
 
 	GpuMat input(imfilldata);
 	Stream stream;
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	GpuMat g_filled = nscale::gpu::imfillHoles<unsigned char>(input, true, 8, stream);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 
 
 	std::cout << "imfill holes gpu took " << t2-t1 << "ms" << std::endl;
@@ -84,16 +84,16 @@ int main (int argc, char **argv){
 
 	imwrite("out-holesfilledGPU.pbm", filledGPU);
 
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 4);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "imfill 4 took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-imfilled4.pbm", filled);
 //
 //	// imfill holes
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	filled = nscale::imfillHoles<unsigned char>(imfillinput, true, 4);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "imfill holes4 took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-holesfilled4.pbm", filled);
 //
@@ -101,15 +101,15 @@ int main (int argc, char **argv){
 //	imfilldata = imread("test/tire.tif", 0);
 //	imfillinput = repeat(imfilldata, 20, 17);
 //
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	filled = nscale::imfillHoles<unsigned char>(imfillinput, false, 8);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "imfill holes gray took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-holesfilled-gray.ppm", filled);
 //
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	filled = nscale::imfillHoles<unsigned char>(imfillinput, false, 4);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "imfill holes gray4 took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-holesfilled-gray4.ppm", filled);
 //
@@ -129,15 +129,15 @@ int main (int argc, char **argv){
 //	seeds.ptr(186)[171] = 1;
 //	seeds.ptr(10)[19] = 1;
 //	imfillseeds = repeat(seeds, 16, 16);
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	Mat bwselected = nscale::bwselect<unsigned char>(imfillinput, imfillseeds, 8);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "bwselect took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-bwselected.pbm", bwselected);
 //
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	Mat bwselected2 = nscale::bwselect<unsigned char>(imfillinput, imfillseeds, 4);
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "bwselect4 took " << t2-t1 << "ms" << std::endl;
 //	imwrite("test/out-bwselected4.pbm", bwselected2);
 //
@@ -148,20 +148,20 @@ int main (int argc, char **argv){
 //	GpuMat g_imfillseeds(imfillseeds.size(), imfillseeds.type());
 //	stream.enqueueUpload(imfillseeds, g_imfillseeds);
 //	stream.waitForCompletion();
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	GpuMat g_bwselected = nscale::gpu::bwselect<unsigned char>(g_imfillinput, g_imfillseeds, 8, stream);
 //	stream.waitForCompletion();
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "bwselect gpu took " << t2-t1 << "ms" << std::endl;
 //	Mat bwselected3(g_bwselected.size(), g_bwselected.type());
 //	stream.enqueueDownload(g_bwselected, bwselected3);
 //	stream.waitForCompletion();
 //	imwrite("test/out-bwselected-gpu.pbm", bwselected3);
 //
-//	t1 = cciutils::ClockGetTime();
+//	t1 = cci::common::event::timestampInUS();
 //	GpuMat g_bwselected2 = nscale::gpu::bwselect<unsigned char>(g_imfillinput, g_imfillseeds, 4, stream);
 //	stream.waitForCompletion();
-//	t2 = cciutils::ClockGetTime();
+//	t2 = cci::common::event::timestampInUS();
 //	std::cout << "bwselect4 gpu took " << t2-t1 << "ms" << std::endl;
 //	Mat bwselected4(g_bwselected2.size(), g_bwselected2.type());
 //	stream.enqueueDownload(g_bwselected2, bwselected4);

@@ -25,8 +25,8 @@ public:
 	static boost::program_options::options_description params;
 	static const std::string PARAM_NONBLOCKING;
 
-	MPIDataBuffer(int _capacity, bool _compression=false, bool _non_blocking = true, cciutils::SCIOLogSession *_logsession = NULL) ;
-	MPIDataBuffer(boost::program_options::variables_map &_vm, cciutils::SCIOLogSession *_logsession = NULL);
+	MPIDataBuffer(int _capacity, bool _compression=false, bool _non_blocking = true, cci::common::LogSession *_logsession = NULL) ;
+	MPIDataBuffer(boost::program_options::variables_map &_vm, cci::common::LogSession *_logsession = NULL);
 
 	virtual size_t debugBufferSize() { return buffer.size()+ mpi_buffer.size(); };
 

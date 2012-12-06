@@ -7,7 +7,8 @@
 
 #include "PixelOperations.h"
 #include <limits>
-#include "utils.h"
+#include "Logger.h"
+#include "TypeUtils.h"
 
 namespace nscale {
 
@@ -78,14 +79,14 @@ Mat PixelOperations::bgr2gray(const ::cv::Mat& img){
 			unsigned char g = data_in[j * imageChannels + 1];
 			unsigned char r = data_in[j * imageChannels + 2];
 			double grayPixelValue = r_const * (double)r + g_const * (double)g + b_const * (double)b;
-			data_out[j] = cciutils::double2uchar(grayPixelValue);
+			data_out[j] = cci::common::type::double2uchar(grayPixelValue);
 		}
 	}
 	return gray;
 }
 void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB){
 
-	long t1 = cciutils::ClockGetTime();
+	long t1 = cci::common::event::timestampInUS();
 	//initialize normalized stain deconvolution matrix
 	Mat normal_M;
 
@@ -136,7 +137,7 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 	}
 	Q = T.rowRange(Range(1,T.rows));
 
-	long t2 = cciutils::ClockGetTime();
+	long t2 = cci::common::event::timestampInUS();
 
 	cout << "	Before normalized = "<< t2-t1 <<endl;
 
@@ -172,7 +173,7 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 		}
 	}
 
-	long t1loop = cciutils::ClockGetTime();
+	long t1loop = cci::common::event::timestampInUS();
 	cout << "	After first loop = "<< t1loop - t2 <<endl;
 
 	//channel deconvolution
@@ -219,7 +220,7 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 	if(!Q.isContinuous()){
 		free(Q_ptr);
 	}
-	long t2loop = cciutils::ClockGetTime();
+	long t2loop = cci::common::event::timestampInUS();
 	cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
 
 	//denormalized H and E channels
@@ -232,15 +233,15 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 
 		for(int j=0; j<nc; j++){
 			temp = exp(-(cn_ptr[j * cn_channels]-255.0)*log255div255);
-			H_ptr[j] = cciutils::double2uchar(temp);
+			H_ptr[j] = cci::common::type::double2uchar(temp);
 
 			temp = exp(-(cn_ptr[j * cn_channels + 1]-255.0)*log255div255);
 
-			E_ptr[j] = cciutils::double2uchar(temp);
+			E_ptr[j] = cci::common::type::double2uchar(temp);
 		}
 	}
 
-	long t3 = cciutils::ClockGetTime();
+	long t3 = cci::common::event::timestampInUS();
 	cout << "	Rest = "<< t3-t2loop<<endl;
 }
 

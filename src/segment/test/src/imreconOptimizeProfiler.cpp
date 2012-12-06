@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include <stdio.h>
 
 #include "opencv2/gpu/gpu.hpp"
@@ -44,58 +44,58 @@ void runTest(const char* markerName, const char* maskName, bool binary) {
 	stream.waitForCompletion();
 	std::cout << "\tfinished uploading to GPU" << std::endl;
 /*
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tgpu recon2 4-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	g_recon = nscale::gpu::imreconstruct2<unsigned char>(g_marker, g_mask, 8, stream);
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tgpu recon2 8-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 
 	
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 4, stream);
 	else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tgpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 */
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	if (binary) recon = nscale::imreconstructBinary<unsigned char>(marker, mask, 8);
 	else recon = nscale::imreconstruct<unsigned char>(marker, mask, 8);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tcpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-imrecon-vincent.pgm", recon);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	recon = nscale::imreconstructUChar(marker, mask, 8);
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tcpu downhill recon 4-con took " << t2-t1 << "ms" << std::endl;
 	imwrite("test/out-imrecon-tony-downhill.pgm", recon);
 
 
 
 /* For profiling
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 8, stream);
 	else g_recon = nscale::gpu::imreconstructQ<unsigned char>(g_marker, g_mask, 8, stream);
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tgpu recon 8-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 */
-/*	t1 = cciutils::ClockGetTime();
+/*	t1 = cci::common::event::timestampInUS();
 	if (binary) g_recon = nscale::gpu::imreconstructBinary<unsigned char>(g_marker, g_mask, 4, stream);
 	else g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, 4, stream);
 	stream.waitForCompletion();
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	std::cout << "\tgpu recon 4-con took " << t2-t1 << "ms" << std::endl;
 	g_recon.release();
 */

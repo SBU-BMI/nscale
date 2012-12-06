@@ -18,7 +18,7 @@ namespace rt {
 
 class Action_I : public Communicator_I {
 public:
-	Action_I(MPI_Comm const * _parent_comm, int const _gid, DataBuffer *_input, DataBuffer *_output, cciutils::SCIOLogSession *_logsession = NULL) :
+	Action_I(MPI_Comm const * _parent_comm, int const _gid, DataBuffer *_input, DataBuffer *_output, cci::common::LogSession *_logsession = NULL) :
 		Communicator_I(_parent_comm, _gid, _logsession), debug(false), inputBuf(_input), outputBuf(_output) {
 		if (inputBuf != NULL) DataBuffer::reference(inputBuf, this);
 		if (outputBuf != NULL) DataBuffer::reference(outputBuf, this);

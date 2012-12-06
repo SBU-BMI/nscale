@@ -16,6 +16,6 @@ add_library("${libname}" SHARED ${libsrcs})
 target_link_libraries("${libname}" ${CMAKE_THREAD_LIBS_INIT})
 
 # if build same applications is set, than build them: currently just one
-if(BUILD_EXAMPLE_APPLICTIONS)
+if(BUILD_EXAMPLE_APPLICATIONS)
 	add_subdirectory("examples/taskHello/")
-endif(BUILD_EXAMPLE_APPLICTIONS)
+endif(BUILD_EXAMPLE_APPLICATIONS)

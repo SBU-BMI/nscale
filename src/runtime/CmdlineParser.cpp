@@ -93,13 +93,13 @@ bool CmdlineParser::parse(int argc, char** argv) {
 template <typename T>
 T CmdlineParser::getParamValueByName(boost::program_options::variables_map &_vm, const std::string &name) {
 	try {
-		//Debug::print("STATUS: getting parameter value with name %s\n", name.c_str());
+		//cci::common::Debug::print("STATUS: getting parameter value with name %s\n", name.c_str());
 		return _vm[name].as<T>();
 	} catch (const boost::program_options::error& e) {
-		Debug::print("ERROR: can't get parameter value with name %s\n", name.c_str());
+		cci::common::Debug::print("ERROR: can't get parameter value with name %s\n", name.c_str());
 		return T();
 	} catch (const boost::bad_any_cast& e) {
-		Debug::print("ERROR: can't cast parameter value with name %s\n", name.c_str());
+		cci::common::Debug::print("ERROR: can't cast parameter value with name %s\n", name.c_str());
 		return T();
 	}
 }

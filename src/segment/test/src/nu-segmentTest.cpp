@@ -14,7 +14,7 @@
 #include <vector>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include "FileUtils.h"
 #include <dirent.h>
 #include "UtilsLogger.h"
@@ -59,17 +59,17 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 	const char* mode = argc > 5 ? argv[5] : "cpu";
 
 	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cciutils::DEVICE_CPU;
+		modecode = cci::common::type::DEVICE_CPU;
 		// get core count
 
 
 	} else if (strcasecmp(mode, "mcore") == 0) {
-		modecode = cciutils::DEVICE_MCORE;
+		modecode = cci::common::type::DEVICE_MCORE;
 		// get core count
 
 
 	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
+		modecode = cci::common::type::DEVICE_GPU;
 		// get device count
 		int numGPU = gpu::getCudaEnabledDeviceCount();
 		if (numGPU < 1) {
@@ -97,8 +97,8 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	exts.push_back(std::string(".tif"));
 	exts.push_back(std::string(".tiff"));
 
-	FileUtils futils(exts);
-	futils.traverseDirectory(imageName, filenames, FileUtils::FILE, true);
+	cci::common::FileUtils futils(exts);
+	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
 	std::string dirname;
 	if (filenames.size() == 1) {
 		dirname = imageName.substr(0, imageName.find_last_of("/\\"));
@@ -111,15 +111,15 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
 		temp = futils.replaceExt(filenames[i], ".mask.pbm");
-		temp = FileUtils::replaceDir(temp, dirname, outDir);
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		FileUtils::mkdirs(tempdir);
+		cci::common::FileUtils::mkdirs(tempdir);
 		seg_output.push_back(temp);
 		// generate the bounds output file name
 		temp = futils.replaceExt(filenames[i], ".bounds.csv");
-		temp = FileUtils::replaceDir(temp, dirname, outDir);
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		FileUtils::mkdirs(tempdir);
+		cci::common::FileUtils::mkdirs(tempdir);
 		bounds_output.push_back(temp);
 	}
 
@@ -140,7 +140,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
     	}
 
 
-    	FileUtils fu(".mask.pbm");
+    	cci::common::FileUtils fu(".mask.pbm");
     	std::string fmask(mask);
 
         std::string prefix = fu.replaceExt(fmask, ".mask.pbm", "");
@@ -164,11 +164,11 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	printf("processing %s\n", input);
 
 	switch (modecode) {
-	case cciutils::DEVICE_CPU :
-	case cciutils::DEVICE_MCORE :
+	case cci::common::type::DEVICE_CPU :
+	case cci::common::type::DEVICE_MCORE :
 		nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox, logger, iwrite);
 		break;
-	case cciutils::DEVICE_GPU :
+	case cci::common::type::DEVICE_GPU :
 		nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, logger, iwrite);
 		break;
 	default :
@@ -196,17 +196,17 @@ int main (int argc, char **argv){
     	if (status != 0) return status;
 
     	uint64_t t0 = 0, t1 = 0, t2 = 0;
-    	t1 = cciutils::ClockGetTime();
+    	t1 = cci::common::event::timestampInUS();
 
     	// first get the list of files to process
        	std::vector<std::string> filenames;
     	std::vector<std::string> seg_output;
     	std::vector<std::string> bounds_output;
 
-    	t0 = cciutils::ClockGetTime();
+    	t0 = cci::common::event::timestampInUS();
     	getFiles(imageName, outDir, filenames, seg_output, bounds_output);
 
-    	t1 = cciutils::ClockGetTime();
+    	t1 = cci::common::event::timestampInUS();
     	printf("file read took %lu us\n", t1 - t0);
 
     	int total = filenames.size();
@@ -215,7 +215,7 @@ int main (int argc, char **argv){
     		compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, debug, logger);
     		++i;
     	}
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("FINISHED in %lu us\n", t2 - t1);
 
 		if (logger) delete logger;

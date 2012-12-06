@@ -52,7 +52,7 @@ typedef struct {
 
 inline hid_t createTileInfoMemtype() {
 	hid_t varstr_t;
-	herr_t status = createVarStringType(varstr_t);
+	herr_t status = cci::common::hdf5::createVarStringType(varstr_t);
 
     hid_t memtype = H5Tcreate (H5T_COMPOUND, sizeof (tile_info_t));
     status = H5Tinsert (memtype, "img_tile_name",
@@ -71,7 +71,7 @@ inline hid_t createTileInfoMemtype() {
 
 inline hid_t createTileInfoFiletype() {
 	hid_t varstr_t;
-	herr_t status = createVarStringType(varstr_t);
+	herr_t status = cci::common::hdf5::createVarStringType(varstr_t);
 
     hid_t memtype = H5Tcreate (H5T_COMPOUND, 3 * sizeof(hvl_t) + 2 * 4);
     status = H5Tinsert (memtype, "img_tile_name", 0, varstr_t);
@@ -93,7 +93,7 @@ typedef struct {
 
 inline hid_t createImageInfoMemtype() {
 	hid_t varstr_t;
-	herr_t status = createVarStringType(varstr_t);
+	herr_t status = cci::common::hdf5::createVarStringType(varstr_t);
 
     hid_t memtype = H5Tcreate (H5T_COMPOUND, sizeof (image_info_t));
     status = H5Tinsert (memtype, "img_name",
@@ -106,7 +106,7 @@ inline hid_t createImageInfoMemtype() {
 
 inline hid_t createImageInfoFiletype() {
 	hid_t varstr_t;
-	herr_t status = createVarStringType(varstr_t);
+	herr_t status = cci::common::hdf5::createVarStringType(varstr_t);
 
     hid_t memtype = H5Tcreate (H5T_COMPOUND, 2 * sizeof(hvl_t));
     status = H5Tinsert (memtype, "img_name", 0, varstr_t);
@@ -122,7 +122,7 @@ typedef struct {
 
 inline hid_t createImageInfoFeatureMemtype() {
 	hid_t varstr_t;
-	herr_t status = createVarStringType(varstr_t);
+	herr_t status = cci::common::hdf5::createVarStringType(varstr_t);
 
     hid_t memtype = H5Tcreate(H5T_COMPOUND, sizeof(feature_info_t));
     status = H5Tinsert (memtype, "feature_name", HOFFSET(feature_info_t, feature_name), varstr_t);

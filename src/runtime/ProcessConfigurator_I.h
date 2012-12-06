@@ -22,7 +22,7 @@ class Process;
 
 class ProcessConfigurator_I {
 public:
-	ProcessConfigurator_I(cciutils::SCIOLogger *_logger) : logger(_logger) {};
+	ProcessConfigurator_I(cci::common::Logger *_logger) : logger(_logger) {};
 	virtual ~ProcessConfigurator_I() {};
 
 	virtual bool init() = 0;
@@ -33,7 +33,7 @@ public:
 
 
 protected:
-	cciutils::SCIOLogger *logger;
+	cci::common::Logger *logger;
 	boost::program_options::variables_map params;
 	std::string executable;
 

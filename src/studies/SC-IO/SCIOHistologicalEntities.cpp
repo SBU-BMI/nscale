@@ -12,9 +12,8 @@
 #include "PixelOperations.h"
 #include "highgui.h"
 #include "float.h"
-#include "utils.h"
 #include "ConnComponents.h"
-#include "SCIOUtilsLogger.h"
+#include "Logger.h"
 #include "FileUtils.h"
 
 
@@ -25,13 +24,13 @@ using namespace cv;
 
 int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
 		int &compcount, int *&bbox,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	long long t1, t2, t3;
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	// parse the input string
-	string filename = FileUtils::getFile(const_cast<std::string&>(in));
+	string filename = cci::common::FileUtils::getFile(const_cast<std::string&>(in));
 	// get the image name
 	size_t pos = filename.rfind('.');
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", in.c_str());
@@ -49,30 +48,30 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 
 	// first split.
 	Mat input = imread(in);
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
 	memset(len, 0, 21);
 	sprintf(len, "%lu", (long)(input.dataend) - (long)(input.datastart));
-	if (logsession != NULL) logsession->log(cciutils::event(0, std::string("read"), t1, t2, std::string(len), ::cciutils::event::FILE_I));
+	if (logsession != NULL) logsession->log(cci::common::event(0, std::string("read"), t1, t2, std::string(len), ::cci::common::event::FILE_I));
 
 	if (!input.data) return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	Mat output;
 	int status = ::nscale::SCIOHistologicalEntities::segmentNuclei(input, output, compcount, bbox, NULL, NULL);
 	input.release();
 
-	t2 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(90, std::string("compute"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+	t2 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(90, std::string("compute"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 	if (iresHandler == NULL) printf("iresHandler is null why?\n");
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
-		//t1 = ::cciutils::event::timestampInUS();
+		//t1 = ::cci::common::event::timestampInUS();
 		if (iresHandler != NULL) iresHandler->saveIntermediate(output, 100, imagename.c_str(), tilex, tiley, in.c_str());
 
-		//t2 = ::cciutils::event::timestampInUS();
-		//if (logsession != NULL) logsession->log(cciutils::event(100, std::string("write"), t1, t2, std::string(), ::cciutils::event::FILE_O));
+		//t2 = ::cci::common::event::timestampInUS();
+		//if (logsession != NULL) logsession->log(cci::common::event(100, std::string("write"), t1, t2, std::string(), ::cci::common::event::FILE_O));
 	}
 	output.release();
 
@@ -82,7 +81,7 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 
 int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 		int &compcount, int *&bbox,
-		::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+		::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	// image in BGR format
 	if (!img.data) 	return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 
@@ -94,15 +93,15 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	int status;
 
 	long long t1, t2, t3;
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	// first split.
 	std::vector<Mat> bgr;
 	split(img, bgr);
-	t2 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(10, std::string("toRGB"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
+	t2 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(10, std::string("toRGB"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 
 	// then check background
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	std::vector<unsigned char> bgThresh;
 	bgThresh.push_back(220);	
 	bgThresh.push_back(220);	
@@ -110,12 +109,12 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	Mat bg;
 	float ratio = backgroundRatio(bgr, bgThresh, bg, logsession, iresHandler);
 	bgThresh.clear();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(bg, 20);
 	bg.release();	
-	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(20, std::string("background"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
-//	if (logsession != NULL) logsession->log(cciutils::event(21, std::string("save background"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
+	t3 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(20, std::string("background"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cci::common::event(21, std::string("save background"), t2, t3, std::string("1"), ::cci::common::event::FILE_O));
 
 	if (ratio >= 0.99) {
 		bgr[0].release();
@@ -133,31 +132,31 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 
 	// next get RBC
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	std::vector<double> rbcThresh;
 	rbcThresh.push_back(5.0);
 	rbcThresh.push_back(4.0);
 	Mat rbc = getRBC(bgr, rbcThresh, logsession, iresHandler);
 	rbcThresh.clear();	
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(rbc, 30);
-	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(30, std::string("RBC"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
-//	if (logsession != NULL) logsession->log(cciutils::event(31, std::string("save RBC"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
+	t3 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(30, std::string("RBC"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cci::common::event(31, std::string("save RBC"), t2, t3, std::string("1"), ::cci::common::event::FILE_O));
 
 	// and separately find the gray scale candidates
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	Mat grayNu;
 	status = grayCandidates(grayNu, bgr[2], MORPH_ELLIPSE, 19, logsession, iresHandler);
 	bgr[0].release();
 	bgr[1].release();
 	bgr[2].release();
 	bgr.clear();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(grayNu, 40);
-	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(40, std::string("GrayNU"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
-//	if (logsession != NULL) logsession->log(cciutils::event(41, std::string("save GrayNU"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
+	t3 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(40, std::string("GrayNU"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cci::common::event(41, std::string("save GrayNU"), t2, t3, std::string("1"), ::cci::common::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		grayNu.release();
@@ -165,7 +164,7 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	}
 
 	// convert to binary
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	std::vector<unsigned char> grayThresh;
 	grayThresh.push_back(80);
 	grayThresh.push_back(45);
@@ -177,11 +176,11 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	grayNu.release();
 	grayThresh.clear();
 	sizeThresh1.clear();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(binNu, 50);
-	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(50, std::string("NuMask"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
-//	if (logsession != NULL) logsession->log(cciutils::event(51, std::string("save NuMask"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
+	t3 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(50, std::string("NuMask"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cci::common::event(51, std::string("save NuMask"), t2, t3, std::string("1"), ::cci::common::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		binNu.release();
@@ -191,7 +190,7 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 
 	// removeRBC
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	std::vector<int> sizeThresh2;
 	sizeThresh2.push_back(30);
 	sizeThresh2.push_back(std::numeric_limits<int>::max());
@@ -200,11 +199,11 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	binNu.release();
 	rbc.release();
 	sizeThresh2.clear();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(seg_norbc, 60);
-	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(60, std::string("removeRBC"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
-//	if (logsession != NULL) logsession->log(cciutils::event(61, std::string("save removeRBC"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
+	t3 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(60, std::string("removeRBC"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cci::common::event(61, std::string("save removeRBC"), t2, t3, std::string("1"), ::cci::common::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		seg_norbc.release();
@@ -213,15 +212,15 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 
 	// separate Nu
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	Mat seg_nonoverlap;
 	status = separateNuclei(seg_nonoverlap, seg_norbc, img, 1.0, logsession, iresHandler);
 	seg_norbc.release();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(seg_nonoverlap, 70);
-	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(70, std::string("separateNuclei"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
-//	if (logsession != NULL) logsession->log(cciutils::event(71, std::string("save separateNuclei"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
+	t3 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(70, std::string("separateNuclei"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cci::common::event(71, std::string("save separateNuclei"), t2, t3, std::string("1"), ::cci::common::event::FILE_O));
 
 	if (status != ::nscale::SCIOHistologicalEntities::CONTINUE) {
 		seg_nonoverlap.release();
@@ -229,24 +228,24 @@ int SCIOHistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	}
 
 	// clean up
-	t1 = ::cciutils::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 	std::vector<int> sizeThresh3;
 	sizeThresh3.push_back(21);
 	sizeThresh3.push_back(1000);
 	status = finalCleanup(output, seg_nonoverlap, sizeThresh3, compcount, bbox, logsession, iresHandler);
 	sizeThresh3.clear();
 	seg_nonoverlap.release();
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	if (iresHandler != NULL) iresHandler->saveIntermediate(output, 80);
-	t3 = ::cciutils::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cciutils::event(80, std::string("finalCleanup"), t1, t2, std::string("1"), ::cciutils::event::COMPUTE));
-//	if (logsession != NULL) logsession->log(cciutils::event(81, std::string("save finalCleanup"), t2, t3, std::string("1"), ::cciutils::event::FILE_O));
+	t3 = ::cci::common::event::timestampInUS();
+	if (logsession != NULL) logsession->log(cci::common::event(80, std::string("finalCleanup"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+//	if (logsession != NULL) logsession->log(cci::common::event(81, std::string("save finalCleanup"), t2, t3, std::string("1"), ::cci::common::event::FILE_O));
 	return status;
 
 }
 
 
-float SCIOHistologicalEntities::backgroundRatio(const std::vector<Mat>& bgr, const std::vector<unsigned char> &thresholds, Mat &bg, ::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+float SCIOHistologicalEntities::backgroundRatio(const std::vector<Mat>& bgr, const std::vector<unsigned char> &thresholds, Mat &bg, ::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	/*
 	* this part to decide if the tile is background or foreground
@@ -265,7 +264,7 @@ float SCIOHistologicalEntities::backgroundRatio(const std::vector<Mat>& bgr, con
 	return (float)bgArea / (float)(bgr[0].size().area());
 }
 	
-Mat SCIOHistologicalEntities::getRBC(const std::vector<Mat>& bgr, const std::vector<double> &thresholds, ::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+Mat SCIOHistologicalEntities::getRBC(const std::vector<Mat>& bgr, const std::vector<double> &thresholds, ::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	CV_Assert(bgr.size() == 3);
 	/*
@@ -316,7 +315,7 @@ Mat SCIOHistologicalEntities::getRBC(const std::vector<Mat>& bgr, const std::vec
 	return rbc;
 }
 	
-int SCIOHistologicalEntities::grayCandidates(Mat &diffIm, const Mat &r, const int kernelType, const int kernelRadius, ::cciutils::SCIOLogSession* logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+int SCIOHistologicalEntities::grayCandidates(Mat &diffIm, const Mat &r, const int kernelType, const int kernelRadius, ::cci::common::LogSession* logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 
 	/*
@@ -372,7 +371,7 @@ int SCIOHistologicalEntities::grayCandidates(Mat &diffIm, const Mat &r, const in
 
 }
 	
-int SCIOHistologicalEntities::grayToBinaryCandidate(Mat &seg_norbc, const Mat &diffIm, const std::vector<unsigned char> &colorThresholds, const std::vector<int> &sizeThresholds, ::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+int SCIOHistologicalEntities::grayToBinaryCandidate(Mat &seg_norbc, const Mat &diffIm, const std::vector<unsigned char> &colorThresholds, const std::vector<int> &sizeThresholds, ::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 /*
     G1=80; G2=45; % default settings
@@ -409,7 +408,7 @@ int SCIOHistologicalEntities::grayToBinaryCandidate(Mat &seg_norbc, const Mat &d
 
 }
 	
-int SCIOHistologicalEntities::areaThreshold(Mat &result, const Mat &binary, const std::vector<int> &sizeThresholds, ::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+int SCIOHistologicalEntities::areaThreshold(Mat &result, const Mat &binary, const std::vector<int> &sizeThresholds, ::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 /*
  *     %CHANGE
@@ -439,7 +438,7 @@ int SCIOHistologicalEntities::areaThreshold(Mat &result, const Mat &binary, cons
 
 }
 
-int SCIOHistologicalEntities::removeRBC(Mat &seg_big, const Mat &seg_norbc, const Mat &rbc, const std::vector<int> &sizeThresholds, ::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+int SCIOHistologicalEntities::removeRBC(Mat &seg_big, const Mat &seg_norbc, const Mat &rbc, const std::vector<int> &sizeThresholds, ::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	Mat temp = seg_norbc & (rbc == 0);
 
@@ -472,7 +471,7 @@ int SCIOHistologicalEntities::removeRBC(Mat &seg_big, const Mat &seg_norbc, cons
 
 }
 
-int SCIOHistologicalEntities::separateNuclei(Mat &seg_nonoverlap, const Mat &seg_big_t, const Mat &img, const double h, ::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+int SCIOHistologicalEntities::separateNuclei(Mat &seg_nonoverlap, const Mat &seg_big_t, const Mat &img, const double h, ::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 
 	Mat disk3 = getStructuringElement(MORPH_ELLIPSE, Size(3,3));
@@ -543,7 +542,7 @@ int SCIOHistologicalEntities::separateNuclei(Mat &seg_nonoverlap, const Mat &seg
 
 }
 	
-int SCIOHistologicalEntities::finalCleanup(Mat &seg, const Mat &seg_nonoverlap, const std::vector<int> &sizeThresholds, int &compcount, int *&bbox, ::cciutils::SCIOLogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+int SCIOHistologicalEntities::finalCleanup(Mat &seg, const Mat &seg_nonoverlap, const std::vector<int> &sizeThresholds, int &compcount, int *&bbox, ::cci::common::LogSession *logsession, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	/*
      %CHANGE

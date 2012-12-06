@@ -12,10 +12,10 @@
 #include <vector>
 #include <queue>
 #include <string.h>
-#include "utils.h"
+#include "TypeUtils.h"
 #include "FileUtils.h"
 #include <dirent.h>
-#include "SCIOUtilsLogger.h"
+#include "Logger.h"
 #include "SCIOUtilsADIOS.h"
 #include <mpi.h>
 #include "waMPI.h"
@@ -30,7 +30,7 @@ void printUsage(char ** argv);
 int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark, bool &compression);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount);
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, cciutils::SCIOADIOSWriter *writer);
+void compute(const char *input, const char *mask, const char *output, const int modecode, cci::common::LogSession *session, cciutils::SCIOADIOSWriter *writer);
 
 void printUsage(char **argv) {
 	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <transport> [imagecount] [buffersize] [cpu | gpu [id]] [groupsize] [groupInterleave] [benchmark] [compression]" << std::endl;
@@ -50,7 +50,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &i
 	}
 
 	std::string executable(argv[0]);
-	workingDir.assign(FileUtils::getDir(executable));
+	workingDir.assign(cci::common::FileUtils::getDir(executable));
 
 	imageName.assign(argv[1]);
 	outDir.assign(argv[2]);
@@ -82,11 +82,11 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &i
 	int i = 7;
 
 	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cciutils::DEVICE_CPU;
+		modecode = cci::common::type::DEVICE_CPU;
 		// get core count
 
 	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cciutils::DEVICE_GPU;
+		modecode = cci::common::type::DEVICE_GPU;
 		// get device count
 		int numGPU = gpu::getCudaEnabledDeviceCount();
 		if (numGPU < 1) {
@@ -131,8 +131,8 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	exts.push_back(std::string(".tif"));
 	exts.push_back(std::string(".tiff"));
 
-	FileUtils futils(exts);
-	futils.traverseDirectory(imageName, filenames, FileUtils::FILE, true);
+	cci::common::FileUtils futils(exts);
+	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
 
 	std::string dirname = imageName;
 	if (filenames.size() == 1) {
@@ -153,15 +153,15 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
 		temp = futils.replaceExt(filenames[i], ".mask.pbm");
-		temp = FileUtils::replaceDir(temp, dirname, outDir);
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		FileUtils::mkdirs(tempdir);
+		cci::common::FileUtils::mkdirs(tempdir);
 		seg_output.push_back(temp);
 		// generate the bounds output file name
 		temp = futils.replaceExt(filenames[i], ".bounds.csv");
-		temp = FileUtils::replaceDir(temp, dirname, outDir);
+		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
-		FileUtils::mkdirs(tempdir);
+		cci::common::FileUtils::mkdirs(tempdir);
 		bounds_output.push_back(temp);
 	}
 
@@ -171,7 +171,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 
 
 
-void compute(const char *input, const char *mask, const char *output, const int modecode, cciutils::SCIOLogSession *session, cciutils::SCIOADIOSWriter *writer) {
+void compute(const char *input, const char *mask, const char *output, const int modecode, cci::common::LogSession *session, cciutils::SCIOADIOSWriter *writer) {
 	// compute
 
 	int status;
@@ -180,7 +180,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 
 	if (writer == NULL) printf("why is writer null? \n");
 	if (session == NULL) printf("why is log session null? \n");
-	if (modecode == cciutils::DEVICE_GPU ) {
+	if (modecode == cci::common::type::DEVICE_GPU ) {
 		nscale::gpu::SCIOHistologicalEntities *seg = new nscale::gpu::SCIOHistologicalEntities(std::string(input));
 		status = seg->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, session, writer);
 		delete seg;
@@ -216,9 +216,9 @@ MPI_Comm init_mpi(int argc, char **argv, int &size, int &rank, std::string &host
 MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_size, int &worker_rank, const int group_size, const int group_interleave, int &worker_group);
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size,
 		const std::string &hostname, std::vector<std::string> &filenames, std::vector<std::string > &seg_output,
-		std::vector<std::string> &bounds_output, cciutils::SCIOLogger *logger, int maxWorkerLoad, const int worker_group);
+		std::vector<std::string> &bounds_output, cci::common::Logger *logger, int maxWorkerLoad, const int worker_group);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank,
-		const int modecode, const std::string &hostname, cciutils::SCIOADIOSWriter *writer, cciutils::SCIOLogger *logger, const int worker_group);
+		const int modecode, const std::string &hostname, cciutils::SCIOADIOSWriter *writer, cci::common::Logger *logger, const int worker_group);
 
 
 // initialize MPI
@@ -305,7 +305,7 @@ static const int TAG_METADATA = 2;
 
 void manager_process(const MPI_Comm &comm_world, const int manager_rank, const int worker_size, const std::string &hostname,
 	std::vector<std::string> &filenames, std::vector<std::string> &seg_output,
-	std::vector<std::string> &bounds_output, cciutils::SCIOLogger *logger, int maxWorkerLoad, const int worker_group) {
+	std::vector<std::string> &bounds_output, cci::common::Logger *logger, int maxWorkerLoad, const int worker_group) {
 	uint64_t t1, t0;
 
 	int size;
@@ -326,7 +326,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	MPI_Barrier(comm_world);
 
 
-	cciutils::SCIOLogSession *session = logger->getSession("m");
+	cci::common::LogSession *session = logger->getSession("m");
 
 	// now start the loop to listen for messages
 	int curr = 0;
@@ -358,9 +358,9 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 	int IOCount = 0;
 	long long t2, t3;
 
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 
-	cci::rt::mpi::waMPI *waComm = new cci::rt::mpi::waMPI(comm_world);
+	cci::common::mpi::waMPI *waComm = new cci::common::mpi::waMPI(comm_world);
 
 
 	while (curr < total || IOCount > 0) {
@@ -371,25 +371,25 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 /* where is it coming from */
 
 // 			comment out to reduce amount of logging by master
-//			t3 = ::cciutils::event::timestampInUS();
-//			if (session != NULL) session->log(cciutils::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+//			t3 = ::cci::common::event::timestampInUS();
+//			if (session != NULL) session->log(cci::common::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cci::common::event::NETWORK_WAIT));
 //
-//			t2 = ::cciutils::event::timestampInUS();
+//			t2 = ::cci::common::event::timestampInUS();
 
 			worker_id = status.MPI_SOURCE;
 			MPI_Recv(&worker_status, 3, MPI_INT, worker_id, TAG_CONTROL, comm_world, &status);
 			//printf("manager received request from worker %d\n",worker_id);
-//			t3 = ::cciutils::event::timestampInUS();
-			//if (session != NULL) session->log(cciutils::event(90, std::string("received msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+//			t3 = ::cci::common::event::timestampInUS();
+			//if (session != NULL) session->log(cci::common::event(90, std::string("received msg"), t2, t3, std::string(), ::cci::common::event::NETWORK_WAIT));
 
 			if (worker_id == manager_rank) continue;
 
 			if (curr % 100 == 0) {
-				printf("[ MANAGER STATUS at %lld ] %d tasks remaining.\n", ::cciutils::event::timestampInUS(), total - curr);
+				printf("[ MANAGER STATUS at %lld ] %d tasks remaining.\n", ::cci::common::event::timestampInUS(), total - curr);
 			}
 
 			if(worker_status[0] == WORKER_READY) {
-//				t2 = ::cciutils::event::timestampInUS();
+//				t2 = ::cci::common::event::timestampInUS();
 
 				gid = groupids[worker_id];
 				// first find out what the load is
@@ -404,9 +404,9 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					++groupIOIter[gid];
 //					printf("current queue content = %d at front\n", messages[worker_id].front());
 				}
-//				t3 = ::cciutils::event::timestampInUS();
-				//if (session != NULL) session->log(cciutils::event(90, std::string("queue IO"), t2, t3, std::string(), ::cciutils::event::MEM_IO));
-//				t2 = ::cciutils::event::timestampInUS();
+//				t3 = ::cci::common::event::timestampInUS();
+				//if (session != NULL) session->log(cci::common::event(90, std::string("queue IO"), t2, t3, std::string(), ::cci::common::event::MEM_IO));
+//				t2 = ::cci::common::event::timestampInUS();
 
 				char mstatus;
 				if (messages[worker_id].empty()) {
@@ -426,8 +426,8 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 //					else messages[worker_id].push(MANAGER_READY);
 					--IOCount;
 
-					t3 = ::cciutils::event::timestampInUS();
-					if (session != NULL) session->log(cciutils::event(90, std::string("sent IO"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+					t3 = ::cci::common::event::timestampInUS();
+					if (session != NULL) session->log(cci::common::event(90, std::string("sent IO"), t2, t3, std::string(), ::cci::common::event::NETWORK_IO));
 
 				} else if (mstatus == MANAGER_READY ){
 
@@ -435,13 +435,13 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					//printf("manager sending work %d to %d.\n", mstatus, worker_id);
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 // conserve logging
-//					t3 = ::cciutils::event::timestampInUS();
-//					if (session != NULL) session->log(cciutils::event(90, std::string("manager sent ready"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+//					t3 = ::cci::common::event::timestampInUS();
+//					if (session != NULL) session->log(cci::common::event(90, std::string("manager sent ready"), t2, t3, std::string(), ::cci::common::event::NETWORK_IO));
 //
 //					//				printf("manager signal transfer\n");
 //
 //					/* send real data */
-//					t2 = ::cciutils::event::timestampInUS();
+//					t2 = ::cci::common::event::timestampInUS();
 
 					inputlen = filenames[curr].size();  // add one to create the zero-terminated string
 					masklen = seg_output[curr].size();
@@ -467,9 +467,9 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 					free(all);
 
 // conserve logging.
-//					t3 = ::cciutils::event::timestampInUS();
-//					if (session != NULL) session->log(cciutils::event(90, std::string("sent work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
-//					t2 = ::cciutils::event::timestampInUS();
+//					t3 = ::cci::common::event::timestampInUS();
+//					if (session != NULL) session->log(cci::common::event(90, std::string("sent work"), t2, t3, std::string(), ::cci::common::event::NETWORK_IO));
+//					t2 = ::cci::common::event::timestampInUS();
 
 					++curr;
 					if (curr >= total) {
@@ -481,24 +481,24 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 						//printf("current queue content = %d at back\n", messages[worker_id].back());
 					} // else ready state.  don't change it.
 // conserve logging
-//					t3 = ::cciutils::event::timestampInUS();
-//					if (session != NULL) session->log(cciutils::event(90, std::string("queue wait"), t2, t3, std::string(), ::cciutils::event::MEM_IO));
-					t3 = ::cciutils::event::timestampInUS();
-//					if (session != NULL) session->log(cciutils::event(90, std::string("sent work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+//					t3 = ::cci::common::event::timestampInUS();
+//					if (session != NULL) session->log(cci::common::event(90, std::string("queue wait"), t2, t3, std::string(), ::cci::common::event::MEM_IO));
+					t3 = ::cci::common::event::timestampInUS();
+//					if (session != NULL) session->log(cci::common::event(90, std::string("sent work"), t2, t3, std::string(), ::cci::common::event::NETWORK_IO));
 
 				} else {  // wait state.
 
 					// tell worker to wait
 					//printf("manager sending message %d to %d.\n", mstatus, worker_id);
 					MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
-//					t3 = ::cciutils::event::timestampInUS();
-					//if (session != NULL) session->log(cciutils::event(90, std::string("sent wait"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+//					t3 = ::cci::common::event::timestampInUS();
+					//if (session != NULL) session->log(cci::common::event(90, std::string("sent wait"), t2, t3, std::string(), ::cci::common::event::NETWORK_IO));
 
 				}
 			}
 
 
-			t2 = ::cciutils::event::timestampInUS();
+			t2 = ::cci::common::event::timestampInUS();
 
 		}
 	}
@@ -508,7 +508,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 /* tell everyone to quit */
 	int active_workers = worker_size;
 	//printf("active_worker count = %d\n", active_workers);
-	t2 = ::cciutils::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	while (active_workers > 0) {
 		//usleep(1000);
 
@@ -516,32 +516,32 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 		/* where is it coming from */
 
 // conserve space...
-//			t3 = ::cciutils::event::timestampInUS();
-//			if (session != NULL) session->log(cciutils::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+//			t3 = ::cci::common::event::timestampInUS();
+//			if (session != NULL) session->log(cci::common::event(90, std::string("manager found msg"), t2, t3, std::string(), ::cci::common::event::NETWORK_WAIT));
 //
-//			t2 = ::cciutils::event::timestampInUS();
+//			t2 = ::cci::common::event::timestampInUS();
 
 			worker_id=status.MPI_SOURCE;
 			MPI_Recv(&worker_status, 3, MPI::INT, worker_id, TAG_CONTROL, comm_world, &status);
 //			printf("manager received request from worker %d\n",worker_id);
-			//t3 = ::cciutils::event::timestampInUS();
-			//if (session != NULL) session->log(cciutils::event(90, std::string("received msg"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+			//t3 = ::cci::common::event::timestampInUS();
+			//if (session != NULL) session->log(cci::common::event(90, std::string("received msg"), t2, t3, std::string(), ::cci::common::event::NETWORK_WAIT));
 
 			if (worker_id == manager_rank) continue;
 
-			//t2 = ::cciutils::event::timestampInUS();
+			//t2 = ::cci::common::event::timestampInUS();
 
 			if(worker_status[0] == WORKER_READY) {
 				char mstatus = MANAGER_FINISHED;
 				MPI_Send(&mstatus, 1, MPI::CHAR, worker_id, TAG_CONTROL, comm_world);
 				//printf("manager signal finished to %d\n", worker_id);
 				--active_workers;
-				t3 = ::cciutils::event::timestampInUS();
-//				if (session != NULL) session->log(cciutils::event(90, std::string("sent END"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+				t3 = ::cci::common::event::timestampInUS();
+//				if (session != NULL) session->log(cci::common::event(90, std::string("sent END"), t2, t3, std::string(), ::cci::common::event::NETWORK_IO));
 
 			}
 
-			t2 = ::cciutils::event::timestampInUS();
+			t2 = ::cci::common::event::timestampInUS();
 
 		}
 	}
@@ -558,7 +558,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 
 void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank,
 		const MPI_Comm &comm_worker, const int modecode, const std::string &hostname,
-		cciutils::SCIOADIOSWriter *writer, cciutils::SCIOLogger *logger, const int worker_group) {
+		cciutils::SCIOADIOSWriter *writer, cci::common::Logger *logger, const int worker_group) {
 	int flag = MANAGER_READY;
 	int inputSize, outputSize, maskSize, sizeTotal;
 	int sizes[3];
@@ -586,7 +586,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	workerStatus[0] = WORKER_READY;
 	workerStatus[1] = 0;
 	workerStatus[2] = iocount;
-	cciutils::SCIOLogSession *session;
+	cci::common::LogSession *session;
 	// per node
 	if (logger) session = logger->getSession("w");
 	if (writer) writer->setLogSession(session);
@@ -595,9 +595,9 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	long long t3, t2;
 
 	while (flag != MANAGER_FINISHED && flag != MANAGER_ERROR) {
-		t0 = cciutils::ClockGetTime();
+		t0 = cci::common::event::timestampInUS();
 
-		t2 = ::cciutils::event::timestampInUS();
+		t2 = ::cci::common::event::timestampInUS();
 
 		if (writer != NULL) workerStatus[1] = writer->currentLoad();
 		workerStatus[2] = iocount;
@@ -608,10 +608,10 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 		// get the manager status
 		MPI_Recv(&flag, 1, MPI_CHAR, manager_rank, TAG_CONTROL, comm_world, &status);
 		//printf("worker %d received manager status %d\n", rank, flag);
-//		t3 = ::cciutils::event::timestampInUS();
-//		if (session != NULL) session->log(cciutils::event(90, std::string("get status"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+//		t3 = ::cci::common::event::timestampInUS();
+//		if (session != NULL) session->log(cci::common::event(90, std::string("get status"), t2, t3, std::string(), ::cci::common::event::NETWORK_WAIT));
 //
-//		t2 = ::cciutils::event::timestampInUS();
+//		t2 = ::cci::common::event::timestampInUS();
 		if (flag == MANAGER_READY) {
 
 			// get data from manager
@@ -632,10 +632,10 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			mask = input + inputSize + 1;
 			output = mask + maskSize + 1;
 
-			t3 = ::cciutils::event::timestampInUS();
-//			if (session != NULL) session->log(cciutils::event(90, std::string("get work"), t2, t3, std::string(), ::cciutils::event::NETWORK_IO));
+			t3 = ::cci::common::event::timestampInUS();
+//			if (session != NULL) session->log(cci::common::event(90, std::string("get work"), t2, t3, std::string(), ::cci::common::event::NETWORK_IO));
 
-			t0 = cciutils::ClockGetTime();
+			t0 = cci::common::event::timestampInUS();
 //			printf("comm time for worker %d is %lu ms\n", rank, t1 -t0);
 
 			// per tile
@@ -646,7 +646,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			compute(input, mask, output, modecode, session, writer);
 			// now do some work
 
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 			//printf("worker %d processed \"%s\" in %lu ms\n", rank, input, t1 - t0);
 
 			// clean up
@@ -664,24 +664,24 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			++iocount;
 		} else if (flag == MANAGER_WAIT) {
 			//printf("manager told worker %d to wait\n", rank);
-			t2 = ::cciutils::event::timestampInUS();
+			t2 = ::cci::common::event::timestampInUS();
 
 			usleep(100);
-			t3 = ::cciutils::event::timestampInUS();
-			//if (session != NULL) session->log(cciutils::event(90, std::string("wait"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+			t3 = ::cci::common::event::timestampInUS();
+			//if (session != NULL) session->log(cci::common::event(90, std::string("wait"), t2, t3, std::string(), ::cci::common::event::NETWORK_WAIT));
 
 		} else if (flag == MANAGER_FINISHED) {
 			//printf("manager told worker %d finished\n", rank);
-			t2 = ::cciutils::event::timestampInUS();
-			t3 = ::cciutils::event::timestampInUS();
-			//if (session != NULL) session->log(cciutils::event(90, std::string("manager finished"), t2, t3, std::string(), ::cciutils::event::NETWORK_WAIT));
+			t2 = ::cci::common::event::timestampInUS();
+			t3 = ::cci::common::event::timestampInUS();
+			//if (session != NULL) session->log(cci::common::event(90, std::string("manager finished"), t2, t3, std::string(), ::cci::common::event::NETWORK_WAIT));
 
 		} else {
 			printf("WANRING manager send unknown message %d to worker %d\n", flag, rank);
-			t2 = ::cciutils::event::timestampInUS();
+			t2 = ::cci::common::event::timestampInUS();
 			usleep(100);
-			t3 = ::cciutils::event::timestampInUS();
-			//if (session != NULL) session->log(cciutils::event(90, std::string("unknown or error"), t2, t3, std::string(), ::cciutils::event::OTHER));
+			t3 = ::cci::common::event::timestampInUS();
+			//if (session != NULL) session->log(cci::common::event(90, std::string("unknown or error"), t2, t3, std::string(), ::cci::common::event::OTHER));
 		}
 	}
 
@@ -725,7 +725,7 @@ int main (int argc, char **argv){
 	manager_rank = size - 1;
 	worker_group = 1;
 
-	if (modecode == cciutils::DEVICE_GPU) {
+	if (modecode == cci::common::type::DEVICE_GPU) {
 		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
 		return -4;
 	}
@@ -744,10 +744,10 @@ int main (int argc, char **argv){
 	// first process gathers the filesnames
 	uint64_t t1 = 0, t2 = 0;
 	if (rank == manager_rank) {
-    		t1 = cciutils::ClockGetTime();
+    		t1 = cci::common::event::timestampInUS();
     		getFiles(imageName, outDir, filenames, seg_output, bounds_output, imageCount);
 
-    		t2 = cciutils::ClockGetTime();
+    		t2 = cci::common::event::timestampInUS();
     		total = filenames.size();
 	    	printf("FILE LISTING took %lu ms for %ld files\n", t2 - t1, total);
 
@@ -778,10 +778,10 @@ int main (int argc, char **argv){
 
 	cciutils::ADIOSManager *iomanager;
 
-	cciutils::SCIOLogger *logger;
-	cciutils::SCIOLogSession *session;
+	cci::common::Logger *logger;
+	cci::common::LogSession *session;
 	if (size == 1) {
-		logger = new cciutils::SCIOLogger(rank, hostname, 0);
+		logger = new cci::common::Logger(rank, hostname, 0);
 		session = logger->getSession("w");
 		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, false, compression);
 
@@ -796,7 +796,7 @@ int main (int argc, char **argv){
 
 		if (writer) writer->setLogSession(session);
 	
-		t1 = cciutils::ClockGetTime();
+		t1 = cci::common::event::timestampInUS();
 		int iter = 0;
 		while (i < total) {
 			// per tile:
@@ -813,7 +813,7 @@ int main (int argc, char **argv){
 				++iter;
 			}
 		}
-		t2 = cciutils::ClockGetTime();
+		t2 = cci::common::event::timestampInUS();
 		printf("WORKER %d: FINISHED using CPU in %lu ms\n", rank, t2 - t1);
 
 		if (writer) writer->persist(iter);
@@ -832,17 +832,17 @@ int main (int argc, char **argv){
 		// used by adios
 		MPI_Comm comm_worker = init_workers(comm_world, manager_rank, worker_size, worker_rank, groupSize, groupInterleave, worker_group);
 
-		logger = new cciutils::SCIOLogger(rank, hostname, worker_group);
+		logger = new cci::common::Logger(rank, hostname, worker_group);
 		session = logger->getSession(rank == manager_rank ? "m" : "w");
 		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, true, compression);
 
-		t1 = cciutils::ClockGetTime();
+		t1 = cci::common::event::timestampInUS();
 
 		// decide based on rank of worker which way to process
 		if (rank == manager_rank) {
 			// manager thread
 			manager_process(comm_world, manager_rank, worker_size, hostname, filenames, seg_output, bounds_output, logger, maxBuf, worker_group);
-			t2 = cciutils::ClockGetTime();
+			t2 = cci::common::event::timestampInUS();
 			printf("MANAGER %d : FINISHED in %lu ms\n", rank, t2 - t1);
 
 		} else {
@@ -858,7 +858,7 @@ int main (int argc, char **argv){
 			if (benchmark) writer->benchmark(0);
 
 			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer, logger, worker_group);
-			t2 = cciutils::ClockGetTime();
+			t2 = cci::common::event::timestampInUS();
 			//printf("WORKER %d: FINISHED using CPU in %lu ms\n", rank, t2 - t1);
 
 			writer->setLogSession(session);

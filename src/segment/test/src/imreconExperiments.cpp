@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
-#include "utils.h"
+#include "Logger.h"
 #include <stdio.h>
 
 #include "opencv2/gpu/gpu.hpp"
@@ -94,12 +94,12 @@ int main (int argc, char **argv){
 		for(int numPasses=1; numPasses < numFirstPasses; numPasses+=1){
 			Mat recon2;
 			// 4 connectivity
-			t1 = cciutils::ClockGetTime();
+			t1 = cci::common::event::timestampInUS();
 			g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, connectivity, numPasses,stream,
 32);
 //			g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, connectivity, numPasses,stream);
 			stream.waitForCompletion();
-			t2 = cciutils::ClockGetTime();
+			t2 = cci::common::event::timestampInUS();
 			g_recon.download(recon2);
 			imwrite("test/out-gpu-queueu.ppm", recon2);
 			recon2.release();
@@ -110,11 +110,11 @@ int main (int argc, char **argv){
 //		int maxBlocks=48;
 //		for(int numBlocks=1; numBlocks < maxBlocks; numBlocks+=1){
 //			// 4 connectivity
-//			t1 = cciutils::ClockGetTime();
+//			t1 = cci::common::event::timestampInUS();
 //
 //			g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, connectivity, numFirstPasses,stream,numBlocks);
 //			stream.waitForCompletion();
-//			t2 = cciutils::ClockGetTime();
+//			t2 = cci::common::event::timestampInUS();
 //			cout << "gpu queue_recon"<< connectivity<< " nBlocks "<< numBlocks<<" took " << t2-t1<< " ms"<<endl;
 //			g_recon.release();
 //		}
@@ -122,16 +122,16 @@ int main (int argc, char **argv){
 //
 
 //		cout << "Connectivity="<<connectivity<<endl;
-//		t1 = cciutils::ClockGetTime();
+//		t1 = cci::common::event::timestampInUS();
 //		g_recon = nscale::gpu::imreconstruct<unsigned char>(g_marker, g_mask, connectivity, stream);
 //		stream.waitForCompletion();
-//		t2 = cciutils::ClockGetTime();
+//		t2 = cci::common::event::timestampInUS();
 //		std::cout << "gpu recon"<< connectivity <<" took " << t2-t1 << " ms" << std::endl;
 //		g_recon.release();
 
-//		t1 = cciutils::ClockGetTime();
+//		t1 = cci::common::event::timestampInUS();
 //		recon = nscale::imreconstruct<unsigned char>(marker, mask, connectivity);
-//		t2 = cciutils::ClockGetTime();
+//		t2 = cci::common::event::timestampInUS();
 //		std::cout << "recon"<< connectivity <<" took " << t2-t1 << "ms" << std::endl;
 //		imwrite("test/out-recon8.ppm", recon);
 //		recon.release();

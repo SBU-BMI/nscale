@@ -30,7 +30,7 @@ public:
 	 */
 	CommHandler_I(MPI_Comm const *_parent_comm, int const _gid,
 			MPIDataBuffer *_buffer, Scheduler_I *_scheduler,
-			cciutils::SCIOLogSession *_logsession = NULL);
+			cci::common::LogSession *_logsession = NULL);
 
 	virtual const char* getClassName() { return "CommHandler_I"; };
 
