@@ -592,7 +592,7 @@ int main (int argc, char **argv){
 
 	/* now perform the computation
 	*/
-	cci::common::Logger *logger = new cci::common::Logger(rank, hostname, 1);
+	cci::common::Logger *logger = new cci::common::Logger(outDir, rank, hostname, 1);
 	cci::common::LogSession *session;
 	if (size == 1)
 		session = logger->getSession("w");
@@ -647,7 +647,7 @@ int main (int argc, char **argv){
 		}
 		MPI_Comm_free(&comm_worker);
 
-		logger->writeCollectively(outDir, rank, manager_rank, comm_world);
+		logger->writeCollectively(rank, manager_rank, comm_world);
 
 	}
 	delete logger;

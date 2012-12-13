@@ -40,6 +40,7 @@ public:
 	static const std::string PARAM_IOINTERLEAVE;
 	static const std::string PARAM_IOGROUPSIZE;
 	static const std::string PARAM_IOGROUPINTERLEAVE;
+	static const std::string PARAM_LOG;
 
 	template <typename T>
 	static T getParamValueByName(boost::program_options::variables_map &_vm, const std::string &name);

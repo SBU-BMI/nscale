@@ -60,7 +60,7 @@ int main (int argc, char **argv) {
 
 
 // initialize the logger 
-        cci::common::Logger *logger = new cci::common::Logger(rank, hostname, 0);
+        cci::common::Logger *logger = new cci::common::Logger(std::string("mpi_datasize_test"), rank, hostname, 0);
 	cci::common::LogSession *logsession = logger->getSession((isIO ? "io" : "compute"));
 
 
@@ -223,7 +223,7 @@ int main (int argc, char **argv) {
 	printf("\n");
 	free(data);
 
-        logger->writeCollectively(std::string("mpi_datasize_test"), rank, 0, comm_world);
+        logger->writeCollectively(rank, 0, comm_world);
 
 	
 	delete logger;

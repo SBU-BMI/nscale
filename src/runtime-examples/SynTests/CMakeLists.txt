@@ -40,7 +40,7 @@ target_link_libraries(${libname} scio-adios)
 target_link_libraries(${libname} rt_adios)
 target_link_libraries(${libname} ${ADIOS_LIBS})
 target_link_libraries(${libname} ${ZLIB_LIBRARIES})
-
+target_link_libraries(${libname} ${Boost_LIBRARIES})
 
 
 if(MPI_FOUND)

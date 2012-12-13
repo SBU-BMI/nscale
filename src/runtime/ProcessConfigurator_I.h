@@ -22,21 +22,22 @@ class Process;
 
 class ProcessConfigurator_I {
 public:
-	ProcessConfigurator_I(cci::common::Logger *_logger) : logger(_logger) {};
-	virtual ~ProcessConfigurator_I() {};
+	ProcessConfigurator_I() : logger(NULL) {};
+	virtual ~ProcessConfigurator_I() {
+		if (logger != NULL) delete logger;
+	};
 
 	virtual bool init() = 0;
 	virtual bool finalize() = 0;
 
 	virtual bool configure(MPI_Comm &comm, Process * proc) = 0;
-	virtual std::string getOutputDir() {  return cci::rt::CmdlineParser::getParamValueByName<std::string>(params, cci::rt::CmdlineParser::PARAM_OUTPUTDIR); };
 
+	virtual cci::common::Logger *getLogger() { return logger; };
 
 protected:
 	cci::common::Logger *logger;
 	boost::program_options::variables_map params;
 	std::string executable;
-
 
 };
 

@@ -1,0 +1,408 @@
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Push.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t NULL -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 17:57:56 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	NULL
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 0] Processes configured
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 11 over 4 iters
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 12 over 4 iters
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 9 over 6 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 20 over 6 iters
+[DEBUG rank 0] finished processing in 16747260 us.
+[DEBUG rank 0] cleaned up conf in 10 us.
+[DEBUG rank 0] finalized MPI in 6168 us.
+The END local date and time is: Wed Dec 12 17:58:12 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Full.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t NULL -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 17:58:13 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+[DEBUG rank 0] ERROR: can't cast parameter value with name input_directory
+	input_directory:	
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	NULL
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 4] AssignWork inputcount 50
+[DEBUG rank 0] PullCommHandler destructor: 0 msgs sent.
+[DEBUG rank 0] Processes configured
+[DEBUG rank 4] AssignWork destructor called.
+[DEBUG rank 4] PullCommHandler destructor: 50 msgs sent.
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 15 over 5 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 11 over 5 iters
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 12 over 5 iters
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 12 over 5 iters
+[DEBUG rank 0] finished processing in 21425852 us.
+[DEBUG rank 0] cleaned up conf in 12 us.
+[DEBUG rank 0] finalized MPI in 6540 us.
+The END local date and time is: Wed Dec 12 17:58:34 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Push.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t na-NULL -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 17:58:35 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	na-NULL
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 0] Processes configured
+[DEBUG rank 3] NULLSinkAction destructor:  discarded 15
+[DEBUG rank 0] NULLSinkAction destructor:  discarded 10
+[DEBUG rank 2] NULLSinkAction destructor:  discarded 13
+[DEBUG rank 1] NULLSinkAction destructor:  discarded 14
+[DEBUG rank 0] finished processing in 17236177 us.
+[DEBUG rank 0] cleaned up conf in 14 us.
+[DEBUG rank 0] finalized MPI in 5503 us.
+The END local date and time is: Wed Dec 12 17:58:51 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Full.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t na-NULL -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 17:58:52 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+[DEBUG rank 0] ERROR: can't cast parameter value with name input_directory
+	input_directory:	
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	na-NULL
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 0] PullCommHandler destructor: 0 msgs sent.
+[DEBUG rank 4] AssignWork inputcount 50
+[DEBUG rank 0] Processes configured
+[DEBUG rank 4] AssignWork destructor called.
+[DEBUG rank 4] PullCommHandler destructor: 50 msgs sent.
+[DEBUG rank 1] NULLSinkAction destructor:  discarded 12
+[DEBUG rank 2] NULLSinkAction destructor:  discarded 14
+[DEBUG rank 3] NULLSinkAction destructor:  discarded 11
+[DEBUG rank 0] NULLSinkAction destructor:  discarded 13
+[DEBUG rank 0] finished processing in 22023597 us.
+[DEBUG rank 0] cleaned up conf in 15 us.
+[DEBUG rank 0] finalized MPI in 3993 us.
+The END local date and time is: Wed Dec 12 17:59:13 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Push.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t POSIX -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 17:59:14 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	POSIX
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 0] Processes configured
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 15 over 6 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 13 over 6 iters
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 11 over 6 iters
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 13 over 6 iters
+[DEBUG rank 0] finished processing in 66993711 us.
+[DEBUG rank 0] cleaned up conf in 13 us.
+[DEBUG rank 0] finalized MPI in 6006 us.
+The END local date and time is: Wed Dec 12 18:00:20 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Full.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t POSIX -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 18:00:21 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+[DEBUG rank 0] ERROR: can't cast parameter value with name input_directory
+	input_directory:	
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	POSIX
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 4] AssignWork inputcount 50
+[DEBUG rank 0] PullCommHandler destructor: 0 msgs sent.
+[DEBUG rank 0] Processes configured
+[DEBUG rank 4] AssignWork destructor called.
+[DEBUG rank 4] PullCommHandler destructor: 50 msgs sent.
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 7 over 4 iters
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 13 over 4 iters
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 20 over 7 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 10 over 7 iters
+[DEBUG rank 0] finished processing in 69753758 us.
+[DEBUG rank 0] cleaned up conf in 14 us.
+[DEBUG rank 0] finalized MPI in 5367 us.
+The END local date and time is: Wed Dec 12 18:01:30 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Push.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t na-POSIX -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 18:01:31 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	na-POSIX
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 0] Processes configured
+[DEBUG rank 2] POSIXRawSave destructor:  wrote out 19 over 7 iters
+[DEBUG rank 3] POSIXRawSave destructor:  wrote out 11 over 7 iters
+[DEBUG rank 0] POSIXRawSave destructor:  wrote out 10 over 4 iters
+[DEBUG rank 1] POSIXRawSave destructor:  wrote out 12 over 4 iters
+[DEBUG rank 0] finished processing in 63350328 us.
+[DEBUG rank 0] cleaned up conf in 12 us.
+[DEBUG rank 0] finalized MPI in 4346 us.
+The END local date and time is: Wed Dec 12 18:02:33 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Full.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t na-POSIX -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 18:02:34 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+[DEBUG rank 0] ERROR: can't cast parameter value with name input_directory
+	input_directory:	
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	na-POSIX
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 4] AssignWork inputcount 50
+[DEBUG rank 0] PullCommHandler destructor: 0 msgs sent.
+[DEBUG rank 0] Processes configured
+[DEBUG rank 4] AssignWork destructor called.
+[DEBUG rank 4] PullCommHandler destructor: 50 msgs sent.
+[DEBUG rank 3] POSIXRawSave destructor:  wrote out 14 over 7 iters
+[DEBUG rank 2] POSIXRawSave destructor:  wrote out 16 over 7 iters
+[DEBUG rank 0] POSIXRawSave destructor:  wrote out 10 over 4 iters
+[DEBUG rank 1] POSIXRawSave destructor:  wrote out 10 over 4 iters
+[DEBUG rank 0] finished processing in 38761902 us.
+[DEBUG rank 0] cleaned up conf in 17 us.
+[DEBUG rank 0] finalized MPI in 6618 us.
+The END local date and time is: Wed Dec 12 18:03:12 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Push.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t MPI -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 18:03:14 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	MPI
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 0] Processes configured
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 12 over 5 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 10 over 5 iters
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 10 over 6 iters
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 20 over 6 iters
+[DEBUG rank 0] finished processing in 61010398 us.
+[DEBUG rank 0] cleaned up conf in 13 us.
+[DEBUG rank 0] finalized MPI in 4341 us.
+The END local date and time is: Wed Dec 12 18:04:13 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Full.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t MPI -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 18:04:20 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+[DEBUG rank 0] ERROR: can't cast parameter value with name input_directory
+	input_directory:	
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	MPI
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 4] AssignWork inputcount 50
+[DEBUG rank 0] PullCommHandler destructor: 0 msgs sent.
+[DEBUG rank 0] Processes configured
+[DEBUG rank 4] AssignWork destructor called.
+[DEBUG rank 4] PullCommHandler destructor: 50 msgs sent.
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 12 over 5 iters
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 7 over 5 iters
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 13 over 6 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 18 over 6 iters
+[DEBUG rank 0] finished processing in 61838678 us.
+[DEBUG rank 0] cleaned up conf in 13 us.
+[DEBUG rank 0] finalized MPI in 5687 us.
+The END local date and time is: Wed Dec 12 18:05:17 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Push.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t MPI_AMR -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 18:05:18 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	MPI_AMR
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 0] Processes configured
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 10 over 6 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 17 over 6 iters
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 8 over 6 iters
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 17 over 6 iters
+[DEBUG rank 0] finished processing in 64894802 us.
+[DEBUG rank 0] cleaned up conf in 11 us.
+[DEBUG rank 0] finalized MPI in 4125 us.
+The END local date and time is: Wed Dec 12 18:06:21 2012
+
+mpirun -np 8 /home/tcpan/PhD/path/src/nscale-debug/bin/SynData_Full.exe -i /home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1 -o /home/tcpan/PhD/path/Data/adios/yellowstone-test/test -P 4 -t MPI_AMR -p 2 -n 50
+[DEBUG rank 0] The START local date and time is: Wed Dec 12 18:06:23 2012
+
+[DEBUG rank 0] initialized MPI
+Unrecognized Options:
+	-i
+	/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1
+	
+Recongized Options:
+	compression:	0
+	buffer_size:	4
+	nonblocking:	1
+[DEBUG rank 0] ERROR: can't cast parameter value with name input_directory
+	input_directory:	
+	input_count:	50
+	output_directory:	/home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+	transport:	MPI_AMR
+	io_size:	4
+	io_interleave:	1
+	io_group_size:	2
+	io_group_interleave:	1
+	max_image_size:	4096
+made directories for /home/tcpan/PhD/path/Data/adios/yellowstone-test/test
+[DEBUG rank 4] AssignWork inputcount 50
+[DEBUG rank 0] PullCommHandler destructor: 0 msgs sent.
+[DEBUG rank 0] Processes configured
+[DEBUG rank 4] AssignWork destructor called.
+[DEBUG rank 4] PullCommHandler destructor: 50 msgs sent.
+[DEBUG rank 2] ADIOSSave_Reduce destructor: wrote out 16 over 6 iters
+[DEBUG rank 3] ADIOSSave_Reduce destructor: wrote out 9 over 6 iters
+[DEBUG rank 0] ADIOSSave_Reduce destructor: wrote out 12 over 6 iters
+[DEBUG rank 1] ADIOSSave_Reduce destructor: wrote out 13 over 6 iters
+[DEBUG rank 0] finished processing in 61672568 us.
+[DEBUG rank 0] cleaned up conf in 14 us.
+[DEBUG rank 0] finalized MPI in 3381 us.
+The END local date and time is: Wed Dec 12 18:07:23 2012
+

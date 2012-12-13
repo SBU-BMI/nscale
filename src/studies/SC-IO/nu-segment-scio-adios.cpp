@@ -781,7 +781,10 @@ int main (int argc, char **argv){
 	cci::common::Logger *logger;
 	cci::common::LogSession *session;
 	if (size == 1) {
-		logger = new cci::common::Logger(rank, hostname, 0);
+		std::string logfile(outDir);
+		logfile.append("-");
+		logfile.append(iocode);
+		logger = new cci::common::Logger(logfile, rank, hostname, 0);
 		session = logger->getSession("w");
 		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, false, compression);
 
@@ -820,10 +823,8 @@ int main (int argc, char **argv){
 		if (writer) writer->persistCountInfo();
 		iomanager->freeWriter(writer);
 
-		std::string logfile(outDir);
-		logfile.append("-");
-		logfile.append(iocode);
-		logger->write(logfile);
+
+		logger->write();
 	
 
 	} else {
@@ -832,7 +833,10 @@ int main (int argc, char **argv){
 		// used by adios
 		MPI_Comm comm_worker = init_workers(comm_world, manager_rank, worker_size, worker_rank, groupSize, groupInterleave, worker_group);
 
-		logger = new cci::common::Logger(rank, hostname, worker_group);
+		std::string logfile(outDir);
+		logfile.append("-");
+		logfile.append(iocode);
+		logger = new cci::common::Logger(logfile, rank, hostname, worker_group);
 		session = logger->getSession(rank == manager_rank ? "m" : "w");
 		iomanager = new cciutils::ADIOSManager(adios_config.c_str(), rank, &comm_world, session, gapped, true, compression);
 
@@ -869,10 +873,8 @@ int main (int argc, char **argv){
 		}
 		MPI_Comm_free(&comm_worker);
 
-		std::string logfile(outDir);
-		logfile.append("-");
-		logfile.append(iocode);
-		logger->writeCollectively(logfile, rank, manager_rank, comm_world);
+
+		logger->writeCollectively(rank, manager_rank, comm_world);
 
 	}
 	delete iomanager;

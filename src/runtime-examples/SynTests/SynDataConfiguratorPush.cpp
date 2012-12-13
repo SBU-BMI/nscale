@@ -33,8 +33,8 @@ const int SynDataConfiguratorPush::IO_GROUP = 2;
 const int SynDataConfiguratorPush::COMPUTE_TO_IO_GROUP = 3;
 const int SynDataConfiguratorPush::UNUSED_GROUP = 0;
 
-SynDataConfiguratorPush::SynDataConfiguratorPush(int argc, char** argv, cci::common::Logger *_logger) :
-	ProcessConfigurator_I(_logger), iomanager(NULL) {
+SynDataConfiguratorPush::SynDataConfiguratorPush(int argc, char** argv) :
+	ProcessConfigurator_I(), iomanager(NULL) {
 
 	long long t1, t2;
 	t1 = cci::common::event::timestampInUS();
@@ -45,6 +45,7 @@ SynDataConfiguratorPush::SynDataConfiguratorPush(int argc, char** argv, cci::com
 
 	parser->addParams(DataBuffer::params);
 	parser->addParams(MPIDataBuffer::params);
+	parser->addParams(GenerateOutputPush::params);
 
 	bool p_result = parser->parse(argc, argv);
 	if (!p_result) {
@@ -52,10 +53,25 @@ SynDataConfiguratorPush::SynDataConfiguratorPush(int argc, char** argv, cci::com
 	}
 	params = parser->getParamValues();
 
+	delete parser;
+
+
+	// set up the logger
+	char hostname[256];
+	gethostname(hostname, 255);  // from <iostream>
+
 		// end Boost Program_Options configuration.
 	//////////
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if (params.count(cci::rt::CmdlineParser::PARAM_LOG)) {
+
+		logger = new cci::common::Logger(cci::rt::CmdlineParser::getParamValueByName<std::string>(params, cci::rt::CmdlineParser::PARAM_LOG), rank, hostname, 0);
+	} else {
+		logger = NULL;
+	}
+
 	if (rank == 0) {
 		std::cout << "Recongized Options:" << std::endl;
 		std::cout << "\t" << DataBuffer::PARAM_COMPRESSION << ":\t" << CmdlineParser::getParamValueByName<bool>(params, DataBuffer::PARAM_COMPRESSION) << std::endl;
@@ -69,14 +85,16 @@ SynDataConfiguratorPush::SynDataConfiguratorPush(int argc, char** argv, cci::com
 		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPSIZE) << std::endl;
 		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPINTERLEAVE  << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPINTERLEAVE) << std::endl;
 		std::cout << "\t" << CmdlineParser::PARAM_MAXIMGSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) << std::endl;
+		std::cout << "\t" << "compute_time_params" << ":\t" << CmdlineParser::getParamValueByName< double >(params, "compute_time_min") <<
+		                                                "," << CmdlineParser::getParamValueByName< double >(params, "compute_time_max") << std::endl;
+		if (logger != NULL) std::cout << "\t" << CmdlineParser::PARAM_LOG << ":\t" << CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_LOG) << std::endl;
 	}
-
-	delete parser;
 
 	executable = argv[0];
 
 	t2 = cci::common::event::timestampInUS();
-	cci::common::LogSession *logsession = logger->getSession("setup");
+	cci::common::LogSession *logsession = NULL;
+	logsession = (logger == NULL ? NULL : logger->getSession("setup"));
 	if (logsession != NULL) logsession->log(cci::common::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cci::common::event::OTHER));
 };
 
@@ -90,7 +108,7 @@ bool SynDataConfiguratorPush::init() {
 	int rank = -1;
 	MPI_Comm_rank(comm, &rank);
 
-	cci::common::LogSession *session = logger->getSession("setup");
+	cci::common::LogSession *session = (logger == NULL ? NULL : logger->getSession("setup"));
 
 	// get the configuration file
 	std::string iocode = CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_IOTRANSPORT);
@@ -166,17 +184,18 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 
 	// compute and io groups
 	Scheduler_I *sch = new RandomScheduler(false,false);
-	handler = new PullCommHandler(&comm, compute_io_g, NULL, sch, logger->getSession("iogroup"));
+	handler = new PullCommHandler(&comm, compute_io_g, NULL, sch, (logger == NULL ? NULL : logger->getSession("pull")));
 
+	cci::common::LogSession *logsession = (logger == NULL ? NULL : logger->getSession("push"));
 	Scheduler_I *sch2 = NULL;
 		if (compute_io_g == IO_GROUP) {
-			rbuf = new MPIRecvDataBuffer(params, logger->getSession("push"));
+			rbuf = new MPIRecvDataBuffer(params, logsession);
 			sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
-			handler2 = new PushCommHandler(&comm, 1, rbuf, sch2, logger->getSession("push"));
+			handler2 = new PushCommHandler(&comm, 1, rbuf, sch2, logsession);
 		} else {
-			sbuf = new MPISendDataBuffer(params, logger->getSession("push"));
+			sbuf = new MPISendDataBuffer(params, logsession);
 			sch2 = new RandomScheduler(false, true);
-			handler2 = new PushCommHandler(&comm, 1, sbuf, sch2, logger->getSession("push"));
+			handler2 = new PushCommHandler(&comm, 1, sbuf, sch2, logsession);
 		}
 
 	t2 = cci::common::event::timestampInUS();
@@ -185,9 +204,9 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 	// now set up the workers
 	if (compute_io_g == COMPUTE_GROUP) {
 			Action_I *seg =
-					new cci::rt::syntest::GenerateOutputPush(&comm, MPI_UNDEFINED, NULL, sbuf,
+					new cci::rt::syntest::GenerateOutputPush(handler->getComm(), compute_io_g, NULL, sbuf,
 							params,
-							logger->getSession("seg"));
+							(logger == NULL ? NULL : logger->getSession("seg")));
 			proc->addHandler(seg);
 			proc->addHandler(handler2);
 
@@ -228,22 +247,23 @@ bool SynDataConfiguratorPush::configure(MPI_Comm &comm, Process *proc) {
 		if (this->logger != NULL) logger->getSession("setup")->log(cci::common::event(0, std::string("layout adios"), t1, t2, std::string(), ::cci::common::event::MEM_IO));
 
 		Action_I *save;
+		logsession = (logger == NULL ? NULL : logger->getSession("io"));
 		if (strcmp(iocode.c_str(), "na-NULL") == 0)
 			save = new cci::rt::NullSinkAction(handler->getComm(), io_sub_g,
 					rbuf, NULL,
-					logger->getSession("io"));
+					logsession);
 		else if (strcmp(iocode.c_str(), "na-POSIX") == 0)
 			save = new cci::rt::adios::POSIXRawSave(handler->getComm(), io_sub_g,
 					rbuf, NULL,
 				params,
-				logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+				logsession);  // comm is group 1 IO comms, split into io_sub_g comms
 		else
 			save = new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
 					rbuf, NULL,
 				params,
 				CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) *
 				CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) * 4, 256, 1024,
-				iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+				iomanager, logsession);  // comm is group 1 IO comms, split into io_sub_g comms
 
 		proc->addHandler(handler2);
 		proc->addHandler(save);

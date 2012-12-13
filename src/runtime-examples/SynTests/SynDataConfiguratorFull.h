@@ -21,7 +21,7 @@ namespace syntest {
 
 class SynDataConfiguratorFull : public cci::rt::ProcessConfigurator_I {
 public:
-	SynDataConfiguratorFull(int argc, char** argv, cci::common::Logger *_logger = NULL);
+	SynDataConfiguratorFull(int argc, char** argv);
 	virtual ~SynDataConfiguratorFull() {
 		if (iomanager != NULL) {
 			delete iomanager;
@@ -39,7 +39,6 @@ public:
 	static const int IO_GROUP;
 	static const int COMPUTE_TO_IO_GROUP;
 	static const int UNUSED_GROUP;
-
 
 protected:
 	cci::rt::adios::ADIOSManager *iomanager;

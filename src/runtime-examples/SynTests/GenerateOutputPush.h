@@ -10,6 +10,7 @@
 
 #include <Action_I.h>
 
+
 namespace cci {
 namespace rt {
 namespace syntest {
@@ -24,6 +25,8 @@ public:
 	virtual int run();
 	virtual const char* getClassName() { return "GenerateOutputPush"; };
 
+	static boost::program_options::options_description params;
+
 protected:
 	virtual int compute(int const &input_size , void * const &input,
 				int &output_size, void * &output);
@@ -33,6 +36,13 @@ protected:
 	int count;
 	bool compress;
 	int world_rank;
+
+	double min;
+	double duration;;
+
+private:
+	static bool param_init;
+	static bool initParams();
 };
 
 }

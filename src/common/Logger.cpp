@@ -231,7 +231,15 @@ void Logger::write(const std::string &prefix) {
         ofs2.close();
 }
 
+void Logger::write() {
+	write(logprefix);
+}
+
+
 #if defined (WITH_MPI)
+void Logger::writeCollectively(const int &rank, const int &manager_rank, MPI_Comm &comm_world) {
+	writeCollectively(logprefix, rank, manager_rank, comm_world);
+}
 void Logger::writeCollectively(const std::string &prefix, const int &rank, const int &manager_rank, MPI_Comm &comm_world) {
 	int size;
 	MPI_Comm_size(comm_world, &size);

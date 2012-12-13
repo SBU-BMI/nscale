@@ -22,11 +22,13 @@ const std::string CmdlineParser::PARAM_IOSIZE = "io_size";
 const std::string CmdlineParser::PARAM_IOINTERLEAVE = "io_interleave";
 const std::string CmdlineParser::PARAM_IOGROUPSIZE = "io_group_size";
 const std::string CmdlineParser::PARAM_IOGROUPINTERLEAVE = "io_group_interleave";
+const std::string CmdlineParser::PARAM_LOG = "log";
 
 CmdlineParser::CmdlineParser() : all_options("Options (defaults in parens)"), vm() {
 	boost::program_options::options_description common("Generic Options");
 	common.add_options()
 			("help,h", "this help message")
+			("log,g", boost::program_options::value<std::string>(), "location of log file.  if not specified, not logging.")
 			;
 	all_options.add(common);
 
@@ -107,6 +109,10 @@ T CmdlineParser::getParamValueByName(boost::program_options::variables_map &_vm,
 template std::string CmdlineParser::getParamValueByName< std::string >(boost::program_options::variables_map &_vm, const std::string &name);
 template int CmdlineParser::getParamValueByName<int>(boost::program_options::variables_map &_vm, const std::string &name);
 template bool CmdlineParser::getParamValueByName<bool>(boost::program_options::variables_map &_vm, const std::string &name);
+template double CmdlineParser::getParamValueByName<double>(boost::program_options::variables_map &_vm, const std::string &name);
+template float CmdlineParser::getParamValueByName<float>(boost::program_options::variables_map &_vm, const std::string &name);
+template std::vector<double> CmdlineParser::getParamValueByName< std::vector<double> >(boost::program_options::variables_map &_vm, const std::string &name);
+template std::vector<float> CmdlineParser::getParamValueByName< std::vector<float> >(boost::program_options::variables_map &_vm, const std::string &name);
 
 
 }

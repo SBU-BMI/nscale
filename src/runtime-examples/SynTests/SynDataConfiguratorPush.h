@@ -8,7 +8,7 @@
 #ifndef SYNDATACONFIGURATOR_PUSH_H_
 #define SYNDATACONFIGURATOR_PUSH_H_
 
-#include <ProcessConfigurator_I.h>
+#include "ProcessConfigurator_I.h"
 #include "UtilsADIOS.h"
 #include "Logger.h"
 
@@ -21,7 +21,7 @@ namespace syntest {
 
 class SynDataConfiguratorPush : public cci::rt::ProcessConfigurator_I {
 public:
-	SynDataConfiguratorPush(int argc, char** argv, cci::common::Logger *_logger = NULL);
+	SynDataConfiguratorPush(int argc, char** argv);
 	virtual ~SynDataConfiguratorPush() {
 		if (iomanager != NULL) {
 			delete iomanager;

@@ -8,7 +8,7 @@
 #ifndef SEGCONFIGURATOR_H_
 #define SEGCONFIGURATOR_H_
 
-#include <ProcessConfigurator_I.h>
+#include "ProcessConfigurator_I.h"
 #include "UtilsADIOS.h"
 #include "Logger.h"
 
@@ -21,14 +21,13 @@ namespace adios {
 
 class SegConfigurator : public cci::rt::ProcessConfigurator_I {
 public:
-	SegConfigurator(int argc, char** argv, cci::common::Logger *_logger=NULL);
+	SegConfigurator(int argc, char** argv);
 	virtual ~SegConfigurator() {
 		if (iomanager != NULL) {
 			delete iomanager;
 			iomanager = NULL;
 		}
 	};
-
 
 	virtual bool init();
 	virtual bool finalize();
@@ -42,7 +41,7 @@ public:
 	static const int UNUSED_GROUP;
 
 protected:
-	ADIOSManager *iomanager;
+	cci::rt::adios::ADIOSManager *iomanager;
 };
 
 }

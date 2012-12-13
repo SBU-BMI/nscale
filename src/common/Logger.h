@@ -182,9 +182,10 @@ class Logger {
 public :
 
 	// _id is something like mpi rank or hostname
-	Logger(const int &_id, const std::string &_name, const int &_group) :
-		id(_id), name(_name), group(_group) {
+	Logger(const std::string &_logprefix, const int &_id, const std::string &_name, const int &_group) :
+		id(_id), name(_name), group(_group), logprefix(_logprefix) {
 		starttime = cci::common::event::timestampInUS();
+		values.clear();
 	};
 
 	virtual ~Logger() {
@@ -199,9 +200,11 @@ public :
 	virtual std::vector<std::string> toSummaryStringsByName();
 	virtual std::vector<std::string> toSummaryStringsByType();
 	virtual void write(const std::string &prefix);
+	virtual void write();
 
 #if defined (WITH_MPI)
 	virtual void writeCollectively(const std::string &prefix, const int &rank, const int &manager_rank, MPI_Comm &comm_world);
+	virtual void writeCollectively(const int &rank, const int &manager_rank, MPI_Comm &comm_world);
 #endif
 
 private :
@@ -209,6 +212,7 @@ private :
 	std::string name;
 	int group;
 	long long starttime;
+	std::string logprefix;
 
 	// image name to log map.
 	std::tr1::unordered_map<std::string, cci::common::LogSession > values;

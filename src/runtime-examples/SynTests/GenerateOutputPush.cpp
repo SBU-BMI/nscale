@@ -20,20 +20,43 @@ namespace cci {
 namespace rt {
 namespace syntest {
 
+bool GenerateOutputPush::initParams() {
+
+	params.add_options()
+				("compute_time_min,d", boost::program_options::value< double >(), "min compute time.  default 1")
+				("compute_time_max,D", boost::program_options::value< double >(), "max compute time.  default 1")
+				;
+	return true;
+}
+
+boost::program_options::options_description GenerateOutputPush::params("Compute Options");
+bool GenerateOutputPush::param_init = GenerateOutputPush::initParams();
+
+
 GenerateOutputPush::GenerateOutputPush(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
 		boost::program_options::variables_map &_vm,
 		cci::common::LogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0) {
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0), min(0), duration(0) {
 
 	int size;
-	MPI_Comm_size(*_parent_comm, &size);
+	MPI_Comm_size(comm, &size);
 
 	count = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_INPUTCOUNT);
 	count = (count + size - 1) / size;
 
 	output_dim = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_MAXIMGSIZE);
 	compress = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
+
+	if (_vm.count("compute_time_min")) {
+		min = cci::rt::CmdlineParser::getParamValueByName< double >(_vm, "compute_time_min");
+	}
+	if (_vm.count("compute_time_max")) {
+		duration = cci::rt::CmdlineParser::getParamValueByName< double >(_vm, "compute_time_max") - min;
+	}
+	if (min < 0) min = 0;
+	if (duration < 0) duration = 0;
+
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
@@ -64,10 +87,15 @@ int GenerateOutputPush::compute(int const &input_size , void * const &input,
 
 	t1 = ::cci::common::event::timestampInUS();
 
+
+	int slept = (int)((rand() % 1000000) * duration + min * 1000000);
+//	printf("sleeping for %d\n", slept);
+	usleep(slept);
+
 	// real computation:
 	int status = Communicator_I::READY;
 	cv::Mat mask = cv::Mat::zeros(output_dim, output_dim, CV_32SC1);
-	sleep(1);
+
 	t2 = ::cci::common::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cci::common::event(90, std::string("compute"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 

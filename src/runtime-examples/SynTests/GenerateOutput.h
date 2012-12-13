@@ -25,6 +25,8 @@ public:
 	virtual int run();
 	virtual const char* getClassName() { return "GenerateOutput"; };
 
+	static boost::program_options::options_description params;
+
 protected:
 	virtual int compute(int const &input_size , void * const &input,
 				int &output_size, void * &output);
@@ -33,6 +35,12 @@ protected:
 	int output_count;
 	bool compress;
 
+	double min;
+	double duration;
+
+private:
+	static bool param_init;
+	static bool initParams();
 };
 
 }

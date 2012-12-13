@@ -35,8 +35,8 @@ const int SegConfigurator::COMPUTE_TO_IO_GROUP = 3;
 const int SegConfigurator::UNUSED_GROUP = 0;
 
 
-SegConfigurator::SegConfigurator(int argc, char** argv, cci::common::Logger *_logger) :
-	ProcessConfigurator_I(_logger), iomanager(NULL) {
+SegConfigurator::SegConfigurator(int argc, char** argv) :
+	ProcessConfigurator_I(), iomanager(NULL) {
 
 	long long t1, t2;
 	t1 = cci::common::event::timestampInUS();
@@ -57,10 +57,25 @@ SegConfigurator::SegConfigurator(int argc, char** argv, cci::common::Logger *_lo
 	}
 	params = parser->getParamValues();
 
+	delete parser;
+
+
+	// set up the logger
+	char hostname[256];
+	gethostname(hostname, 255);  // from <iostream>
+
 		// end Boost Program_Options configuration.
 	//////////
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if (params.count(cci::rt::CmdlineParser::PARAM_LOG)) {
+
+		logger = new cci::common::Logger(cci::rt::CmdlineParser::getParamValueByName<std::string>(params, cci::rt::CmdlineParser::PARAM_LOG), rank, hostname, 0);
+	} else {
+		logger = NULL;
+	}
+
 	if (rank == 0) {
 		std::cout << "Recongized Options:" << std::endl;
 		std::cout << "\t" << DataBuffer::PARAM_COMPRESSION << ":\t" << CmdlineParser::getParamValueByName<bool>(params, DataBuffer::PARAM_COMPRESSION) << std::endl;
@@ -75,14 +90,14 @@ SegConfigurator::SegConfigurator(int argc, char** argv, cci::common::Logger *_lo
 		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPSIZE) << std::endl;
 		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPINTERLEAVE  << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPINTERLEAVE) << std::endl;
 		std::cout << "\t" << CmdlineParser::PARAM_MAXIMGSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) << std::endl;
+		if (logger != NULL) std::cout << "\t" << CmdlineParser::PARAM_LOG << ":\t" << CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_LOG) << std::endl;
 	}
-
-	delete parser;
 
 	executable = argv[0];
 
 	t2 = cci::common::event::timestampInUS();
-	cci::common::LogSession *logsession = logger->getSession("setup");
+	cci::common::LogSession *logsession = NULL;
+	logsession = (logger == NULL ? NULL : logger->getSession("setup"));
 	if (logsession != NULL) logsession->log(cci::common::event(0, std::string("parse cmd"), t1, t2, std::string(), ::cci::common::event::OTHER));
 };
 
@@ -97,7 +112,7 @@ bool SegConfigurator::init() {
 	int rank = -1;
 	MPI_Comm_rank(comm, &rank);
 
-	cci::common::LogSession *session = logger->getSession("setup");
+	cci::common::LogSession *session = (logger == NULL ? NULL : logger->getSession("setup"));
 
 	// get the configuration file
 	std::string iocode = CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_IOTRANSPORT);
@@ -184,10 +199,11 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 
 	sch = new RandomScheduler(isroot, !isroot);
 	// set up the buffers
+	cci::common::LogSession *logsession = (logger == NULL ? NULL : logger->getSession("pull"));
 	if (compute_io_g == IO_GROUP) {  // io nodes
 //		cci::common::Debug::print("here3a\n");
 		// compute and io groups
-		handler = new PullCommHandler(&comm, compute_io_g, NULL, sch, logger->getSession("pull"));
+		handler = new PullCommHandler(&comm, compute_io_g, NULL, sch, logsession);
 //		cci::common::Debug::print("here3a.2\n");
 	} else {
 
@@ -196,14 +212,14 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 
 			sbuf = new MPISendDataBuffer(100,
 					CmdlineParser::getParamValueByName<bool>(params, MPIDataBuffer::PARAM_NONBLOCKING),
-					logger->getSession("pull"));
-			handler = new PullCommHandler(&comm, compute_io_g, sbuf, sch, logger->getSession("pull"));
+					logsession);
+			handler = new PullCommHandler(&comm, compute_io_g, sbuf, sch, logsession);
 		} else { // other compute
 //			cci::common::Debug::print("here3b2\n");
 
 			rbuf = new MPIRecvDataBuffer(4,
-					CmdlineParser::getParamValueByName<bool>(params, MPIDataBuffer::PARAM_NONBLOCKING), logger->getSession("pull"));
-			handler = new PullCommHandler(&comm, compute_io_g, rbuf, sch, logger->getSession("pull"));
+					CmdlineParser::getParamValueByName<bool>(params, MPIDataBuffer::PARAM_NONBLOCKING), logsession);
+			handler = new PullCommHandler(&comm, compute_io_g, rbuf, sch, logsession);
 		}
 	}
 
@@ -214,18 +230,19 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 	compute_to_io_g = (compute_io_g == COMPUTE_GROUP && handler->isListener() ? UNUSED_GROUP : COMPUTE_TO_IO_GROUP);
 
 	Scheduler_I *sch2 = NULL;
+	logsession = (logger == NULL ? NULL : logger->getSession("push"));
 	if (compute_to_io_g == UNUSED_GROUP) {
 		sch2 = new RandomScheduler(false, false);
-		handler2 = new PushCommHandler(&comm, compute_to_io_g, NULL, sch2, logger->getSession("push"));
+		handler2 = new PushCommHandler(&comm, compute_to_io_g, NULL, sch2, logsession);
 	} else {
 		if (compute_io_g == IO_GROUP) {
-			rbuf = new MPIRecvDataBuffer(params, logger->getSession("push"));
+			rbuf = new MPIRecvDataBuffer(params, logsession);
 			sch2 = new RandomScheduler(true, false);  // all io nodes are roots.
-			handler2 = new PushCommHandler(&comm, compute_to_io_g, rbuf, sch2, logger->getSession("push"));
+			handler2 = new PushCommHandler(&comm, compute_to_io_g, rbuf, sch2, logsession);
 		} else {
-			sbuf = new MPISendDataBuffer(params, logger->getSession("push"));
+			sbuf = new MPISendDataBuffer(params, logsession);
 			sch2 = new RandomScheduler(false, true);
-			handler2 = new PushCommHandler(&comm, compute_to_io_g, sbuf, sch2, logger->getSession("push"));
+			handler2 = new PushCommHandler(&comm, compute_to_io_g, sbuf, sch2, logsession);
 		}
 	}
 
@@ -244,7 +261,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 			Action_I *assign =
 					new cci::rt::adios::AssignTiles(&comm, MPI_UNDEFINED, NULL, sbuf,
 							params,
-							logger->getSession("assign"));
+							(logger == NULL ? NULL : logger->getSession("assign")));
 			proc->addHandler(assign);
 			delete handler2;
 		} else {
@@ -253,7 +270,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 			Action_I *seg =
 					new cci::rt::adios::Segment(&comm, MPI_UNDEFINED, rbuf, sbuf,
 							params,
-							logger->getSession("seg"));
+							(logger == NULL ? NULL : logger->getSession("seg")));
 			proc->addHandler(seg);
 			proc->addHandler(handler2);
 		}
@@ -303,19 +320,20 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 //		cci::common::Debug::print("here5.3.3\n");
 
 		Action_I *save;
+		logsession = (logger == NULL ? NULL : logger->getSession("io"));
 		if (strcmp(iocode.c_str(), "na-NULL") == 0) {
 ///			cci::common::Debug::print("here5.4a\n");
 
 			save = new cci::rt::NullSinkAction(handler->getComm(), io_sub_g,
 					rbuf, NULL,
-					logger->getSession("io"));
+					logsession);
 		} else if (strcmp(iocode.c_str(), "na-POSIX") == 0) {
 //			cci::common::Debug::print("here5.4b\n");
 
 			save = new cci::rt::adios::POSIXRawSave(handler->getComm(), io_sub_g,
 					rbuf, NULL,
 				params,
-				logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+				logsession);  // comm is group 1 IO comms, split into io_sub_g comms
 		} else {
 //			cci::common::Debug::print("here5.4c\n");
 			save = new cci::rt::adios::ADIOSSave_Reduce(handler->getComm(), io_sub_g,
@@ -323,7 +341,7 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 				params,
 				CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) *
 				CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) * 4, 256, 1024,
-				iomanager, logger->getSession("io"));  // comm is group 1 IO comms, split into io_sub_g comms
+				iomanager, logsession);  // comm is group 1 IO comms, split into io_sub_g comms
 		}
 		proc->addHandler(handler2);
 		proc->addHandler(save);

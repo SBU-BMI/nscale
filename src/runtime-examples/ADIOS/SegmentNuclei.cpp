@@ -19,10 +19,10 @@
 #include <vector>
 #include <cstdlib>
 
-cci::common::Logger *logger = NULL;
+cci::rt::ProcessConfigurator_I *conf = NULL;
 
-void writeLog(std::string logfile) {
-	if (logger == NULL) return;
+void writeLog() {
+	if (conf->getLogger() == NULL) return;
 
 	long long t3, t4;
 
@@ -33,9 +33,9 @@ void writeLog(std::string logfile) {
 #if defined (WITH_MPI)
 	MPI_Comm comm = MPI_COMM_WORLD;
 	MPI_Comm_rank(comm, &rank);
-	logger->writeCollectively(logfile, rank, 0, comm);
+	conf->getLogger()->writeCollectively(rank, 0, comm);
 #else
-	logger->write(logfile);
+	conf->getLogger()->write();
 #endif
 
 	t4= cci::common::event::timestampInUS();
@@ -49,9 +49,10 @@ void exit_handler() {
 	int rank=0;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if (logger != NULL) delete logger;
+	if (conf != NULL) delete conf;
+
 	long long t2 = cci::common::event::timestampInUS();
-	if (rank ==0) cci::common::Debug::print("cleaned up logger in %lu us.\n", long(t2-t1));
+	if (rank ==0) cci::common::Debug::print("cleaned up conf in %lu us.\n", long(t2-t1));
 
 	t1 = cci::common::event::timestampInUS();
 	MPI_Finalize();
@@ -98,9 +99,6 @@ int main (int argc, char **argv){
 	int err  = MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &threading_provided);
 	MPI_Comm comm = MPI_COMM_WORLD;
 
-	char hostname[256];
-	gethostname(hostname, 255);  // from <iostream>
-
 	int rank=-1;
 	MPI_Comm_rank(comm, &rank);
 
@@ -114,14 +112,13 @@ int main (int argc, char **argv){
 	//srand(rank);
 	srand(cci::common::event::timestampInUS());
 
-	logger = new cci::common::Logger(rank, hostname, 0);
-	cci::common::LogSession *logsession = logger->getSession("setup");
 
 	long long t1, t2;
 
 	t1 = cci::common::event::timestampInUS();
-	cci::rt::ProcessConfigurator_I *conf = new cci::rt::adios::SegConfigurator(argc, argv, logger);
-	std::string logfile = conf->getOutputDir();
+	conf = new cci::rt::adios::SegConfigurator(argc, argv);
+	cci::common::LogSession *logsession = NULL;
+	if (conf->getLogger() != NULL) logsession = conf->getLogger()->getSession("setup");
 
 	cci::rt::Process *p = new cci::rt::Process(comm, argc, argv, conf);
 	p->setup();
@@ -136,13 +133,12 @@ int main (int argc, char **argv){
 	if (logsession != NULL) logsession->log(cci::common::event(0, std::string("proc teardown"), t1, t2, std::string(), ::cci::common::event::NETWORK_WAIT));
 
 	if (p != NULL) delete p;
-	if (conf != NULL) delete conf;
 	MPI_Barrier(comm);
 
 	t4= cci::common::event::timestampInUS();
-	if (rank ==0)	cci::common::Debug::print("finished processing in %lu us.\n", long(t4-t3));
+	if (rank ==0) cci::common::Debug::print("finished processing in %lu us.\n", long(t4-t3));
 
-	writeLog(logfile);
+	writeLog();
 
 
 	exit(0);
