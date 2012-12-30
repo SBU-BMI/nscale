@@ -103,7 +103,7 @@ old_dirs = {...
     '/home/tcpan/PhD/path/Data/adios/yellowstone' ...
     };
     
-selections = [7 8 9];
+selections = 1:2:length(dirs);
 %selections = 1:length(dirs);
 
 % canParallelize = 0;
@@ -141,8 +141,8 @@ selections = [7 8 9];
 % 
 %     fprintf(2, 'MATLAB parallel toolbox not available.  using standard for loop\n');
           
-%errorfid = fopen('error2.log', 'w');
-errorfid = 2; 
+errorfid = fopen('error1.log', 'w');
+%errorfid = 2; 
     for j = 1 : length(selections)
         id = selections(j);
         dirname = dirs{id};

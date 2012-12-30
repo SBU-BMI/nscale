@@ -1,7 +1,7 @@
 function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct, proc_type, event_names )
 %readComputeAndIOTiming reads the timing file
 %   format of timing file is :
-%       pid, hostname, filename, stagename, stagetype, stagename, stagetype, ...
+%       pid val, hostname val, filename val, stagename val, stagetype val, stagename val, stagetype val, ...
 %       next line: values
 %   then repeat.
 
@@ -32,6 +32,10 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
     else
         tline = '';
     end
+	%% TODO: version 3.0?
+	%% TODO: ver 2.2 should extend 2.1, with an additional field of message target.
+
+
     if ischar(tline) && (strcmp(tline, 'v2.1') == 1)
         proc_events = cell(size(r, 1) - 1, 8);
    
@@ -80,7 +84,7 @@ function [ proc_events ] = readComputeAndIOTimingOneLineFormat( dirname, fstruct
         proc_events = cell(size(r, 1) - 1, 8);
 
         % processing version 2 (has annotation output, which is just the
-        % size of the data being outputted.
+        % size of the data being outputted.)
         linenum = linenum + 1;
         if (linenum < numlines)
             tline = r{linenum};  
