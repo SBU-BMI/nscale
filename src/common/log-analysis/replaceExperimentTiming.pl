@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use File::Copy;
 
-my(@filenames) = </home/tcpan/PhD/path/Data/adios/*.summary.v2.walltimes.csv>;
+my(@filenames) = </home/tcpan/PhD/path/Data/adios/keeneland-syntest-params2/*.summary.v2.walltimes.csv>;
 print "filenames:";
 print "$_," foreach (@filenames);
 print "\n";
