@@ -7,7 +7,9 @@ close all;
 timeInterval = 100000;
 procWidth = 1;
 
-fid = fopen([dirname, '.summary.csv'], 'w');
+summaryFilename = [dirname, '.summary.v2.walltimes.csv'];
+
+fid = fopen(summaryFilename, 'w');
 fclose(fid);
 
 files = dir(fullfile(dirname, '*.csv'));
@@ -46,8 +48,8 @@ for i = 1:length(files)
         
         % get the min and max timestamps for the total time.
         nrows = size(proc_events,1);
-        mxx = zeros(nrows, 1);
-        mnx = ones(nrows, 1) * realmax('double');
+        mxx = ones(nrows, 1) * -1.0;
+        mnx = ones(nrows, 1) * -1.0;
         et_id = fields.('endT');
         st_id = fields.('startT');
         for p = 1:nrows 
@@ -58,9 +60,9 @@ for i = 1:length(files)
                 mnx(p) = min(proc_events{p, st_id}, [], 1);
             end
         end
-        mx = max(mxx, [], 1);  % maximum end timestamp
-        mn = min(mnx, [], 1)-1;  % min end timestamp
-
+        mx = max(mxx(mxx>=0), [], 1);  % maximum end timestamp
+        mn = min(mnx(mnx>=0), [], 1)-1;  % min end timestamp
+        durs = mxx - mnx;
         
         
         % FIXED THIS IN THE INPUT CSV files.  see fix_na-POSIX_logs.sh in scripts
@@ -103,17 +105,17 @@ for i = 1:length(files)
         %% SUMMARIZE
         
         fprintf(1, 'summarizing\n');
-        fid = fopen([dirname, '.summary.v2.csv'], 'a');
-        fprintf(fid, '%s, start time, %f, end time, %f\n', prefix, mn, mx);        
+        fid = fopen(summaryFilename, 'a');
+        fprintf(fid, '%s, app wall time, %f, sum process wall time, %f\n', prefix, mx-mn, sum(durs));        
     
         
-        summarize2(proc_events, fields, prefix, fid, allEventTypes, allTypeNames, timeInterval, [mn, mx]);
+        %summarize2(proc_events, fields, prefix, fid, allEventTypes, allTypeNames, timeInterval, [mn, mx]);
 
         
         
         fclose(fid);
      catch err
-         fprintf(errorfid, 'ERROR: failed processing for %s, reason: %s\n', prefix, err.message);
+        fprintf(errorfid, 'ERROR: failed processing for %s, reason: %s\n', prefix, err.message);
      end
 end
 
