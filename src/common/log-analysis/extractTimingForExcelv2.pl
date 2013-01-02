@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 
-my(@filenames)= </home/tcpan/PhD/path/Data/adios/*-syntest*.summary.v2.csv>;
+my(@filenames)= <d:/PhD/path/adios-analysis/data/updated_summary/*-syntest*.summary.v2.csv>;
 my($dataprefix) = "syntest";
 
 foreach my $filename (@filenames) {
@@ -17,7 +17,7 @@ foreach my $filename (@filenames) {
 	
 	# open the outputfile 
 	my($outfile) = $filename;
-	$outfile =~ s/\/adios\//\/output\//g;
+	$outfile =~ s/\/data\//\/output\//g;
 	$outfile =~ s/\.summary\./.extract./g;
 	print "$filename => $outfile\n";
 	open(FH2, ">$outfile") or die("ERROR: unable to open output file $outfile\n");
