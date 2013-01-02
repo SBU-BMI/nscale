@@ -103,8 +103,7 @@ old_dirs = {...
     '/home/tcpan/PhD/path/Data/adios/yellowstone' ...
     };
     
-selections = [7 8 9];
-%selections = 1:length(dirs);
+selections = 1:length(dirs);
 
 % canParallelize = 0;
 % if iskeyword('matlabpool')

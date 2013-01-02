@@ -7,7 +7,8 @@ close all;
 timeInterval = 100000;
 procWidth = 1;
 
-summaryFilename = [dirname, '.summary.v2.walltimes.csv'];
+%summaryFilename = [dirname, '.summary.v2.walltimes.csv'];
+summaryFilename = [dirname, '.summary.v2.csv'];
 
 fid = fopen(summaryFilename, 'w');
 fclose(fid);
@@ -106,10 +107,10 @@ for i = 1:length(files)
         
         fprintf(1, 'summarizing\n');
         fid = fopen(summaryFilename, 'a');
-        fprintf(fid, '%s, app wall time, %f, sum process wall time, %f\n', prefix, mx-mn, sum(durs));        
+        fprintf(fid, 'EXPERIMENT, %s, app wall time, %f, sum process wall time, %f\n', prefix, mx-mn, sum(durs));        
     
         
-        %summarize2(proc_events, fields, prefix, fid, allEventTypes, allTypeNames, timeInterval, [mn, mx]);
+        summarize2(proc_events, fields, prefix, fid, allEventTypes, allTypeNames, timeInterval, [mn, mx]);
 
         
         
