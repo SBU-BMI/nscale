@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use File::Copy;
 
-my(@filenames) = </home/tcpan/PhD/path/Data/adios/keeneland-syntest-params2/*.summary.v2.walltimes.csv>;
+my(@filenames) = </home/tcpan/PhD/path/Data/adios/*.summary.v2.walltimes.csv>;
 print "filenames:";
 print "$_," foreach (@filenames);
 print "\n";
@@ -32,10 +32,9 @@ foreach my $filename (@filenames) {
 	# parse the update lines into a hash table
 	foreach my $newline (@newlines) {
 		$newline =~ s/^\s+|\s+$//g;
-		my($fn, $times) = $newline =~ m/^([^,]+),(.*)$/;
+		my($fn) = $newline =~ m/^EXPERIMENT,([^,]+),.*$/;
 		$fn =~ s/^\s+|\s+$//g;
-		$times =~ s/^\s+|\s+$//g; 
-		$walltimes{$fn} = $times;
+		$walltimes{$fn} = $newline;
 	} 
 #	print "$_, $walltimes{$_}\n" foreach (keys %walltimes);
 	
@@ -50,27 +49,16 @@ foreach my $filename (@filenames) {
 	# replace the appropriate lines
 	foreach my $line (@lines) {
 		$line =~ s/^\s+|\s+$//g;
-		if ($line =~ m/^\/home\/tcpan\//) {
-			my($key) = $line =~ m/^([^,]+),.*$/;
+		if ($line =~ m/^EXPERIMENT,/) {
+			my($key) = $line =~ m/^EXPERIMENT,([^,]+),.*$/;
 			$key =~ s/^\s+|\s+$//g;
 			print "$key => $walltimes{$key}\n";
 						
-			print FH2 "EXPERIMENT, $key, $walltimes{$key}\n";
+			print FH2 "$walltimes{$key}\n";
 		} else {
 			print FH2 "$line\n";
 		}
 	}
 	close(FH2);
 	
-	# verify
-	open(FH2, $fn2) or die("ERROR: cannot open summary file $fn2\n");
-	my(@lines) = <FH2>;
-	close(FH2);
-		
-	foreach my $line (@lines) {
-		$line =~ s/^\s+|\s+$//g;
-		if ($line =~ m/^\/home\/tcpan\//) {
-			die("ERROR: $fn2 is not properly updated at line $line\n");
-		}
-	}
 }

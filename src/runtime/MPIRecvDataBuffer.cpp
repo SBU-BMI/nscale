@@ -112,7 +112,7 @@ int MPIRecvDataBuffer::checkRequests(bool waitForAll) {
 
 			memset(len, 0, 21);
 			sprintf(len, "%d", size);
-			if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI NB RECV"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO));
+			if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI NB RECV"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO_NB));
 		}
 		//cci::common::Debug::print("MPI Recv Buffer new size: %ld\n", mpi_buffer.size());
 

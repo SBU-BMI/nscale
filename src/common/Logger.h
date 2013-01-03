@@ -28,6 +28,7 @@ public:
 	static const int GPU_MEM_IO;
 	static const int NETWORK_IO;
 	static const int NETWORK_WAIT;
+	static const int NETWORK_IO_NB;
 	static const int FILE_I;
 	static const int FILE_O;
 	static const int ADIOS_INIT;

@@ -99,7 +99,7 @@ int MPISendDataBuffer::checkRequests(bool waitForAll) {
 			// clear the data itself.
 			memset(len, 0, 21);
 			sprintf(len, "%d", size);
-			if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI NB SEND"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO));
+			if (this->logsession != NULL) this->logsession->log(cci::common::event(0, std::string("MPI NB SEND"), t1, t2, std::string(len), ::cci::common::event::NETWORK_IO_NB));
 		}
 //		printf("send new size: %ld\n", mpi_buffer.size());
 

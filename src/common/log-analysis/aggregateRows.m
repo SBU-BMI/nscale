@@ -1,5 +1,5 @@
-function [ out_events ] = aggregateProcesses( events, names, procid_fields )
-% aggregateProcesses uses the procid_fields as unique identifiers and
+function [ out_events ] = aggregateRows( events, names, procid_fields )
+% aggregateRows uses the procid_fields as unique identifiers and
 % aggregate data base on unique values.
 % if procid_fields is specified as '*', then aggregate all the rows
 % together.

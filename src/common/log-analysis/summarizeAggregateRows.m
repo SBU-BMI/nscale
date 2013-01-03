@@ -12,7 +12,7 @@ function [summary2 ops2] = summarizeAggregateRows(summary, ops)
     %% check the parameters.
 
 
-    ops2 = {'count', 'min(ms)', 'max(ms)', 'total(ms)', 'mean(ms)', 'stdev(ms)'};
+    ops2 = {'count', 'min(ms)', 'max(ms)', 'total(ms)', 'mean(ms)', 'stdev(ms)', 'total data(MB)'};
  
     %% iterate over each row
 %    attributes = cellfun(@(x) double(x)/(1024.0*1024.0), events(:, names.('attribute')), 'UniformOutput', 0);
@@ -36,6 +36,7 @@ function [summary2 ops2] = summarizeAggregateRows(summary, ops)
             summary2(i, 6) = sum(summary(:, i, 5)) - (summary2(i, 5) * summary2(i, 5) * summary2(i, 1));
             summary2(i, 6) = sqrt(summary2(i, 6) / (summary2(i, 1) - 1));        
         end
+        summary2(i, 7) = sum(summary(:, i, 6));
     end
     
     

@@ -4,7 +4,7 @@ function analyzeDir ( dirname, allEventTypes, allTypeNames, colorMap, errorfid )
 %   Detailed explanation goes here
 close all;
 
-timeInterval = 100000;
+timeInterval = 200000;
 procWidth = 1;
 
 %summaryFilename = [dirname, '.summary.v2.walltimes.csv'];
@@ -21,21 +21,26 @@ for i = 1:length(files)
     
     try
         clear proc_events;
+        clear events_pid;
+        clear summary_pid;
+        clear TPIntervals;
         
         
         %fprintf(1, 'OLD VERSION\n');
         %proc_events = readComputeAndIOTimingOneLineFormat(dirname, files(i), proc_types_to_exclude, event_names_to_exclude);
         %fprintf(1, 'OLD VERSION DONE\n');
         
+        fprintf(1, 'processing %s\n', prefix);
+        
         % read the data in
-        tic
-        fprintf(1, 'loading data\n');
+        tic;
         datafile = [prefix '.data.mat'];
-        if (exist(datafile, 'file') == 2)
-            fprintf(1, 'load previously loaded mat data file %s\n', datafile);
+        if (exist(datafile, 'file') == 2 &&...
+                length(intersect({'proc_events'; 'fields'}, who('-file', datafile))) == 2)
+            fprintf(1, 'loading previously parsed log data %s\n', datafile);
             load(datafile);
         else
-            fprintf(1, 'parsing %s/%s\n', dirname, files(i).name);
+            fprintf(1, 'parsing log data %s/%s\n', dirname, files(i).name);
             [proc_events fields] = readLog(dirname, files(i));
             
             if (size(proc_events, 1) == 0)
@@ -43,29 +48,26 @@ for i = 1:length(files)
                 continue;
             end
             
-            save(datafile, 'proc_events', 'fields');
+            save(datafile, 'proc_events', 'fields', '-v7.3');
+        end
+        toc
+
+        % aggregate by pid
+        tic;
+        datafile = [prefix '.events_pid.mat'];
+        if (exist(datafile, 'file') == 2 &&...
+                length(intersect({'events_pid'; 'fields'; 'nodeTypes'}, who('-file', datafile))) == 3)
+            fprintf(1, 'load previously aggregated process log data %s\n', datafile);
+            load(datafile);
+        else
+            fprintf(1, 'aggregating events data based on pid.\n');
+            [events_pid nodeTypes] = aggregatePerProc(proc_events, fields);
+          
+            save(datafile, 'events_pid', 'fields', 'nodeTypes', '-v7.3');
         end
         toc
         
-        % get the min and max timestamps for the total time.
-        nrows = size(proc_events,1);
-        mxx = ones(nrows, 1) * -1.0;
-        mnx = ones(nrows, 1) * -1.0;
-        et_id = fields.('endT');
-        st_id = fields.('startT');
-        for p = 1:nrows 
-            if (~isempty(proc_events{p, et_id}))
-                mxx(p) = max(proc_events{p, et_id}, [], 1);
-            end
-            if (~isempty(proc_events{p, st_id}))
-                mnx(p) = min(proc_events{p, st_id}, [], 1);
-            end
-        end
-        mx = max(mxx(mxx>=0), [], 1);  % maximum end timestamp
-        mn = min(mnx(mnx>=0), [], 1)-1;  % min end timestamp
-        durs = mxx - mnx;
-        
-        
+                
         % FIXED THIS IN THE INPUT CSV files.  see fix_na-POSIX_logs.sh in scripts
         %            if (~isempty(strfind(files(i).name, 'na-POSIX')))
         %                %tic;
@@ -83,7 +85,7 @@ for i = 1:length(files)
         %            end
         
         
-        %             %% RENDER
+%% RENDER
         %             % filter out MPI messaging
         %             tic
         %             fprintf(1, 'prepare to render - exclude MPI send/receive\n');
@@ -102,16 +104,71 @@ for i = 1:length(files)
         %             toc
         %             %save([dirname filesep files(i).name '.mat'], 'norm_events', 'sum_events');
         
+
+        %% compute intermediate results
+        % compute min and max
+        tic;
+        fprintf(1, 'compute min and max\n');
+        nrows = size(events_pid,1);
+        mxx = ones(nrows, 1) * -1.0;
+        mnx = ones(nrows, 1) * -1.0;
+        et_id = fields.('endT');
+        st_id = fields.('startT');
+        for p = 1:nrows 
+            if (~isempty(events_pid{p, et_id}))
+                mxx(p) = max(events_pid{p, et_id}, [], 1);
+            end
+            if (~isempty(events_pid{p, st_id}))
+                mnx(p) = min(events_pid{p, st_id}, [], 1);
+            end
+        end
+        mx = max(mxx(mxx>=0), [], 1);  % maximum end timestamp
+        mn = min(mnx(mnx>=0), [], 1)-1;  % min end timestamp
+        durs = mxx - mnx;
+        toc
+          
+        % intermediate summary by procs
+        tic;
+        datafile = [prefix '.events_stats.mat'];
+        if (exist(datafile, 'file') == 2 &&...
+                length(intersect({'summary_pid'; 'ops_pid'; 'allEventTypes'}, who('-file', datafile))) == 3)
+            fprintf(1, 'load previously computed intermediate summary %s\n', datafile);
+            load(datafile);
+        else
+            fprintf(1, 'compute intermediate summary for events data based on pid.\n');
+            [summary_pid ops_pid] = summarizeByRow(events_pid, fields, allEventTypes);
+            save(datafile1, 'summary_pid', 'ops_pid', 'allEventTypes', '-v7.3');
+        end
+        toc
         
-        %% SUMMARIZE
+        
+        % resample datasizes by events
+        tic;
+        datafile = [prefix '.events_resample.mat'];
+       	if (exist(datafile, 'file') == 2 &&...
+                length(intersect({'TPIntervals', 'interval', 'allEventTypes'}, who('-file', datafile))) == 3)
+            fprintf(1, 'load previously saved resampled data file %s\n', datafile);
+            load(datafile);
+        else
+            fprintf(1, 'resampling data by events\n');
+            [TPIntervals, interval, ~] = resampleData(events_pid, fields, timeInterval, allEventTypes, 'eventType', [mn mx]);
+            save(datafile, 'TPIntervals', 'interval', 'allEventTypes', '-v7.3');       
+        end
+        toc
+
+        
+
+        
+        
+%% SUMMARIZE
         
         fprintf(1, 'summarizing\n');
         fid = fopen(summaryFilename, 'a');
         fprintf(fid, 'EXPERIMENT, %s, app wall time, %f, sum process wall time, %f\n', prefix, mx-mn, sum(durs));        
     
-        
-        summarize2(proc_events, fields, prefix, fid, allEventTypes, allTypeNames, timeInterval, [mn, mx]);
-
+        tic;
+        summarizeFromIntermeidate(summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid);
+        toc
         
         
         fclose(fid);

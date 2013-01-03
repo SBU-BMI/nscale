@@ -19,6 +19,7 @@ const int event::MEM_IO = 11;
 const int event::GPU_MEM_IO = 12;
 const int event::NETWORK_IO = 21;
 const int event::NETWORK_WAIT = 22;
+const int event::NETWORK_IO_NB = 23;
 const int event::FILE_I = 31;
 const int event::FILE_O = 32;
 const int event::ADIOS_INIT = 41;

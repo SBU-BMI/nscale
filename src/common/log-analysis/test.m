@@ -1,7 +1,7 @@
 close all;
 clear all;
 
-allEventTypes = [-1 0 11 12 21 22 31 32 41 42 43 44 45 46]';
+allEventTypes = [-1 0 11 12 21 22 23 31 32 41 42 43 44 45 46]';
 
 allTypeNames = {'Other',...
     'Compute',...
@@ -9,6 +9,7 @@ allTypeNames = {'Other',...
     'GPU mem IO', ...
     'Network IO', ...
     'Network wait', ...
+    'Network IO NB', ...
     'File read', ...
     'File write', ...
     'ADIOS init', ...
@@ -24,6 +25,7 @@ colorMap = [0, 0, 0; ...              % OTHER, -1, black
             240.0, 0.4, 1.0; ...      % GPU_MEM_IO, 12, blue
             180.0, 0.4, 1.0; ...      % NETWORK_IO, 21, cyan
             300.0, 0.4, 1.0; ...      % NETWORK_WAIT, 22, magenta
+            180.0, 0.4, 1.0; ...      % NETWORK_IO_NB, 23, cyan
             60.0, 0.4, 1.0; ...       % FILE_I, 31, yellow
             0.0, 0.4, 1.0; ...        % FILE_O, 32, red
             180.0, 1.0, 1.0; ...      % ADIOS_INIT, 41, cyan
@@ -36,20 +38,18 @@ colorMap = [0, 0, 0; ...              % OTHER, -1, black
 colorMap(:, 1) = colorMap(:, 1) / 180.0 * pi;  % in radian
 
 dirs = {...
-    '/home/tcpan/PhD/path/Data/adios/keeneland-syn-test/syntest.reverserandom.run',...
-    '/home/tcpan/PhD/path/Data/adios/kfs-syn-param2', ... 
-    '/home/tcpan/PhD/path/Data/adios/kfs-syn-param1', ... 
+    '/home/tcpan/PhD/path/Data/adios/keeneland-syntest.reverserandom.run',...
+    '/home/tcpan/PhD/path/Data/adios/kfs-syntest-param2', ... 
+    '/home/tcpan/PhD/path/Data/adios/kfs-syntest-param1', ... 
     '/home/tcpan/PhD/path/Data/adios/keeneland-syntest-params3', ...    
-    '/home/tcpan/PhD/path/Data/adios/keeneland-syntest-params2/b2', ...
-    '/home/tcpan/PhD/path/Data/adios/keeneland-syntest-params2/b4', ...
-    '/home/tcpan/PhD/path/Data/adios/keeneland-syntest-params2/b6', ...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-syntest-params2', ...
     '/home/tcpan/PhD/path/Data/adios/keeneland-nb-vs-b3', ...
     '/home/tcpan/PhD/path/Data/adios/keeneland-nb-vs-b2', ...
     '/home/tcpan/PhD/path/Data/adios/keeneland-nb-vs-b', ...
     '/home/tcpan/PhD/path/Data/adios/keeneland-iprobefix.nb', ...
     '/home/tcpan/PhD/path/Data/adios/keeneland-iprobefix', ...
-    '/home/tcpan/PhD/path/Data/adios/keeneland-syn-test/syntest.run2',...
-    '/home/tcpan/PhD/path/Data/adios/keeneland-syn-test/syntest.run1',...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-syntest.run2',...
+    '/home/tcpan/PhD/path/Data/adios/keeneland-syntest.run1',...
     '/home/tcpan/PhD/path/Data/adios/keeneland-randtime',...
     '/home/tcpan/PhD/path/Data/adios/keeneland-tcga3-throughput',...
     '/home/tcpan/PhD/path/Data/adios/keeneland-compressed-randtime', ...
@@ -211,7 +211,7 @@ selections = 1:length(dirs);
 %         tic
 %         fprintf(1, 'aggregating by process\n');
 %         eventAggreg = {'pid', 'hostName', 'sessionName', 'group'};
-%         events4 = aggregateProcesses(events2, fields, eventAggreg);
+%         events4 = aggregateRows(events2, fields, eventAggreg);
 %         toc
             
  
@@ -227,33 +227,65 @@ selections = 1:length(dirs);
             
             tic
             fprintf(1, 'aggregating by process\n');
-            events4 = aggregateProcesses(events3, fields, procAggreg);
+            events4 = aggregateRows(events3, fields, procAggreg);
             toc
 
             
-            fid = 1;
-            
+fid = 1;            
 proc_events = events;
                    
-                    % get the min and max timestamps for the total time.
-        nrows = size(proc_events,1);
-        mxx = zeros(nrows, 1);
-        mnx = ones(nrows, 1) * realmax('double');
+% get the min and max timestamps for the total time.
+        % aggregate by pid
+        tic;
+        fprintf(1, 'loading data\n');
+        [events_pid nodeTypes] = aggregatePerProc(proc_events, fields);
+        toc
+        
+
+        %% compute intermediate results
+        % compute min and max
+        tic;
+        fprintf(1, 'compute min and max\n');
+        nrows = size(events_pid,1);
+        mxx = ones(nrows, 1) * -1.0;
+        mnx = ones(nrows, 1) * -1.0;
         et_id = fields.('endT');
         st_id = fields.('startT');
         for p = 1:nrows 
-            if (~isempty(proc_events{p, et_id}))
-                mxx(p) = max(proc_events{p, et_id}, [], 1);
+            if (~isempty(events_pid{p, et_id}))
+                mxx(p) = max(events_pid{p, et_id}, [], 1);
             end
-            if (~isempty(proc_events{p, st_id}))
-                mnx(p) = min(proc_events{p, st_id}, [], 1);
+            if (~isempty(events_pid{p, st_id}))
+                mnx(p) = min(events_pid{p, st_id}, [], 1);
             end
         end
-        mx = max(mxx, [], 1);  % maximum end timestamp
-        mn = min(mnx, [], 1)-1;  % min end timestamp
+        mx = max(mxx(mxx>=0), [], 1);  % maximum end timestamp
+        mn = min(mnx(mnx>=0), [], 1)-1;  % min end timestamp
+        durs = mxx - mnx;
+        toc
+          
+        % intermediate summary by procs
+        tic;
+            fprintf(1, 'compute intermediate summary for events data based on pid.\n');
+            [summary_pid ops_pid] = summarizeByRow(events_pid, fields, allEventTypes);
+        toc
+        
+        
+        % resample datasizes by events
+        tic;
+            fprintf(1, 'resampling data by events\n');
+            [TPIntervals, interval, ~] = resampleData(events_pid, fields, timeInterval, allEventTypes, 'eventType', [mn mx]);
+        toc
 
-summarize2(proc_events, fields, prefix, fid, allEventTypes, allTypeNames, 100000, [mn, mx]);        
-            
+        
+
+        
+        
+%% SUMMARIZE
+        tic;
+        fprintf(1, 'summarize\n');
+        summarizeFromIntermeidate(summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid);
+        toc
     end
 
 % end

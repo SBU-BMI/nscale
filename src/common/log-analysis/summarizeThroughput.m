@@ -1,10 +1,10 @@
-function [throughputs, ops] = resampleData( dataPerInterval, sample_interval, fieldValues)
+function [throughputs, ops] = summarizeThroughput( dataPerInterval, sample_interval)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
     %% check the parameters.
 
-    ops = {'PeakTP(GB/s)', 'MeanTP(GB/s)', 'StdevTP(GB/s)', 'data(GB)'};
+    ops = {'PeakTP(GB/s)', 'MeanTP(GB/s)', 'StdevTP(GB/s)'};
 
     
     %% first get some "constants"
@@ -41,7 +41,7 @@ function [throughputs, ops] = resampleData( dataPerInterval, sample_interval, fi
     throughputs(:, 1) = max(TPIn1sec, [], 1)';
     throughputs(:, 2) = mean(TPIn1sec, 1)';
     throughputs(:, 3) = std(TPIn1sec, 0, 1)';
-    throughputs(:, 4) = sum(ndata_time, 1)' * scaling;
+
     
     clear ndata_time;
     clear num_ev_vals;

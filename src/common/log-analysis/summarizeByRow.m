@@ -25,19 +25,18 @@ function [proc_summary, ops] = summarizeByRow( events, names, allEventTypes)
     target = intersect({'eventType', 'startT', 'endT', 'attribute'}, fns');
     
     
-    ops = {'count', 'min(ms)', 'max(ms)', 'total(ms)', 'sumsquares'};
+    ops = {'count', 'min(ms)', 'max(ms)', 'total(ms)', 'sumsquares', 'data(mb)'};
 
     
  
     %% iterate over each row
     durations = cellfun(@(x,y) double(x-y)/1000.0, events(:, names.('endT')), events(:, names.('startT')), 'UniformOutput', 0);
     event_types = events(:, names.('eventType'));
-%    attributes = cellfun(@(x) double(x)/(1024.0*1024.0), events(:, names.('attribute')), 'UniformOutput', 0);
+    attributes = cellfun(@(x) double(x)/(1024.0*1024.0), events(:, names.('attribute')), 'UniformOutput', 0);
     proc_summary = zeros(size(events, 1), length(allEventTypes), length(ops));
         
     
     for i = 1:length(allEventTypes)
-%        attrs = cellfun(@(x,y) double(x(y)), attributes, idx, 'UniformOutput', 0);
         t = allEventTypes(i);
         for j = 1:size(durations, 1)
              idx = find(event_types{j} == t);
@@ -45,11 +44,14 @@ function [proc_summary, ops] = summarizeByRow( events, names, allEventTypes)
                  continue;
              end
              durs = durations{j}(idx);
+             attrs = attributes{j}(idx);
+             
                 proc_summary(j, i, 1) = length(durs);
                 proc_summary(j, i, 2) = min(durs);
                 proc_summary(j, i, 3) = max(durs);
                 proc_summary(j, i, 4) = sum(durs);
                 proc_summary(j, i, 5) = sum(durs .* durs);
+                proc_summary(j, i, 6) = sum(attrs);
          end
     end
   
