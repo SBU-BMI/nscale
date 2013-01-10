@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#grep -rl 'IO POSIX Write,[0-9][0-9]*,[0-9][0-9]*,[0-9][0-9]*,,' *
+#grep -l -m 1 -e 'MPI NB SEND,21' -e 'MPI NB RECV,21' *
 FILES=/home/tcpan/PhD/path/Data/adios/*/*.csv
 
 for f in ${FILES}

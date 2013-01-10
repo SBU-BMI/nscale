@@ -14,56 +14,48 @@ sub appendData ($$$$$) {
 
 	my($outp, $headers, $nodeType, $eventType, $tokens) = @_;
 	my($cn);
-	$cn = $nodeType . ' ' . $eventType . ' min count';
+	$cn = $nodeType . ' ' . $eventType . ' count';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[10];
+	$outp->{$cn} = $tokens->[3];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
 	$cn = $nodeType . ' ' . $eventType . ' min time(ms)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[11];
-	$outp->{$cn} =~ s/^\s+|\s+$//g;
-	$cn = $nodeType . ' ' . $eventType . ' min data(MB)';
-	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[12];
-	$outp->{$cn} =~ s/^\s+|\s+$//g;
-
-	$cn = $nodeType . ' ' . $eventType . ' max count';
-	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[13];
+	$outp->{$cn} = $tokens->[4];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
 	$cn = $nodeType . ' ' . $eventType . ' max time(ms)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[14];
-	$outp->{$cn} =~ s/^\s+|\s+$//g;
-	$cn = $nodeType . ' ' . $eventType . ' max data(MB)';
-	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[15];
+	$outp->{$cn} = $tokens->[5];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
 
-	$cn = $nodeType . ' ' . $eventType . ' mean count';
+	$cn = $nodeType . ' ' . $eventType . ' total time(ms)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[16];
+	$outp->{$cn} = $tokens->[6];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
 	$cn = $nodeType . ' ' . $eventType . ' mean time(ms)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[17];
+	$outp->{$cn} = $tokens->[7];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
-	$cn = $nodeType . ' ' . $eventType . ' mean data(MB)';
+	$cn = $nodeType . ' ' . $eventType . ' stdev(ms)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[18];
+	$outp->{$cn} = $tokens->[8];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
 
-	$cn = $nodeType . ' ' . $eventType . ' stdev count';
+	$cn = $nodeType . ' ' . $eventType . ' total data(MB)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[19];
+	$outp->{$cn} = $tokens->[9];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
-	$cn = $nodeType . ' ' . $eventType . ' stdev time(ms)';
+	$cn = $nodeType . ' ' . $eventType . ' peakTP(GB/s)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[20];
+	$outp->{$cn} = $tokens->[22];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
-	$cn = $nodeType . ' ' . $eventType . ' stdev data(MB)';
+	$cn = $nodeType . ' ' . $eventType . ' meanTP(GB/s)';
 	$headers->{$cn} = 1;
-	$outp->{$cn} = $tokens->[21];
+	$outp->{$cn} = $tokens->[23];
+	$outp->{$cn} =~ s/^\s+|\s+$//g;
+
+	$cn = $nodeType . ' ' . $eventType . ' stdevTP(GB/s)';
+	$headers->{$cn} = 1;
+	$outp->{$cn} = $tokens->[24];
 	$outp->{$cn} =~ s/^\s+|\s+$//g;
 	
 }
@@ -75,16 +67,16 @@ sub fixComputeDataSize ($$$$) {
 	my($outp, $chunkSize, $nodeType, $eventType) = @_;
 	if ($eventType =~ /Compute/) {
 		my($cn);
-		$cn = $nodeType . ' ' . $eventType . ' min data(MB)';
+		$cn = $nodeType . ' ' . $eventType . ' total data(MB)';
 		$outp->{$cn} *= $chunkSize;
 	
-		$cn = $nodeType . ' ' . $eventType . ' max data(MB)';
+		$cn = $nodeType . ' ' . $eventType . ' peakTP(GB/s)';
 		$outp->{$cn} *= $chunkSize;
 	
-		$cn = $nodeType . ' ' . $eventType . ' mean data(MB)';
+		$cn = $nodeType . ' ' . $eventType . ' meanTP(GB/s)';
 		$outp->{$cn} *= $chunkSize;
 	
-		$cn = $nodeType . ' ' . $eventType . ' stdev data(MB)';
+		$cn = $nodeType . ' ' . $eventType . ' stdevTP(GB/s)';
 		$outp->{$cn} *= $chunkSize;
 	}
 }
@@ -294,7 +286,7 @@ foreach my $filename (@filenames) {
 	# open the outputfile 
 	my($outfile) = $filename;
 	$outfile =~ s/\/adios\//\/adios-analysis\//g;
-	$outfile =~ s/\.summary\./\.extract\./g;
+	$outfile =~ s/\.summary\./\.extract\.events\./g;
 	print "$filename => $outfile\n";
 	open(FH2, ">$outfile") or die("ERROR: unable to open output file $outfile\n");
 	

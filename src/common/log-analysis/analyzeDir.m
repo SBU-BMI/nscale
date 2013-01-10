@@ -32,40 +32,46 @@ for i = 1:length(files)
         
         fprintf(1, 'processing %s\n', prefix);
         
-        % read the data in
-        tic;
-        datafile = [prefix '.data.mat'];
-        if (exist(datafile, 'file') == 2 &&...
-                length(intersect({'proc_events'; 'fields'}, who('-file', datafile))) == 2)
-            fprintf(1, 'loading previously parsed log data %s\n', datafile);
-            load(datafile);
-        else
-            fprintf(1, 'parsing log data %s/%s\n', dirname, files(i).name);
-            [proc_events fields] = readLog(dirname, files(i));
-            
-            if (size(proc_events, 1) == 0)
-                fprintf(2, 'No log entry in file %s\n', fullfile(dirname, files(i)));
-                continue;
-            end
-            
-            save(datafile, 'proc_events', 'fields', '-v7.3');
-        end
-        toc
 
         % aggregate by pid
         tic;
         datafile = [prefix '.events_pid.mat'];
-        if (exist(datafile, 'file') == 2 &&...
-                length(intersect({'events_pid'; 'fields'; 'nodeTypes'}, who('-file', datafile))) == 3)
+        flag = exist(datafile, 'file') == 2 &&...
+                length(intersect({'events_pid'; 'fields'; 'nodeTypes'}, who('-file', datafile))) == 3;
+        toc
+        if (flag)
+            tic;
             fprintf(1, 'load previously aggregated process log data %s\n', datafile);
             load(datafile);
+            toc
         else
+            % read the data in
+            tic;
+            datafile2 = [prefix '.data.mat'];
+            if (exist(datafile2, 'file') == 2 &&...
+                    length(intersect({'proc_events'; 'fields'}, who('-file', datafile2))) == 2)
+                fprintf(1, 'loading previously parsed log data %s\n', datafile2);
+                load(datafile2);
+            else
+                fprintf(1, 'parsing log data %s/%s\n', dirname, files(i).name);
+                [proc_events fields] = readLog(dirname, files(i));
+
+                if (size(proc_events, 1) == 0)
+                    fprintf(2, 'No log entry in file %s\n', fullfile(dirname, files(i)));
+                    continue;
+                end
+
+                save(datafile2, 'proc_events', 'fields');
+            end
+            toc
+            
+            tic;
             fprintf(1, 'aggregating events data based on pid.\n');
             [events_pid nodeTypes] = aggregatePerProc(proc_events, fields);
           
-            save(datafile, 'events_pid', 'fields', 'nodeTypes', '-v7.3');
+            save(datafile, 'events_pid', 'fields', 'nodeTypes');
+            toc
         end
-        toc
         
                 
         % FIXED THIS IN THE INPUT CSV files.  see fix_na-POSIX_logs.sh in scripts
@@ -137,7 +143,7 @@ for i = 1:length(files)
         else
             fprintf(1, 'compute intermediate summary for events data based on pid.\n');
             [summary_pid ops_pid] = summarizeByRow(events_pid, fields, allEventTypes);
-            save(datafile1, 'summary_pid', 'ops_pid', 'allEventTypes', '-v7.3');
+            save(datafile, 'summary_pid', 'ops_pid', 'allEventTypes');
         end
         toc
         
@@ -152,7 +158,10 @@ for i = 1:length(files)
         else
             fprintf(1, 'resampling data by events\n');
             [TPIntervals, interval, ~] = resampleData(events_pid, fields, timeInterval, allEventTypes, 'eventType', [mn mx]);
-            save(datafile, 'TPIntervals', 'interval', 'allEventTypes', '-v7.3');       
+            % only use v 7.3 data file here because need to be able to
+            % store this.  otherwise v7.3 creates orders of magnitude
+            % bigger files.
+            save(datafile, 'TPIntervals', 'interval', 'allEventTypes', '-v7.3');
         end
         toc
 
@@ -164,17 +173,19 @@ for i = 1:length(files)
         
         fprintf(1, 'summarizing\n');
         fid = fopen(summaryFilename, 'a');
+	% wall time reported in microsec.  fixed in perl extraction script.
         fprintf(fid, 'EXPERIMENT, %s, app wall time, %f, sum process wall time, %f\n', prefix, mx-mn, sum(durs));        
     
         tic;
-        summarizeFromIntermeidate(summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid);
+        sessions = events_pid(:, fields.('sessionName'));
+        summarizeFromIntermediate(sessions, nodeTypes, summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid);
         toc
         
         
         fclose(fid);
-     catch err
-        fprintf(errorfid, 'ERROR: failed processing for %s, reason: %s\n', prefix, err.message);
-     end
+    catch err
+       fprintf(errorfid, 'ERROR: failed processing for %s, reason: %s\n', prefix, err.message);
+    end
 end
 
 end

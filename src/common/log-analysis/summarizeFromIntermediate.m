@@ -1,11 +1,11 @@
-function summarizeFromIntermediate(summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid)
+function summarizeFromIntermediate(sessions, nodeTypes, summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid)
 
 fprintf(1, 'summarize all procs\n');
 % aggregate by events then summarize
 [summary1, ops1] = summarizeAggregateRows(summary_pid, ops_pid);
 % summarize across rows
 [summary2, ops2] = summarizeAcrossRowsGaussian(summary_pid, ops_pid);
-[TP, ops_tp] = summarizeThroughput(TPIntervals, interval, allEventTypes);
+[TP, ops_tp] = summarizeThroughput(TPIntervals, interval);
 
 % and print it
 printSummary(cat(2, summary1, summary2, TP), cat(2, ops1, ops2, ops_tp), fid, allTypeNames, 'all', 'all');
@@ -16,12 +16,12 @@ for i = 1:length(nodeTypes)
     t = nodeTypes{i};
     
     %filter and identify row ids
-    idx = strcmp(t, cat(1, events_pid(:, fields.('sessionName'))));
+    idx = strcmp(t, cat(1, sessions));
     [summary1, ops1] = summarizeAggregateRows(summary_pid(idx, :, :), ops_pid);
     %summarize across procs
     [summary2, ops2] = summarizeAcrossRowsGaussian(summary_pid(idx, :, :), ops_pid);
     
-    [TP, ops_tp] = summarizeThroughput(TPIntervals(idx), interval, allEventTypes);
+    [TP, ops_tp] = summarizeThroughput(TPIntervals(idx), interval);
     
     printSummary(cat(2, summary1, summary2, TP), cat(2, ops1, ops2, ops_tp), fid, allTypeNames, 'nodeType', t);
     
