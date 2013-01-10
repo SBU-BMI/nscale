@@ -53,21 +53,7 @@ CVImage::CVImage(int _data_max, int _name_max, int _source_name_max) :
 		data(NULL), image_name(NULL), source_file_name(NULL) {
 	this->type = MANAGE;
 
-	this->metadata.info.x_offset = 0;
-	this->metadata.info.y_offset = 0;
-
-	this->metadata.info.x_size = 0;
-	this->metadata.info.y_size = 0;
-	this->metadata.info.nChannels = 0;
-	this->metadata.info.elemSize1 = 0;
-	this->metadata.info.cvDataType = 0;
-
-	this->metadata.info.encoding = ENCODE_RAW;
-	this->metadata.info.data_size = 0;
-	this->metadata.info.image_name_size = 0;
-	this->metadata.info.source_file_name_size = 0;
-
-	this->metadata.info.step = 0;
+	memset(this->metadata.bytes, 0, CVIMAGE_METADATA_SIZE);
 
 	this->data_max_size = _data_max;
 	this->image_name_max_size = _name_max;
@@ -90,20 +76,6 @@ CVImage::CVImage(int const size, void const *d, bool decode) {
 	} else {
 		// if not decoding, then just map the memory.
 		this->type = READ;
-
-		this->metadata.info.x_offset = 0;
-		this->metadata.info.y_offset = 0;
-
-		this->metadata.info.x_size = 0;
-		this->metadata.info.y_size = 0;
-		this->metadata.info.nChannels = 0;
-		this->metadata.info.elemSize1 = 0;
-		this->metadata.info.cvDataType = 0;
-
-		this->metadata.info.encoding = ENCODE_RAW;
-		this->metadata.info.data_size = 0;
-		this->metadata.info.image_name_size = 0;
-		this->metadata.info.source_file_name_size = 0;
 
 		unsigned char const * cdata = (unsigned char const*)d;
 		unsigned char * tdata = const_cast<unsigned char*>(cdata);
@@ -134,20 +106,6 @@ CVImage::CVImage(MetadataType *_metadata,
 			char * _image_name, int _image_name_max_size,
 			char * _source_file_name, int _source_file_name_max_size) {
 	this->type = READWRITE;
-
-	this->metadata.info.x_offset = 0;
-	this->metadata.info.y_offset = 0;
-
-	this->metadata.info.x_size = 0;
-	this->metadata.info.y_size = 0;
-	this->metadata.info.nChannels = 0;
-	this->metadata.info.elemSize1 = 0;
-	this->metadata.info.cvDataType = 0;
-
-	this->metadata.info.encoding = ENCODE_RAW;
-	this->metadata.info.data_size = 0;
-	this->metadata.info.image_name_size = 0;
-	this->metadata.info.source_file_name_size = 0;
 
 	memcpy(this->metadata.bytes, _metadata, CVIMAGE_METADATA_SIZE);
 
@@ -419,17 +377,18 @@ void CVImage::serialize(int &size, void* &d, int encoding) {
 	// DONE.
 }
 
+cv::Mat const CVImage::getImage() {
+	if (this->metadata.info.x_size > 0 && this->metadata.info.y_size > 0 && this->data != NULL) {
+
+		return cv::Mat(this->metadata.info.y_size, this->metadata.info.x_size,
+				this->metadata.info.cvDataType, this->data, this->metadata.info.step);
+	} else {
+		return cv::Mat();
+	}
+
+}
 
 
-
-//bool CVImage::deserialize(int const size, void const *data) {
-//	CVImage *other = new CVImage(size, data);  // no mem alloc and minimal copy.
-//
-//	bool result = this->copy(other);  // now real alloc and copy
-//	delete other;
-//
-//	return result;
-//}
 
 
 

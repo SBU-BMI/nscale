@@ -79,6 +79,7 @@ public:
 	char const *getImageName(int &max_size, int &size) { max_size = image_name_max_size; size = metadata.info.image_name_size; return this->image_name; };
 	char const *getSourceFileName(int &max_size, int &size) { max_size = source_file_name_max_size; size = metadata.info.source_file_name_size; return this->source_file_name; };
 	int const getType() { return this->type; };
+	cv::Mat const getImage();
 
 	static MetadataType *allocMetadata() {
 		MetadataType *meta = new ::cci::rt::adios::CVImage::MetadataType[1];

@@ -10,6 +10,41 @@
 #include <vector>
 #include "FileUtils.h"
 
+// from http://answers.opencv.org/question/213/comparing-two-images-whether-same-or-not/
+bool cvMatEQ(const cv::Mat& data1, const cv::Mat& data2)
+{
+    bool success = true;
+    // check if is multi dimensional
+    if(data1.dims > 2 || data2.dims > 2)
+    {
+      if( data1.dims != data2.dims || data1.type() != data2.type() )
+      {
+        return false;
+      }
+      for(int dim = 0; dim < data1.dims; dim++){
+        if(data1.size[dim] != data2.size[dim]){
+          return false;
+        }
+      }
+    }
+    else
+    {
+      if(data1.size() != data2.size() || data1.channels() != data2.channels() || data1.type() != data2.type()){
+        return false;
+      }
+    }
+    int nrOfElements = data1.total()*data1.elemSize1();
+    //bytewise comparison of data
+    int cnt = 0;
+    for(cnt = 0; cnt < nrOfElements && success; cnt++)
+    {
+      if(data1.data[cnt] != data2.data[cnt]){
+        success = false;
+      }
+    }
+    return success;
+  }
+
 
 int main (int argc, char **argv){
 
@@ -63,10 +98,16 @@ int main (int argc, char **argv){
 	src = new cci::rt::adios::CVImage(im, imagename, fn, tilex, tiley);
 	printf("orig image name %s, filename %s, data size %d\n\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
 
+	cv::Mat im2 = src->getImage();
+	printf("regenerated opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
+
 	dest1 = new cci::rt::adios::CVImage();
 	dest1->copy(*src);
 	//	src3->deserialize(output_size, output);
 	printf("copy orig to empty %s, filename %s, data size %d\n\n", dest1->getImageName(dummy, dummy2), dest1->getSourceFileName(dummy, dummy2), dest1->getMetadata().info.data_size);
+
+	im2 = dest1->getImage();
+	printf("regenerated copied opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
 
 	cci::rt::adios::CVImage::MetadataType *meta = cci::rt::adios::CVImage::allocMetadata();
 
@@ -79,6 +120,10 @@ int main (int argc, char **argv){
 	dest2->copy(*src);
 	printf("copy orig to preallocated buffer %s, filename %s, data size %d\n\n", dest2->getImageName(dummy, dummy2), dest2->getSourceFileName(dummy, dummy2), dest2->getMetadata().info.data_size);
 
+	im2 = dest2->getImage();
+	printf("regenerated prealloc copied opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
+
+
 	int output_size = 0;
 	void *output = NULL;
 
@@ -88,6 +133,10 @@ int main (int argc, char **argv){
 
 	dest3 = new cci::rt::adios::CVImage(output_size, output);
 	printf("deserialized image name %s, filename %s, data size %d\n\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
+
+	im2 = dest3->getImage();
+	printf("regenerated copied serialized opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
+
 
 	dest3->copy(*src);
 	printf("copy orig to serialized %s, filename %s, data size %d\n\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
