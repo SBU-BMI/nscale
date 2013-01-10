@@ -63,7 +63,18 @@ int SCIOHistologicalEntities::segmentNuclei(const std::string& in, const std::st
 	input.release();
 
 	t2 = ::cci::common::event::timestampInUS();
-	if (logsession != NULL) logsession->log(cci::common::event(90, std::string("compute"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+	std::string eventName;
+	if (status == nscale::SCIOHistologicalEntities::SUCCESS) {
+		eventName.assign("computeFull");
+	} else if (status == nscale::SCIOHistologicalEntities::BACKGROUND) {
+		eventName.assign("computeNoFG");
+	} else if (status == nscale::SCIOHistologicalEntities::NO_CANDIDATES_LEFT) {
+		eventName.assign("computeNoNU");
+	} else {
+		eventName.assign("computeOTHER");
+	}
+	if (logsession != NULL) logsession->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+
 	if (iresHandler == NULL) printf("iresHandler is null why?\n");
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {

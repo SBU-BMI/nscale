@@ -41,7 +41,7 @@ Segment::Segment(MPI_Comm const * _parent_comm, int const _gid,
 	assert(_input != NULL);
 	assert(_output != NULL);
 
-	compress = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
+	compressing = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
 	std::string proctype = cci::rt::CmdlineParser::getParamValueByName<std::string>(_vm, "device_type");
 
 
@@ -102,7 +102,7 @@ int Segment::compute(int const &input_size , void * const &input,
 		return -1;
 	}
 
-//	t1 = ::cci::common::event::timestampInUS();
+	t1 = ::cci::common::event::timestampInUS();
 
 	// real computation:
 	int status = ::nscale::SCIOHistologicalEntities::SUCCESS;
@@ -119,20 +119,29 @@ int Segment::compute(int const &input_size , void * const &input,
 
 /// //DEBUGGING ONLY
 	nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(fn);
-	status = seg->segmentNuclei(im, mask, compcount, bbox, logsession, NULL);
+	status = seg->segmentNuclei(im, mask, compcount, bbox, NULL, NULL);
 	delete seg;
 	//cci::common::Debug::print("%s complete for %s\n", getClassName(), fn.c_str());
-	printf(".");
 //	}
 
-//	t2 = ::cci::common::event::timestampInUS();
-//	if (logsession != NULL) logsession->log(cci::common::event(90, std::string("compute"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+	t2 = ::cci::common::event::timestampInUS();
+	std::string eventName;
+	if (status == nscale::SCIOHistologicalEntities::SUCCESS) {
+		eventName.assign("computeFull");
+	} else if (status == nscale::SCIOHistologicalEntities::BACKGROUND) {
+		eventName.assign("computeNoFG");
+	} else if (status == nscale::SCIOHistologicalEntities::NO_CANDIDATES_LEFT) {
+		eventName.assign("computeNoNU");
+	} else {
+		eventName.assign("computeOTHER");
+	}
+	if (logsession != NULL) logsession->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 		t1 = ::cci::common::event::timestampInUS();
 		CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
 //		CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
-		if (compress) img->serialize(output_size, output, CVImage::ENCODE_Z);
+		if (compressing) img->serialize(output_size, output, CVImage::ENCODE_Z);
 		else img->serialize(output_size, output);
 		// clean up
 		delete img;

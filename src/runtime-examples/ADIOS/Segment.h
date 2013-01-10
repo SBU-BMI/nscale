@@ -33,7 +33,7 @@ protected:
 
 	int proc_code;
 	int output_count;
-	bool compress;
+	bool compressing;
 
 private:
 	static bool param_init;
