@@ -35,9 +35,10 @@ protected:
 	int output_count;
 	bool compress;
 
-	double min;
-	double duration;
-
+	double p_bg, p_nu, p_full;
+	double mean_bg, stdev_bg;
+	double mean_nu, stdev_nu;
+	double mean_full, stdev_full;
 private:
 	static bool param_init;
 	static bool initParams();

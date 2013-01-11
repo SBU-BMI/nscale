@@ -18,12 +18,13 @@
 #include "Logger.h"
 #include "SCIOUtilsCVImageIO.h"
 #include "SCIOHistologicalEntities.h"
+#include <math.h>
 
 #include <unistd.h>
 #include "waMPI.h"
 
 using namespace cv;
-
+#define WITH_MPI
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.
 //#define WITH_MPI
@@ -41,13 +42,18 @@ using namespace cv;
 
 void printUsage(char **argv);
 void parseStages(const char *stagestr, std::vector<int> &stages);
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages, bool &compression);
+int parseInput(int argc, char **argv, std::string &simulateconfig, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages, bool &compression);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount);
-void compute(const char *input, const char *mask, const char *output, const int modecode, cci::common::LogSession *session, const std::vector<int> &stages, bool compression);
+double randn(const double &mean, const double &stdev);
+void compute(const char *input, const char *mask, const char *output,
+		const double &p_bg, const double &mean_bg, const double &stdev_bg,
+		const double &p_nu, const double &mean_nu, const double &stdev_nu,
+		const double &p_full, const double &mean_full, const double &stdev_full,
+		cci::common::LogSession *session, const std::vector<int> &stages, bool compression);
 
 void printUsage(char **argv) {
-	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir [imagecount] [stages,...] [cpu [numThreads] | gpu [numThreads] [id]] [compress]" << std::endl;
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir <p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full> [imagecount] [stages,...] [compress]" << std::endl;
 	std::cout << "\t<image_filename | image_dir>: either an image filename or an image directory" << std::endl;
 	std::cout << "\tmask_dir: output directory" << std::endl;
 	std::cout << "\timagecount: number of images to process.  -1 means all images." << std::endl;
@@ -86,7 +92,7 @@ void parseStages(const char* stagestr, std::vector<int> &stages) {
 	}
 }
 
-int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages, bool &compression) {
+int parseInput(int argc, char **argv, std::string &simulateconfig, std::string &imageName, std::string &outDir, int &imageCount, std::vector<int> &stages, bool &compression) {
 	if (argc < 4) {
 		printUsage(argv);
 		return -1;
@@ -99,6 +105,10 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 	outDir.assign(argv[i]);
 
 	++i;
+	simulateconfig.assign(argv[i]);
+
+
+	++i;
 	if (argc > i) imageCount = atoi(argv[i]);
 
 	++i;
@@ -108,49 +118,6 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 		for (int stage = 0; stage <= 200; ++stage) {
 			stages.push_back(stage);
 		}
-	}
-
-	++i;
-	const char* mode = argc > i ? argv[i] : "cpu";
-
-	int threadCount;
-	++i;
-	if (argc > i) threadCount = atoi(argv[i]);
-	else threadCount = 1;
-
-#if defined (WITH_MPI)
-	threadCount = 1;
-#endif
-
-	//printf("number of threads: %d\n", threadCount);
-
-#if defined (_OPENMP)
-	omp_set_num_threads(threadCount);
-#endif
-
-	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cci::common::type::DEVICE_CPU;
-		// get core count
-
-	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cci::common::type::DEVICE_GPU;
-		// get device count
-		int numGPU = gpu::getCudaEnabledDeviceCount();
-		if (numGPU < 1) {
-			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
-			return -2;
-		}
-#if defined (_OPENMP)
-	omp_set_num_threads(1);
-#endif
-		++i;
-		if (argc > i) {
-			gpu::setDevice(atoi(argv[i]));
-		}
-		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
-	} else {
-		printUsage(argv);
-		return -1;
 	}
 
 	++i;
@@ -211,42 +178,123 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 
 }
 
+double spare;
+bool spareready = false;
+double randn(const double &mean, const double &stdev) {
+    if (spareready) {
+            spareready = false;
+            return spare * stdev + mean;
+    } else {
+            double u, v, s;
+            do {
+                    u = (double)rand()/(double)(RAND_MAX/2) - 1.0;
+                    v = (double)rand()/(double)(RAND_MAX/2) - 1.0;
+                    s = u * u + v * v;
+            } while (s >= 1 || s == 0);
+            double mul = sqrt(-2.0 * log(s) / s);
+            spare = v * mul;
+            spareready = true;
+            return mean + stdev * u * mul;
+    }
+}
 
 
 
-void compute(const char *input, const char *mask, const char *output, const int modecode, cci::common::LogSession *session,  const std::vector<int> &stages, bool compression) {
+
+void compute(const char *input, const char *mask, const char *output,
+		const double &p_bg, const double &mean_bg, const double &stdev_bg,
+		const double &p_nu, const double &mean_nu, const double &stdev_nu,
+		const double &p_full, const double &mean_full, const double &stdev_full,
+		cci::common::LogSession *session,  const std::vector<int> &stages, bool compression) {
 	// compute
 
-	int status;
-	int *bbox = NULL;
-	int compcount;
-
-	cci::common::FileUtils fu(".mask.pbm");
 	std::string fmask(mask);
 
-	std::string prefix = fu.replaceExt(fmask, ".mask.pbm", "");
+	std::string prefix = cci::common::FileUtils::replaceExt(fmask, ".mask.pbm", "");
 	std::string suffix;
 	suffix.assign(".mask.pbm");
 	::cciutils::cv::SCIOIntermediateResultWriter *iwrite = new ::cciutils::cv::SCIOIntermediateResultWriter(prefix, suffix, stages, compression);
 	iwrite->setLogSession(session);
 
-	if (modecode == cci::common::type::DEVICE_GPU ) {
-		nscale::gpu::SCIOHistologicalEntities *seg2 = new nscale::gpu::SCIOHistologicalEntities(std::string(input));
-		status = seg2->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, session, iwrite);
-		delete seg2;
 
+    // read
+	long long t1, t2, t3;
+	t1 = ::cci::common::event::timestampInUS();
+
+	// parse the input string
+	string filename = cci::common::FileUtils::getFile(std::string(input));
+	// get the image name
+	size_t pos = filename.rfind('.');
+	if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", input);
+	string prefix = filename.substr(0, pos);
+	pos = prefix.rfind("-");
+	if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", input);
+	string ystr = prefix.substr(pos + 1);
+	prefix = prefix.substr(0, pos);
+	pos = prefix.rfind("-");
+	if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", input);
+	string xstr = prefix.substr(pos + 1);
+	string imagename = prefix.substr(0, pos);
+	int tilex = atoi(xstr.c_str());
+	int tiley = atoi(ystr.c_str());
+
+	// first split.
+	Mat im = imread(std::string(input));
+	t2 = ::cci::common::event::timestampInUS();
+	char len[21];  // max length of uint64 is 20 digits
+	memset(len, 0, 21);
+	sprintf(len, "%lu", (long)(im.dataend) - (long)(im.datastart));
+	if (session != NULL) session->log(cci::common::event(0, std::string("read"), t1, t2, std::string(len), ::cci::common::event::FILE_I));
+
+
+	if (!im.data) return;
+
+	// compute simulation
+	t1 = ::cci::common::event::timestampInUS();
+	double p = (double)rand() / ((double)RAND_MAX);
+	double mean, stdev;
+	std::string eventName;
+	bool writeflag = false;
+	if (p < p_bg) {
+		// background
+		mean = mean_bg;
+		stdev = stdev_bg;
+		eventName.assign("computeNoFG");
+	} else if (p < (p_bg + p_nu)) {
+		// not enough nuclei
+		mean = mean_nu;
+		stdev = stdev_nu;
+		eventName.assign("computeNoNU");
+	} else if (p_bg + p_nu + p_full <= 1.0) {
+		// process finished completely.
+		mean = mean_full;
+		stdev = stdev_full;
+		eventName.assign("computeFull");
+		writeflag = true;
 	} else {
-	
-		nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(std::string(input));
-		status = seg->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, session, iwrite);
-		delete seg;
+		eventName.assign("computeOTHER");
+		mean = 0;
+		stdev = 0;
 	}
-	
+	double q = randn(mean, stdev);
+	if (q > 0) usleep((unsigned int)round(q));
+
+	im.release();
+
+	t2 = ::cci::common::event::timestampInUS();
+	if (session != NULL) session->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+
+	cv::Mat m(im.size);
+	if (writeflag == true) {
+		//t1 = ::cci::common::event::timestampInUS();
+		iwrite->saveIntermediate(m, 100, imagename.c_str(), tilex, tiley, input);
+
+		//t2 = ::cci::common::event::timestampInUS();
+		//if (logsession != NULL) logsession->log(cci::common::event(100, std::string("write"), t1, t2, std::string(), ::cci::common::event::FILE_O));
+	}
+	m.release();
 
 	delete iwrite;
-
-	free(bbox);
-
 
 }
 
@@ -258,7 +306,8 @@ MPI_Comm init_workers(const MPI_Comm &comm_world, int managerid, int &worker_siz
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::vector<std::string> filenames,
 std::vector<std::string> seg_output,
 std::vector<std::string> bounds_output, ::cci::common::LogSession *session);
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cci::common::LogSession *session, bool compression);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank,
+		const std::string simulateconfig, const std::string &hostname, const std::vector<int> &stages, ::cci::common::LogSession *session, bool compression);
 
 
 // initialize MPI
@@ -454,7 +503,8 @@ std::vector<std::string> bounds_output, ::cci::common::LogSession *session) {
 
 }
 
-void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const int modecode, const std::string &hostname, const std::vector<int> &stages, ::cci::common::LogSession *session, bool compression ) {
+void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank, const std::string simulateconfig,
+		const std::string &hostname, const std::vector<int> &stages, ::cci::common::LogSession *session, bool compression ) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	int outputSize;
@@ -463,6 +513,38 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	char *output;
 	char *mask;
 	MPI_Status status;
+
+	double p_bg, p_nu, p_full;
+	double mean_bg, stdev_bg;
+	double mean_nu, stdev_nu;
+	double mean_full, stdev_full;
+	int spos = 0, epos = 0;
+	epos = simulateconfig.find(',', spos);
+	p_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	mean_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(';', spos);
+	stdev_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	p_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	mean_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(';', spos);
+	stdev_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	p_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	mean_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	stdev_full = atof(simulateconfig.substr(spos).c_str());
+
 
 	MPI_Barrier(comm_world);
 	uint64_t t0, t1, t2, t3, t4, t5;
@@ -512,7 +594,9 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			t0 = cci::common::event::timestampInUS();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
 
-			compute(input, mask, output, modecode, session, stages, compression);
+			compute(input, mask, output, p_bg, mean_bg, stdev_bg,
+					p_nu, mean_nu, stdev_nu,
+					p_full, mean_full, stdev_full,  session, stages, compression);
 			++count;
 			// now do some work
 
@@ -543,10 +627,11 @@ int main (int argc, char **argv){
    	std::vector<int> stages;
 
 	// parse the input
-	int modecode, imageCount;
+	int imageCount;
 	std::string imageName, outDir, hostname;
 	bool compression;
-	int status = parseInput(argc, argv, modecode, imageName, outDir, imageCount, stages, compression);
+	std::string simulateconfig;
+	int status = parseInput(argc, argv, simulateconfig, imageName, outDir, imageCount, stages, compression);
 	if (status != 0) return status;
 
 	// set up mpi
@@ -556,11 +641,6 @@ int main (int argc, char **argv){
 	manager_rank = size - 1;
 
 	MPI_Comm comm_world = init_mpi(argc, argv, size, rank, hostname);
-
-	if (modecode == cci::common::type::DEVICE_GPU) {
-		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
-		return -4;
-	}
 
 	// get the input files and broadcast the count to all
 	long total = 0;
@@ -607,6 +687,36 @@ int main (int argc, char **argv){
 	    int i = 0;
 
 		t1 = cci::common::event::timestampInUS();
+		double p_bg, p_nu, p_full;
+		double mean_bg, stdev_bg;
+		double mean_nu, stdev_nu;
+		double mean_full, stdev_full;
+		int spos = 0, epos = 0;
+		epos = simulateconfig.find(',', spos);
+		p_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		mean_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(';', spos);
+		stdev_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		p_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		mean_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(';', spos);
+		stdev_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		p_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		mean_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		stdev_full = atof(simulateconfig.substr(spos).c_str());
 
 		while (i < total) {
 			// per tile:
@@ -614,7 +724,10 @@ int main (int argc, char **argv){
 			// per node
 			session = logger->getSession("w");
 
-			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, stages, compression);
+			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(),
+					p_bg, mean_bg, stdev_bg,
+					p_nu, mean_nu, stdev_nu,
+					p_full, mean_full, stdev_full, session, stages, compression);
 
 			//printf("processed %s\n", filenames[i].c_str());
 			++i;
@@ -640,7 +753,7 @@ int main (int argc, char **argv){
 
 		} else {
 			// worker bees
-			worker_process(comm_world, manager_rank, rank, modecode, hostname, stages, session, compression );
+			worker_process(comm_world, manager_rank, rank, simulateconfig, hostname, stages, session, compression );
 			t2 = cci::common::event::timestampInUS();
 			//printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);
 

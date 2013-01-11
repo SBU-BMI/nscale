@@ -20,20 +20,26 @@
 #include <mpi.h>
 #include "waMPI.h"
 #include "SCIOHistologicalEntities.h"
-
+#include <math.h>
 #include <unistd.h>
 
 using namespace cv;
 
+#define WITH_MPI
 
 void printUsage(char ** argv);
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark, bool &compression);
+int parseInput(int argc, char **argv, std::string &simulateconfig, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &compression);
 void getFiles(const std::string &imageName, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &bounds_output, const int &imageCount);
-void compute(const char *input, const char *mask, const char *output, const int modecode, cci::common::LogSession *session, cciutils::SCIOADIOSWriter *writer);
+double randn(const double &mean, const double &stdev);
+void compute(const char *input, const char *mask, const char *output,
+		const double &p_bg, const double &mean_bg, const double &stdev_bg,
+		const double &p_nu, const double &mean_nu, const double &stdev_nu,
+		const double &p_full, const double &mean_full, const double &stdev_full,
+		cci::common::LogSession *session, cciutils::SCIOADIOSWriter *writer);
 
 void printUsage(char **argv) {
-	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <transport> [imagecount] [buffersize] [cpu | gpu [id]] [groupsize] [groupInterleave] [benchmark] [compression]" << std::endl;
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> output_dir <transport> <p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full> [imagecount] [buffersize] [groupsize] [groupInterleave] [compression]" << std::endl;
 	std::cout << "transport is one of NULL | POSIX | MPI | MPI_LUSTRE | MPI_AMR | gap-NULL | gap-POSIX | gap-MPI | gap-MPI_LUSTRE | gap-MPI_AMR" << std::endl;
 	std::cout << "imagecount: number of images to process.  -1 means all images." << std::endl;
 	std::cout << "buffersize: number of images to buffer by a process before adios write.  default is 4." << std::endl;
@@ -43,8 +49,8 @@ void printUsage(char **argv) {
 
 }
 
-int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &benchmark, bool &compression) {
-	if (argc < 4) {
+int parseInput(int argc, char **argv, std::string &simulateconfig, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &compression) {
+	if (argc < 5) {
 		printUsage(argv);
 		return -1;
 	}
@@ -72,36 +78,12 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &i
 	} else {
 		iocode.assign(argv[3]);
 	}
+	simulateconfig.assign(argv[4]);
 
-	if (argc > 4) imageCount = atoi(argv[4]);
-	if (argc > 5) maxbuf = atoi(argv[5]);
-
-
-	const char* mode = argc > 6 ? argv[6] : "cpu";
+	if (argc > 5) imageCount = atoi(argv[5]);
+	if (argc > 6) maxbuf = atoi(argv[6]);
 
 	int i = 7;
-
-	if (strcasecmp(mode, "cpu") == 0) {
-		modecode = cci::common::type::DEVICE_CPU;
-		// get core count
-
-	} else if (strcasecmp(mode, "gpu") == 0) {
-		modecode = cci::common::type::DEVICE_GPU;
-		// get device count
-		int numGPU = gpu::getCudaEnabledDeviceCount();
-		if (numGPU < 1) {
-			printf("gpu requested, but no gpu available.  please use cpu or mcore option.\n");
-			return -2;
-		}
-		if (argc > i) {
-			gpu::setDevice(atoi(argv[i]));
-			++i;
-		}
-		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
-	} else {
-		printUsage(argv);
-		return -1;
-	}
 
 	groupSize = -1;  // all available goes into same group.
 	if (argc > i) groupSize = atoi(argv[i]);
@@ -111,10 +93,6 @@ int parseInput(int argc, char **argv, int &modecode, std::string &iocode, int &i
 	groupInterleave = 1;
 	if (argc > i) groupInterleave = atoi(argv[i]);
 	if (groupInterleave < 1) groupInterleave = 1;
-
-	++i;
-	benchmark = false;
-	if (argc > i && strcasecmp(argv[i], "benchmark") == 0) benchmark = true;
 
 	++i;
 	compression = (argc > i && strcmp(argv[i], "on") == 0 ? true : false);
@@ -169,45 +147,115 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 }
 
 
+double spare;
+bool spareready = false;
+double randn(const double &mean, const double &stdev) {
+    if (spareready) {
+            spareready = false;
+            return spare * stdev + mean;
+    } else {
+            double u, v, s;
+            do {
+                    u = (double)rand()/(double)(RAND_MAX/2) - 1.0;
+                    v = (double)rand()/(double)(RAND_MAX/2) - 1.0;
+                    s = u * u + v * v;
+            } while (s >= 1 || s == 0);
+            double mul = sqrt(-2.0 * log(s) / s);
+            spare = v * mul;
+            spareready = true;
+            return mean + stdev * u * mul;
+    }
+}
 
 
-void compute(const char *input, const char *mask, const char *output, const int modecode, cci::common::LogSession *session, cciutils::SCIOADIOSWriter *writer) {
+
+void compute(const char *input, const char *mask, const char *output,
+		const double &p_bg, const double &mean_bg, const double &stdev_bg,
+		const double &p_nu, const double &mean_nu, const double &stdev_nu,
+		const double &p_full, const double &mean_full, const double &stdev_full,
+		cci::common::LogSession *session, cciutils::SCIOADIOSWriter *writer) {
 	// compute
-
-	int status;
-	int *bbox = NULL;
-	int compcount;
 
 	if (writer == NULL) printf("why is writer null? \n");
 	if (session == NULL) printf("why is log session null? \n");
-	if (modecode == cci::common::type::DEVICE_GPU ) {
-		nscale::gpu::SCIOHistologicalEntities *seg = new nscale::gpu::SCIOHistologicalEntities(std::string(input));
-		status = seg->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, session, writer);
-		delete seg;
 
+    // read
+	long long t1, t2, t3;
+	t1 = ::cci::common::event::timestampInUS();
+
+	// parse the input string
+	string filename = cci::common::FileUtils::getFile(std::string(input));
+	// get the image name
+	size_t pos = filename.rfind('.');
+	if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", input);
+	string prefix = filename.substr(0, pos);
+	pos = prefix.rfind("-");
+	if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", input);
+	string ystr = prefix.substr(pos + 1);
+	prefix = prefix.substr(0, pos);
+	pos = prefix.rfind("-");
+	if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", input);
+	string xstr = prefix.substr(pos + 1);
+	string imagename = prefix.substr(0, pos);
+	int tilex = atoi(xstr.c_str());
+	int tiley = atoi(ystr.c_str());
+
+	// first split.
+	Mat im = imread(std::string(input));
+	t2 = ::cci::common::event::timestampInUS();
+	char len[21];  // max length of uint64 is 20 digits
+	memset(len, 0, 21);
+	sprintf(len, "%lu", (long)(im.dataend) - (long)(im.datastart));
+	if (session != NULL) session->log(cci::common::event(0, std::string("read"), t1, t2, std::string(len), ::cci::common::event::FILE_I));
+
+
+	if (!im.data) return;
+
+	// compute simulation
+	t1 = ::cci::common::event::timestampInUS();
+	double p = (double)rand() / ((double)RAND_MAX);
+	double mean, stdev;
+	std::string eventName;
+	bool writeflag = false;
+	if (p < p_bg) {
+		// background
+		mean = mean_bg;
+		stdev = stdev_bg;
+		eventName.assign("computeNoFG");
+	} else if (p < (p_bg + p_nu)) {
+		// not enough nuclei
+		mean = mean_nu;
+		stdev = stdev_nu;
+		eventName.assign("computeNoNU");
+	} else if (p_bg + p_nu + p_full <= 1.0) {
+		// process finished completely.
+		mean = mean_full;
+		stdev = stdev_full;
+		eventName.assign("computeFull");
+		writeflag = true;
 	} else {
-
-		nscale::SCIOHistologicalEntities *seg = new nscale::SCIOHistologicalEntities(std::string(input));
-		status = seg->segmentNuclei(std::string(input), std::string(mask), compcount, bbox, session, writer);
-		delete seg;
+		eventName.assign("computeOTHER");
+		mean = 0;
+		stdev = 0;
 	}
+	double q = randn(mean, stdev);
+	if (q > 0) usleep((unsigned int)round(q));
 
+	im.release();
 
-	free(bbox);
+	t2 = ::cci::common::event::timestampInUS();
+	if (session != NULL) session->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 
+	cv::Mat m(im.size);
+	if (writeflag == true) {
+		//t1 = ::cci::common::event::timestampInUS();
+		writer->saveIntermediate(m, 100, imagename.c_str(), tilex, tiley, input);
 
+		//t2 = ::cci::common::event::timestampInUS();
+		//if (logsession != NULL) logsession->log(cci::common::event(100, std::string("write"), t1, t2, std::string(), ::cci::common::event::FILE_O));
+	}
+	m.release();
 
-//	::cv::Mat image = cv::imread(input, -1);
-	// for testing only.
-
-
-//	if (writer != NULL) {
-////		writer->open();
-//		writer->saveIntermediate(image, 0, imagename, tilex, tiley);
-////		writer->close();
-//	}
-//
-//	free(imagename);
 }
 
 
@@ -218,7 +266,7 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 		const std::string &hostname, std::vector<std::string> &filenames, std::vector<std::string > &seg_output,
 		std::vector<std::string> &bounds_output, cci::common::Logger *logger, int maxWorkerLoad, const int worker_group);
 void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank,
-		const int modecode, const std::string &hostname, cciutils::SCIOADIOSWriter *writer, cci::common::Logger *logger, const int worker_group);
+		const std::string simulateconfig, const std::string &hostname, cciutils::SCIOADIOSWriter *writer, cci::common::Logger *logger, const int worker_group);
 
 
 // initialize MPI
@@ -557,7 +605,7 @@ void manager_process(const MPI_Comm &comm_world, const int manager_rank, const i
 }
 
 void worker_process(const MPI_Comm &comm_world, const int manager_rank, const int rank,
-		const MPI_Comm &comm_worker, const int modecode, const std::string &hostname,
+		const MPI_Comm &comm_worker, const std::string simulateconfig, const std::string &hostname,
 		cciutils::SCIOADIOSWriter *writer, cci::common::Logger *logger, const int worker_group) {
 	int flag = MANAGER_READY;
 	int inputSize, outputSize, maskSize, sizeTotal;
@@ -568,6 +616,37 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	int size;
 	MPI_Comm_size(comm_world, &size);
 
+	double p_bg, p_nu, p_full;
+	double mean_bg, stdev_bg;
+	double mean_nu, stdev_nu;
+	double mean_full, stdev_full;
+	int spos = 0, epos = 0;
+	epos = simulateconfig.find(',', spos);
+	p_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	mean_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(';', spos);
+	stdev_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	p_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	mean_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(';', spos);
+	stdev_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	p_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	epos = simulateconfig.find(',', spos);
+	mean_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+	spos = epos + 1;
+	stdev_full = atof(simulateconfig.substr(spos).c_str());
+
 
 	int iocount = 0;
 	int g = worker_group;
@@ -576,6 +655,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	MPI_Gather(&g, 1, MPI_INT, NULL, 1, MPI_INT, manager_rank, comm_world);
 
 	MPI_Barrier(comm_world);
+
 
 	uint64_t t0, t1;
 	//printf("worker %d ready\n", rank);
@@ -643,7 +723,9 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 			// per node
 			session = logger->getSession("w");
 			if (writer) writer->setLogSession(session);
-			compute(input, mask, output, modecode, session, writer);
+			compute(input, mask, output, p_bg, mean_bg, stdev_bg,
+					p_nu, mean_nu, stdev_nu,
+					p_full, mean_full, stdev_full, session, writer);
 			// now do some work
 
 			t1 = cci::common::event::timestampInUS();
@@ -708,13 +790,13 @@ int main (int argc, char **argv){
 
 
 	// parse the input
-	int modecode, groupSize, groupInterleave;
+	int groupSize, groupInterleave;
 	std::string imageName, outDir, hostname, workingDir, iocode;
-	bool benchmark, compression;
+	bool compression;
 	int imageCount= -1, maxBuf = 4;
-	int status = parseInput(argc, argv, modecode, iocode, imageCount, maxBuf, groupSize, groupInterleave, workingDir, imageName, outDir, benchmark, compression);
+	std::string simulateconfig;
+	int status = parseInput(argc, argv, simulateconfig, iocode, imageCount, maxBuf, groupSize, groupInterleave, workingDir, imageName, outDir, compression);
 	if (status != 0) return status;
-
 
 	// set up mpi
 	int rank, size, worker_size, worker_rank, manager_rank, worker_group;
@@ -725,10 +807,6 @@ int main (int argc, char **argv){
 	manager_rank = size - 1;
 	worker_group = 1;
 
-	if (modecode == cci::common::type::DEVICE_GPU) {
-		printf("WARNING:  GPU specified for an MPI run.   only CPU is supported.  please restart with CPU as the flag.\n");
-		return -4;
-	}
 	std::vector<int> stages;
 	for (int stage = 90; stage <= 100; ++stage) {
 		stages.push_back(stage);
@@ -792,6 +870,36 @@ int main (int argc, char **argv){
 		int i = 0;
 
 		// worker bees.  set to overwrite (third param set to true).
+		double p_bg, p_nu, p_full;
+		double mean_bg, stdev_bg;
+		double mean_nu, stdev_nu;
+		double mean_full, stdev_full;
+		int spos = 0, epos = 0;
+		epos = simulateconfig.find(',', spos);
+		p_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		mean_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(';', spos);
+		stdev_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		p_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		mean_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(';', spos);
+		stdev_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		p_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = simulateconfig.find(',', spos);
+		mean_full = atof(simulateconfig.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		stdev_full = atof(simulateconfig.substr(spos).c_str());
 
 		cciutils::SCIOADIOSWriter *writer = iomanager->allocateWriter(outDir, std::string("bp"), appendInTime, overwrite,
 				stages, total, total * (long)256, total * (long)1024, total * (long)(4096 * 4096 * 4),
@@ -807,7 +915,12 @@ int main (int argc, char **argv){
 			// session = logger->getSession(filenames[i]);
 			// per node
 
-			compute(filenames[i].c_str(), seg_output[i].c_str(), bounds_output[i].c_str(), modecode, session, writer);
+			compute(filenames[i].c_str(), seg_output[i].c_str(),
+					bounds_output[i].c_str(),
+					p_bg, mean_bg, stdev_bg,
+					p_nu, mean_nu, stdev_nu,
+					p_full, mean_full, stdev_full,
+					session, writer);
 
 //			printf("processed %s\n", filenames[i].c_str());
 			++i;
@@ -860,14 +973,12 @@ int main (int argc, char **argv){
 					maxBuf, 4096*4096*4,
 					worker_group, &comm_worker);
 			writer->setLogSession(session);
-			if (benchmark) writer->benchmark(0);
 
-			worker_process(comm_world, manager_rank, rank, comm_worker, modecode, hostname, writer, logger, worker_group);
+			worker_process(comm_world, manager_rank, rank, comm_worker, simulateconfig, hostname, writer, logger, worker_group);
 			t2 = cci::common::event::timestampInUS();
 			//printf("WORKER %d: FINISHED using CPU in %lu ms\n", rank, t2 - t1);
 
 			writer->setLogSession(session);
-			if (benchmark) writer->benchmark(1);
 
 			iomanager->freeWriter(writer);
 

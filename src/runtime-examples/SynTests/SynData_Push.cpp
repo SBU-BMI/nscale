@@ -109,8 +109,8 @@ int main (int argc, char **argv){
 
 	if (rank == 0) cci::common::Debug::print("initialized MPI\n");
 	// IMPORTANT: need to initialize random number generator right now.
-	//srand(rank);
-	srand(cci::common::event::timestampInUS());
+	srand(rank*113 + 1);
+	//srand(cci::common::event::timestampInUS());
 
 
 	long long t1, t2;

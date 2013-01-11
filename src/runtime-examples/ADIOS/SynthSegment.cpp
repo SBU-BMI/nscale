@@ -1,47 +1,58 @@
 /*
- * GenerateOutput.cpp
+ * SynthSegment.cpp
  *
  *  Created on: Jun 18, 2012
  *      Author: tcpan
  */
 
-#include "GenerateOutput.h"
+#include "SynthSegment.h"
 #include "Debug.h"
 #include "opencv2/opencv.hpp"
 #include "CVImage.h"
-#include "FileUtils.h"
 #include <string>
-#include "TypeUtils.h"
 #include "SCIOHistologicalEntities.h"
-#include <unistd.h>
-#include "CmdlineParser.h"
+#include "FileUtils.h"
+#include "TypeUtils.h"
 #include "MathUtils.h"
+#include "CmdlineParser.h"
 
 namespace cci {
 namespace rt {
-namespace syntest {
+namespace adios {
 
-bool GenerateOutput::initParams() {
-
+bool SynthSegment::initParams() {
 	params.add_options()
-		("compute_time_distro,d", boost::program_options::value< std::string >()->required(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full")
-			;
+		("compute_time_distro,d", boost::program_options::value< std::string >(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full")
+		;
 	return true;
 }
 
-boost::program_options::options_description GenerateOutput::params("Compute Options");
-bool GenerateOutput::param_init = GenerateOutput::initParams();
+boost::program_options::options_description SynthSegment::params("Synth Compute Options");
+bool SynthSegment::param_init = SynthSegment::initParams();
 
 
-GenerateOutput::GenerateOutput(MPI_Comm const * _parent_comm, int const _gid,
+SynthSegment::SynthSegment(MPI_Comm const * _parent_comm, int const _gid,
 		DataBuffer *_input, DataBuffer *_output,
 		boost::program_options::variables_map &_vm,
 		cci::common::LogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0) {
-	output_dim = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_MAXIMGSIZE);
-	compress = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0)
+ 	 {
+	assert(_input != NULL);
+	assert(_output != NULL);
+
+	compressing = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
 
 	std::string distro;
+	p_bg = 0.3;
+	p_nu = 0.1;
+	p_full = 0.6;
+	mean_bg = 1;
+	mean_nu = 1;
+	mean_full = 1;
+	stdev_bg = 0.3;
+	stdev_nu = 0.3;
+	stdev_full = 0.3;
+
 	if (_vm.count("compute_time_distro")) {
 		distro = cci::rt::CmdlineParser::getParamValueByName< std::string >(_vm, "compute_time_distro");
 
@@ -78,11 +89,11 @@ GenerateOutput::GenerateOutput(MPI_Comm const * _parent_comm, int const _gid,
 
 }
 
-GenerateOutput::~GenerateOutput() {
-	//cci::common::Debug::print("%s destructor called.  %d generated\n", getClassName(), output_count[6~);
+SynthSegment::~SynthSegment() {
+	cci::common::Debug::print("%s destructor called.\n", getClassName());
 }
 
-int GenerateOutput::compute(int const &input_size , void * const &input,
+int SynthSegment::compute(int const &input_size , void * const &input,
 			int &output_size, void * &output) {
 	if (input_size == 0 || input == NULL) return -1;
 
@@ -112,29 +123,27 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 	int tilex = atoi(xstr.c_str());
 	int tiley = atoi(ystr.c_str());
 
-	//cv::Mat im = cv::imread(fn, -1);
+	cv::Mat im = cv::imread(fn, -1);
 	//cv::Mat im = cv::Mat::zeros(4096, 4096, CV_8UC4);
 	// simulate computation
 	//sleep(rand() % 3 + 1);
-//	t2 = ::cci::common::event::timestampInUS();
+	t2 = ::cci::common::event::timestampInUS();
 	char len[21];  // max length of uint64 is 20 digits
-//	memset(len, 0, 21);
-//	sprintf(len, "%lu", (long)(im.dataend) - (long)(im.datastart));
-//	if (logsession != NULL) logsession->log(cci::common::event(0, std::string("read"), t1, t2, std::string(len), ::cci::common::event::FILE_I));
-//
-//
-//	if (!im.data) {
-//		im.release();
-//		return -1;
-//	}
-//
-//	t1 = ::cci::common::event::timestampInUS();
+	memset(len, 0, 21);
+	sprintf(len, "%lu", (long)(im.dataend) - (long)(im.datastart));
+	if (logsession != NULL) logsession->log(cci::common::event(0, std::string("read"), t1, t2, std::string(len), ::cci::common::event::FILE_I));
+
+
+	if (!im.data) {
+		im.release();
+		return -1;
+	}
+
+	t1 = ::cci::common::event::timestampInUS();
 
 	// real computation:
 	int status;
-	cv::Mat mask = cv::Mat::zeros(output_dim, output_dim, CV_32SC1);
-
-	// compute simulation
+	cv::Mat mask = cv::Mat::zeros(im.size(), CV_32SC1);
 
 	double p = (double)rand() / ((double)RAND_MAX);
 	double mean, stdev;
@@ -166,39 +175,40 @@ int GenerateOutput::compute(int const &input_size , void * const &input,
 	double q = cci::common::MathUtils::randn(mean, stdev);
 	if (q > 0) usleep((unsigned int)round(q * 1000000));
 
-
 	t2 = ::cci::common::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 		t1 = ::cci::common::event::timestampInUS();
-		cci::rt::adios::CVImage *img = new cci::rt::adios::CVImage(mask, imagename, fn, tilex, tiley);
+		CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
 //		CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
-		if (compress) img->serialize(output_size, output, cci::rt::adios::CVImage::ENCODE_Z);
+		if (compressing) img->serialize(output_size, output, CVImage::ENCODE_Z);
 		else img->serialize(output_size, output);
 		// clean up
 		delete img;
+
 
 		t2 = ::cci::common::event::timestampInUS();
 		memset(len, 0, 21);
 		sprintf(len, "%lu", (long)output_size);
 		if (logsession != NULL) logsession->log(cci::common::event(90, std::string("serialize"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
+
 	}
-//	im.release();
+	im.release();
 
 	mask.release();
 	return status;
 }
 
-int GenerateOutput::run() {
+int SynthSegment::run() {
 
 	if (this->inputBuf->isFinished()) {
-		//cci::common::Debug::print("%s input DONE.  input = %d, output = %d\n", getClassName(), call_count, output_count);
+		cci::common::Debug::print("%s input DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
 		this->outputBuf->stop();
 
 		return Communicator_I::DONE;
 	} else if (this->outputBuf->isStopped()) {
-		//cci::common::Debug::print("%s output DONE.  input = %d, output = %d\n", getClassName(), call_count, output_count);
+		cci::common::Debug::print("%s output DONE.  input count = %d, output count = %d\n", getClassName(), call_count, output_count);
 		this->inputBuf->stop();
 
 		if (!this->inputBuf->isFinished()) cci::common::Debug::print("WARNING: %s input buffer is not empty.\n", getClassName());
@@ -255,7 +265,6 @@ int GenerateOutput::run() {
 		}
 		return Communicator_I::READY;
 	}
-
 
 
 }

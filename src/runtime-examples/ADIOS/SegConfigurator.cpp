@@ -15,6 +15,7 @@
 
 #include "AssignTiles.h"
 #include "Segment.h"
+#include "SynthSegment.h"
 #include "RandomScheduler.h"
 #include "RoundRobinScheduler.h"
 #include "UtilsADIOS.h"
@@ -49,7 +50,12 @@ SegConfigurator::SegConfigurator(int argc, char** argv) :
 	parser->addParams(MPIDataBuffer::params);
 	parser->addParams(cci::rt::adios::AssignTiles::params);
 	parser->addParams(cci::rt::adios::Segment::params);
-
+	parser->addParams(cci::rt::adios::SynthSegment::params);
+	boost::program_options::options_description paramslocal;
+	paramslocal.add_options()
+		("synth_compute,S", boost::program_options::value<bool>()->default_value(false)->implicit_value(true), "Synthetic Computation on/off.")
+				;
+	parser->addParams(paramslocal);
 
 	bool p_result = parser->parse(argc, argv);
 	if (!p_result) {
@@ -90,6 +96,8 @@ SegConfigurator::SegConfigurator(int argc, char** argv) :
 		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPSIZE) << std::endl;
 		std::cout << "\t" << CmdlineParser::PARAM_IOGROUPINTERLEAVE  << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_IOGROUPINTERLEAVE) << std::endl;
 		std::cout << "\t" << CmdlineParser::PARAM_MAXIMGSIZE << ":\t" << CmdlineParser::getParamValueByName<int>(params, CmdlineParser::PARAM_MAXIMGSIZE) << std::endl;
+		bool test = CmdlineParser::getParamValueByName<bool>(params, "synth_compute");
+		std::cout << "\t" << "synth_compute" << ":\t" << (test ? "true" : "false") << std::endl;
 		if (logger != NULL) std::cout << "\t" << CmdlineParser::PARAM_LOG << ":\t" << CmdlineParser::getParamValueByName<std::string>(params, CmdlineParser::PARAM_LOG) << std::endl;
 	}
 
@@ -266,11 +274,21 @@ bool SegConfigurator::configure(MPI_Comm &comm, Process *proc) {
 			delete handler2;
 		} else {
 //			cci::common::Debug::print("here5.2\n");
+			bool synthcompute = CmdlineParser::getParamValueByName<bool>(params, "synth_compute");
+			Action_I *seg;
+			if (synthcompute) {
+				seg =
+						new cci::rt::adios::SynthSegment(&comm, MPI_UNDEFINED, rbuf, sbuf,
+								params,
+								(logger == NULL ? NULL : logger->getSession("seg")));
 
-			Action_I *seg =
-					new cci::rt::adios::Segment(&comm, MPI_UNDEFINED, rbuf, sbuf,
-							params,
-							(logger == NULL ? NULL : logger->getSession("seg")));
+			} else {
+
+				seg =
+						new cci::rt::adios::Segment(&comm, MPI_UNDEFINED, rbuf, sbuf,
+								params,
+								(logger == NULL ? NULL : logger->getSession("seg")));
+			}
 			proc->addHandler(seg);
 			proc->addHandler(handler2);
 		}

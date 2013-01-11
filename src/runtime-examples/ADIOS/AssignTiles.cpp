@@ -58,7 +58,11 @@ AssignTiles::AssignTiles(MPI_Comm const * _parent_comm, int const _gid,
 	}
 
 	// randomize the file order.
+	srand(0);
 	std::random_shuffle( filenames.begin(), filenames.end() );
+	int rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	srand(rank * 113 + 1);
 
 	int cc = filenames.size();
 	if (count == -1) count = cc;

@@ -43,10 +43,10 @@ if (HDF5_FOUND)
 # besides there should not be absolute paths here anyways.
 	set(HDF5_LIBRARIES "hdf5_hl;hdf5;z;m")
 	message(STATUS "Redefined HDF5 libs: ${HDF5_LIBRARIES}")
-    set(libsrcs Debug.cpp FileUtils.cpp Logger.cpp h5utils.cpp)
+    set(libsrcs Debug.cpp FileUtils.cpp Logger.cpp h5utils.cpp MathUtils.cpp)
     
 else(HDF5_FOUND)
-    set(libsrcs Debug.cpp FileUtils.cpp Logger.cpp)    
+    set(libsrcs Debug.cpp FileUtils.cpp Logger.cpp MathUtils.cpp)    
 endif(HDF5_FOUND)
 
 

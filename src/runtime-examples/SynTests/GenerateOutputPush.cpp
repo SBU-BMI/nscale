@@ -15,6 +15,7 @@
 #include "SCIOHistologicalEntities.h"
 #include <unistd.h>
 #include "CmdlineParser.h"
+#include "MathUtils.h"
 
 namespace cci {
 namespace rt {
@@ -23,8 +24,7 @@ namespace syntest {
 bool GenerateOutputPush::initParams() {
 
 	params.add_options()
-				("compute_time_min,d", boost::program_options::value< double >(), "min compute time.  default 1")
-				("compute_time_max,D", boost::program_options::value< double >(), "max compute time.  default 1")
+				("compute_time_distro,d", boost::program_options::value< std::string >()->required(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full")
 				;
 	return true;
 }
@@ -37,7 +37,7 @@ GenerateOutputPush::GenerateOutputPush(MPI_Comm const * _parent_comm, int const 
 		DataBuffer *_input, DataBuffer *_output,
 		boost::program_options::variables_map &_vm,
 		cci::common::LogSession *_logsession) :
-				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0), min(0), duration(0) {
+				Action_I(_parent_comm, _gid, _input, _output, _logsession), output_count(0) {
 
 	int size;
 	MPI_Comm_size(comm, &size);
@@ -48,14 +48,39 @@ GenerateOutputPush::GenerateOutputPush(MPI_Comm const * _parent_comm, int const 
 	output_dim = cci::rt::CmdlineParser::getParamValueByName<int>(_vm, cci::rt::CmdlineParser::PARAM_MAXIMGSIZE);
 	compress = cci::rt::CmdlineParser::getParamValueByName<bool>(_vm, cci::rt::DataBuffer::PARAM_COMPRESSION);
 
-	if (_vm.count("compute_time_min")) {
-		min = cci::rt::CmdlineParser::getParamValueByName< double >(_vm, "compute_time_min");
+	std::string distro;
+	if (_vm.count("compute_time_distro")) {
+		distro = cci::rt::CmdlineParser::getParamValueByName< std::string >(_vm, "compute_time_distro");
+
+
+		int spos = 0, epos = 0;
+		epos = distro.find(',', spos);
+		p_bg = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = distro.find(',', spos);
+		mean_bg = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = distro.find(';', spos);
+		stdev_bg = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = distro.find(',', spos);
+		p_nu = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = distro.find(',', spos);
+		mean_nu = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = distro.find(';', spos);
+		stdev_nu = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = distro.find(',', spos);
+		p_full = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		epos = distro.find(',', spos);
+		mean_full = atof(distro.substr(spos, epos - spos).c_str());
+		spos = epos + 1;
+		stdev_full = atof(distro.substr(spos).c_str());
+
 	}
-	if (_vm.count("compute_time_max")) {
-		duration = cci::rt::CmdlineParser::getParamValueByName< double >(_vm, "compute_time_max") - min;
-	}
-	if (min < 0) min = 0;
-	if (duration < 0) duration = 0;
 
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -72,6 +97,7 @@ int GenerateOutputPush::compute(int const &input_size , void * const &input,
 	if (output_count >= count) return Communicator_I::DONE;
 
 	long long t1, t2;
+	t1 = ::cci::common::event::timestampInUS();
 
 	char len[21];
 	int tilex = 0;
@@ -85,19 +111,45 @@ int GenerateOutputPush::compute(int const &input_size , void * const &input,
 	std::string imagename(inchars);
 	std::string fn(fnchars);
 
-	t1 = ::cci::common::event::timestampInUS();
-
-
-	int slept = (int)((rand() % 1000000) * duration + min * 1000000);
-//	printf("sleeping for %d\n", slept);
-	usleep(slept);
-
 	// real computation:
 	int status = Communicator_I::READY;
 	cv::Mat mask = cv::Mat::zeros(output_dim, output_dim, CV_32SC1);
 
+	double p = (double)rand() / ((double)RAND_MAX);
+	double mean, stdev;
+	std::string eventName;
+	if (p < p_bg) {
+		// background
+		mean = mean_bg;
+		stdev = stdev_bg;
+		eventName.assign("computeNoFG");
+		status =  Communicator_I::WAIT;
+	} else if (p < (p_bg + p_nu)) {
+		// not enough nuclei
+		mean = mean_nu;
+		stdev = stdev_nu;
+		eventName.assign("computeNoNU");
+		status =  Communicator_I::WAIT;
+	} else if (p_bg + p_nu + p_full <= 1.0) {
+		// process finished completely.
+		mean = mean_full;
+		stdev = stdev_full;
+		eventName.assign("computeFull");
+		status = Communicator_I::READY;
+	} else {
+		eventName.assign("computeOTHER");
+		mean = 0;
+		stdev = 0;
+		status =  Communicator_I::WAIT;
+	}
+	double q = cci::common::MathUtils::randn(mean, stdev);
+	if (q > 0) usleep((unsigned int)round(q * 1000000));
+
+
 	t2 = ::cci::common::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cci::common::event(90, std::string("compute"), t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
+
+	if (status == Communicator_I::READY) {
 
 		t1 = ::cci::common::event::timestampInUS();
 		cci::rt::adios::CVImage *img = new cci::rt::adios::CVImage(mask, imagename, fn, tilex, tiley);
@@ -110,7 +162,7 @@ int GenerateOutputPush::compute(int const &input_size , void * const &input,
 		memset(len, 0, 21);
 		sprintf(len, "%d", output_size);
 		if (logsession != NULL) logsession->log(cci::common::event(90, std::string("serialize"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
-
+	}
 	mask.release();
 	output_count++;
 	return status;

@@ -230,7 +230,7 @@ target_link_libraries(${libname} segment ${io_libname})
 
 
 
-set(programs nu-segment-scio)
+set(programs nu-segment-scio nu-segment-scio-synthetic)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
@@ -260,7 +260,7 @@ if (ADIOS_FOUND)
 #	message(STATUS "PROGRAM COMPILE_FLAGS = ${TARGET_COMP_FLAGS}")
 
 
-	set(programs nu-segment-scio-adios)
+	set(programs nu-segment-scio-adios nu-segment-scio-adios-synthetic)
 	foreach(program ${programs})
 		# Add an executable to be built from the files listed
 		add_executable(${program} ${program}.cpp)

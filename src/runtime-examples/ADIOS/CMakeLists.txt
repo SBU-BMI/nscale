@@ -23,7 +23,7 @@ link_directories(${cci_common_BINARY_DIR})
 #### Runtime example library
 
 # Source files used by Runtime
-set(libsrcs AssignTiles.cpp ADIOSSave_Reduce.cpp POSIXRawSave.cpp Segment.cpp SegConfigurator.cpp CVImage.cpp UtilsADIOS.cpp)
+set(libsrcs AssignTiles.cpp ADIOSSave_Reduce.cpp POSIXRawSave.cpp Segment.cpp SynthSegment.cpp SegConfigurator.cpp CVImage.cpp UtilsADIOS.cpp)
 
 set(libname rt_adios)
 # Add rule to generate execution engine, as a shared library (.so)

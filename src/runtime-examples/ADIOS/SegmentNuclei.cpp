@@ -108,9 +108,9 @@ int main (int argc, char **argv){
 	if (rank == 0) cci::common::Debug::print("The START local date and time is: %s\n", asctime(localtm));
 
 	if (rank == 0) cci::common::Debug::print("initialized MPI\n");
-	// IMPORTANT: need to initialize random number generator right now.
-	//srand(rank);
-	srand(cci::common::event::timestampInUS());
+	// IMPORTANT: need to initialize random number generator right now. - for experiment, important to have the same set all the time...
+	srand(rank*113 + 1);
+	//srand(cci::common::event::timestampInUS());
 
 
 	long long t1, t2;
