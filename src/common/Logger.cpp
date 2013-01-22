@@ -227,9 +227,20 @@ void Logger::write(const std::string &prefix) {
 	std::stringstream fss;
 	fss << prefix << "-" << id << ".csv";
 
+	time_t now;
+	time(&now);
+	struct tm *current;
+	current = localtime(&now);
+	struct tm *start;
+	start = localtime(&start_t);
+
+
 	std::ofstream ofs2(fss.str().c_str());
-    	ofs2 << "v2.1" << std::endl << ss.str() << std::endl;
-        ofs2.close();
+	ofs2 << "v2.1";
+	ofs2 << ",logger start," << start->tm_year << "/" << start->tm_mon << "/" << start->tm_mday << " " << start->tm_hour << ":" << start->tm_min << ":" << start->tm_sec;
+	ofs2 << ",logger finish," << current->tm_year << "/" << current->tm_mon << "/" << current->tm_mday << " " << current->tm_hour << ":" << current->tm_min << ":" << current->tm_sec << std::endl;
+	ofs2 << ss.str() << std::endl;
+	ofs2.close();
 }
 
 void Logger::write() {
@@ -298,8 +309,19 @@ void Logger::writeCollectively(const std::string &prefix, const int &rank, const
 		std::stringstream fss;
 		fss << prefix << ".csv";
 
+		time_t now;
+		time(&now);
+		struct tm *current;
+		current = localtime(&now);
+		struct tm *start;
+		start = localtime(&start_t);
+
+
 		std::ofstream ofs2(fss.str().c_str());
-			ofs2 << "v2.1" << std::endl << logdata << std::endl;
+			ofs2 << "v2.1";
+			ofs2 << ",logger start," << start->tm_year << "/" << start->tm_mon << "/" << start->tm_mday << " " << start->tm_hour << ":" << start->tm_min << ":" << start->tm_sec;
+			ofs2 << ",logger finish," << current->tm_year << "/" << current->tm_mon << "/" << current->tm_mday << " " << current->tm_hour << ":" << current->tm_min << ":" << current->tm_sec << std::endl;
+    		ofs2 << logdata << std::endl;
 			ofs2.close();
 
 			//printf("%s\n", logdata);

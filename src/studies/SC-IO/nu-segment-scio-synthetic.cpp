@@ -24,7 +24,6 @@
 #include "waMPI.h"
 
 using namespace cv;
-#define WITH_MPI
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.
 //#define WITH_MPI
@@ -226,7 +225,7 @@ void compute(const char *input, const char *mask, const char *output,
 	// get the image name
 	size_t pos = filename.rfind('.');
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", input);
-	string prefix = filename.substr(0, pos);
+	prefix = filename.substr(0, pos);
 	pos = prefix.rfind("-");
 	if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", input);
 	string ystr = prefix.substr(pos + 1);
@@ -284,7 +283,7 @@ void compute(const char *input, const char *mask, const char *output,
 	t2 = ::cci::common::event::timestampInUS();
 	if (session != NULL) session->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 
-	cv::Mat m(im.size);
+	cv::Mat m(im.size(), CV_32SC1);
 	if (writeflag == true) {
 		//t1 = ::cci::common::event::timestampInUS();
 		iwrite->saveIntermediate(m, 100, imagename.c_str(), tilex, tiley, input);

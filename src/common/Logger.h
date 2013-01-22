@@ -12,6 +12,8 @@
 #include <tr1/unordered_map>
 #include <vector>
 #include <cmath>
+#include <string>
+#include <time.h>
 
 #if defined (WITH_MPI)
 #include "mpi.h"
@@ -187,6 +189,7 @@ public :
 		id(_id), name(_name), group(_group), logprefix(_logprefix) {
 		starttime = cci::common::event::timestampInUS();
 		values.clear();
+		time(&start_t);
 	};
 
 	virtual ~Logger() {
@@ -213,6 +216,7 @@ private :
 	std::string name;
 	int group;
 	long long starttime;
+	time_t start_t;
 	std::string logprefix;
 
 	// image name to log map.

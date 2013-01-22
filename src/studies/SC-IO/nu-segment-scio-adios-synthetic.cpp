@@ -25,7 +25,6 @@
 
 using namespace cv;
 
-#define WITH_MPI
 
 void printUsage(char ** argv);
 int parseInput(int argc, char **argv, std::string &simulateconfig, std::string &iocode, int &imageCount, int &maxbuf, int &groupSize, int &groupInterleave, std::string &workingDir, std::string &imageName, std::string &outDir, bool &compression);
@@ -246,7 +245,7 @@ void compute(const char *input, const char *mask, const char *output,
 	t2 = ::cci::common::event::timestampInUS();
 	if (session != NULL) session->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
 
-	cv::Mat m(im.size);
+	cv::Mat m(im.size(), CV_32SC1);
 	if (writeflag == true) {
 		//t1 = ::cci::common::event::timestampInUS();
 		writer->saveIntermediate(m, 100, imagename.c_str(), tilex, tiley, input);
