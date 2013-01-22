@@ -60,7 +60,47 @@ sub parseFileName($$$) {
 		$params{ost} = "y";
 	}
 
-	if ( $filetoken =~ m/syntest/ ) {
+	
+	if ( $filetoken =~ m/PreIPROBE\/[^\/]+-syntest\.run[0-9]/ ) {
+
+
+		$params{type} = "synth";
+
+		if ( $filetoken =~
+/.+\/synthetic\.datasizes\.p([0-9]+)\.push\.([^\.]+)\.([0-9]+)$/
+		  )
+		{
+
+#/home/tcpan/PhD/path/Data/adios/PreIPROBE/keeneland-syntest.run2/synthetic.datasizes.p720.push.NULL.2048
+
+			print STDERR "skipping push: $filetoken\n";
+			return undef;
+
+		}
+		elsif ( $filetoken =~
+/.+\/synthetic\.datasizes\.p([0-9]+)\.([^\.]+)\.([0-9]+)$/
+		  )
+		{
+
+#/home/tcpan/PhD/path/Data/adios/PreIPROBE/keeneland-syntest.run2/synthetic.datasizes.p720.NULL.2048
+
+			$params{nProcs} = $1;
+			$params{fileCount} = "?";
+
+			$params{transport}  = $2;
+			$params{bufferSize} = "?";
+			$params{nIO}        = "?";
+			$params{nCompute} = "?";
+			$params{ioGroupSize} = "?";
+			$params{dataSize} = $3;
+
+		}
+		else {
+			print STDERR "not matched in syntest: $filetoken\n";
+			return undef;
+		}
+	}
+	elsif ( $filetoken =~ m/syntest/ ) {
 
 
 		$params{type} = "synth";
@@ -96,7 +136,7 @@ sub parseFileName($$$) {
 
 		}
 		else {
-			print "not matched in syntest: $filetoken\n";
+			print STDERR "not matched in syntest: $filetoken\n";
 			return undef;
 		}
 	}
@@ -105,13 +145,13 @@ sub parseFileName($$$) {
 		# blocking
 
 		if ( $filetoken =~
-/.+\/tcga-[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.io[\-]?[0-9]+\.is[\-]?[0-9]+\.data[0-9]+\.[nb]+[-]?.*$/
+/.+\/tcga-[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.io[\-]?[0-9]+\.is[\-]?[0-9]+\.data[0-9]+\.[nb]+(-.*)?$/
 		  )
 		{
 
-# /home/tcpan/PhD/path/Data/adios/keeneland-hpdc2012-compressed1/TCGA.separate.keeneland.n32.f9600.MPI_AMR.b4.io60-1.is60[.ost]
+# /home/tcpan/PhD/path/Data/adios/ktcga.p2048.kfs.1/tcga-sep.n32.f9600.MPI_AMR.b4.io60-1.is60[.nb]
 			@tokens1 = $filetoken =~
-/.+\/tcga-([^\.]+)\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.io([\-]?[0-9]+)\.is([\-]?[0-9]+)\.data([0-9]+)\.([nb]+)[-]?.*$/;
+/.+\/tcga-([^\.]+)\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.io([\-]?[0-9]+)\.is([\-]?[0-9]+)\.data([0-9]+)\.([nb]+)(-.*)?$/;
 
 			$params{layout} =
 			  ( $tokens1[0] =~ /sep/ ? "separate" : $tokens1[0] );
@@ -139,7 +179,7 @@ sub parseFileName($$$) {
 
 		}
 		else {
-			print "not matched in tcga.kfs: $filetoken\n";
+			print STDERR "not matched in tcga.kfs: $filetoken\n";
 			return undef;
 		}
 
@@ -152,13 +192,13 @@ sub parseFileName($$$) {
 		# blocking
 
 		if ( $filetoken =~
-/.+\/TCGA\.separate\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.io[\-]?[0-9]+-1\.is[\-]?[0-9]+[\.]?[ost]*$/
+/.+\/TCGA\.separate\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.io[\-]?[0-9]+-1\.is[\-]?[0-9]+(\.ost|\.osts)?$/
 		  )
 		{
 
 # /home/tcpan/PhD/path/Data/adios/keeneland-hpdc2012-compressed1/TCGA.separate.keeneland.n32.f9600.MPI_AMR.b4.io60-1.is60[.ost]
 			@tokens1 = $filetoken =~
-/.+\/TCGA\.(separate)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.io([\-]?[0-9]+)-1\.is([\-]?[0-9]+)[\.]?[ost]*$/;
+/.+\/TCGA\.(separate)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.io([\-]?[0-9]+)-1\.is([\-]?[0-9]+)(\.ost|\.osts)?$/;
 
 			$params{transport}  = $tokens1[3];
 			$params{bufferSize} = $tokens1[4];
@@ -170,11 +210,11 @@ sub parseFileName($$$) {
 
 		}
 		elsif ( $filetoken =~
-/.+\/TCGA\.coloc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.is[\-]?[0-9]+[\.]?[ost]*.*$/
+/.+\/TCGA\.coloc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.is[\-]?[0-9]+(\.ost|\.osts)?(-.*)?$/
 		  )
 		{
 			@tokens1 = $filetoken =~
-/.+\/TCGA\.(coloc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.is([\-]?[0-9]+)[\.]?[ost]*-.*$/;
+/.+\/TCGA\.(coloc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.is([\-]?[0-9]+)(\.ost|\.osts)?(-.*)?$/;
 
 # /home/tcpan/PhD/path/Data/adios/keeneland-hpdc2012-compressed1/TCGA.coloc.keeneland.n60.f18000.MPI_LUSTRE.b4.is-1[.ost]-MPI_LUSTRE
 #									print ".2\n";
@@ -188,17 +228,17 @@ sub parseFileName($$$) {
 
 		}
 		elsif ( $filetoken =~
-			/.+\/TCGA\.baseline\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+[\.]?[ost]*$/ )
+			/.+\/TCGA\.baseline\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+(\.ost|\.osts)?$/ )
 		{
 			@tokens1 = $filetoken =~
-/.+\/TCGA\.(baseline)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)[\.]?[ost]*$/;
+/.+\/TCGA\.(baseline)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)(\.ost|\.osts)?$/;
 
 # /home/tcpan/PhD/path/Data/adios/keeneland-hpdc2012-compressed1/TCGA.baseline.keeneland.n32.f9600[.ost]
 #									print ".3\n";
 
 		}
 		else {
-			print "not matched in hpdc2012: $filetoken\n";
+			print STDERR "not matched in hpdc2012: $filetoken\n";
 			return undef;
 		}
 		$params{layout} = $tokens1[0];
@@ -242,14 +282,14 @@ sub parseFileName($$$) {
 
 		}
 		elsif ( $filetoken =~
-/.+\/TCGA\.coloc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.is[\-]?[0-9]+[\.]?[nb]*-.*$/
+/.+\/TCGA\.coloc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.is[\-]?[0-9]+[\.]?[nb]*(-.*)?$/
 		  )
 		{
 
 # /home/tcpan/PhD/path/Data/adios/keeneland-hpdc2012-compressed1/TCGA.coloc.keeneland.n60.f18000.MPI_LUSTRE.b4.is-1[.nb]-MPI_LUSTRE
 #									print ".2\n";
 			@tokens1 = $filetoken =~
-/.+\/TCGA\.(coloc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.is([\-]?[0-9]+)[\.]?[nb]*-.*$/;
+/.+\/TCGA\.(coloc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.is([\-]?[0-9]+)[\.]?[nb]*(-.*)?$/;
 			$params{transport}  = $tokens1[3];
 			$params{bufferSize} = $tokens1[4];
 			$params{ioGroupSize} =
@@ -268,7 +308,7 @@ sub parseFileName($$$) {
 /.+\/TCGA\.(baseline)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)[\.]?[nb]*$/;
 		}
 		else {
-			print "not matched in hpdc2012: $filetoken\n";
+			print STDERR "not matched in nb-vs-b: $filetoken\n";
 			return undef;
 		}
 		$params{layout} = $tokens1[0];
@@ -318,7 +358,7 @@ sub parseFileName($$$) {
 			  /.+\/TCGA\.(baseline)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)$/;
 		}
 		else {
-			print "not matched in hpdc2012: $filetoken\n";
+			print STDERR "not matched in jaguar-transport: $filetoken\n";
 			return undef;
 		}
 		$params{layout} = $tokens1[0];
@@ -358,14 +398,14 @@ sub parseFileName($$$) {
 
 		}
 		elsif ( $filetoken =~
-/.+\/TCGA\.co-loc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.is[\-]?[0-9]+-1-.*$/
+/.+\/TCGA\.co-loc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.is[\-]?[0-9]+-1(-.*)?$/
 		  )
 		{
 
 # /home/tcpan/PhD/path/Data/adios/jaguar-tcga-strong1/TCGA.co-loc.jaguar.p10240.f100000.MPI_AMR.is1-1-MPI_AMR
 #									print ".2\n";
 			@tokens1 = $filetoken =~
-/.+\/TCGA\.(co-loc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.is([\-]?[0-9]+)-1-.*$/;
+/.+\/TCGA\.(co-loc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.is([\-]?[0-9]+)-1(-.*)?$/;
 
 			$params{layout}      = "coloc";
 			$params{transport}   = $tokens1[3];
@@ -383,7 +423,7 @@ sub parseFileName($$$) {
 			$params{layout} = "baseline";
 		}
 		else {
-			print "not matched in hpdc2012: $filetoken\n";
+			print STDERR "not matched in jaguar strong: $filetoken\n";
 			return undef;
 		}
 
@@ -421,14 +461,14 @@ sub parseFileName($$$) {
 
 		}
 		elsif ( $filetoken =~
-/.+\/TCGA\.co-loc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.is[\-]?[0-9]+-.*$/
+/.+\/TCGA\.co-loc\.[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.is[\-]?[0-9]+(-.*)?$/
 		  )
 		{
 
 # /home/tcpan/PhD/path/Data/adios/jaguar-tcga-strong1/TCGA.co-loc.jaguar.p10240.f100000.MPI_AMR.is1-1-MPI_AMR
 #									print ".2\n";
 			@tokens1 = $filetoken =~
-/.+\/TCGA\.(co-loc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.is([\-]?[0-9]+)-1-.*$/;
+/.+\/TCGA\.(co-loc)\.[^\.]+\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.is([\-]?[0-9]+)-1(-.*)?$/;
 
 			$params{layout}      = "coloc";
 			$params{transport}   = $tokens1[3];
@@ -446,7 +486,7 @@ sub parseFileName($$$) {
 			$params{layout} = "baseline";
 		}
 		else {
-			print "not matched in hpdc2012: $filetoken\n";
+			print STDERR "not matched in randtime: $filetoken\n";
 			return undef;
 		}
 
@@ -465,7 +505,7 @@ sub parseFileName($$$) {
 		
 	}
 	else {
-		print "not matched: $filetoken\n";
+		print STDERR "not matched: $filetoken\n";
 		return undef;
 	}
 
