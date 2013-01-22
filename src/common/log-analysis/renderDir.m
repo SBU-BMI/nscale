@@ -1,16 +1,10 @@
-function analyzeDir ( dirname, allEventTypes, allTypeNames, errorfid )
+function renderDir ( dirname, allEventTypes, colorMap, lineTypes, errorfid )
 %analyzeDir perform analysis on the csv files inside the specified
 %directory.
 %   Detailed explanation goes here
 close all;
 
 timeInterval = 200000;
-
-%summaryFilename = [dirname, '.summary.v2.walltimes.csv'];
-summaryFilename = [dirname, '.summary.v2.csv'];
-
-fid = fopen(summaryFilename, 'w');
-fclose(fid);
 
 files = dir(fullfile(dirname, '*.csv'));
 
@@ -21,9 +15,6 @@ for i = 1:length(files)
     try
         clear proc_events;
         clear events_pid;
-        clear summary_pid;
-        clear TPIntervals;
-        
         
         %fprintf(1, 'OLD VERSION\n');
         %proc_events = readComputeAndIOTimingOneLineFormat(dirname, files(i), proc_types_to_exclude, event_names_to_exclude);
@@ -31,7 +22,6 @@ for i = 1:length(files)
         
         fprintf(1, 'processing %s\n', prefix);
         
-
         % aggregate by pid
         tic;
         datafile = [prefix '.events_pid.mat'];
@@ -110,80 +100,26 @@ for i = 1:length(files)
         end
         mx = max(mxx(mxx>=0), [], 1);  % maximum end timestamp
         mn = min(mnx(mnx>=0), [], 1)-1;  % min end timestamp
-        durs = mxx - mnx;
         toc
           
-%         %% RENDER
-%         % filter out MPI messaging
-%         tic
-%         fprintf(1, 'prepare to render - exclude MPI send/receive\n');
-%         eventFilter = cell(1,2);
-%         eventFilter{1,1} = '~eventType';
-%         eventFilter{1,2} = 21;
-%         temp_events = filterEvents(events_pid, fields, eventFilter, 'or');
-%         toc
-% 
-% 
-%         tic;
-%         fprintf(1, 'render - exclude MPI send/receive\n');
-%         [~, ~, ~] = plotProcEvents(temp_events, timeInterval, prefix, allEventTypes, colorMap, [mn mx]);
-%         close all;
-%         clear temp_events;
-%         toc
-%         %save([dirname filesep files(i).name '.mat'], 'norm_events', 'sum_events');
-%         
-
-        
-        %% intermediate summary by procs
-        tic;
-        datafile = [prefix '.events_stats.mat'];
-        if (exist(datafile, 'file') == 2 &&...
-                length(intersect({'summary_pid'; 'ops_pid'; 'allEventTypes'}, who('-file', datafile))) == 3)
-            fprintf(1, 'load previously computed intermediate summary %s\n', datafile);
-            load(datafile);
-        else
-            fprintf(1, 'compute intermediate summary for events data based on pid.\n');
-            [summary_pid ops_pid] = summarizeByRow(events_pid, fields, allEventTypes);
-            save(datafile, 'summary_pid', 'ops_pid', 'allEventTypes');
-        end
-        toc
-        
-        
-        % resample datasizes by events
-        tic;
-        datafile = [prefix '.events_resample.mat'];
-       	if (exist(datafile, 'file') == 2 &&...
-                length(intersect({'TPIntervals', 'interval', 'allEventTypes'}, who('-file', datafile))) == 3)
-            fprintf(1, 'load previously saved resampled data file %s\n', datafile);
-            load(datafile);
-        else
-            fprintf(1, 'resampling data by events\n');
-            [TPIntervals, interval, ~] = resampleData(events_pid, fields, timeInterval, allEventTypes, 'eventType', [mn mx]);
-            % only use v 7.3 data file here because need to be able to
-            % store this.  otherwise v7.3 creates orders of magnitude
-            % bigger files.
-            save(datafile, 'TPIntervals', 'interval', 'allEventTypes', '-v7.3');
-        end
+        %% RENDER
+        % filter out MPI messaging
+        tic
+        fprintf(1, 'prepare to render - exclude MPI send/receive\n');
+        eventFilter = cell(1,2);
+        eventFilter{1,1} = '~eventType';
+        eventFilter{1,2} = [21 23];
+        temp_events = filterEvents(events_pid, fields, eventFilter, 'or');
         toc
 
-        
 
-        
-        
-%% SUMMARIZE
-        
-        fprintf(1, 'summarizing\n');
-        fid = fopen(summaryFilename, 'a');
-	% wall time reported in microsec.  fixed in perl extraction script.
-        fprintf(fid, 'EXPERIMENT, %s, app wall time, %f, sum process wall time, %f\n', prefix, mx-mn, sum(durs));        
-    
         tic;
-        sessions = events_pid(:, fields.('sessionName'));
-        summarizeFromIntermediate(sessions, nodeTypes, summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid);
+        fprintf(1, 'render - exclude MPI send/receive\n');
+        [~, ~, ~] = plotProcEvents(temp_events, fields, timeInterval, prefix, allEventTypes, colorMap, lineTypes, [mn mx]);
+        close all;
+        clear temp_events;
         toc
         
-        
-        fclose(fid);
     catch err
        fprintf(errorfid, 'ERROR: failed processing for %s, reason: %s\n', prefix, err.message);
     end

@@ -1,4 +1,4 @@
-function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth, pixelWidth, figname_prefix, allEventTypes, colorMap)
+function [ img norm_events sum_events ] = plotProcEvents( events, fields, pixelWidth, figname_prefix, allEventTypes, colorMap, lineTypes, timeInterval)
 %plotTiming draws an image that represents the different activities in MPI
 %   The function first parses the data and generate a normalized event map
 %   with dimension p x ((max t - min t)/pixelWidth) x eventTypes.  This has
@@ -22,25 +22,20 @@ function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth,
     img = [];
     norm_events = [];
     
-    if (isempty(proc_events))
+    if (isempty(events))
         fprintf(2, 'ERROR: no events to process\n');
         return;
     end
 
-    p = size(proc_events,1);
+    p = size(events,1);
 
-    % get global min and max and the unique events
-    mx = 0;
-    mn = inf;
-    for i = 1:p 
-	   mx = max([mx, max(proc_events{i, 7}, [], 1)], [], 2);
-       mn = min([mn, min(proc_events{i, 6}, [], 1)], [], 2);
-    end
-    mn = mn - 1;  % do min as just out of range.
+    mn = double(timeInterval(1));
+    mx = double(timeInterval(2));
+
 
     % now check the sampling interval
     if (isempty(pixelWidth))
-       pixelWidth = min((mx-mn ) / 50000, 1000000);
+       pixelWidth = min((mx-mn ) / 50000.0, 1000000.0);
     end
     if (pixelWidth > 1000000)
         printf(2, 'ERROR: sample interval should not be greater than 1000000 microseconds\n');
@@ -48,10 +43,13 @@ function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth,
     end
 
     % XY positions on colorwheel.
-    colorMapCart = colorMap;
-    [colorMapCart(:, 1) colorMapCart(:, 2)] = pol2cart(colorMap(:, 1), colorMap(:, 2));
-    colorMapCart(abs(colorMapCart) < eps) = 0;
-    
+    colorMapRGB = hsv2rgb(colorMap);
+    temp = colorMap;
+    temp(:, 3) = 0.95;
+    colorMapRGB2 = hsv2rgb(temp);
+%     [colorMapCart(:, 1) colorMapCart(:, 2)] = pol2cart(colorMap(:, 1), colorMap(:, 2));
+%     colorMapCart(abs(colorMapCart) < eps) = 0;
+%     colorMapCart(abs(colorMapCart) > 1) = 1
 
     % get the number of pixels
     cols = ceil(double(mx-mn) / pixelWidth) +1;
@@ -79,9 +77,9 @@ function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth,
 
             norm_events{i} = sparse(cols, num_ev_types);
 
-            types = proc_events{i, 5};
-            startt = double(proc_events{i, 6} - mn) ;
-            endt = double(proc_events{i, 7} - mn) ;
+            types = events{i, fields.('eventType')};
+            startt = double(events{i, fields.('startT')} - mn) ;
+            endt = double(events{i, fields.('endT')} - mn) ;
 
             [~, idx] = ismember(types, event_types);
             clear types;
@@ -157,25 +155,25 @@ function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth,
     clear cols;
     
     % convert norm_events to hsv img
-    for i = 1:p
+    for k = 1:p
         % get weighted sum of colors
-        bar1 = norm_events{i} * colorMapCart;
-        
-        % convert from cartesian to polar coord (radians )
-        [bar1(:, 1) bar1(:, 2)] = cart2pol(bar1(:, 1), bar1(:,2));
-        
-        % angle is between -pi and pi. (function uses atan2)
-        bar1(:, 1) = bar1(:, 1) / (2.0 * pi);  % convert to -1/2 to 1/2
-        idx = find(bar1(:,1) < 0);
-        bar1(idx, 1) = bar1(idx, 1) + 1.0;  % convert to 0 to 1, via a "mod"
-        bar1(abs(bar1(:,1)) < eps, 1) = 0;
-        bar1(abs(bar1(:,1) - 1.0) < eps, 1) = 1;
-        clear idx;
-        
-        % convert hsvimg to rgb
-        bar1 = hsv2rgb(bar1);
-        bar1(abs(bar1) < eps) = 0;
-        bar1(abs(bar1 - 1.0) < eps) = 1;
+        bar1 = norm_events{k} * colorMapRGB;
+        bar1(bar1>1) = 1;
+%         % convert from cartesian to polar coord (radians )
+%         [bar1(:, 1) bar1(:, 2)] = cart2pol(bar1(:, 1), bar1(:,2));
+%         
+%         % angle is between -pi and pi. (function uses atan2)
+%         bar1(:, 1) = bar1(:, 1) / (2.0 * pi);  % convert to -1/2 to 1/2
+%         idx = find(bar1(:,1) < 0);
+%         bar1(idx, 1) = bar1(idx, 1) + 1.0;  % convert to 0 to 1, via a "mod"
+%         bar1(abs(bar1(:,1)) < eps, 1) = 0;
+%         bar1(abs(bar1(:,1) - 1.0) < eps, 1) = 1;
+%         clear idx;
+%         
+%         % convert hsvimg to rgb
+%         bar1 = hsv2rgb(bar1);
+%         bar1(abs(bar1) < eps) = 0;
+%         bar1(abs(bar1 - 1.0) < eps) = 1;
         
         % convert from double to uint8
         bar2 = uint8(bar1 * 255.0);
@@ -185,12 +183,11 @@ function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth,
 %        r1 = i * (barWidth + 1) - 1;
 %         img(r0:r1, :, :) = ...
 %             repmat(reshape(bar2, 1, size(bar2, 1), size(bar2, 2)), [barWidth, 1, 1]);
-        img(i, :, :) = reshape(bar2, 1, size(bar2, 1), size(bar2, 2));
+        img(k, :, :) = reshape(bar2, 1, size(bar2, 1), size(bar2, 2));
         clear bar2;
 %        clear r0;
 %        clear r1;
     end
-    clear colorMapCart;
     
     % commented out - don't need these right now
     %imwrite(img, [figname_prefix '.png'], 'png');
@@ -205,7 +202,7 @@ function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth,
     %set(sa1, 'FontSize', get(sa1, 'FontSize') * resolutionScaling);
 
     title(sa1, {'Process Activities',...
-        '(BLACK:Unknown) (GREEN:Compute/ADIOS Finalize)', ...
+        '(BLACK:Network/Other) (GREEN:Compute)', ...
         '(BLUE:Mem IO/ADIOS Alloc) (RED:File Write/ADIOS Close)',...
         '(CYAN:Net IO/ADIOS Init) (MAGENTA:Net Wait/ADIOS Open) (YELLOW:File Read/ADIOS Write)'});
     hold on;
@@ -222,21 +219,12 @@ function [ img norm_events sum_events ] = plotProcEvents( proc_events, barWidth,
     sf2 = subplot(5,1,4:5);
     sa2 = gca;
     %set(sa2, 'FontSize', get(sa2, 'FontSize') * resolutionScaling);
-    plot(sa2, sum_events(:, 1), '--k'); hold on;
-    plot(sa2, sum_events(:, 2), '-.g'); hold on;
-    plot(sa2, sum_events(:, 3), ':b'); hold on;
-    plot(sa2, sum_events(:, 4), ':b'); hold on;
-    plot(sa2, sum_events(:, 5), '-.c'); hold on;
-    plot(sa2, sum_events(:, 6), ':m'); hold on;
-    plot(sa2, sum_events(:, 7), ':y'); hold on;
-    plot(sa2, sum_events(:, 8), '-.r'); hold on;
-    plot(sa2, sum_events(:, 9), '-c'); hold on;
-    plot(sa2, sum_events(:, 10), '-m'); hold on;
-    plot(sa2, sum_events(:, 11), '-b'); hold on;
-    plot(sa2, sum_events(:, 12), '-y'); hold on;
-    plot(sa2, sum_events(:, 13), '-r'); hold on;
-    plot(sa2, sum_events(:, 14), '-g'); hold on;
-    set(sa2, 'Color', [0.2 0.2 0.2]); hold on;  % some background color
+    for c = 1:length(allEventTypes)
+        %plot(sa2, sum_events(:, c), lineTypes{c}, 'linewidth', 3); hold on;
+        plot(sa2, sum_events(:, c), 'color', colorMapRGB2(c, :), 'linewidth', 2); hold on;
+    end
+    set(sa2, 'Color', [1 1 1]); hold on;  % some background color
+    %set(sa2, 'Color', [0.2 0.2 0.2]); hold on;  % some background color
     axis(sf2, 'tight');
     xlabel(sa2, 'time (s)');
     ylabel(sa2, 'num processes');
@@ -291,87 +279,4 @@ function [] = rescaleAxes(src, eventdata, sa2, pixelW)
 end
 
 
-function [ sampled_events sum_events ] = ...
-    resampleTimeByType(events, p, cols, sample_interval, event_types, mn)
-    % p is number of cells (procs)
-    % mn is min timestamp, -1 timestamp overall;
-
-    % get the number of pixels
-    num_ev_types = length(event_types);
-    
-    % allocate norm-events
-	sampled_events = cell(p, 1);
-    
-    % generate the sampled_events
-    for i = 1:p
-
-        sampled_events{i} = sparse(cols, num_ev_types);
-        
-        types = events{i, 5};
-        startt = double(events{i, 6}- mn);
-        endt = double(events{i, 7} - mn);
-        
-        [~, idx] = ismember(types, event_types);
-        clear types;
-        
-        startt_bucket = ceil(startt / sample_interval);
-        endt_bucket = ceil(endt / sample_interval);
-        
-        start_bucket_end = startt_bucket * sample_interval;
-        end_bucket_start = (endt_bucket - 1) * sample_interval + 1;
-
-        duration = endt - startt + 1;  % data rate per microsec.
-        
-        % can't do this in more vectorized way, because of the range access
-        startdr = start_bucket_end - startt + 1;
-        enddr = endt - end_bucket_start + 1;
-        clear startt;
-        clear endt;
-        clear start_bucket_end;
-        clear end_bucket_start;
-        
-        tmp = zeros(cols, num_ev_types);
-        for j = 1:length(duration)
-            x1 = startt_bucket(j);
-            x2 = endt_bucket(j);
-            y = idx(j);
-            
-           % if start and end in the same bucket, mark with duration
-           if x1 == x2
-               tmp(x1, y) = ...
-                   tmp(x1, y) + duration(j);
-           else
-               % do the start first
-               tmp(x1, y) = ...
-                   tmp(x1, y) + startdr(j);
-                % then do the end
-               tmp(x2,y) = ...
-                   tmp(x2, y) + enddr(j);
-
-               % then do in between
-               if x2 > (x1 + 1)
-                    tmp(x1+1 : x2-1, y) = ...
-                       tmp(x1+1 : x2-1, y) + sample_interval;
-               end
-           end 
-        end
-        tmp = tmp / sample_interval;
-    	clear idx;
-        clear startt_bucket;
-        clear endt_bucket;
-        clear duration;
-        clear startdr;
-        clear enddr;
-        
-        sampled_events{i} = sparse(tmp);
-        clear tmp;
-    end
-    
-    
-    sum_events = sparse(cols, num_ev_types);
-    for i = 1:p	
-		sum_events = sum_events + sampled_events{i};
-	end
-    clear num_ev_types;
-end
 

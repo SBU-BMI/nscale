@@ -20,22 +20,39 @@ allTypeNames = {'Other',...
     'ADIOS finalize'};
         
 colorMap = [0, 0, 0; ...              % OTHER, -1, black
-            120.0, 0.4, 1.0; ...      % COMPUTE, 0, green
-            240.0, 0.4, 1.0; ...      % MEM_IO, 11, blue
-            240.0, 0.4, 1.0; ...      % GPU_MEM_IO, 12, blue
-            180.0, 0.4, 1.0; ...      % NETWORK_IO, 21, cyan
-            300.0, 0.4, 1.0; ...      % NETWORK_WAIT, 22, magenta
-            180.0, 0.4, 1.0; ...      % NETWORK_IO_NB, 23, cyan
-            60.0, 0.4, 1.0; ...       % FILE_I, 31, yellow
-            0.0, 0.4, 1.0; ...        % FILE_O, 32, red
-            180.0, 1.0, 1.0; ...      % ADIOS_INIT, 41, cyan
-            300.0, 1.0, 1.0; ...      % ADIOS_OPEN, 42, magenta
-            240.0, 1.0, 1.0; ...      % ADIOS_ALLOC, 43, blue
-            60.0, 1.0, 1.0; ...       % ADIOS_WRITE, 44, yellow
-            0.0, 1.0, 1.0; ...        % ADIOS_CLOSE, 45, red
-            120.0, 1.0, 1.0; ...      % ADIOS_FINALIZE, 46, green
+            120.0, 1.0, 1.0; ...      % COMPUTE, 0, green
+            300.0, 0.5, 1.0; ...      % MEM_IO, 11, magenta
+            300.0, 0.5, 1.0; ...      % GPU_MEM_IO, 12, magenta
+            180.0, 0.75, 1.0; ...      % NETWORK_IO, 21, cyan
+            240.0, 0.75, 1.0; ...      % NETWORK_WAIT, 22, blue
+            180.0, 0.75, 1.0; ...      % NETWORK_IO_NB, 23, cyan
+            60.0, 0.75, 1.0; ...       % FILE_I, 31, yellow
+            0.0, 0.75, 1.0; ...        % FILE_O, 32, red
+            240.0, 0.5, 1.0; ...      % ADIOS_INIT, 41, blue
+            180.0, 0.5, 1.0; ...      % ADIOS_OPEN, 42, cyan
+            300.0, 1.0, 1.0; ...      % ADIOS_ALLOC, 43, magenta
+            30.0, 0.75, 1.0; ...       % ADIOS_WRITE, 44, orange
+            0.0, 0.75, 1.0; ...        % ADIOS_CLOSE, 45, red
+            240.0, 0.5, 1.0; ...      % ADIOS_FINALIZE, 46, blue
 ];
-colorMap(:, 1) = colorMap(:, 1) / 180.0 * pi;  % in radian
+colorMap(:, 1) = colorMap(:, 1) / 360.0;  % in radian
+
+lineTypes = {'--k', ...  
+    '-.g', ...
+    ':b', ...
+    ':b', ...
+    '-.c', ...
+    ':m', ...
+    '-.c', ...
+    ':y', ...
+    '-.r', ...
+    '-c', ...
+    '-m', ...
+    '-b', ...
+    '-y', ...
+    '-r', ...
+    '-g'...
+    };
 
 dirs = {...
     '/home/tcpan/PhD/path/Data/adios/tcga.p2048.kfs.1', ... 
@@ -108,7 +125,6 @@ old_dirs = {...
     '/home/tcpan/PhD/path/Data/adios/yellowstone' ...
     };
     
-selections = 1:length(pre_iprobe_dirs);
 
 
 % canParallelize = 0;
@@ -148,11 +164,23 @@ selections = 1:length(pre_iprobe_dirs);
           
 errorfid = fopen('error.log', 'w');
 %errorfid = 2; 
+selections = 1:length(dirs);
+    for j = 1 : length(selections)
+        id = selections(j);
+        dirname = dirs{id};
+    
+        %analyzeDir(dirname, allEventTypes, allTypeNames, errorfid);
+        renderDir(dirname, allEventTypes, colorMap, lineTypes, errorfid);
+        %checkDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
+    end
+
+selections = 1:length(pre_iprobe_dirs);
     for j = 1 : length(selections)
         id = selections(j);
         dirname = pre_iprobe_dirs{id};
     
-        analyzeDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
+        %analyzeDir(dirname, allEventTypes, allTypeNames, errorfid);
+        renderDir(dirname, allEventTypes, colorMap, lineTypes, errorfid);
         %checkDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
     end
 fclose(errorfid);
