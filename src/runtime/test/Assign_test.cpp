@@ -22,7 +22,7 @@ int main (int argc, char **argv){
 	std::vector<cci::rt::Communicator_I *> handlers;
 
 	cci::rt::DataBuffer *buf = new cci::rt::DataBuffer(100);
-	cci::rt::Action_I *assign = new cci::rt::Assign(&comm_world, -1, NULL, buf, NULL);
+	cci::rt::Action_I *assign = new cci::rt::Assign(&comm_world, MPI_UNDEFINED, NULL, buf, NULL);
 	handlers.push_back(assign);
 
 	int j = 0;
@@ -36,16 +36,22 @@ int main (int argc, char **argv){
 				iter != handlers.end(); ) {
 			result = (*iter)->run();
 			if (result == cci::rt::Communicator_I::DONE || result == cci::rt::Communicator_I::ERROR) {
-				printf("no output at iter j %d .  DONE or error state %d\n", j, result);
+				printf("no output at iter j %d .  DONE or error state, status = %d\n", j, result);
 				delete (*iter);
 				iter = handlers.erase(iter);
 			} else if (result == cci::rt::Communicator_I::READY ) {
 				cci::rt::DataBuffer::DataType dstr;
 
 				oresult = ((cci::rt::Action_I*)(*iter))->getOutputBuffer()->pop(dstr);
-				printf("output generated at iteration j %d: %d.  output result = %d\n", j, *((int*)dstr.second), oresult);
+				printf("output generated at iteration j %d: result %d, expected %d.  buffer status = %d\n", j, *((int*)dstr.second), j, oresult);
+
+				if (*((int*)dstr.second) != j) {
+					printf("ERROR: result does not match expected.");
+				}
+
 				free(dstr.second);
 				dstr.second = NULL;
+
 				++iter;
 			} else {
 				printf("no output at iter j %d .  wait state %d\n", j, result);

@@ -29,52 +29,52 @@ int main (int argc, char **argv){
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	int size = 0;
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-	int output_size = 4096*4096*4;
-	void *output = 0;
-	void *dummy = malloc(rank * 1000);
-
-	///// create buffer with capacity of 4
-	DataBuffer buffer(4);
-
-	// add in
 	int status;
 	DataBuffer::DataType in;
-	for (int i = 0; i < 5; ++i) {
-		output = malloc(output_size);
-		memset(output, rank * 10 + i, output_size);
-		cci::common::Debug::print("buffer testing: output %p in.second %p\n", output, in.second);
-
-		in = std::make_pair(output_size, output);
-		cci::common::Debug::print("buffer testing 2: output %p in.second %p\n", output, in.second);
-		if (buffer.canPush()) {
-			status = buffer.push(in);
-			cci::common::Debug::print("buffer testing: iter %d, buffer push status %d, size %ld, outdata %d %p %d\n", i, status, buffer.debugBufferSize(), in.first, in.second, ((char*)in.second)[0]);
-		} else {
-			cci::common::Debug::print("Buffer full!  data discarded\n");
-			free(output);
-		}
-	}
-
-	// pop out;
 	DataBuffer::DataType out;
-	for (int i = 0; i < 5; ++i) {
-		if (buffer.canPop()) {
-			status = buffer.pop(out);
-			cci::common::Debug::print("buffer testing: iter %d, buffer pop status %d, size %ld, outdata %d %p %d\n", i, status, buffer.debugBufferSize(), out.first, out.second, ((char*)out.second)[0]);
-			free(out.second);
-			out.second = NULL;
+	void *output = 0;
+	int output_size = 4096*4096*4;
+
+
+	if (size == 1) {
+		void *dummy = malloc(rank * 1000);
+
+		///// create buffer with capacity of 4
+		DataBuffer buffer(4);
+
+		// add in
+		for (int i = 0; i < 5; ++i) {
+			output = malloc(output_size);
+			memset(output, rank * 10 + i, output_size);
+			cci::common::Debug::print("buffer testing: output %p in.second %p\n", output, in.second);
+
+			in = std::make_pair(output_size, output);
+			cci::common::Debug::print("buffer testing 2: output %p in.second %p\n", output, in.second);
+			if (buffer.canPush()) {
+				status = buffer.push(in);
+				cci::common::Debug::print("buffer testing: iter %d, buffer push status %d, size %ld, outdata %d %p %d\n", i, status, buffer.debugBufferSize(), in.first, in.second, ((char*)in.second)[0]);
+			} else {
+				cci::common::Debug::print("Buffer full!  data discarded\n");
+				free(output);
+			}
 		}
+
+		// pop out;
+		for (int i = 0; i < 5; ++i) {
+			if (buffer.canPop()) {
+				status = buffer.pop(out);
+				cci::common::Debug::print("buffer testing: iter %d, buffer pop status %d, size %ld, outdata %d %p %d\n", i, status, buffer.debugBufferSize(), out.first, out.second, ((char*)out.second)[0]);
+				free(out.second);
+				out.second = NULL;
+			}
+		}
+
+		free(dummy);
 	}
-
-	free(dummy);
-
-	printf("TESTING MPI!!!!!\n");
 
 
 #if defined(WITH_MPI)
 	if (size > 1)  {
-
 	std::string hostname;
     char * temp = (char*)malloc(256);
     gethostname(temp, 255);

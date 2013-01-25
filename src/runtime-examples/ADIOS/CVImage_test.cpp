@@ -48,6 +48,8 @@ bool cvMatEQ(const cv::Mat& data1, const cv::Mat& data2)
 
 int main (int argc, char **argv){
 
+	int retcode = 0;
+
 	char const *input = "/home/tcpan/PhD/path/Data/ValidationSet/20X_4096x4096_tiles/astroII.1/astroII.1.ndpi-0000028672-0000012288.tif";
 
 	std::string fn = std::string(input);
@@ -96,32 +98,31 @@ int main (int argc, char **argv){
 
 	int dummy, dummy2;
 	src = new cci::rt::adios::CVImage(im, imagename, fn, tilex, tiley);
-	printf("orig image name %s, filename %s, data size %d\n\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
+	printf("orig image name %s, filename %s, data size %d\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
 
 	cv::Mat im2 = src->getImage();
-	printf("regenerated opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
+	printf("regenerated opencv image is same as original? %s, expect true\n", (cvMatEQ(im, im2) ? "true" : "false"));
 
 	dest1 = new cci::rt::adios::CVImage();
 	dest1->copy(*src);
 	//	src3->deserialize(output_size, output);
-	printf("copy orig to empty %s, filename %s, data size %d\n\n", dest1->getImageName(dummy, dummy2), dest1->getSourceFileName(dummy, dummy2), dest1->getMetadata().info.data_size);
+	printf("copy orig to empty %s, filename %s, data size %d\n", dest1->getImageName(dummy, dummy2), dest1->getSourceFileName(dummy, dummy2), dest1->getMetadata().info.data_size);
 
 	im2 = dest1->getImage();
-	printf("regenerated copied opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
+	printf("regenerated copied opencv image is same as original? %s, expect true\n", (cvMatEQ(im, im2) ? "true" : "false"));
 
 	cci::rt::adios::CVImage::MetadataType *meta = cci::rt::adios::CVImage::allocMetadata();
 
-	dest2 =
-			new ::cci::rt::adios::CVImage(meta,
+	dest2 = new ::cci::rt::adios::CVImage(meta,
 					tileB + data_pos, mx_image_bytes,
 					imageNameB + imageNames_pos, mx_imagename_bytes,
 					sourceTileFileB + filenames_pos, mx_filename_bytes);
 
 	dest2->copy(*src);
-	printf("copy orig to preallocated buffer %s, filename %s, data size %d\n\n", dest2->getImageName(dummy, dummy2), dest2->getSourceFileName(dummy, dummy2), dest2->getMetadata().info.data_size);
+	printf("copy orig to preallocated buffer %s, filename %s, data size %d\n", dest2->getImageName(dummy, dummy2), dest2->getSourceFileName(dummy, dummy2), dest2->getMetadata().info.data_size);
 
 	im2 = dest2->getImage();
-	printf("regenerated prealloc copied opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
+	printf("regenerated prealloc copied opencv image is same as original? %s, expect true\n", (cvMatEQ(im, im2) ? "true" : "false"));
 
 
 	int output_size = 0;
@@ -129,31 +130,44 @@ int main (int argc, char **argv){
 
 	src->serialize(output_size, output);
 
-
-
 	dest3 = new cci::rt::adios::CVImage(output_size, output);
-	printf("deserialized image name %s, filename %s, data size %d\n\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
+	printf("deserialized image name %s, filename %s, data size %d\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
 
 	im2 = dest3->getImage();
-	printf("regenerated copied serialized opencv image is same as original? %s\n", (cvMatEQ(im, im2) ? "true" : "false"));
+	printf("regenerated copied serialized opencv image is same as original? %s, expect true\n", (cvMatEQ(im, im2) ? "true" : "false"));
+
+	int output_size2 = 0;
+	void *output2 = NULL;
+	src->serialize(output_size2, output2, cci::rt::adios::CVImage::ENCODE_Z);
+
+	::cci::rt::adios::CVImage *destz = new cci::rt::adios::CVImage(output_size2, output2, cci::rt::adios::CVImage::ENCODE_Z);
+	printf("deserialized COMPRESSED image name %s, filename %s, data size %d\n", destz->getImageName(dummy, dummy2), destz->getSourceFileName(dummy, dummy2), destz->getMetadata().info.data_size);
+
+	cv::Mat imz = destz->getImage();
+	printf("regenerated copied serialized COMPRESSED opencv image is same as original? %s, expect true\n", (cvMatEQ(im, imz) ? "true" : "false"));
+
 
 
 	dest3->copy(*src);
-	printf("copy orig to serialized %s, filename %s, data size %d\n\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
+	printf("copy orig to serialized %s, filename %s, data size %d.  expect fail\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
 
 
 
 	////////////////
 
 	src->copy(*dest3);
-	printf("copy serialized to orig %s, filename %s, data size %d\n\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
+	printf("copy serialized to orig %s, filename %s, data size %d. expect fail\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
 
 	delete dest1;
 	dest1 = new cci::rt::adios::CVImage();
 
 	dest1->copy(*dest3);
 	//	src3->deserialize(output_size, output);
-	printf("copy serialized to empty %s, filename %s, data size %d\n\n", dest1->getImageName(dummy, dummy2), dest1->getSourceFileName(dummy, dummy2), dest1->getMetadata().info.data_size);
+	printf("copy serialized to empty %s, filename %s, data size %d\n", dest1->getImageName(dummy, dummy2), dest1->getSourceFileName(dummy, dummy2), dest1->getMetadata().info.data_size);
+
+	cv::Mat im3 = dest3->getImage();
+	printf("regenerated copied serialized opencv image is same as original? %s, expect true\n", (cvMatEQ(im2, im3) ? "true" : "false"));
+
 
 	delete dest2;
 	dest2 =
@@ -163,8 +177,10 @@ int main (int argc, char **argv){
 					sourceTileFileB + filenames_pos, mx_filename_bytes);
 
 	dest2->copy(*dest3);
-	printf("copy serialized to preallocated buffer %s, filename %s, data size %d\n\n", dest2->getImageName(dummy, dummy2), dest2->getSourceFileName(dummy, dummy2), dest2->getMetadata().info.data_size);
+	printf("copy serialized to preallocated buffer %s, filename %s, data size %d\n", dest2->getImageName(dummy, dummy2), dest2->getSourceFileName(dummy, dummy2), dest2->getMetadata().info.data_size);
 
+	im3 = dest3->getImage();
+	printf("regenerated copied serialized opencv image is same as original? %s, expect true\n", (cvMatEQ(im2, im3) ? "true" : "false"));
 
 	///////////////
 
@@ -172,7 +188,7 @@ int main (int argc, char **argv){
 	dest1 = new cci::rt::adios::CVImage();
 
 	src->copy(*dest1);
-	printf("copy empty to orig %s, filename %s, data size %d\n\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
+	printf("copy empty to orig %s, filename %s, data size %d.  expect fail\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
 
 	delete dest2;
 	dest2 =
@@ -181,10 +197,10 @@ int main (int argc, char **argv){
 					imageNameB + imageNames_pos, mx_imagename_bytes,
 					sourceTileFileB + filenames_pos, mx_filename_bytes);
 	dest2->copy(*dest1);
-	printf("copy empty to preallocated buffer %s, filename %s, data size %d\n\n", dest2->getImageName(dummy, dummy2), dest2->getSourceFileName(dummy, dummy2), dest2->getMetadata().info.data_size);
+	printf("copy empty to preallocated buffer %s, filename %s, data size %d\n", dest2->getImageName(dummy, dummy2), dest2->getSourceFileName(dummy, dummy2), dest2->getMetadata().info.data_size);
 
 	dest3->copy(*dest1);
-	printf("copy empty to serialized %s, filename %s, data size %d\n\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
+	printf("copy empty to serialized %s, filename %s, data size %d.  expect fail\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
 
 
 	//////////////////
@@ -197,16 +213,16 @@ int main (int argc, char **argv){
 					sourceTileFileB + filenames_pos, mx_filename_bytes);
 
 	src->copy(*dest2);
-	printf("copy preallocated to orig %s, filename %s, data size %d\n\n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
+	printf("copy preallocated to orig %s, filename %s, data size %d.  expect fail \n", src->getImageName(dummy, dummy2), src->getSourceFileName(dummy, dummy2), src->getMetadata().info.data_size);
 
 	delete dest1;
 	dest1 = new cci::rt::adios::CVImage();
 	dest1->copy(*dest2);
 	//	src3->deserialize(output_size, output);
-	printf("copy preallocated to empty %s, filename %s, data size %d\n\n", dest1->getImageName(dummy, dummy2), dest1->getSourceFileName(dummy, dummy2), dest1->getMetadata().info.data_size);
+	printf("copy preallocated to empty %s, filename %s, data size %d\n", dest1->getImageName(dummy, dummy2), dest1->getSourceFileName(dummy, dummy2), dest1->getMetadata().info.data_size);
 
 	dest3->copy(*dest2);
-	printf("copy prealloc to serialized %s, filename %s, data size %d\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
+	printf("copy prealloc to serialized %s, filename %s, data size %d.  expect fail\n", dest3->getImageName(dummy, dummy2), dest3->getSourceFileName(dummy, dummy2), dest3->getMetadata().info.data_size);
 
 
 
@@ -234,7 +250,7 @@ int main (int argc, char **argv){
 		tile = src->getData(dummy, data_size);
 		imageName = src->getImageName(dummy, img_name_size);
 		sourceTileFile = src->getSourceFileName(dummy, src_fn_size);
-		printf("input: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n\n",
+		printf("input: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n",
 				tile, data_size, imageName, img_name_size,
 				sourceTileFile, src_fn_size);
 
@@ -252,7 +268,7 @@ int main (int argc, char **argv){
 		imageName = out->getImageName(dummy, img_name_size);
 		sourceTileFile = out->getSourceFileName(dummy, src_fn_size);
 
-		printf("output allocated: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n\n",
+		printf("output allocated: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n",
 				tileB + data_pos, data_size, imageNameB + imageNames_pos, img_name_size,
 				sourceTileFileB + filenames_pos, src_fn_size);
 
@@ -263,7 +279,7 @@ int main (int argc, char **argv){
 		imageName = out->getImageName(dummy, img_name_size);
 		sourceTileFile = out->getSourceFileName(dummy, src_fn_size);
 
-		printf("output copied: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n\n",
+		printf("output copied: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n",
 				tileB + data_pos, data_size, imageNameB + imageNames_pos, img_name_size,
 				sourceTileFileB + filenames_pos, src_fn_size);
 
@@ -276,7 +292,7 @@ int main (int argc, char **argv){
 		imageName = out->getImageName(mx_in_size, img_name_size);
 		sourceTileFile = out->getSourceFileName(mx_sfn_size, src_fn_size);
 
-		printf("output compacted: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n\n",
+		printf("output compacted: data at %p, size %d, imname at %p, size %d, fn at %p, size %d\n",
 		tileB + data_pos, data_size, imageNameB + imageNames_pos, img_name_size,
 		sourceTileFileB + filenames_pos, src_fn_size);
 

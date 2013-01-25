@@ -55,10 +55,10 @@ int main (int argc, char **argv){
 	handlers.push_back(handler);
 
 	if (handler->isListener()) {
-		cci::rt::Assign *assign = new cci::rt::Assign(&comm_world, -1, NULL, sbuf, NULL);
+		cci::rt::Assign *assign = new cci::rt::Assign(&comm_world, MPI_UNDEFINED, NULL, sbuf, NULL);
 		handlers.push_back(assign);
 	} else {
-		cci::rt::Save *save = new cci::rt::Save(&comm_world, -1, rbuf, NULL, NULL);
+		cci::rt::Save *save = new cci::rt::Save(&comm_world, MPI_UNDEFINED, rbuf, NULL, NULL);
 		handlers.push_back(save);
 	}
 
