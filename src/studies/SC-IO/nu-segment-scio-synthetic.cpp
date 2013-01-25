@@ -52,7 +52,7 @@ void compute(const char *input, const char *mask, const char *output,
 		cci::common::LogSession *session, const std::vector<int> &stages, bool compression);
 
 void printUsage(char **argv) {
-	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir <p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full> [imagecount] [stages,...] [compress]" << std::endl;
+	std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir <p_bg,mean_bg,stdev_bg:p_nu,mean_nu,stdev_nu:p_full,mean_full,stdev_full> [imagecount] [stages,...] [compress]" << std::endl;
 	std::cout << "\t<image_filename | image_dir>: either an image filename or an image directory" << std::endl;
 	std::cout << "\tmask_dir: output directory" << std::endl;
 	std::cout << "\timagecount: number of images to process.  -1 means all images." << std::endl;
@@ -276,9 +276,8 @@ void compute(const char *input, const char *mask, const char *output,
 		stdev = 0;
 	}
 	double q = randn(mean, stdev);
-	if (q > 0) usleep((unsigned int)round(q));
+	if (q > 0) usleep((unsigned int)round(q * 1000000));
 
-	im.release();
 
 	t2 = ::cci::common::event::timestampInUS();
 	if (session != NULL) session->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));
@@ -291,6 +290,7 @@ void compute(const char *input, const char *mask, const char *output,
 		//t2 = ::cci::common::event::timestampInUS();
 		//if (logsession != NULL) logsession->log(cci::common::event(100, std::string("write"), t1, t2, std::string(), ::cci::common::event::FILE_O));
 	}
+	im.release();
 	m.release();
 
 	delete iwrite;
@@ -524,7 +524,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	epos = simulateconfig.find(',', spos);
 	mean_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
 	spos = epos + 1;
-	epos = simulateconfig.find(';', spos);
+	epos = simulateconfig.find(':', spos);
 	stdev_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
 	spos = epos + 1;
 	epos = simulateconfig.find(',', spos);
@@ -533,7 +533,7 @@ void worker_process(const MPI_Comm &comm_world, const int manager_rank, const in
 	epos = simulateconfig.find(',', spos);
 	mean_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
 	spos = epos + 1;
-	epos = simulateconfig.find(';', spos);
+	epos = simulateconfig.find(':', spos);
 	stdev_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
 	spos = epos + 1;
 	epos = simulateconfig.find(',', spos);
@@ -697,7 +697,7 @@ int main (int argc, char **argv){
 		epos = simulateconfig.find(',', spos);
 		mean_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = simulateconfig.find(';', spos);
+		epos = simulateconfig.find(':', spos);
 		stdev_bg = atof(simulateconfig.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = simulateconfig.find(',', spos);
@@ -706,7 +706,7 @@ int main (int argc, char **argv){
 		epos = simulateconfig.find(',', spos);
 		mean_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = simulateconfig.find(';', spos);
+		epos = simulateconfig.find(':', spos);
 		stdev_nu = atof(simulateconfig.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = simulateconfig.find(',', spos);
@@ -717,6 +717,7 @@ int main (int argc, char **argv){
 		spos = epos + 1;
 		stdev_full = atof(simulateconfig.substr(spos).c_str());
 
+		srand(0);
 		while (i < total) {
 			// per tile:
 			// session = logger->getSession(filenames[i]);
@@ -752,6 +753,7 @@ int main (int argc, char **argv){
 
 		} else {
 			// worker bees
+			srand(rank * 113 + 1);
 			worker_process(comm_world, manager_rank, rank, simulateconfig, hostname, stages, session, compression );
 			t2 = cci::common::event::timestampInUS();
 			//printf("WORKER %d: FINISHED using CPU in %lu us\n", rank, t2 - t1);

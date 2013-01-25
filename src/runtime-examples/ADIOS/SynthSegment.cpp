@@ -22,7 +22,7 @@ namespace adios {
 
 bool SynthSegment::initParams() {
 	params.add_options()
-		("compute_time_distro,d", boost::program_options::value< std::string >(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full")
+		("compute_time_distro,d", boost::program_options::value< std::string >(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg:p_nu,mean_nu,stdev_nu:p_full,mean_full,stdev_full")
 		;
 	return true;
 }
@@ -65,7 +65,7 @@ SynthSegment::SynthSegment(MPI_Comm const * _parent_comm, int const _gid,
 		epos = distro.find(',', spos);
 		mean_bg = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = distro.find(';', spos);
+		epos = distro.find(':', spos);
 		stdev_bg = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = distro.find(',', spos);
@@ -74,7 +74,7 @@ SynthSegment::SynthSegment(MPI_Comm const * _parent_comm, int const _gid,
 		epos = distro.find(',', spos);
 		mean_nu = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = distro.find(';', spos);
+		epos = distro.find(':', spos);
 		stdev_nu = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = distro.find(',', spos);
@@ -136,7 +136,7 @@ int SynthSegment::compute(int const &input_size , void * const &input,
 
 	if (!im.data) {
 		im.release();
-		return -1;
+		return nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 	}
 
 	t1 = ::cci::common::event::timestampInUS();
@@ -154,26 +154,36 @@ int SynthSegment::compute(int const &input_size , void * const &input,
 		stdev = stdev_bg;
 		eventName.assign("computeNoFG");
 		status =  ::nscale::SCIOHistologicalEntities::BACKGROUND;
+//		printf("computeNoFG mean %f std %f ", mean, stdev);
+
 	} else if (p < (p_bg + p_nu)) {
 		// not enough nuclei
 		mean = mean_nu;
 		stdev = stdev_nu;
 		eventName.assign("computeNoNU");
 		status =  ::nscale::SCIOHistologicalEntities::NO_CANDIDATES_LEFT;
+//		printf("computeNoNU mean %f std %f ", mean, stdev);
+
 	} else if (p_bg + p_nu + p_full <= 1.0) {
 		// process finished completely.
 		mean = mean_full;
 		stdev = stdev_full;
 		eventName.assign("computeFull");
 		status =  ::nscale::SCIOHistologicalEntities::SUCCESS;
+//		printf("computeFull mean %f std %f ", mean, stdev);
+
 	} else {
 		eventName.assign("computeOTHER");
 		mean = 0;
 		stdev = 0;
 		status =  ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
+//		printf("computeOTHER mean %f std %f ", mean, stdev);
+
 	}
 	double q = cci::common::MathUtils::randn(mean, stdev);
-	if (q > 0) usleep((unsigned int)round(q * 1000000));
+	unsigned int sleeptime = (unsigned int)round(q * 1000000);
+//	printf("actual %d\n", sleeptime);
+	if (q > 0) usleep(sleeptime);
 
 	t2 = ::cci::common::event::timestampInUS();
 	if (logsession != NULL) logsession->log(cci::common::event(90, eventName, t1, t2, std::string("1"), ::cci::common::event::COMPUTE));

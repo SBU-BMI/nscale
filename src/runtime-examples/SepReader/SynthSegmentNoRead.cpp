@@ -22,7 +22,7 @@ namespace adios {
 
 bool SynthSegmentNoRead::initParams() {
 	params.add_options()
-		("compute_time_distro,d", boost::program_options::value< std::string >(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full")
+		("compute_time_distro,d", boost::program_options::value< std::string >(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg:p_nu,mean_nu,stdev_nu:p_full,mean_full,stdev_full")
 			;
 	return true;
 }
@@ -64,7 +64,7 @@ SynthSegmentNoRead::SynthSegmentNoRead(MPI_Comm const * _parent_comm, int const 
 		epos = distro.find(',', spos);
 		mean_bg = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = distro.find(';', spos);
+		epos = distro.find(':', spos);
 		stdev_bg = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = distro.find(',', spos);
@@ -73,7 +73,7 @@ SynthSegmentNoRead::SynthSegmentNoRead(MPI_Comm const * _parent_comm, int const 
 		epos = distro.find(',', spos);
 		mean_nu = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = distro.find(';', spos);
+		epos = distro.find(':', spos);
 		stdev_nu = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = distro.find(',', spos);
@@ -122,12 +122,14 @@ int SynthSegmentNoRead::compute(int const &input_size , void * const &input,
 
 	if (!im.data) {
 		im.release();
-		return -1;
+		delete img;
+		return ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 	}
 
 	t1 = ::cci::common::event::timestampInUS();
 
 	// real computation:
+
 	int status = ::nscale::SCIOHistologicalEntities::SUCCESS;
 	cv::Mat mask = cv::Mat::zeros(im.size(), CV_32SC1);
 
@@ -159,6 +161,7 @@ int SynthSegmentNoRead::compute(int const &input_size , void * const &input,
 		status =  ::nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 	}
 	double q = cci::common::MathUtils::randn(mean, stdev);
+	//cci::common::Debug::print("processing %s type %s taking %f\n", fn.c_str(), eventName.c_str(), q);
 	if (q > 0) usleep((unsigned int)round(q * 1000000));
 
 
@@ -167,13 +170,12 @@ int SynthSegmentNoRead::compute(int const &input_size , void * const &input,
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 		t1 = ::cci::common::event::timestampInUS();
-		CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
-//		CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
-		if (compressing) img->serialize(output_size, output, CVImage::ENCODE_Z);
-		else img->serialize(output_size, output);
-		// clean up
-		delete img;
-
+		CVImage *oimg = new CVImage(mask, imagename, fn, tilex, tiley);
+//		CVImage *oimg = new CVImage(im, imagename, fn, tilex, tiley);
+		if (compressing) oimg->serialize(output_size, output, CVImage::ENCODE_Z);
+		else oimg->serialize(output_size, output);
+		delete oimg;
+		//cci::common::Debug::print("buffering output %s\n", fn.c_str());
 
 		t2 = ::cci::common::event::timestampInUS();
 		memset(len, 0, 21);
@@ -182,6 +184,8 @@ int SynthSegmentNoRead::compute(int const &input_size , void * const &input,
 
 	}
 	im.release();
+	// clean up
+	delete img;
 
 	mask.release();
 	return status;
@@ -231,12 +235,12 @@ int SynthSegmentNoRead::run() {
 			cci::common::Debug::print("ERROR: %s can't push into buffer.  status STOP.  Should have caught this earlier. \n", getClassName());
 			this->inputBuf->push(data);
 			this->inputBuf->stop();
-			free(output);
+			if (output != NULL) free(output);
 			return Communicator_I::DONE;
 		} else if (bstat == DataBuffer::FULL) {
 			cci::common::Debug::print("WARNING: %s can't push into buffer.  status FULL.  Should have caught this earlier.\n", getClassName());
 			this->inputBuf->push(data);
-			free(output);
+			if (output != NULL) free(output);
 			return Communicator_I::WAIT;
 		} else {
 			if (input != NULL) {
@@ -250,6 +254,11 @@ int SynthSegmentNoRead::run() {
 			free(input);
 			input = NULL;
 		}
+		if (output != NULL) {
+			free(output);
+			output = NULL;
+		}
+
 		return Communicator_I::READY;
 	}
 

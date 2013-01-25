@@ -24,7 +24,7 @@ namespace syntest {
 bool GenerateOutputPush::initParams() {
 
 	params.add_options()
-				("compute_time_distro,d", boost::program_options::value< std::string >()->required(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg;p_nu,mean_nu,stdev_nu;p_full,mean_full,stdev_full")
+				("compute_time_distro,d", boost::program_options::value< std::string >()->required(), "synthetic compute time distributions: p_bg,mean_bg,stdev_bg:p_nu,mean_nu,stdev_nu:p_full,mean_full,stdev_full")
 				;
 	return true;
 }
@@ -60,7 +60,7 @@ GenerateOutputPush::GenerateOutputPush(MPI_Comm const * _parent_comm, int const 
 		epos = distro.find(',', spos);
 		mean_bg = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = distro.find(';', spos);
+		epos = distro.find(':', spos);
 		stdev_bg = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = distro.find(',', spos);
@@ -69,7 +69,7 @@ GenerateOutputPush::GenerateOutputPush(MPI_Comm const * _parent_comm, int const 
 		epos = distro.find(',', spos);
 		mean_nu = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
-		epos = distro.find(';', spos);
+		epos = distro.find(':', spos);
 		stdev_nu = atof(distro.substr(spos, epos - spos).c_str());
 		spos = epos + 1;
 		epos = distro.find(',', spos);
