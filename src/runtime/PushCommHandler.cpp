@@ -208,7 +208,8 @@ int PushCommHandler::run() {
         }
 
 		// then check to see if our buffer is done, empty, or ready
-        if (buffer->isFinished()) {
+        //if (buffer->isFinished()) {
+        if (buffer->isStopped() && !(buffer->canTransmit())) {
 			// let all workers know.
 			t1 = cci::common::event::timestampInUS();
 			// worker buffer is finished.  let all roots know to remove this worker from list.

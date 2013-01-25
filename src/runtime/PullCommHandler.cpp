@@ -88,10 +88,16 @@ int PullCommHandler::run() {
 
 				// status update, "DONE".  receive it and terminate.
 				MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
-
+				MPI_Send(NULL, 0, MPI_CHAR, node_id, tag, comm);
 			}
 
 			return Communicator_I::DONE;
+		}
+
+		// if buffer is empty but not stopped, we wait to receive any further messages
+		if (!(buffer->canTransmit()) && !(buffer->isStopped())) {
+			//cci::common::Debug::print("BUFFER has nothing to TRANSMIT BUT NOT STOPPED!\n");
+			return Communicator_I::WAIT;
 		}
 
 		// else there is some worker requesting/listening
@@ -100,9 +106,6 @@ int PullCommHandler::run() {
 			return Communicator_I::WAIT;  // message may come later.  need to make sure all workers eventually are done.
 		}
 
-		// if buffer is empty but not stopped, we wait to receive any further messages
-		if (!buffer->canTransmit() && !buffer->isStopped()) return Communicator_I::WAIT;
-
 		// has a message.  now receive it.
 		node_id = mstatus.MPI_SOURCE;
 		MPI_Recv(&node_status, 1, MPI_INT, node_id, tag, comm, &mstatus);
@@ -110,13 +113,13 @@ int PullCommHandler::run() {
 		if (node_status == Communicator_I::READY) {
 			// worker send ready, so this is a request.
 
-			if (buffer->isFinished()) {
+			if (buffer->isStopped() && !(buffer->canTransmit())) {
 				// buffer finished, so send back 0 length data as response to indicate DONE
 				data = NULL;
 				MPI_Send(data, 0, MPI_CHAR, node_id, tag, comm);
 
 				scheduler->removeLeaf(node_id);
-				//cci::common::Debug::print("%s manager: worker %d finished\n", getClassName(), node_id);
+				//cci::common::Debug::print("%s manager: worker %d notified done\n", getClassName(), node_id);
 				return Communicator_I::WAIT;
 			} else if (buffer->canTransmit()){
 				// has data
@@ -127,7 +130,7 @@ int PullCommHandler::run() {
 
 				if (send_count % 100 == 0) cci::common::Debug::print("%s manager sent %d data messages to workers.\n", getClassName(), send_count);
 
-			} // else cannot transmit, and not stopped.  already handled before receiving
+			} // else case already taken cared of above (WAIT)
 
 			return status;
 
@@ -187,7 +190,7 @@ int PullCommHandler::run() {
 		node_id = scheduler->getRootFromLeaf(rank);
 
 		// double check to make sure that buffer is not full.
-		//			cci::common::Debug::print("%s worker sending request to %d with status %d\n", getClassName(), node_id, status);
+		//cci::common::Debug::print("%s worker sending request to %d with status %d\n", getClassName(), node_id, status);
 		MPI_Send(&status, 1, MPI_INT, node_id, tag, comm);   // send the current status
 //		cci::common::Debug::print("%s worker sent request to %d with status %d\n", getClassName(), node_id, status);
 
@@ -203,13 +206,15 @@ int PullCommHandler::run() {
 		MPI_Get_count(&mstatus, MPI_CHAR, &count);
 
 		if (count > 0) {  // receiving data!
+			//cci::common::Debug::print("%s worker getting data size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
 
 			buffer->transmit(node_id, tag, MPI_CHAR, comm, count);
 			++send_count;
-			//cci::common::Debug::print("%s worker got data size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
 		} else {
 			data = NULL;
 			// manager is done
+			//cci::common::Debug::print("%s manager done size %d from probe to %d, so far %d\n", getClassName(), count, node_id, send_count);
+
 			MPI_Recv(data, 0, MPI_CHAR, node_id, tag, comm, MPI_STATUS_IGNORE);
 
 			scheduler->removeRoot(node_id);
