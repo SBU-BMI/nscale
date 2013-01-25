@@ -48,10 +48,11 @@ public:
 	virtual int checkRequests(bool waitForAll = false);
 
 	virtual ~MPIRecvDataBuffer() {
-		if (mpi_buffer.size() > 0) cci::common::Debug::print("WARNING: clearning MPISendBuffer\n");
+		if (buffer.size() > 0) cci::common::Debug::print("ERROR: clearing unsent stuff in MPIRecvBuffer\n");
 
+		int todo = mpi_buffer.size();
 		int completed = checkRequests(true);
-		if (completed > 0) cci::common::Debug::print("WARNING: completed %d from MPISendBuffer\n", completed);
+		if (completed != todo) cci::common::Debug::print("ERROR: completed %d from recev buffer %d\n", completed, todo);
 	};
 
 };

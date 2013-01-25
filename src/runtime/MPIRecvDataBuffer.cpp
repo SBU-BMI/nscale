@@ -97,8 +97,11 @@ int MPIRecvDataBuffer::checkRequests(bool waitForAll) {
 		char len[21];  // max length of uint64 is 20 digits
 
 		for (int i = 0; i < completed; ++i) {
-			reqptr = reqptrs[completedreqs[i]];
-
+			if (waitForAll) {
+				reqptr = reqptrs[i];
+			} else {
+				reqptr = reqptrs[completedreqs[i]];
+			}
 			//printf("recv MPI error status: %d\n", stati[i].MPI_ERROR);
 			size = mpi_buffer[reqptr].first;
 

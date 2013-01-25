@@ -34,16 +34,18 @@ public:
 
 	virtual bool canPush() {
 		checkRequests();
-		return !isStopped() && (buffer.size() + mpi_buffer.size())< capacity;
+		return !isStopped() && ((buffer.size() + mpi_buffer.size()) < capacity);
 	};
 
 	virtual int checkRequests(bool waitForAll = false);
 
 	virtual ~MPISendDataBuffer() {
-		if (mpi_buffer.size() > 0) cci::common::Debug::print("WARNING: clearning MPISendBuffer\n");
+		if (buffer.size() > 0) cci::common::Debug::print("ERROR: clearing unsent stuff in MPISendBuffer\n");
 
+		int todo = mpi_buffer.size();
 		int completed = checkRequests(true);
-		if (completed > 0) cci::common::Debug::print("WARNING: completed %d from MPISendBuffer\n", completed);
+		if (completed != todo) cci::common::Debug::print("ERROR: completed %d from send buffer %d\n", completed, todo);
+
 	};
 
 

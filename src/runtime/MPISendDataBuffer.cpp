@@ -83,8 +83,11 @@ int MPISendDataBuffer::checkRequests(bool waitForAll) {
 		char len[21];  // max length of uint64 is 20 digits
 
 		for (int i = 0; i < completed; ++i) {
-			reqptr = reqptrs[completedreqs[i]];
-
+			if (waitForAll) {
+				reqptr = reqptrs[i];
+			} else {
+				reqptr = reqptrs[completedreqs[i]];
+			}
 			size = mpi_buffer[reqptr].first;
 
 			free(mpi_buffer[reqptr].second);
