@@ -239,6 +239,7 @@ bool SegReaderConfigurator::configure(MPI_Comm &comm, Process *proc) {
 						(logger == NULL ? NULL : logger->getSession("read")));
 		proc->addHandler(assign);
 		proc->addHandler(r2c_handler);
+		//cci::common::Debug::print("ReadTiles\n");
 
 	} else if (type_g == COMPUTE_GROUP) {
 
@@ -247,18 +248,19 @@ bool SegReaderConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		Action_I *seg;
 		if (synthcompute) {
 			seg =
-					new cci::rt::adios::SynthSegmentNoRead(&comm, MPI_UNDEFINED, rbuf, sbuf,
+				new cci::rt::adios::SynthSegmentNoRead(&gcomm, MPI_UNDEFINED, rbuf, sbuf,
 							params,
 							(logger == NULL ? NULL : logger->getSession("seg")));
 
 		} else {
 			seg =
-				new cci::rt::adios::SegmentNoRead(&comm, MPI_UNDEFINED, rbuf, sbuf,
+				new cci::rt::adios::SegmentNoRead(&gcomm, MPI_UNDEFINED, rbuf, sbuf,
 						params,
 						(logger == NULL ? NULL : logger->getSession("seg")));
 		}
 		proc->addHandler(seg);
 		proc->addHandler(c2w_handler);
+		//cci::common::Debug::print("Segment\n");
 
 	} else	{
 //		cci::common::Debug::print("here5.3\n");
@@ -320,6 +322,8 @@ bool SegReaderConfigurator::configure(MPI_Comm &comm, Process *proc) {
 		}
 		proc->addHandler(c2w_handler);
 		proc->addHandler(save);
+		//cci::common::Debug::print("Save\n");
+
 	}
 //	MPI_Barrier(comm);
 

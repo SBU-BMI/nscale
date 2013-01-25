@@ -116,7 +116,9 @@ int AssignTiles::compute(int const &input_size , void * const &input,
 }
 
 int AssignTiles::run() {
-
+	if (filenames.size() == 0 ) {
+		outputBuf->stop();
+	}
 
 	if (outputBuf->isStopped()) {
 		cci::common::Debug::print("%s STOPPED. call count %d \n", getClassName(), call_count);

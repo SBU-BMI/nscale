@@ -99,7 +99,7 @@ int Segment::compute(int const &input_size , void * const &input,
 
 	if (!im.data) {
 		im.release();
-		return -1;
+		return nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 	}
 
 	t1 = ::cci::common::event::timestampInUS();

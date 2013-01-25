@@ -87,6 +87,9 @@ int AssignWork::compute(int const &input_size , void * const &input,
 }
 
 int AssignWork::run() {
+	if (filenames.size() == 0 ) {
+		outputBuf->stop();
+	}
 
 
 	if (outputBuf->isStopped()) {

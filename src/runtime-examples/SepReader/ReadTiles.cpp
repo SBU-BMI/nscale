@@ -210,29 +210,11 @@ int ReadTiles::compute(int const &input_size , void * const &input,
 
 	long long t1, t2;
 
-	while (filenames.size() > 0) {
+	while (filenames.size() > 0) {  // while.  when a suitable image is found, return.
 		t1 = ::cci::common::event::timestampInUS();
 
 		std::string fn = filenames.back();
 		filenames.pop_back();
-
-		// parse the input string
-		std::string filename = cci::common::FileUtils::getFile(const_cast<std::string&>(fn));
-		// get the image name
-		size_t pos = filename.rfind('.');
-		if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", fn.c_str());
-		std::string prefix = filename.substr(0, pos);
-		pos = prefix.rfind("-");
-		if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", fn.c_str());
-		std::string ystr = prefix.substr(pos + 1);
-		prefix = prefix.substr(0, pos);
-		pos = prefix.rfind("-");
-		if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", fn.c_str());
-		std::string xstr = prefix.substr(pos + 1);
-
-		std::string imagename = prefix.substr(0, pos);
-		int tilex = atoi(xstr.c_str());
-		int tiley = atoi(ystr.c_str());
 
 		cv::Mat im = cv::imread(fn, -1);
 
@@ -246,6 +228,24 @@ int ReadTiles::compute(int const &input_size , void * const &input,
 
 			t1 = ::cci::common::event::timestampInUS();
 
+			// parse the input string
+			std::string filename = cci::common::FileUtils::getFile(const_cast<std::string&>(fn));
+			// get the image name
+			size_t pos = filename.rfind('.');
+			if (pos == std::string::npos) printf("ERROR:  file %s does not have extension\n", fn.c_str());
+			std::string prefix = filename.substr(0, pos);
+			pos = prefix.rfind("-");
+			if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", fn.c_str());
+			std::string ystr = prefix.substr(pos + 1);
+			prefix = prefix.substr(0, pos);
+			pos = prefix.rfind("-");
+			if (pos == std::string::npos) printf("ERROR:  file %s does not have a properly formed x, y coords\n", fn.c_str());
+			std::string xstr = prefix.substr(pos + 1);
+
+			std::string imagename = prefix.substr(0, pos);
+			int tilex = atoi(xstr.c_str());
+			int tiley = atoi(ystr.c_str());
+
 			CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
 			if (compressing) img->serialize(output_size, output, CVImage::ENCODE_Z);
 			else img->serialize(output_size, output);
@@ -258,6 +258,7 @@ int ReadTiles::compute(int const &input_size , void * const &input,
 			sprintf(len, "%lu", (long)output_size);
 			if (logsession != NULL) logsession->log(cci::common::event(90, std::string("serialize"), t1, t2, std::string(len), ::cci::common::event::MEM_IO));
 
+			//cci::common::Debug::print("read and serialized %s\n", fn.c_str());
 			return Communicator_I::READY;
 
 		} else {
@@ -275,13 +276,16 @@ int ReadTiles::compute(int const &input_size , void * const &input,
 }
 
 int ReadTiles::run() {
+	if (filenames.size() == 0 ) {
+		outputBuf->stop();
+	}
 
 
 	if (outputBuf->isStopped()) {
 		cci::common::Debug::print("%s STOPPED. call count %d \n", getClassName(), call_count);
 		return Communicator_I::DONE;
-	} else if (!outputBuf->canPush()){
-		//cci::common::Debug::print("%s FULL. call count %d \n", getClassName(), call_count);
+	} else if (!(outputBuf->canPush())){
+		//cci::common::Debug::print("%s FULL. buffersize= %ld \n", getClassName(), outputBuf->debugBufferSize());
 		return Communicator_I::WAIT;
 	} // else has room, and not stopped, so can push.
 
@@ -316,6 +320,9 @@ int ReadTiles::run() {
 
 		// no more, so done.
 		outputBuf->stop();
+//		if (outputBuf->isStopped()) {
+//			cci::common::Debug::print("%s STOPPED. call count %d \n", getClassName(), call_count);
+//		}
 	}
 	return result;
 

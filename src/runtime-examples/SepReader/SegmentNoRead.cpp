@@ -86,7 +86,8 @@ int SegmentNoRead::compute(int const &input_size , void * const &input,
 
 	if (!im.data) {
 		im.release();
-		return -1;
+		delete img;
+		return nscale::SCIOHistologicalEntities::INVALID_IMAGE;
 	}
 
 	t1 = ::cci::common::event::timestampInUS();
@@ -126,12 +127,12 @@ int SegmentNoRead::compute(int const &input_size , void * const &input,
 
 	if (status == ::nscale::SCIOHistologicalEntities::SUCCESS) {
 		t1 = ::cci::common::event::timestampInUS();
-		CVImage *img = new CVImage(mask, imagename, fn, tilex, tiley);
-//		CVImage *img = new CVImage(im, imagename, fn, tilex, tiley);
-		if (compressing) img->serialize(output_size, output, CVImage::ENCODE_Z);
-		else img->serialize(output_size, output);
+		CVImage *oimg = new CVImage(mask, imagename, fn, tilex, tiley);
+//		CVImage *oimg = new CVImage(im, imagename, fn, tilex, tiley);
+		if (compressing) oimg->serialize(output_size, output, CVImage::ENCODE_Z);
+		else oimg->serialize(output_size, output);
 		// clean up
-		delete img;
+		delete oimg;
 
 
 		t2 = ::cci::common::event::timestampInUS();
@@ -142,7 +143,7 @@ int SegmentNoRead::compute(int const &input_size , void * const &input,
 	}
 	if (bbox != NULL) free(bbox);
 	im.release();
-
+	delete img;
 	mask.release();
 	return status;
 }

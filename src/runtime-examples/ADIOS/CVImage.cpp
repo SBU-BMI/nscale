@@ -69,6 +69,13 @@ CVImage::CVImage(int const size, void const *d, bool decode) {
 
 
 		this->type = MANAGE;
+		this->data = NULL;
+		this->image_name = NULL;
+		this->source_file_name = NULL;
+
+		this->data_max_size = 0;
+		this->image_name_max_size = 0;
+		this->source_file_name_max_size = 0;
 
 		CVImage temp(size, d, false);
 		this->copy(temp, true);
@@ -146,7 +153,7 @@ bool CVImage::copy(CVImage const &other, bool decode) {
 
 	// not allowing modifying of object members.
 	if (type == READ) {
-		printf("cannot copy.  read only target CVIMAGE\n");
+		printf("ERROR cannot copy.  read only target CVIMAGE\n");
 		return false;
 	}
 
@@ -252,14 +259,14 @@ bool CVImage::copy(CVImage const &other, bool decode) {
 			int status = uncompress(data, &destsize, other.data, (unsigned long)other.metadata.info.data_size);
 			data_max_size = destsize;
 			if (status == Z_MEM_ERROR) {
-				printf("CVImage Copy uncompress : memory error\n");
+				printf("ERROR CVImage Copy uncompress : memory error\n");
 				return false;
 			} else if (status == Z_BUF_ERROR) {
-				printf("CVImage Copy uncompress : dest buffer too small\n");
+				printf("ERROR CVImage Copy uncompress : dest buffer too small\n");
 				return false;
 			}
 			if (status == Z_DATA_ERROR) {
-				printf("CVImage Copy uncompress : data error\n");
+				printf("ERROR CVImage Copy uncompress : data error\n");
 				return false;
 			}
 		} else {
@@ -296,7 +303,7 @@ void CVImage::serialize(int &size, void* &d, int encoding) {
 		// first we figure out the likely compressed size:
 		unsigned long destsize = compressBound(s2);
 
-		printf("CVImage sizes: data %d, compressed data %lu, image name %d, src file name %d", this->metadata.info.data_size, destsize, this->metadata.info.image_name_size, this->metadata.info.source_file_name_size);
+		//printf("CVImage sizes: data %d, compressed data %lu, image name %d, src file name %d\n", this->metadata.info.data_size, destsize, this->metadata.info.image_name_size, this->metadata.info.source_file_name_size);
 
 		// estimated size
 		size = CVIMAGE_METADATA_SIZE +
