@@ -40,7 +40,7 @@ Communicator_I::Communicator_I(MPI_Comm const * _parent_comm, int const _gid, cc
 			MPI_Comm_size(comm, &size);
 			waComm = new cci::common::mpi::waMPI(comm);
 		} else {
-			cci::common::Debug::print("ERROR: parent comm is NULL\n");
+			cci::common::Debug::print("ERROR: MPI group is %d\n", groupid);
 		}
 	} else {
 		printf("ERROR: parent communicator is NULL.\n");

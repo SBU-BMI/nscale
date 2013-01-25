@@ -84,20 +84,20 @@ public:
 			MPI_Comm_size(comm, &size);
 
 			// get the other node's info
-			char *recvbuf = new char[size * 2];
-			memset(recvbuf, 0, size * 2);
-			char *sendbuf = new char[2];
-			memset(sendbuf, 0, 2);
-			if (root) sendbuf[0] = 1;
-			if (leaf) sendbuf[1] = 1;
-			MPI_Allgather(sendbuf, 2, MPI_CHAR, recvbuf, 2, MPI_CHAR, comm);
+			int *recvbuf = new int[size * 2];
+			memset(recvbuf, MPI_UNDEFINED, size * 2);
+			int *sendbuf = new int[2];
+			memset(sendbuf, MPI_UNDEFINED, 2);
+			sendbuf[0] = (root ? rank : MPI_UNDEFINED);
+			sendbuf[1] = (leaf ? rank : MPI_UNDEFINED);
+			MPI_Allgather(sendbuf, 2, MPI_INT, recvbuf, 2, MPI_INT, comm);
 
 			// now populate the list.  guaranteed to be sorted and unique
 			roots.clear();
 			leaves.clear();
 			for (int i = 0; i < size; ++i) {
-				if (recvbuf[2 * i] > 0) roots.push_back(i);
-				if (recvbuf[2 * i + 1] > 0) leaves.push_back(i);
+				if (recvbuf[2 * i] != MPI_UNDEFINED) roots.push_back(recvbuf[2 * i]);
+				if (recvbuf[2 * i + 1] != MPI_UNDEFINED) leaves.push_back(recvbuf[2 * i + 1]);
 			}
 
 			delete [] recvbuf;
