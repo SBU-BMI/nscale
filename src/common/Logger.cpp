@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string.h>
 #include <cstdlib>
+#include <iomanip>
 
 namespace cci {
 namespace common {
@@ -236,9 +237,20 @@ void Logger::write(const std::string &prefix) {
 
 
 	std::ofstream ofs2(fss.str().c_str());
-	ofs2 << "v2.1";
-	ofs2 << ",logger start," << start->tm_year << "/" << start->tm_mon << "/" << start->tm_mday << " " << start->tm_hour << ":" << start->tm_min << ":" << start->tm_sec;
-	ofs2 << ",logger finish," << current->tm_year << "/" << current->tm_mon << "/" << current->tm_mday << " " << current->tm_hour << ":" << current->tm_min << ":" << current->tm_sec << std::endl;
+	ofs2 << "v2.1,logger start,";
+	ofs2 << std::setw( 4 ) << std::setfill( '0' ) << (start->tm_year + 1900) << "/";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << (start->tm_mon + 1) << "/";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_mday << " ";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_hour << ":";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_min << ":";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_sec;
+	ofs2 << ",logger finish,";
+	ofs2 << std::setw( 4 ) << std::setfill( '0' ) << (current->tm_year + 1900) << "/";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << (current->tm_mon + 1) << "/";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_mday << " ";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_hour << ":";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_min << ":";
+	ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_sec << std::endl;
 	ofs2 << ss.str() << std::endl;
 	ofs2.close();
 }
@@ -318,14 +330,25 @@ void Logger::writeCollectively(const std::string &prefix, const int &rank, const
 
 
 		std::ofstream ofs2(fss.str().c_str());
-			ofs2 << "v2.1";
-			ofs2 << ",logger start," << start->tm_year << "/" << start->tm_mon << "/" << start->tm_mday << " " << start->tm_hour << ":" << start->tm_min << ":" << start->tm_sec;
-			ofs2 << ",logger finish," << current->tm_year << "/" << current->tm_mon << "/" << current->tm_mday << " " << current->tm_hour << ":" << current->tm_min << ":" << current->tm_sec << std::endl;
-    		ofs2 << logdata << std::endl;
-			ofs2.close();
+		ofs2 << "v2.1,logger start,";
+		ofs2 << std::setw( 4 ) << std::setfill( '0' ) << (start->tm_year + 1900) << "/";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << (start->tm_mon + 1) << "/";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_mday << " ";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_hour << ":";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_min << ":";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << start->tm_sec;
+		ofs2 << ",logger finish,";
+		ofs2 << std::setw( 4 ) << std::setfill( '0' ) << (current->tm_year + 1900) << "/";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << (current->tm_mon + 1) << "/";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_mday << " ";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_hour << ":";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_min << ":";
+		ofs2 << std::setw( 2 ) << std::setfill( '0' ) << current->tm_sec << std::endl;
+   		ofs2 << logdata << std::endl;
+		ofs2.close();
 
-			//printf("%s\n", logdata);
-	free(logdata);
+		//printf("%s\n", logdata);
+		free(logdata);
 	}
 }
 #endif
