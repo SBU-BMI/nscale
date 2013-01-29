@@ -280,27 +280,27 @@ if (ADIOS_FOUND)
 		
 	endforeach(program)
 
-	set(programs nu-features-adios)
-	foreach(program ${programs})
-		# Add an executable to be built from the files listed
-		add_executable(${program} ${program}.cpp)
-	
-		include_directories(${Segmentation_SOURCE_DIR})
-		link_directories(${Segmentation_BINARY_DIR})
-		include_directories(${FeaturesComputation_SOURCE_DIR})
-		link_directories(${FeaturesComputation_BINARY_DIR})
-		
-		# Link the executable to the Features Computation library
-		target_link_libraries(${program} features segment ${io_libname} ${libname} ${adios_libname})
-	
-		if (MPI_FOUND)	
-			target_link_libraries(${program} ${MPI_LIBRARIES})
-			set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-		endif(MPI_FOUND)
-		set_target_properties(${program} PROPERTIES COMPILE_DEFINITIONS "${TARGET_DEFS}")
-		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${TARGET_COMP_FLAGS}")
-	endforeach(program)
-
+#	set(programs nu-features-adios)
+#	foreach(program ${programs})
+#		# Add an executable to be built from the files listed
+#		add_executable(${program} ${program}.cpp)
+#	
+#		include_directories(${Segmentation_SOURCE_DIR})
+#		link_directories(${Segmentation_BINARY_DIR})
+#		include_directories(${FeaturesComputation_SOURCE_DIR})
+#		link_directories(${FeaturesComputation_BINARY_DIR})
+#		
+#		# Link the executable to the Features Computation library
+#		target_link_libraries(${program} features segment ${io_libname} ${libname} ${adios_libname})
+#	
+#		if (MPI_FOUND)	
+#			target_link_libraries(${program} ${MPI_LIBRARIES})
+#			set_target_properties(${program} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+#		endif(MPI_FOUND)
+#		set_target_properties(${program} PROPERTIES COMPILE_DEFINITIONS "${TARGET_DEFS}")
+#		set_target_properties(${program} PROPERTIES COMPILE_FLAGS "${TARGET_COMP_FLAGS}")
+#	endforeach(program)
+#
 endif(ADIOS_FOUND)
 
 
