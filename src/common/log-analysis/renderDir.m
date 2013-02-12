@@ -116,6 +116,7 @@ for i = 1:length(files)
         tic;
         fprintf(1, 'render - exclude MPI send/receive\n');
         [~, ~, ~] = plotProcEvents(temp_events, fields, timeInterval, prefix, allEventTypes, colorMap, lineTypes, [mn mx]);
+        ExperimentVisualAnalysis(events_pid, fields, prefix, allEventTypes, colorMap);
         close all;
         clear temp_events;
         toc

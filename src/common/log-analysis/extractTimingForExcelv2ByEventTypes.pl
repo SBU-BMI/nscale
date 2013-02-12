@@ -5,7 +5,7 @@ use warnings;
 use lib ('.');
 use cci_common_filenameparser;
 
-my(@filenames)= </home/tcpan/PhD/path/Data/adios/PreIPROBE/*.summary.v2.csv>;
+my(@filenames)= </home/tcpan/PhD/path/Data/adios/tcga.titan.*.summary.v2.csv>;
 
 
 sub appendData ($$$$$) {
@@ -149,7 +149,7 @@ foreach my $filename (@filenames) {
 			$tokens[1] =~ s/^\s+|\s+$//g;
 			$tokens[2] =~ s/^\s+|\s+$//g;
 			
-			if ($tokens[1] =~ /m|assign/) {
+			if ($tokens[1] =~ /m|assign|read/) {
 				if ($tokens[2] =~ /File read/) {
 					appendData(\%output, \%colNames2, "assign", $tokens[2], \@tokens);
 					

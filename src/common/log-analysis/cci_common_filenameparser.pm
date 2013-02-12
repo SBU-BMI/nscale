@@ -140,21 +140,21 @@ sub parseFileName($$$) {
 			return undef;
 		}
 	}
-	elsif ( $filetoken =~ m/tcga.p2048.kfs/ ) {
+	elsif ( $filetoken =~ m/tcga\.p2048\.kfs|tcga\.titan\.p2048/ ) {
 
 		# blocking
 
 		if ( $filetoken =~
-/.+\/tcga-[^\.]+\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.io[\-]?[0-9]+\.is[\-]?[0-9]+\.data[0-9]+\.[nb]+(-.*)?$/
+/.+\/tcga-(.+?)\.[np][0-9]+\.f[\-]?[0-9]+\.[^\.]+\.b[0-9]+\.io[\-]?[0-9]+\.is[\-]?[0-9]+\.data[0-9]+\.[nb]+(-.*)?$/
 		  )
 		{
 
 # /home/tcpan/PhD/path/Data/adios/ktcga.p2048.kfs.1/tcga-sep.n32.f9600.MPI_AMR.b4.io60-1.is60[.nb]
 			@tokens1 = $filetoken =~
-/.+\/tcga-([^\.]+)\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.io([\-]?[0-9]+)\.is([\-]?[0-9]+)\.data([0-9]+)\.([nb]+)(-.*)?$/;
+/.+\/tcga-(.+?)\.[np]([0-9]+)\.f([\-]?[0-9]+)\.([^\.]+)\.b([0-9]+)\.io([\-]?[0-9]+)\.is([\-]?[0-9]+)\.data([0-9]+)\.([nb]+)(-.*)?$/;
 
 			$params{layout} =
-			  ( $tokens1[0] =~ /sep/ ? "separate" : $tokens1[0] );
+			  ( $tokens1[0] =~ /^sep$/ ? "separate" : $tokens1[0] );
 			if ( $filetoken =~ /.+\.n[0-9]+\..+/ ) {
 				$params{nProcs} = $tokens1[1] * 12;
 			}

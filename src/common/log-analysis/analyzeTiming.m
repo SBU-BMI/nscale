@@ -1,39 +1,39 @@
 close all;
 clear all;
 
-allEventTypes = [-1 0 11 12 21 22 23 31 32 41 42 43 44 45 46]';
+allEventTypes = [-1 11 12 41 46 42 43 0 21 22 23 31 32 44 45 ]';
 
 allTypeNames = {'Other',...
-    'Compute',...
     'Mem IO',...
     'GPU mem IO', ...
+    'ADIOS init', ...
+    'ADIOS finalize', ...
+    'ADIOS open', ...
+    'ADIOS alloc', ...
+    'Compute',...
     'Network IO', ...
     'Network wait', ...
     'Network IO NB', ...
     'File read', ...
     'File write', ...
-    'ADIOS init', ...
-    'ADIOS open', ...
-    'ADIOS alloc', ...
     'ADIOS write', ...
-    'ADIOS close', ...
-    'ADIOS finalize'};
-        
+    'ADIOS close'};
+
 colorMap = [0, 0, 0; ...              % OTHER, -1, black
-            120.0, 1.0, 1.0; ...      % COMPUTE, 0, green
             300.0, 0.5, 1.0; ...      % MEM_IO, 11, magenta
             300.0, 0.5, 1.0; ...      % GPU_MEM_IO, 12, magenta
-            180.0, 0.75, 1.0; ...      % NETWORK_IO, 21, cyan
-            240.0, 0.75, 1.0; ...      % NETWORK_WAIT, 22, blue
-            180.0, 0.75, 1.0; ...      % NETWORK_IO_NB, 23, cyan
-            60.0, 0.75, 1.0; ...       % FILE_I, 31, yellow
-            0.0, 0.75, 1.0; ...        % FILE_O, 32, red
             240.0, 0.5, 1.0; ...      % ADIOS_INIT, 41, blue
+            240.0, 0.5, 1.0; ...      % ADIOS_FINALIZE, 46, blue
             180.0, 0.5, 1.0; ...      % ADIOS_OPEN, 42, cyan
             300.0, 1.0, 1.0; ...      % ADIOS_ALLOC, 43, magenta
+            120.0, 1.0, 1.0; ...      % COMPUTE, 0, green
+            180.0, 0.75, 1.0; ...      % NETWORK_IO, 21, cyan
+            240.0, 0.75, 1.0; ...      % NETWORK_WAIT, 22, blue
+            270.0, 0.75, 1.0; ...      % NETWORK_IO_NB, 23, purple
+            60.0, 0.75, 1.0; ...       % FILE_I, 31, yellow
+            0.0, 0.75, 1.0; ...        % FILE_O, 32, red
             30.0, 0.75, 1.0; ...       % ADIOS_WRITE, 44, orange
             0.0, 0.75, 1.0; ...        % ADIOS_CLOSE, 45, red
-            240.0, 0.5, 1.0; ...      % ADIOS_FINALIZE, 46, blue
 ];
 colorMap(:, 1) = colorMap(:, 1) / 360.0;  % in radian
 
@@ -55,6 +55,10 @@ lineTypes = {'--k', ...
     };
 
 dirs = {...
+    '/home/tcpan/PhD/path/Data/adios/tcga.titan.p10240.1', ... 
+    '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.3', ... 
+    '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.2', ... 
+    '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.1', ... 
     '/home/tcpan/PhD/path/Data/adios/tcga.p2048.kfs.1', ... 
     '/home/tcpan/PhD/path/Data/adios/tcga.p2048.kfs.2', ... 
     '/home/tcpan/PhD/path/Data/adios/tcga.p2048.kfs.3', ... 
@@ -164,22 +168,24 @@ old_dirs = {...
           
 errorfid = fopen('error.log', 'w');
 %errorfid = 2; 
-selections = 1:length(dirs);
+% selections = 1:length(dirs);
+% selections = 1:2;
+% for j = 1 : length(selections)
+%         id = selections(j);
+%         dirname = dirs{id};
+%     
+%         analyzeDir(dirname, allEventTypes, allTypeNames, errorfid);
+%         %renderDir(dirname, allEventTypes, colorMap, lineTypes, errorfid);
+%         %checkDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
+%     end
+
+selections = 1:length(pre_iprobe_dirs);
+selections = 2;
     for j = 1 : length(selections)
         id = selections(j);
         dirname = dirs{id};
     
-        %analyzeDir(dirname, allEventTypes, allTypeNames, errorfid);
-        renderDir(dirname, allEventTypes, colorMap, lineTypes, errorfid);
-        %checkDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
-    end
-
-selections = 1:length(pre_iprobe_dirs);
-    for j = 1 : length(selections)
-        id = selections(j);
-        dirname = pre_iprobe_dirs{id};
-    
-        %analyzeDir(dirname, allEventTypes, allTypeNames, errorfid);
+        analyzeDir(dirname, allEventTypes, allTypeNames, errorfid);
         renderDir(dirname, allEventTypes, colorMap, lineTypes, errorfid);
         %checkDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
     end

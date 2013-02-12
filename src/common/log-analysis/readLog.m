@@ -56,21 +56,21 @@ function [ events names ] = readLog( dirname, fstruct )
     % check header for version
     tline = r{1};
 
-    if (strcmp(tline, 'v3.0') == 1)
+    if (strncmp(tline, 'v3.0', 4) == 1)
         % TODO: version 3.0?
         fprintf(2, 'unsupported future log format');
         return;
-    elseif (strcmp(tline, 'v2,2') == 1) 
+    elseif (strncmp(tline, 'v2.2', 4) == 1) 
     	% TODO: ver 2.2 should extend 2.1, with an additional field of message target.
         fprintf(2, 'unsupported future log format');
         return;
-    elseif (strcmp(tline, 'v2.1') == 1)
+    elseif (strncmp(tline, 'v2.1', 4) == 1)
         % processing version 2.1 (has annotation output, which is just the
         % size of the data being outputted. also has group information. ignore for now.
         names = struct('pid', 1, 'hostName', 2, 'group', 9, 'sessionName', 3, 'eventName', 4, 'eventType', 5, 'startT', 6, 'endT', 7, 'attribute', 8);
         procid_pattern = '%*s %d %*s %s %*s %d %*s %s';
         procval_pattern = '%s %d %u64 %u64 %u64';
-    elseif ischar(tline) && (strcmp(tline, 'v2') == 1)
+    elseif ischar(tline) && (strncmp(tline, 'v2', 2) == 1)
         names = struct('pid', 1, 'hostName', 2, 'sessionName', 3, 'eventName', 4, 'eventType', 5, 'startT', 6, 'endT', 7, 'attribute', 8);
         procid_pattern = '%*s %d %*s %s %*s %s';
         procval_pattern = '%s %d %u64 %u64 %u64';
@@ -147,14 +147,14 @@ function [ events names ] = readLog( dirname, fstruct )
         while ischar(tline)
            s{lineCt} = tline;
            lineCt = lineCt + 1;
-           %# grow s if necessary
+           % grow s if necessary
            if lineCt > sizS
                s = [s;cell(sizB,1)];
                sizS = sizS + sizB;
            end
            tline = fgetl(fid);
         end
-        %# remove empty entries in s
+        % remove empty entries in s
         s(lineCt:end) = [];
         fclose(fid);
         toc

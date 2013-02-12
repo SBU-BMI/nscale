@@ -9,6 +9,8 @@ function [events_pid nodeTypes ] = aggregatePerProc(proc_events, fields)
     % next look for the right set
     if (length(intersect(sessions, {'m', 'w'})) == 2)
         nodeTypes = {'m', 'w'};
+    elseif (length(intersect(sessions, {'read', 'io', 'seg'})) == 3)
+        nodeTypes = {'read', 'io', 'seg'};
     elseif (length(intersect(sessions, {'assign', 'io', 'seg'})) == 3)
         nodeTypes = {'assign', 'io', 'seg'};
     elseif (length(intersect(sessions, {'io', 'seg'})) == 2)
