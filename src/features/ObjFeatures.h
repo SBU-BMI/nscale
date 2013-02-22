@@ -17,7 +17,6 @@
 #include "HistologicalEntities.h"
 #include "PixelOperations.h"
 #include "MorphologicOperations.h"
-#include "Util.h"
 #include "FileUtils.h"
 #include "ObjFeatures.h"
 #include "ConnComponents.h"
