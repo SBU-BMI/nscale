@@ -84,7 +84,7 @@ void ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const
 			ybar = sy/areaRes[i];
 			
 			mxx = ((ssqx + areaRes[i] * xbar * xbar - 2.0 * xbar * sx)/areaRes[i]) + frac;
-		  myy = ((ssqy + areaRes[i] * ybar * ybar - 2.0 * ybar * sy)/areaRes[i]) + frac;
+		  	myy = ((ssqy + areaRes[i] * ybar * ybar - 2.0 * ybar * sy)/areaRes[i]) + frac;
 			mxy = (sxy - ybar * sx - xbar * sy + xbar * ybar)/areaRes[i];
 	
 			//Calculate the major axis, minor axis and eccentricity
@@ -390,6 +390,50 @@ float* ObjFeatures::cytoCannyFeatures(const int* boundingBoxesInfo, int compCoun
 	}
 	return cannyFeatures;
 }
+
+
+void ObjFeatures::calcFeatures(cv::Mat& color, const cv::Mat& mask){
+	int *bbox = NULL, compcount;
+	cv::Mat	output = nscale::bwlabel2(mask, 8, true);
+	::nscale::ConnComponents cc;
+	bbox = cc.boundingBox(output.cols, output.rows, (int *)output.data, 0, compcount);
+	vector<cv::Mat> bgr;
+	split(color, bgr);
+
+	std::cout << "output.rows: " << output.rows<< " CompCount: " << compcount << std::endl;
+
+	// calculate features
+	float* intensityFeatures0 = nscale::ObjFeatures::intensityFeatures(bbox, compcount, output, bgr[0]);
+	float* intensityFeatures1 = nscale::ObjFeatures::intensityFeatures(bbox, compcount, output, bgr[1]);
+	float* intensityFeatures2 = nscale::ObjFeatures::intensityFeatures(bbox, compcount, output, bgr[2]);
+
+	free(intensityFeatures0);
+	free(intensityFeatures1);
+	free(intensityFeatures2);
+
+	float* h_gradientFeatures0 = nscale::ObjFeatures::gradientFeatures(bbox, compcount, output, bgr[0]);
+	float* h_gradientFeatures1 = nscale::ObjFeatures::gradientFeatures(bbox, compcount, output, bgr[1]);
+	float* h_gradientFeatures2 = nscale::ObjFeatures::gradientFeatures(bbox, compcount, output, bgr[2]);
+	free(h_gradientFeatures0);
+	free(h_gradientFeatures1);
+	free(h_gradientFeatures2);
+
+	float* h_cannyFeatures0 = nscale::ObjFeatures::cannyFeatures(bbox, compcount, output, bgr[0]);
+	float* h_cannyFeatures1 = nscale::ObjFeatures::cannyFeatures(bbox, compcount, output, bgr[1]);
+	float* h_cannyFeatures2 = nscale::ObjFeatures::cannyFeatures(bbox, compcount, output, bgr[2]);
+	free(h_cannyFeatures0);
+	free(h_cannyFeatures1);
+	free(h_cannyFeatures2);
+
+	if(bbox !=  NULL) free(bbox);
+
+	bgr[0].release();
+	bgr[1].release();
+	bgr[2].release();
+
+}
+
+
 
 }
 

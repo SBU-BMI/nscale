@@ -579,5 +579,70 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 }
 
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	// image in BGR format
+	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
+
+	if (logger) logger->logT0("start");
+	if (iresHandler) iresHandler->saveIntermediate(img, 0);
+
+	Mat seg_norbc;
+	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, logger, iresHandler);
+	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
+		return findCandidateResult;
+	}
+
+
+	Mat seg_nohole = ::nscale::imfillHoles<unsigned char>(seg_norbc, true, 4);
+	if (logger) logger->logTimeSinceLastLog("fillHoles2");
+	if (iresHandler) iresHandler->saveIntermediate(seg_nohole, 12);
+
+	Mat disk3 = getStructuringElement(MORPH_ELLIPSE, Size(3,3));
+	Mat seg_open = ::nscale::morphOpen<unsigned char>(seg_nohole, disk3);
+	if (logger) logger->logTimeSinceLastLog("openBlobs");
+	if (iresHandler) iresHandler->saveIntermediate(seg_open, 13);
+
+
+	Mat seg_nonoverlap;
+	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, logger, iresHandler);
+	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
+		return sepResult;
+	}
+
+
+	int compcount2;
+	// MASK approach
+	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, false, true, 21, 1000, 4, compcount2);
+
+	if (logger) logger->logTimeSinceLastLog("20To1000");
+	if (compcount2 == 0) {
+		return ::nscale::HistologicalEntities::NO_CANDIDATES_LEFT;
+	}
+	if (iresHandler) iresHandler->saveIntermediate(seg, 23);
+
+	// MASK approach
+	output = ::nscale::imfillHoles<unsigned char>(seg, true, 8);
+	// LABEL approach - upstream erode does not support 32S
+	if (logger) logger->logTimeSinceLastLog("fillHolesLast");
+
+//	if (logger) logger->endSession();
+
+///	// MASK approach
+///	output = nscale::bwlabel2(final, 8, true);
+///	final.release();
+///
+///	if (logger) logger->logTimeSinceLastLog("bwlabel2");
+///
+///	::nscale::ConnComponents cc;
+///	bbox = cc.boundingBox(output.cols, output.rows, (int *)output.data, 0, compcount);
+/////	printf(" number of bounding boxes: %d\n", compcount);
+/////	printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
+///
+///	if (logger) logger->logTimeSinceLastLog("bounding_box");
+	return ::nscale::HistologicalEntities::SUCCESS;
+
+}
+
 
 }

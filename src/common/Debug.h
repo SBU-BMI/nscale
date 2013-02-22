@@ -8,7 +8,11 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
+#if defined (WITH_MPI)
 #include "mpi.h"
+#endif
+
+
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>

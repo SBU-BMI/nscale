@@ -46,6 +46,9 @@ public:
 			int &compcount, int *&bbox,
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& mask,
+			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
+
 	// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
 	static int plFindNucleusCandidates(const cv::Mat& img, cv::Mat& seg_norbc,
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);  // S1
