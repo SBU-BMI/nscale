@@ -1,4 +1,4 @@
-%test2
+%test2 - testing bar plot break point
 
 close all;
 

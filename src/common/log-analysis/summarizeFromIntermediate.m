@@ -1,4 +1,7 @@
 function summarizeFromIntermediate(sessions, nodeTypes, summary_pid, ops_pid, TPIntervals, interval, allEventTypes, allTypeNames, fid)
+% wrapper function to summarize the data from multiple intermediates
+% include throughput per interval, summary by pid, 
+
 
 fprintf(1, 'summarize all procs\n');
 % aggregate by events then summarize

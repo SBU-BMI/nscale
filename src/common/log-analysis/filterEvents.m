@@ -1,5 +1,5 @@
 function [ out_events ] = filterEvents( events, names, filter, joinType )
-% selects process based on process identifiers or characteristics.  
+% selects process based on event types or characteristics.  
 % this is a simple placeholder for  better database style WHERE clause
 % filter is an nx2 cell array with first column containing fieldnames, and
 % second column containing values.

@@ -65,6 +65,7 @@ function [ img norm_events sum_events ] = plotProcEvents( events, fields, pixelW
     norm_events = cell(p, 1);
 
     % inline function shares variable so don't need to copy variables.
+    % resample the time stamps 
     function resampleTimeByType2
         % p is number of cells (procs)
         % mx is maximum timestamp overall;

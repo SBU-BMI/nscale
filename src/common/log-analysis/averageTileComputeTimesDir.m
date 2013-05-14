@@ -1,5 +1,5 @@
 function averageTileComputeTimesDir ( dirname, errorfid )
-%analyzeDir perform analysis on the csv files inside the specified
+%averageTileComputeTimesDir perform get the average tile compute times
 %directory.
 %  computes the average, min, max, and mean computation time for tiles of different types
 %  types are determined via the event names of computeFull, computeNoNU, computeNoFG. 
@@ -13,7 +13,7 @@ summaryFilename = [dirname, '.tileComputeTimes.csv'];
 fid = fopen(summaryFilename, 'w');
 fclose(fid);
 
-files = dir(fullfile(dirname, '*.separate.*.csv'));
+files = dir(fullfile(dirname, '*.csv'));
 
 for i = 1:length(files)
     [~, n, ~] = fileparts(files(i).name);

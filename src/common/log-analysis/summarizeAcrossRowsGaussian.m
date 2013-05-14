@@ -1,6 +1,7 @@
 function [summary2 ops2] = summarizeAcrossRowsGaussian( summary, ops)
-%summarizeLogs summarizes the log data by event type
-% for now, just do the simple min, max, mode, median, mean, stdev, and total.  each row is
+%summarizeAcrossRowsGaussian summarizes the log data and computes gaussian
+%parameters
+% for now, just do the simple min, max, mean, stdev.  each row is
 % summarized separately, across row summary is done in post processing
 % (excel)
 %

@@ -55,6 +55,9 @@ lineTypes = {'--k', ...
     };
 
 dirs = {...
+    '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.ioall.3', ... 
+    '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.ioall.2', ... 
+    '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.ioall.1', ... 
     '/home/tcpan/PhD/path/Data/adios/tcga.titan.p10240.1', ... 
     '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.3', ... 
     '/home/tcpan/PhD/path/Data/adios/tcga.titan.p2048.2', ... 
@@ -166,7 +169,7 @@ old_dirs = {...
 % 
 %     fprintf(2, 'MATLAB parallel toolbox not available.  using standard for loop\n');
           
-errorfid = fopen('error.log', 'w');
+errorfid = fopen('error.log', 'a');
 %errorfid = 2; 
 % selections = 1:length(dirs);
 % selections = 1:2;
@@ -179,14 +182,15 @@ errorfid = fopen('error.log', 'w');
 %         %checkDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
 %     end
 
-selections = 1:length(pre_iprobe_dirs);
-selections = 2;
+selections = 1:3;
+
     for j = 1 : length(selections)
         id = selections(j);
         dirname = dirs{id};
     
         analyzeDir(dirname, allEventTypes, allTypeNames, errorfid);
         renderDir(dirname, allEventTypes, colorMap, lineTypes, errorfid);
+        averageTileComputeTimesDir(dirname, errorfid);
         %checkDir(dirname, allEventTypes, allTypeNames, colorMap, errorfid);
     end
 fclose(errorfid);

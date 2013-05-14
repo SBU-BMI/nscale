@@ -1,6 +1,7 @@
 function [dataPerInterval si unique_vals] = resampleData( events, fields, sample_interval, allEventTypes, groupByField, timeInterval)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+%resampleData resamples the event data rate based on a regular sampling interval
+%   computationally expensive.
+%   assumes microsecond accuracy
 
     %% check the parameters.
     dataPerInterval = {};

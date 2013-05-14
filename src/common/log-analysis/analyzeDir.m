@@ -1,6 +1,6 @@
 function analyzeDir ( dirname, allEventTypes, allTypeNames, errorfid )
-%analyzeDir perform analysis on the csv files inside the specified
-%directory.
+%analyzeDir perform analysis on the csv files in the directory.
+%   generate summary data.
 %   Detailed explanation goes here
 close all;
 

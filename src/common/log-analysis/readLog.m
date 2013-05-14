@@ -1,5 +1,5 @@
 function [ events names ] = readLog( dirname, fstruct )
-%readComputeAndIOTiming reads the timing file
+%readLog reads the timing file
 %   format of timing file is :
 %       pid val, hostname val, filename val, stagename val, stagetype val, stagename val, stagetype val, ...
 %       next line: values

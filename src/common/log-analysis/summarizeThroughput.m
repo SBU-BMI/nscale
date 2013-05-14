@@ -1,5 +1,5 @@
 function [throughputs, ops] = summarizeThroughput( dataPerInterval, sample_interval)
-%UNTITLED Summary of this function goes here
+%summarizeThroughput compute summary of throughput from resampled data.
 %   Detailed explanation goes here
 
     %% check the parameters.

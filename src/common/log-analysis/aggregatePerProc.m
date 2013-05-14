@@ -1,4 +1,5 @@
 function [events_pid nodeTypes ] = aggregatePerProc(proc_events, fields)
+% aggregate events from multiple sessions on the same processor together.
 
     tic
     fprintf(1, 'aggregate events into pid based and relabel sessions\n');

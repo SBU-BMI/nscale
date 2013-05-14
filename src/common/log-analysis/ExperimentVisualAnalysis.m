@@ -1,4 +1,6 @@
 function ExperimentVisualAnalysis( events, fields, figname_prefix, allEventTypes, colorMap)
+% ExperimentVisualAnalysis: temporary - for visualizing correlations
+
 
 %% constants
 

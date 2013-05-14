@@ -1,6 +1,5 @@
 function renderDir ( dirname, allEventTypes, colorMap, lineTypes, errorfid )
-%analyzeDir perform analysis on the csv files inside the specified
-%directory.
+%renderDir render the event traces for a directory.
 %   Detailed explanation goes here
 close all;
 

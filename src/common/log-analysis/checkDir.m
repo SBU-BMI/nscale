@@ -1,6 +1,5 @@
 function checkDir ( dirname, allEventTypes, allTypeNames, colorMap, errorfid )
-%analyzeDir perform analysis on the csv files inside the specified
-%directory.
+%checkDir check to see if we have missing intermediate files
 %   Detailed explanation goes here
 close all;
 

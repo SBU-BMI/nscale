@@ -1,5 +1,5 @@
 function printSummary( summary, ops, fid, allTypeNames, aggregField, fieldVal)
-%summarizeLogs summarizes the log data by event type
+%printSummary summarizes the log data by event type
 % for now, just do the simple min, max, mode, median, mean, stdev, and total.  each row is
 % summarized separately, across row summary is done in post processing
 % (excel)
