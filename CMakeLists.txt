@@ -67,7 +67,7 @@ else(USE_MPI)
 endif(USE_MPI)
 
 #### OpenMP
-set(USE_OPENMP OFF CACHE BOOL "Build with OpenMP support")
+set(USE_OPENMP ON CACHE BOOL "Build with OpenMP support")
 if (USE_OPENMP)
     include(FindOpenMP)
 

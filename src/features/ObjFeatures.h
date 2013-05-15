@@ -14,6 +14,14 @@
 #include <sys/time.h>
 #include "Operators.h"
 
+#include "HistologicalEntities.h"
+#include "PixelOperations.h"
+#include "MorphologicOperations.h"
+#include "FileUtils.h"
+#include "ObjFeatures.h"
+#include "ConnComponents.h"
+
+
 namespace nscale{
 
 class ObjFeatures {
@@ -37,6 +45,8 @@ public:
 	static float* cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::Mat& grayImage);
 	static float* cytoGradientFeatures(const int* boundingBoxesInfo, int compCount, const cv::Mat& grayImage);
 	static float* cytoCannyFeatures(const int* boundingBoxesInfo, int compCount, const cv::Mat& grayImage);
+
+	static void calcFeatures(cv::Mat& bgr, const cv::Mat& mask);
 };
 
 namespace gpu{

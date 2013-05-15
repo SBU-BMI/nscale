@@ -13,6 +13,7 @@ set(cudalibsrcs cuda/hist-ops.cu cuda/gradient.cu cuda/features.cu)
 include_directories(${FeaturesAll_SOURCE_DIR})
 include_directories(${FeaturesAll_SOURCE_DIR}/cuda)
 include_directories(${Segmentation_SOURCE_DIR})
+include_directories(${cci_common_SOURCE_DIR})
 
 set(libname featuresAll)
 if(CUDA_FOUND)
@@ -24,6 +25,7 @@ endif(CUDA_FOUND)
 
 # Link opencv stuff to opencv
 target_link_libraries("${libname}" ${OpenCV_LIBS})
+target_link_libraries("${libname}" segment)
 
 # if build test applications is set, than build them: currently just one
 if(BUILD_TEST_APPLICATIONS)
