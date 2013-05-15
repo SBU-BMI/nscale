@@ -4,6 +4,10 @@ project( SCIOSegmentation )
 set(SCIOSegmentation_VERSION_MAJOR 1)
 set(SCIOSegmentation_VERSION_MINOR 0)
 
+if(CUDA_FOUND)
+    include_directories(${Segmentation_SOURCE_DIR}/cuda)
+endif(CUDA_FOUND)
+
 #### ADIOS
 set(USE_ADIOS OFF CACHE BOOL "Build with ADIOS support")
 # TODO:  call adios_config at some directory, parse the output to get the ADIOS C flags and LD flags.  save and use later. 
@@ -306,3 +310,4 @@ endif(ADIOS_FOUND)
 
 
 add_subdirectory(test)
+

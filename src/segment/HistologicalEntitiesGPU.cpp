@@ -311,7 +311,7 @@ int HistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g
 
 
 	GpuMat g_diffIm;
-	subtract(g_rc, g_rc_recon, g_diffIm, stream);
+	gpu::subtract(g_rc, g_rc_recon, g_diffIm,GpuMat(),-1, stream);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_diffIm, 5);
 

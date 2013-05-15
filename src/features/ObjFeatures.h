@@ -18,8 +18,12 @@ namespace nscale{
 
 class ObjFeatures {
 public:
+	//Geometric features
 	static int* area(const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask);
-	void ellipse(const int* boundingBoxesInfo,const int* areaRes, const int compCount , const cv::Mat& labeledMask, double *majorAxis, double *minorAxis, double *ecc);
+	static void ellipse(const int* boundingBoxesInfo,const int* areaRes, const int compCount , const cv::Mat& labeledMask, double* &majorAxis, double* &minorAxis, double* &ecc);
+	static double *extent_ratio(const int* boundingBoxesInfo, const int compCount, const int* areaRes);
+	static double* perimeter(const int* boundingBoxesInfo, const int compCount,const cv::Mat& labeledMask);
+	static double* circularity(const int compCount, const int* areaRes, const double* perimeter);
 
 
 	static const int N_INTENSITY_FEATURES=8;
@@ -45,6 +49,13 @@ public:
 	static float* cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream);
 	static float* cytoGradientFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream);
 	static float* cytoCannyFeatures(const int* boundingBoxesInfo, int compCount, const cv::gpu::GpuMat& GrayImage, cv::gpu::Stream& stream);
+
+	static int *calculateArea(const int* boundingBoxesInfo , int compCount , const cv::gpu::GpuMat& labeledMask, cv::gpu::Stream& stream);
+	static float *calculatePerimeter(const int* boundingBoxesInfo , int compCount , const cv::gpu::GpuMat& labeledMask , cv::gpu::Stream& stream);
+	static void calculateEllipse(const int* boundingBoxesInfo , int compCount , const cv::gpu::GpuMat& labeledMask , int* areaRes, float* &majorAxis , float* &minorAxis , float* &ecc, cv::gpu::Stream& stream);
+	static float *calculateExtentRatio(const int *boundingBoxesInfo , const int compCount , const int *areaRes, cv::gpu::Stream& stream);
+	static float *calculateCircularity(const int compCount , const int *areaRes , const float *perimeterRes , cv::gpu::Stream& stream);
+	static void calculateAllFeatures(const int* boundingBoxesInfo , int compCount , const cv::gpu::GpuMat& labeledMask, int* &areaRes , float* &perimeterRes , float* &majorAxis , float* &minorAxis , float* &ecc, float* &extent_ratio , float* &circ, cv::gpu::Stream& stream);
 
 };
 

@@ -6,6 +6,7 @@
  */
 
 #include "NeighborOperations.h"
+#include "PixelOperations.h"
 #include <limits>
 #include "Logger.h"
 #include "gpu_utils.h"
@@ -40,7 +41,7 @@ GpuMat NeighborOperations::border(const GpuMat& img, T background, int connectiv
 
 	// make border
 	GpuMat input = createContinuous(img.rows + 2, img.cols + 2, img.type());
-	copyMakeBorder(img, input, 1, 1, 1, 1, Scalar(background), stream);
+	nscale::gpu::PixelOperations::copyMakeBorder(img, input, 1, 1, 1, 1, Scalar(background), stream);
 	stream.waitForCompletion();
 
     GpuMat result = createContinuous(input.size(), input.type());

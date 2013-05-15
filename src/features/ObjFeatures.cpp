@@ -6,6 +6,8 @@
  */
 
 #include "ObjFeatures.h"
+#define SQRT2 1.41421356237
+#define PI 3.14159265359
 
 namespace nscale{
 
@@ -16,21 +18,24 @@ int* ObjFeatures::area(const int* boundingBoxesInfo, int compCount, const cv::Ma
 		printf("CompCount=%d\n", compCount);
 		areaRes = (int*)malloc(sizeof(int) * compCount);
 		for(int i = 0; i < compCount; i++){
-			std::cout << "comp["<< i<<"] - label = "<< boundingBoxesInfo[0+i] << " minx=" <<boundingBoxesInfo[compCount+i]<< " maxx="<< boundingBoxesInfo[compCount*2+i] << " miny="<< boundingBoxesInfo[compCount*3+i]<< " maxy="<< boundingBoxesInfo[compCount*4+i] << std::endl;
+			//std::cout << "comp["<< i<<"] - label = "<< boundingBoxesInfo[0+i] << " minx=" <<boundingBoxesInfo[compCount+i]<< " maxx="<< boundingBoxesInfo[compCount*2+i] << " miny="<< boundingBoxesInfo[compCount*3+i]<< " maxy="<< boundingBoxesInfo[compCount*4+i] << std::endl;
 
 			const int *labeledImgPtr;
 			int area=0;
 			int label=boundingBoxesInfo[i];
-			for(int y = boundingBoxesInfo[compCount*3+i]; y <= boundingBoxesInfo[compCount*4+i]; y++){
+			int maxy = boundingBoxesInfo[compCount * 4 + i];
+			int maxx = boundingBoxesInfo[compCount * 2 + i];
+
+			for(int y = boundingBoxesInfo[compCount*3+i]; y <= maxy; y++){
 				labeledImgPtr =  labeledMask.ptr<int>(y);
 
-				for(int x = boundingBoxesInfo[compCount+i]; x <= boundingBoxesInfo[compCount*2+i]; x++){
+				for(int x = boundingBoxesInfo[compCount+i]; x <= maxx; x++){
 					if(labeledImgPtr[x] == label){
 						area++;
 					}
 				}
 			}
-			std::cout << "area=" << area<<std::endl;
+			//std::cout << "area=" << area<<std::endl;
 			areaRes[i] = area;
 		}
 	}
@@ -40,10 +45,13 @@ int* ObjFeatures::area(const int* boundingBoxesInfo, int compCount, const cv::Ma
 }
 
 /*THIS FUNCTION FITS AN ELLIPSE TO THE NUCLEUS.*/
-void ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const int compCount , const cv::Mat& labeledMask, double *majorAxis, double *minorAxis, double *ecc)
+void ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const int compCount , const cv::Mat& labeledMask, double* &majorAxis, double* &minorAxis, double* &ecc)
 {
 	if(compCount > 0)
 	{
+		majorAxis = (double *)malloc(sizeof(double) * compCount);
+		minorAxis = (double *)malloc(sizeof(double) * compCount);
+		ecc = (double *)malloc(sizeof(double) * compCount);
 		double xbar,ybar,ssqx,ssqy,sx,sy,sxy;
 		double mxx,myy,mxy;
 			
@@ -62,19 +70,29 @@ void ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const
 			sxy = 0.0;
 			label = boundingBoxesInfo[i];
 			
+			int minX = boundingBoxesInfo[compCount + i];
+			int maxX = boundingBoxesInfo[2 * compCount + i];
+			float midX = (float)(minX+maxX)/2.0;
+			int minY = boundingBoxesInfo[3 * compCount + i];
+			int maxY = boundingBoxesInfo[4 * compCount + i];
+			float midY = (float)(minY+maxY)/2.0;
+	
+			
+			
 			//Walk through the tile
-			for(int y = boundingBoxesInfo[3*compCount + i];y<=boundingBoxesInfo[4*compCount + i];y++)
+			for(int y = minY ; y <= maxY; y++)
 			{
+				float cy = (float)y - midY;
 				labeledImgPtr = labeledMask.ptr<int>(y);
-				for(int x = boundingBoxesInfo[compCount + i];x<=boundingBoxesInfo[2*compCount + i];x++)
+				for(int x = minX ; x<= maxX ; x++)
 				{
-					if(labeledImgPtr[x] == label)
-					{
-						sx = sx + x;
-						sy = sy + y;
-						sxy = sxy + x*y;
-						ssqx = ssqx + x*x;
-						ssqy = ssqy + y*y;
+					float cx = (float)x - midX;
+					if (labeledImgPtr[x] == label) {
+						sx += cx;
+						sy += cy;
+						sxy += cx*cy;
+						ssqx += cx*cx;
+						ssqy += cy*cy;
 					}
 				}
 			}
@@ -84,8 +102,8 @@ void ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const
 			ybar = sy/areaRes[i];
 			
 			mxx = ((ssqx + areaRes[i] * xbar * xbar - 2.0 * xbar * sx)/areaRes[i]) + frac;
-		  myy = ((ssqy + areaRes[i] * ybar * ybar - 2.0 * ybar * sy)/areaRes[i]) + frac;
-			mxy = (sxy - ybar * sx - xbar * sy + xbar * ybar)/areaRes[i];
+		  	myy = ((ssqy + areaRes[i] * ybar * ybar - 2.0 * ybar * sy)/areaRes[i]) + frac;
+			mxy = (sxy - ybar * sx - xbar * sy + xbar * ybar * areaRes[i])/areaRes[i];
 	
 			//Calculate the major axis, minor axis and eccentricity
 			delta = sqrt((mxx-myy)*(mxx-myy) + 4.0 * mxy * mxy); //discriminant = sqrt(b*b-4*a*c)
@@ -97,56 +115,181 @@ void ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const
 	return;
 }
 
+double *ObjFeatures::extent_ratio(const int* boundingBoxesInfo, const int compCount, const int* areaRes)
+{
+	if(compCount > 0)
+	{
+		//Declare an extent_ratio array of size compCount for all the components in the slide/tile
+		double *extent_ratio;
+		extent_ratio = (double *)malloc(compCount * sizeof(double));
+		int width;
+		int height;
+		for(int i = 0; i <compCount ; i++)
+		{
+			width = boundingBoxesInfo[compCount * 2 + i] - boundingBoxesInfo[compCount + i];
+			height = boundingBoxesInfo[compCount * 4 + i] - boundingBoxesInfo[compCount * 3 + i];
+			extent_ratio[i] = (double)areaRes[i] / (double)(width * height);
+		}
+		
+		//Return the extent ratio vector
+		return extent_ratio;
+	}
+	//If the component count is 0, then return a null pointer
+	return NULL;
+}
 
 /*THIS FUNCTION CALCULATES THE PERIMETER OF EVERY OBJECT IN THE IMAGE AND STORES IT IN AN ARRAY CALLED perimeterRes*/
 /*perimeterRes[i] = perimeter of the object with label boundingBoxInfo[i]*/
-//Algorithm : For each row of pixels, walk from right until you hit border. Walk from left until you hit border.
-//Add two to the perimeter count.
-/*int *ObjFeatures::perimeter(const int* boundingBoxesInfo, int compCount, const cv::Mat& labeledMask){
-	int* perimeterRES = NULL;
+//This function calculates the perimeter of a component using a modified version of the marching squares algorithm
+double *ObjFeatures::perimeter(const int* boundingBoxesInfo, const int compCount,const cv::Mat& labeledMask)
+{
 	if(compCount > 0)
 	{
-		printf("CompCount = %d\n",compCount);
-		perimeterRes = (int * )malloc(sizeof(int) * compCount);
+		double *perimeter;
+		perimeter = (double *)malloc(compCount * sizeof(double));
+		double *lookup;
+		lookup = (double *)calloc(16,sizeof(double));
+		lookup[8] = 0.70710678118;
+		lookup[4] = 0.70710678118;
+		lookup[2] = 0.70710678118;
+		lookup[1] = 0.70710678118;
+		lookup[3] = 1.0;
+		lookup[6] = 1.0;
+		lookup[9] = 1.0;
+		lookup[12] = 1.0;
+		lookup[7] = 0.70710678118;
+		lookup[11] = 0.70710678118;
+		lookup[13] = 0.70710678118;
+		lookup[14] = 0.70710678118;
+		lookup[10] = SQRT2;
+		lookup[5] = SQRT2;
+		const int* labeledImgPtr_ybot;
+		const int* labeledImgPtr_ytop;
+                int label;
+	
+		//Walk through each bounding box
 		for(int i = 0 ; i < compCount ; i++)
 		{
-			//Print out information about the bounding boxes of different objects
-			std::cout << "comp["<<i<<"] - > label = "<< boundingBoxesInfo[0 + i] << "minX = "<<boundingBoxesInfo[compCount + i]<<"maxX = "<<boundingBoxesInfo[2 * compCount + i] <<"minY = "<<boundingBoxesInfo[compCount * 3 + i] << " maxY = "<<boundingBoxesInfo[compCount * 4 +i]<<std::endl;
-		
-			const int *labeledImgPtr;
-			int perimeter = 0;
-			int label = boundingBoxesInfo[i];
-			for(int y = boundingBoxesInfo[3*compCount+i]; y<=boundingBoxesInfo[4*compCount+i];y++)
+			label = boundingBoxesInfo[i];
+			perimeter[i] = 0.0;
+			int xmin = boundingBoxesInfo[compCount + i];
+			int xmax = boundingBoxesInfo[compCount * 2 + i];
+			int ymin = boundingBoxesInfo[compCount * 3 + i];
+			int ymax = boundingBoxesInfo[compCount * 4 + i];
+			uint8_t mask;//This is the mask that will hold the prefix
+
+			//Traverse the centre of the image
+			for(int y = ymin; y < ymax; y++)
 			{
-				labeledImgPtr = labeledMask.ptr<int>(y);
+				labeledImgPtr_ybot = labeledMask.ptr<int>(y);
+				labeledImgPtr_ytop = labeledMask.ptr<int>(y+1);
 				
-				//Walk from the left
-				for(x = boundingBoxesInfo[compCount + i];x<=boundingBoxesInfo[2*compCount+i];x++)
+				for(int x = xmin; x < xmax; x++)
 				{
-					if(labeledImgPtr[x] == label)
-					{
-						perimeter++;
-						break;
-					}
-				}
-				//Walk from the right
-				for(x = boundingBoxesInfo[2*compCount + i];x>=boundingBoxesInfo[compCount+i];x--)
-				{
-					if(labeledImgPtr[x] == label)
-					{
-						perimeter++;
-						break;
-					}
-				}
+					mask = 0;
+					
+					//First point : Lower left corner (0,0)
+					mask = (labeledImgPtr_ybot[x] == label);
+					//Second point : Lower right corner (1,0)
+					mask = (mask<<1) | (labeledImgPtr_ybot[x+1] == label);
+					//Third point : Upper left corner (1,1)
+					mask = (mask<<1) | (labeledImgPtr_ytop[x+1] == label);
+					//Fourth point : Upper right corner (0,1)
+					mask = (mask<<1) | (labeledImgPtr_ytop[x] == label);
+					
+					perimeter[i] = perimeter[i] + lookup[mask];
+				} 
 			}
-			perimeterRes[i] = perimeter;
-		}
-	}
-	return perimeterRes;
+	
+			//Traverse the top and bottom edges of the image
+			labeledImgPtr_ybot = labeledMask.ptr<int>(ymin);
+			labeledImgPtr_ytop = labeledMask.ptr<int>(ymax);
+			for(int x = xmin; x < xmax; x++)
+			{
+				mask = 0;
+				//Top row : Read-leftshift-read-leftshiftby2
+				mask = (labeledImgPtr_ytop[x] == label);
+				mask = (mask<<1) | (labeledImgPtr_ytop[x+1] == label);
+				mask = (mask<<2);
+				
+				
+				perimeter[i] = perimeter[i] + lookup[mask];
+	
+				mask = 0;
+				//Bottom row : Leftshiftby2-read-leftshift-read
+				mask = (labeledImgPtr_ybot[x+1] == label);
+				mask = (mask<<1) | (labeledImgPtr_ybot[x] == label);
+	
+				perimeter[i] = perimeter[i] + lookup[mask];
+			} 
+	
+			//Traverse the left and right edges of the images
+			for(int y = ymin ; y < ymax ; y++)
+			{
+				labeledImgPtr_ybot = labeledMask.ptr<int>(y);
+				labeledImgPtr_ytop = labeledMask.ptr<int>(y+1);
+				
+				mask = 0;
+				//Left edge : leftshift-read-leftshift-read-leftshift
+				mask = (labeledImgPtr_ybot[xmin] == label);
+				mask = (mask<<1) | (labeledImgPtr_ytop[xmin] == label);
+				mask = (mask<<1);
+				
+				perimeter[i] = perimeter[i] + lookup[mask];
+	
+				mask = 0;
+				//Right edge : read-leftshiftby3-read
+				mask = (labeledImgPtr_ybot[xmax] == label);
+				mask = (mask << 2);
+				mask = (mask << 1) | (labeledImgPtr_ytop[xmax] == label);
+		
+				perimeter[i] = perimeter[i] + lookup[mask];
+			}
+	
+			//Bottom left corner of the image : leftshiftby3-read-leftshift
+			mask = 0;
+			mask = (labeledMask.ptr<int>(ymin)[xmin] == label);
+			mask = (mask<<1);
+			perimeter[i] = perimeter[i] + lookup[mask];
+	
+			//Bottom right corner of the image : leftshiftby3-read
+			mask = 0;
+			mask = (labeledMask.ptr<int>(ymin)[xmax] == label);
+			perimeter[i] = perimeter[i] + lookup[mask];
+	
+			//Top right corner of the image : read-leftshiftby3
+			mask  = 0;
+			mask = (labeledMask.ptr<int>(ymax)[xmax] == label);
+			mask = (mask<<3);
+			perimeter[i] = perimeter[i] + lookup[mask];
+	
+			//Top left corner of the image : leftshift-read-leftshiftby2
+			mask = 0;
+			mask = (labeledMask.ptr<int>(ymax)[xmin] == label);
+			mask = (mask<<2);
+			perimeter[i] = perimeter[i] + lookup[mask];
+			
+		} 
+		return perimeter;	
+	}	
+	return NULL;
 }
-
-*/
-
+	
+//This function calculates the circularity of a particular component
+double* ObjFeatures::circularity(const int compCount, const int* areaRes, const double* perimeter)
+{
+	if(compCount > 0)
+	{
+		double* circ = (double *)malloc(compCount * sizeof(double));
+		for(int i = 0 ; i < compCount ; i++)
+		{
+			circ[i] = (4.0 * PI * (double)areaRes[i])/(perimeter[i] * perimeter[i]);	
+		}
+		
+		return circ;
+	}
+	return NULL;
+} 
 
 float* ObjFeatures::cytoIntensityFeatures(const int* boundingBoxesInfo, int compCount, const cv::Mat& grayImage) {
 	float* intensityFeatures = NULL;
