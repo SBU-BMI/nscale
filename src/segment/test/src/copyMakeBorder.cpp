@@ -27,24 +27,24 @@ int main (int argc, char **argv){
 		exit(1);
 	}
 //	gpu::setDevice(0);
-
-	Mat src(4096, 4096, CV_32FC1);
-	randn(src, Scalar::all(100.5), Scalar::all(10.1) );
-
-	Mat dst(src.rows+2, src.cols+2, CV_32FC1);
-	copyMakeBorder(src, dst, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(1.1));
-
-	Stream stream;
-	GpuMat g_src(src);
-	GpuMat g_dst(dst.rows, dst. cols, CV_32FC1);
-
-	nscale::gpu::PixelOperations::copyMakeBorder(g_src, g_dst, 1, 1, 1, 1, Scalar(1.1), stream);
-	stream.waitForCompletion();
-
-	Mat cpu_dst(g_dst);
-	std::cout << countNonZero(dst-cpu_dst) <<std::endl;
-	
-
+//
+//	Mat src(4096, 4096, CV_32FC1);
+//	randn(src, Scalar::all(100.5), Scalar::all(10.1) );
+//
+//	Mat dst(src.rows+2, src.cols+2, CV_32FC1);
+//	copyMakeBorder(src, dst, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(1.1));
+//
+//	Stream stream;
+//	GpuMat g_src(src);
+//	GpuMat g_dst(dst.rows, dst. cols, CV_32FC1);
+//
+//	nscale::gpu::PixelOperations::copyMakeBorder(g_src, g_dst, 1, 1, 1, 1, Scalar(1.1), stream);
+//	stream.waitForCompletion();
+//
+//	Mat cpu_dst(g_dst);
+//	std::cout << countNonZero(dst-cpu_dst) <<std::endl;
+//	
+//
 //	uint64_t t1 = cci::common::event::timestampInUS();
 //	distanceTransform(input, dist, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 //	uint64_t t2 = cci::common::event::timestampInUS();

@@ -52,28 +52,31 @@ void PixelOperations::ColorDeconv( GpuMat& image, const Mat& M, const Mat& b, Gp
 GpuMat PixelOperations::bgr2gray(const GpuMat& img, Stream& stream){ throw_nogpu();};
 #else
 
-void PixelOperations::copyMakeBorder(const GpuMat& src, GpuMat& dst, int top, int bottom, int left, int right, const Scalar& value, Stream& stream){
+
+/*void PixelOperations::copyMakeBorder(const GpuMat& src, GpuMat& dst, int top, int bottom, int left, int right, const Scalar& value, Stream& stream){
 	const Size size_src = src.size();
 	const Size size_dst = dst.size();
-	CV_Assert(src.cols+left+right == dst.cols);
-	CV_Assert(src.rows+top+bottom == dst.cols);
-    	CV_Assert(src.channels() == 1 && dst.channels() == 1);
+	if(src.cols+left+right != dst.cols || src.rows+top+bottom != dst.cols || src.type() != dst.type()){
+		dst.release();
+		dst.create( Size(src.rows+bottom+top, src.cols+left+right) , src.type() ); 
+	}   
+	CV_Assert(src.channels() == 1 && dst.channels() == 1);
 
-//	if (std::numeric_limits<T>::is_integer) {
-//
-//		if (std::numeric_limits<T>::is_signed) {
-//			copyMakeBorderIntCaller<T>(src, dst, size_src.height, size_src.width, top, bottom, left, right, StreamAccessor::getStream(stream));
-//		} else {
-//			// unsigned int
-//			copyMakeBorderUIntCaller<T>(src, dst, size_src.height, size_src.width, top, bottom, left, right, StreamAccessor::getStream(stream));
-//		}
-//
-//	} else {
-		// floating point type
-		std::cout << "Scalar value = "<< value[0] << std::endl;
-		copyMakeBorderFloatCaller(src, src.rows, src.cols, dst, top, bottom, left, right, (float)value[0], StreamAccessor::getStream(stream));
-//	}
-}
+	if (std::numeric_limits<T>::is_integer) {
+
+		if (std::numeric_limits<T>::is_signed) {
+			copyMakeBorderIntCaller<T>(src, dst, size_src.height, size_src.width, top, bottom, left, right, StreamAccessor::getStream(stream));
+		} else {
+			// unsigned int
+			copyMakeBorderUIntCaller<char>(src, dst, size_src.height, size_src.width, top, bottom, left, right, StreamAccessor::getStream(stream));
+		}
+
+	} else {
+	      	// floating point type
+      		std::cout << "Scalar value = "<< value[0] << std::endl;
+    	  	copyMakeBorderFloatCaller(src, src.rows, src.cols, dst, top, bottom, left, right, (float)value[0], StreamAccessor::getStream(stream));
+	}
+}*/
 
 void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){
 	// TODO: check if types/size are okay	

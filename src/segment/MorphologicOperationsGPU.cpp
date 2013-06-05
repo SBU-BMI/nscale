@@ -646,13 +646,13 @@ GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity
 
     // allocate results
 	GpuMat temp1;
-	nscale::gpu::PixelOperations::copyMakeBorder(seeds, temp1, 2, 2, 2, 2, Scalar(mn), stream);
+	copyMakeBorder(seeds, temp1, 2, 2, 2, 2, BORDER_CONSTANT ,Scalar(mn), stream);
 	GpuMat marker = createContinuous(temp1.size(), temp1.type());
 	stream.enqueueCopy(temp1, marker);
 //	std::cout << " is marker continuous? " << (marker.isContinuous() ? "YES" : "NO") << std::endl;
 
 	GpuMat temp2;
-	nscale::gpu::PixelOperations::copyMakeBorder(image, temp2, 2, 2, 2, 2, Scalar(mn), stream);
+	copyMakeBorder(image, temp2, 2, 2, 2, 2, BORDER_CONSTANT, Scalar(mn), stream);
 	GpuMat mask = createContinuous(temp2.size(), temp2.type());
 	stream.enqueueCopy(temp2, mask);
 //	std::cout << " is mask continuous? " << (mask.isContinuous() ? "YES" : "NO") << std::endl;
@@ -785,7 +785,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 	printf("fillHoles: input.rows:%d\n", image.rows);
 	// copy the input and pad with -inf.
 	GpuMat mask2;
-	nscale::gpu::PixelOperations::copyMakeBorder(image, mask2, 1, 1, 1, 1, Scalar_<T>(mn), stream);
+	copyMakeBorder(image, mask2, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<T>(mn), stream);
 	// create marker with inf inside and -inf at border, and take its complement
 	GpuMat marker2(image.size(), image.type());
 	stream.enqueueMemSet(marker2, Scalar_<T>(mn));
@@ -793,7 +793,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 
 	// them make the border - OpenCV does not replicate the values when one Mat is a region of another.
 	GpuMat marker;
-	nscale::gpu::PixelOperations::copyMakeBorder(marker2, marker, 1, 1, 1, 1, Scalar_<T>(mx), stream);
+	copyMakeBorder(marker2, marker, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<T>(mx), stream);
 	stream.waitForCompletion();
 
 	// now do the work...
@@ -1162,7 +1162,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 	// this implementation does not require seed image, nor the original image (at all).
 
 	GpuMat input = createContinuous(image.size().height + 2, image.size().width + 2, image.type());
-	nscale::gpu::PixelOperations::copyMakeBorder(image, input, 1, 1, 1, 1, Scalar(0.0), stream);
+	copyMakeBorder(image, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0.0), stream);
 
 	// allocate results
 	GpuMat labels = createContinuous(image.size().height + 2, image.size().width + 2, CV_32SC1);
@@ -1176,7 +1176,7 @@ GpuMat watershedDW(const GpuMat& maskImage, const GpuMat& image, int background,
 	stream.waitForCompletion();
 
 	GpuMat mask = createContinuous(maskImage.size().height + 2, maskImage.size().width + 2, maskImage.type());
-	nscale::gpu::PixelOperations::copyMakeBorder(maskImage, mask, 1, 1, 1, 1, Scalar(0), stream);
+	copyMakeBorder(maskImage, mask, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(0), stream);
 	// allocate results
 	GpuMat labels2 = createContinuous(labels.size(), labels.type());
 	stream.enqueueMemSet(labels2, Scalar(background));
@@ -1371,7 +1371,7 @@ GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) {
 	int bw = (kernel.cols - 1) / 2;
 	std::cout << "erodeCopyBorder: Image.cols = "<< image.cols << " bw="<< bw<<" image.data=" << (image.data==NULL) << std::endl;
 	GpuMat t_img;
-	nscale::gpu::PixelOperations::copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::max()), stream);
+	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, BORDER_CONSTANT, Scalar(std::numeric_limits<T>::max()), stream);
 	stream.waitForCompletion();
 	// this is same for CPU and GPU
 
@@ -1411,7 +1411,7 @@ GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {
 
 
 	GpuMat t_img;
-	nscale::gpu::PixelOperations::copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, Scalar(std::numeric_limits<T>::min()), stream);
+	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, BORDER_CONSTANT, Scalar(std::numeric_limits<T>::min()), stream);
 	// this is same for CPU and GPU
 
 	stream.waitForCompletion();

@@ -41,7 +41,7 @@ GpuMat NeighborOperations::border(const GpuMat& img, T background, int connectiv
 
 	// make border
 	GpuMat input = createContinuous(img.rows + 2, img.cols + 2, img.type());
-	nscale::gpu::PixelOperations::copyMakeBorder(img, input, 1, 1, 1, 1, Scalar(background), stream);
+	copyMakeBorder(img, input, 1, 1, 1, 1, BORDER_CONSTANT, Scalar(background), stream);
 	stream.waitForCompletion();
 
     GpuMat result = createContinuous(input.size(), input.type());
