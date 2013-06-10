@@ -44,7 +44,7 @@ GpuMat PixelOperations::mod(GpuMat& img, T mod, Stream& stream) { throw_nogpu();
 template <typename T>
 GpuMat PixelOperations::mask(const GpuMat& input, const GpuMat& mask, T background, Stream& stream) { throw_nogpu(); }
 
-void PixelOperations::copyMakeBorder(const GpuMat& src, GpuMat& dst, int top, int bottom, int left, int right, const Scalar& value, Stream& stream) {throw_nogpu(); };
+//void PixelOperations::copyMakeBorder(const GpuMat& src, GpuMat& dst, int top, int bottom, int left, int right, const Scalar& value, Stream& stream) {throw_nogpu(); };
 
 void PixelOperations::convertIntToChar(GpuMat& input, GpuMat&result, Stream& stream){ throw_nogpu();};
 void PixelOperations::convertIntToCharAndRemoveBorder(GpuMat& input, GpuMat&result, int top, int bottom, int left, int right, Stream& stream){ throw_nogpu();};
