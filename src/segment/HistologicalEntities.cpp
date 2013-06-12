@@ -113,6 +113,8 @@ Mat HistologicalEntities::getBackground(const std::vector<Mat>& bgr,
 // S1
 int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	uint64_t t0 = cci::common::event::timestampInUS();
+
 	std::vector<Mat> bgr;
 	split(img, bgr);
 	if (logger) logger->logTimeSinceLastLog("toRGB");
@@ -155,6 +157,10 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	Mat rc = ::nscale::PixelOperations::invert<unsigned char>(bgr[2]);
 	if (logger) logger->logTimeSinceLastLog("invert");
 
+	uint64_t t1 = cci::common::event::timestampInUS();
+	std::cout << "RBC detection: " << t1-t0 << std::endl; 
+
+
 	Mat rc_open(rc.size(), rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
 	// structuring element is not the same between matlab and opencv.  using the one from matlab explicitly....
@@ -187,6 +193,11 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("open19");
 	if (iresHandler) iresHandler->saveIntermediate(rc_open, 3);
 
+	uint64_t t2 = cci::common::event::timestampInUS();
+	std::cout << "Morph Open: " << t2-t1 << std::endl; 
+
+
+ 
 // for generating test data 
 //	imwrite("test/in-imrecon-gray-marker.pgm", rc_open);
 //	imwrite("test/in-imrecon-gray-mask.pgm", rc);
@@ -220,6 +231,10 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 //	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 	if (logger) logger->logTimeSinceLastLog("fillHoles1");
 	if (iresHandler) iresHandler->saveIntermediate(bw1, 7);
+
+	uint64_t t3 = cci::common::event::timestampInUS();
+	std::cout << "ReconToNuclei " << t3-t2 << std::endl; 
+
 
 //	// TODO: change back
 //	return ::nscale::HistologicalEntities::SUCCESS;
