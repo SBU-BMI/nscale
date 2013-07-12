@@ -33,7 +33,10 @@ int main (int argc, char **argv){
 	Mat mask = imread(argv[2], -1);
 	int nThreads = atoi(argv[3]);
 	int tileSize = atoi(argv[4]);
+
+#if defined (_OPENMP)
 	omp_set_num_threads(nThreads);
+#endif
 
 	int zoomFactor = 8;
         if(zoomFactor > 1){

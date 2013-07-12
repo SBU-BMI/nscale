@@ -359,8 +359,10 @@ Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize, bool calcD
 
 cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads, bool calcDist){
 
+#if defined (_OPENMP)
 	if(nThreads >0)
 		omp_set_num_threads(nThreads);
+#endif
 
 	int tileWidth=tileSize;
 	int tileHeight=tileSize;
@@ -1034,7 +1036,11 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	int nThreads;
 	#pragma omp parallel
 	{
+#if defined (_OPENMP)
 		nThreads = omp_get_num_threads();
+#else
+		nThreads = 1;
+#endif
 	}
 
 	std::cout << "nThreads = "<< nThreads << std::endl;
@@ -1140,7 +1146,11 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 //	count = 0;
 	#pragma omp parallel private(xminus,xplus,yminus,yplus,oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,ppval)
 	{
+#if defined (_OPENMP)
 		int tid = omp_get_thread_num();
+#else
+		int tid = 0;
+#endif
 		while (!(xQ[tid].empty())) {
 			++count;
 			int x = xQ[tid].front();
@@ -1225,9 +1235,11 @@ template <typename T>
 Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectivity, bool withBorder, int nThreads) {
 	CV_Assert(image.channels() == 1);
 	CV_Assert(seeds.channels() == 1);
+
+#if defined (_OPENMP)
 	if(nThreads >0)
 		omp_set_num_threads(nThreads);
-
+#endif
 
 	uint64_t t1 = cci::common::event::timestampInUS();
 	Mat input, output;
@@ -1248,7 +1260,11 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 //	int nThreads;
 	#pragma omp parallel
 	{
+#if defined (_OPENMP)
 		nThreads = omp_get_num_threads();
+#else
+		nThreads = 1;
+#endif
 	}
 
 	std::cout << "nThreads = "<< nThreads << std::endl;
@@ -1332,7 +1348,11 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 
 #pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static) 
 	for (int y = 1; y <= maxy-1; ++y) {
+#if defined (_OPENMP)
 		int tid = omp_get_thread_num();
+#else
+		int tid = 0;
+#endif
 
 		oPtr = output.ptr<T>(y);
 		oPtrPlus = output.ptr<T>(y+1);
@@ -1387,7 +1407,11 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 	// now process the queue.
 	#pragma omp parallel private(xminus,xplus,yminus,yplus,oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,ppval)
 	{
+#if defined (_OPENMP)
 		int tid = omp_get_thread_num();
+#else
+		int tid = 0;
+#endif
 		while (!(xQ[tid].empty())) {
 			++count;
 			int x = xQ[tid].front();
@@ -1458,8 +1482,10 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 template <typename T>
 cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize, int nThreads){
 
+#if defined (_OPENMP)
 	if(nThreads >0)
 		omp_set_num_threads(nThreads);
+#endif
 
 	int tileWidth=tileSize;
 	int tileHeight=tileSize;
