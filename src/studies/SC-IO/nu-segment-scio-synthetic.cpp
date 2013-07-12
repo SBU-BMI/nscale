@@ -139,6 +139,8 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
   std::vector<std::string> exts;
   exts.push_back(".tiff");
   exts.push_back(".tif");
+  exts.push_back(".png");
+
 
 	cci::common::FileUtils futils(exts);
 	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
@@ -161,7 +163,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	std::string temp, tempdir;
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
-		temp = futils.replaceExt(filenames[i], ".mask.pbm");
+		temp = futils.replaceExt(filenames[i], ".mask.png");
 		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
 		cci::common::FileUtils::mkdirs(tempdir);
@@ -209,9 +211,9 @@ void compute(const char *input, const char *mask, const char *output,
 
 	std::string fmask(mask);
 
-	std::string prefix = cci::common::FileUtils::replaceExt(fmask, ".mask.pbm", "");
+	std::string prefix = cci::common::FileUtils::replaceExt(fmask, ".mask.png", "");
 	std::string suffix;
-	suffix.assign(".mask.pbm");
+	suffix.assign(".mask.png");
 	::cciutils::cv::SCIOIntermediateResultWriter *iwrite = new ::cciutils::cv::SCIOIntermediateResultWriter(prefix, suffix, stages, compression);
 	iwrite->setLogSession(session);
 

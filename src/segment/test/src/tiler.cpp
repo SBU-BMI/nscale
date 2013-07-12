@@ -30,6 +30,8 @@ void getFiles(const std::string &imageName, std::vector<std::string> &filenames,
 	std::vector<std::string> exts;
 	exts.push_back(std::string(".tif"));
 	exts.push_back(std::string(".tiff"));
+	exts.push_back(std::string(".png"));
+
 
 	cci::common::FileUtils futils(exts);
 	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
@@ -106,7 +108,7 @@ int main (int argc, char **argv){
 			tileName.append(SSTR(x));
 			tileName.append("-");
 			tileName.append(SSTR(y));
-			tileName.append(".tiff");
+			tileName.append(".png");
 			cv::Mat roi(image, Rect(x, y, min(tileSize,image.cols-x), min(tileSize,image.rows-y)));
 			std::cout << "roi name: "<< tileName << std::endl;
 			imwrite(tileName, roi);

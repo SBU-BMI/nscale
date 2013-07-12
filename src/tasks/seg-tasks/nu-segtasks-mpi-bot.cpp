@@ -73,6 +73,8 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	std::vector<std::string> exts;
 	exts.push_back(std::string(".tif"));
 	exts.push_back(std::string(".tiff"));
+	exts.push_back(std::string(".png"));
+
 
 	FileUtils futils(exts);
 	futils.traverseDirectory(imageName, filenames, FileUtils::FILE, true);
@@ -87,7 +89,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	std::string temp, tempdir;
 	for (unsigned int i = 0; i < filenames.size(); ++i) {
 			// generate the output file name
-		temp = futils.replaceExt(filenames[i], ".mask.pbm");
+		temp = futils.replaceExt(filenames[i], ".mask.png");
 		temp = FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
 		FileUtils::mkdirs(tempdir);

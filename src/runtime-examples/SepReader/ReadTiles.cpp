@@ -58,6 +58,8 @@ ReadTiles::ReadTiles(MPI_Comm const * _parent_comm, int const _gid,
 		std::vector<std::string> exts;
 		exts.push_back(std::string(".tif"));
 		exts.push_back(std::string(".tiff"));
+		exts.push_back(std::string(".png"));
+
 
 		cci::common::FileUtils futils(exts);
 		futils.traverseDirectory(dirName, filenames, cci::common::FileUtils::FILE, true);

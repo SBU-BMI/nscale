@@ -119,7 +119,7 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		std::vector<std::string> &seg_output, std::vector<std::string> &features_output, bool overwrite) {
 
 	// check to see if it's a directory or a file
-	cci::common::FileUtils futils(std::string(".mask.pbm"));
+	cci::common::FileUtils futils(std::string(".mask.png"));
 	futils.traverseDirectory(maskName, seg_output, cci::common::FileUtils::FILE, true);
 	std::string dirname = maskName;
 	if (seg_output.size() == 1) {
@@ -131,12 +131,12 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 
 //	printf("seg_output size for dir %s = %d, entry 1 = %s \n", maskName.c_str(), seg_output.size(), seg_output[0].c_str());
 
-	std::string temp, temp2, tempdir;
+	std::string temp, temp2, temp3, tempdir;
 	FILE *file;
 	for (unsigned int i = 0; i < seg_output.size(); ++i) {
 
 		// generate the output file name
-		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".features.h5");
+		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".features.h5");
 		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
 		cci::common::FileUtils::mkdirs(tempdir);
@@ -149,10 +149,12 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		}
 
 		// generate the input file name
-		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tif");
+		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".tif");
 		temp = cci::common::FileUtils::replaceDir(temp, dirname, imgDir);
-		temp2 = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.pbm", ".tiff");
+		temp2 = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".tiff");
 		temp2 = cci::common::FileUtils::replaceDir(temp2, dirname, imgDir);
+		temp3 = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".png");
+		temp3 = cci::common::FileUtils::replaceDir(temp3, dirname, imgDir);
 
 //		printf("image file names: %s %s\n", temp.c_str(), temp2.c_str());
 
@@ -162,6 +164,9 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		} else if ((file = fopen(temp2.c_str(), "r"))) {
 			fclose(file);
 			filenames.push_back(temp2);
+		} else if ((file = fopen(temp3.c_str(), "r"))) {
+			fclose(file);
+			filenames.push_back(temp3);
 		} else {
 			printf("unable to find corresponding image file for %s in dir %s.  skipping\n", seg_output[i].c_str(), imgDir.c_str());
 			continue;
