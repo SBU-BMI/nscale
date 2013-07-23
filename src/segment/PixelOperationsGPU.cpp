@@ -144,7 +144,7 @@ void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, 
 
 	long t2 = cci::common::event::timestampInUS();
 
-	cout << "	Before normalized = "<< t2-t1 <<endl;
+	//cout << "	Before normalized = "<< t2-t1 <<endl;
 	assert(g_image.channels() == 3);
     	//normalized image
 	int nr = g_image.rows, nc = g_image.cols;
@@ -153,7 +153,7 @@ void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, 
 	convLoop1(nr, nc, g_image.channels(), g_image, g_dn, StreamAccessor::getStream(stream));
 
 	long t1loop = cci::common::event::timestampInUS();
-	cout << "	After first loop = "<< t1loop - t2 <<endl;
+	//cout << "	After first loop = "<< t1loop - t2 <<endl;
 
 	GpuMat g_cn = GpuMat(nr, nc, CV_64FC2);
 //	int dn_channels = g_dn.channels();
@@ -168,14 +168,14 @@ void PixelOperations::ColorDeconv( GpuMat& g_image, const Mat& M, const Mat& b, 
 	stream.waitForCompletion();
 
 	long t2loop = cci::common::event::timestampInUS();
-	cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
+	//cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
 
 
 	convLoop3(nr, nc, g_cn.channels(), g_cn, g_E, g_H, StreamAccessor::getStream(stream));
 
 	stream.waitForCompletion();
 	long t3loop = cci::common::event::timestampInUS();
-	cout << "	After 3 loop = "<< t3loop - t2loop <<endl;
+	//cout << "	After 3 loop = "<< t3loop - t2loop <<endl;
 
 	g_dn.release();
 	g_cn.release();

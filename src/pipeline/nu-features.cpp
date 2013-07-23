@@ -46,7 +46,7 @@ using namespace cv;
 int parseInput(int argc, char **argv, int &modecode, std::string &maskName, std::string &imageDir, std::string &outdir, bool &overwrite);
 void getFiles(const std::string &maskName, const std::string &imgDir, const std::string &outDir, std::vector<std::string> &filenames,
 		std::vector<std::string> &seg_output, std::vector<std::string> &features_output, bool overwrite);
-void compute(const char *input, const char *mask, const char *output);
+void compute(const char *input, const char *mask, const char *output, const Mat& Q, const vector<float> &lut);
 void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cytoplasmFeatures_G, vector<vector<float> >& cytoplasmFeatures_H, vector<vector<float> >& cytoplasmFeatures_E,
 		const char* input, const char* mask, const char* output);
 
@@ -119,7 +119,12 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 		std::vector<std::string> &seg_output, std::vector<std::string> &features_output, bool overwrite) {
 
 	// check to see if it's a directory or a file
-	cci::common::FileUtils futils(std::string(".mask.png"));
+	std::vector<std::string> exts;
+	exts.push_back(std::string(".mask.pbm"));
+	exts.push_back(std::string(".mask.png"));
+
+	cci::common::FileUtils futils(exts);
+
 	futils.traverseDirectory(maskName, seg_output, cci::common::FileUtils::FILE, true);
 	std::string dirname = maskName;
 	if (seg_output.size() == 1) {
@@ -136,7 +141,7 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 	for (unsigned int i = 0; i < seg_output.size(); ++i) {
 
 		// generate the output file name
-		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".features.h5");
+		temp = futils.replaceExt(seg_output[i], ".features.h5");
 		temp = cci::common::FileUtils::replaceDir(temp, dirname, outDir);
 		tempdir = temp.substr(0, temp.find_last_of("/\\"));
 		cci::common::FileUtils::mkdirs(tempdir);
@@ -144,16 +149,15 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 			fclose(file);
 			continue;
 		} else {
-			printf("adding %s\n", temp.c_str());
 			features_output.push_back(temp);
 		}
 
 		// generate the input file name
-		temp = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".tif");
+		temp = futils.replaceExt(seg_output[i], ".tif");
 		temp = cci::common::FileUtils::replaceDir(temp, dirname, imgDir);
-		temp2 = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".tiff");
+		temp2 = futils.replaceExt(seg_output[i], ".tiff");
 		temp2 = cci::common::FileUtils::replaceDir(temp2, dirname, imgDir);
-		temp3 = cci::common::FileUtils::replaceExt(seg_output[i], ".mask.png", ".png");
+		temp3 = futils.replaceExt(seg_output[i], ".png");
 		temp3 = cci::common::FileUtils::replaceDir(temp3, dirname, imgDir);
 
 //		printf("image file names: %s %s\n", temp.c_str(), temp2.c_str());
@@ -174,13 +178,14 @@ void getFiles(const std::string &maskName, const std::string &imgDir, const std:
 
 //		printf("feature filename: %s\n", temp.c_str());
 	}
+	printf("added %ld files to process\n", features_output.size());
 
 }
 
 
 
 
-void compute(const char *input, const char *mask, const char *output) {
+void compute(const char *input, const char *mask, const char *output, const Mat& Q, const vector<float> &lut) {
 	// Load input images
 	::cv::Mat maskMat = imread(mask, -1);
 	if (! maskMat.data) {
@@ -229,10 +234,8 @@ void compute(const char *input, const char *mask, const char *output) {
 	//initialize H and E channels
 	Mat H = Mat::zeros(image.size(), CV_8UC1);
 	Mat E = Mat::zeros(image.size(), CV_8UC1);
-	Mat b = (Mat_<char>(1,3) << 1, 1, 0);
-	Mat M = (Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
 
-	::nscale::PixelOperations::ColorDeconv(image, M, b, H, E);
+	::nscale::PixelOperations::ColorDeconv(image, Q, lut, H, E);
 
 	IplImage ipl_image_H(H);
 	IplImage ipl_image_E(E);
@@ -284,8 +287,6 @@ void compute(const char *input, const char *mask, const char *output) {
 
 	H.release();
 	E.release();
-	M.release();
-	b.release();
 
 
 
@@ -447,7 +448,7 @@ void saveData(vector<vector<float> >& nucleiFeatures, vector<vector<float> >& cy
 MPI::Intracomm init_mpi(int argc, char **argv, int &size, int &rank, std::string &hostname);
 MPI::Intracomm init_workers(const MPI::Intracomm &comm_world, int managerid);
 void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, const int worker_size, std::string &maskName, std::string &imgDir, std::string &outDir, bool overwrite);
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank);
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const Mat& Q, const vector<float> &lut);
 
 
 // initialize MPI
@@ -587,7 +588,7 @@ void manager_process(const MPI::Intracomm &comm_world, const int manager_rank, c
 	}
 }
 
-void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank) {
+void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, const int rank, const Mat& Q, const vector<float> &lut) {
 	char flag = MANAGER_READY;
 	int inputSize;
 	int outputSize;
@@ -631,11 +632,11 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 			t0 = cci::common::event::timestampInUS();
 //			printf("comm time for worker %d is %lu us\n", rank, t1 -t0);
-			printf("worker %d processing \"%s\"\n", rank, mask);
+			//printf("worker %d processing \"%s\"\n", rank, mask);
 
 
 			// now do some work
-			compute(input, mask, output);
+			compute(input, mask, output, Q, lut);
 
 			t1 = cci::common::event::timestampInUS();
 //			printf("worker %d processed \"%s\" + \"%s\" -> \"%s\" in %lu us\n", rank, input, mask, output, t1 - t0);
@@ -652,8 +653,6 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 
 int main (int argc, char **argv){
-
-	printf("Using MPI.  if GPU is specified, will be changed to use CPU\n");
 
 	// parse the input
 	int modecode;
@@ -689,6 +688,14 @@ int main (int argc, char **argv){
 	uint64_t t1 = 0, t2 = 0;
 	t1 = cci::common::event::timestampInUS();
 
+	Mat b = (Mat_<char>(1,3) << 1, 1, 0);
+	Mat M = (Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
+
+	Mat Q = nscale::PixelOperations::ComputeInverseStainMatrix(M, b);
+	vector<float> lut = nscale::PixelOperations::ComputeLookupTable();
+	b.release();
+	M.release();
+
 	// decide based on rank of worker which way to process
 	if (rank == manager_rank) {
 		// manager thread
@@ -698,11 +705,12 @@ int main (int argc, char **argv){
 
 	} else {
 		// worker bees
-		worker_process(comm_world, manager_rank, rank);
+		worker_process(comm_world, manager_rank, rank, Q, lut);
 		t2 = cci::common::event::timestampInUS();
 		printf("WORKER %d: FINISHED in %lu us\n", rank, t2 - t1);
 
 	}
+	Q.release();
 	comm_world.Barrier();
 	MPI::Finalize();
 	exit(0);
@@ -738,6 +746,15 @@ int main (int argc, char **argv){
 	printf("num files = %d\n", total);
 	int i = 0;
 
+	Mat b = (Mat_<char>(1,3) << 1, 1, 0);
+	Mat M = (Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
+
+	Mat Q = nscale::PixelOperations::ComputeInverseStainMatrix(M, b);
+	vector<float> lut = nscale::PixelOperations::ComputeLookupTable();
+	b.release();
+	M.release();
+
+
 	// openmp bag of task
 //#define _OPENMP
 #if defined (_OPENMP)
@@ -746,7 +763,7 @@ int main (int argc, char **argv){
     	printf("1 omp thread\n");
     	while (i < total) {
 			// now do some work
-			compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str());
+			compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str(), Q, lut);
     		printf("processed %s %s\n", filenames[i].c_str(), seg_output[i].c_str());
     		++i;
     	}
@@ -764,7 +781,7 @@ int main (int argc, char **argv){
 #pragma omp task firstprivate(ti) shared(filenames, seg_output, features_output)
 				{
 //        				printf("t i: %d, %d \n", i, ti);
-					compute(filenames[ti].c_str(), seg_output[ti].c_str(), features_output[ti].c_str());
+					compute(filenames[ti].c_str(), seg_output[ti].c_str(), features_output[ti].c_str(), Q, lut);
 	        		printf("processed %s %s \n", filenames[ti].c_str(), seg_output[ti].c_str());
 				}
 				i++;
@@ -776,14 +793,14 @@ int main (int argc, char **argv){
 #else
 	printf("not omp\n");
 	while (i < total) {
-		compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str());
+		compute(filenames[i].c_str(), seg_output[i].c_str(), features_output[i].c_str(), Q, lut);
 		printf("processed %s %s \n", filenames[i].c_str(), seg_output[i].c_str());
 		++i;
 	}
 #endif
 	t2 = cci::common::event::timestampInUS();
 	printf("FINISHED in %lu us\n", t2 - t1);
-
+	Q.release();
 	return 0;
 }
 

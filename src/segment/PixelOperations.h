@@ -29,7 +29,11 @@ public:
 	template <typename T>
 	static ::cv::Mat mod(::cv::Mat& img, T mod);
 
-	static void ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB=true);
+	//static void ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB=true);
+	static ::cv::Mat ComputeInverseStainMatrix(const Mat& M, const Mat& b);
+	static ::std::vector<float> ComputeLookupTable();
+
+	static void ColorDeconv( const Mat& image, const Mat& Q, const vector<float>& lut, Mat& H, Mat& E, bool BGR2RGB=true);
 	static ::cv::Mat bgr2gray(const ::cv::Mat& img);
 
 	template <typename T>

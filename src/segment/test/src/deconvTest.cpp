@@ -25,6 +25,10 @@ int main(int argc, char** argv) {
 	Mat b = (Mat_<char>(1,3) << 1, 1, 0);
 	Mat M = (Mat_<double>(3,3) << 0.650, 0.072, 0, 0.704, 0.990, 0, 0.286, 0.105, 0);
 
+	Mat Q = nscale::PixelOperations::ComputeInverseStainMatrix(M, b);
+	vector<float> lut = nscale::PixelOperations::ComputeLookupTable();
+
+
 	//read image
 	Mat image;
 	image = imread( argv[1], 1 );  //For each pixel, BGR
@@ -43,7 +47,7 @@ int main(int argc, char** argv) {
 
 	long t1 = cci::common::event::timestampInUS();
 	//color deconvolution
-	nscale::PixelOperations::ColorDeconv( image, M, b, H, E, BGR2RGB);
+	nscale::PixelOperations::ColorDeconv( image, Q, lut, H, E, BGR2RGB);
 
 	long t2 = cci::common::event::timestampInUS();
 	cout << "Conv original = "<< t2-t1<<endl;
@@ -101,6 +105,11 @@ int main(int argc, char** argv) {
 //
 //	imwrite("gpu_H.ppm", c_H);
 //	imwrite("H.ppm", H);
+
+	printf("H rows: %d, cols: %d, channels %d, depth %d\n", H.rows, H.cols, H.channels(), H.depth());
+	printf("E rows: %d, cols: %d, channels %d, depth %d\n", E.rows, E.cols, E.channels(), E.depth());
+	printf("c_H rows: %d, cols: %d, channels %d, depth %d\n", c_H.rows, c_H.cols, c_H.channels(), c_H.depth());
+	printf("c_E rows: %d, cols: %d, channels %d, depth %d\n", c_E.rows, c_E.cols, c_E.channels(), c_E.depth());
 
 	if(countNonZero(H != c_H) || countNonZero(E != c_E)){
 		printf("Error: E or H images are not the same! H = %d and E = %d\n", countNonZero(H != c_H), countNonZero(E != c_E));

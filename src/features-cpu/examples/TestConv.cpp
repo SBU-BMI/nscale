@@ -8,7 +8,7 @@ using namespace cv;
 #include <stdlib.h>
 
 #include "ColorDeconv_final.h"
-#include "utils.h"
+#include "Logger.h"
 
 using namespace std;
 
@@ -34,11 +34,11 @@ int main(int argc, char** argv) {
 	Mat H = Mat::zeros(image.size(), CV_8UC1);
 	Mat E = Mat::zeros(image.size(), CV_8UC1);
 
-	long t1 = cciutils::ClockGetTime();
+	long t1 = cci::common::event::timestampInUS();
 	//color deconvolution
 	ColorDeconv( image, M, b, H, E, BGR2RGB);
 
-	long t2 = cciutils::ClockGetTime();
+	long t2 = cci::common::event::timestampInUS();
 	cout << "Conv original = "<< t2-t1<<endl;
 
 	//show result
@@ -52,12 +52,12 @@ int main(int argc, char** argv) {
 	Mat H_opt = Mat::zeros(image.size(), CV_8UC1);
 	Mat E_opt = Mat::zeros(image.size(), CV_8UC1);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	//color deconvolution
 	ColorDeconvOptimized( image, M, b, H_opt, E_opt, BGR2RGB);
 
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	cout << "Conv optimized = "<< t2-t1<<endl;
 
 	if(countNonZero(H != H_opt) || countNonZero(E != E_opt)){
@@ -69,12 +69,12 @@ int main(int argc, char** argv) {
 	Mat H_opt_float = Mat::zeros(image.size(), CV_8UC1);
 	Mat E_opt_float = Mat::zeros(image.size(), CV_8UC1);
 
-	t1 = cciutils::ClockGetTime();
+	t1 = cci::common::event::timestampInUS();
 
 	//color deconvolution
 	ColorDeconvOptimizedFloat( image, M, b, H_opt_float, E_opt_float, BGR2RGB);
 
-	t2 = cciutils::ClockGetTime();
+	t2 = cci::common::event::timestampInUS();
 	cout << "Conv optimized float = "<< t2-t1<<endl;
 	if(countNonZero(H != H_opt_float) || countNonZero(E != E_opt_float)){
 		printf("Error: E or H images are not the same! H = %d and E = %d\n", countNonZero(H != H_opt_float), countNonZero(E != E_opt_float));

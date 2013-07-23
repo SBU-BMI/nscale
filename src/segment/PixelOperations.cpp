@@ -84,13 +84,14 @@ Mat PixelOperations::bgr2gray(const ::cv::Mat& img){
 	}
 	return gray;
 }
-void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b, Mat& H, Mat& E, bool BGR2RGB){
+
+Mat PixelOperations::ComputeInverseStainMatrix(const Mat& M, const Mat& b) {
+
+	assert(b.rows == 1);  // should be a row vector
 
 	long t1 = cci::common::event::timestampInUS();
 	//initialize normalized stain deconvolution matrix
-	Mat normal_M;
-
-	M.copyTo(normal_M);
+	Mat normal_M(M);
 
 	//stain normalization
 	double col_Norm;
@@ -104,18 +105,20 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 
 	//find last column of the normalized stain deconvolution matrix
 	int last_col_index = M.cols-1;
-	Mat last_col = normal_M.col(last_col_index); //or//Mat last_col = normal_M(Range::all(), Range(2,3));
+//	Mat last_col = normal_M.col(last_col_index); //or//Mat last_col = normal_M(Range::all(), Range(2,3));
 	//showMat( last_col, "last column " );
 
 	//normalize the stain deconvolution matrix again
-	if(norm(last_col) == (double) 0){
-		for(int i=0; i< normal_M.rows; i++){
+	if(norm(normal_M.col(last_col_index)) == (double) 0){
+		double nrm;
 
-			if( norm(normal_M.row(i)) > 1 ){
+		for(int i=0; i< normal_M.rows; i++){
+			nrm = norm(normal_M.row(i));
+			if( nrm > 1 ){
 				normal_M.at<double>(i,last_col_index) = 0;
 			}
 			else{
-				normal_M.at<double>(i,last_col_index) =  sqrt( 1 - pow(norm(normal_M.row(i)), 2) );
+				normal_M.at<double>(i,last_col_index) =  sqrt( 1 - nrm * nrm );
 			}
 		}
 		normal_M.col(last_col_index) = normal_M.col(last_col_index) / norm(normal_M.col(last_col_index));
@@ -124,125 +127,144 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& M, const Mat& b,
 
 	//take the inverse of the normalized stain deconvolution matrix
 	Mat Q = normal_M.inv();
-	if (b.size().height != 1){
-		printf("b has to be a row vector \n");
-		exit(-1);
-	}
+	normal_M.release();
 
 	//select rows in Q with a true marker in b
 	Mat T(1,Q.cols,Q.type());
-	for (int i=0; i<b.size().width; i++){
+	for (int i=0; i<b.cols; i++){
 		if( b.at<char>(0,i) == 1 )
 			T.push_back(Q.row(i));
 	}
-	Q = T.rowRange(Range(1,T.rows));
+	Q.release();
+	Mat T2;
+	T.rowRange(Range(1,T.rows)).copyTo(T2);
+	T.release();
+	Mat output;
+	T2.convertTo(output, CV_32FC1);
+	T2.release();
 
 	long t2 = cci::common::event::timestampInUS();
 
-	cout << "	Before normalized = "<< t2-t1 <<endl;
+	cout << "  Before normalized = "<< t2-t1 <<endl;
 
-    	//normalized image
-	int nr = image.rows, nc = image.cols;
-	Mat dn = Mat::zeros(nr, nc, CV_64FC3);
-	if (image.channels() == 1){
-		for(int i=0; i<nr; i++){
-			const unsigned char* data_in = image.ptr<unsigned char>(i);
-			double* data_out = dn.ptr<double>(i);
-			for(int j=0; j<nc; j++){
-				data_out[j] = -(255.0*log(((double)(data_in[j])+1.0)/255.0))/log(255.0);
-			}
-		}
-	}else if(image.channels() == 3){
-		int imageChannels = image.channels();
-		vector<double> precomp_res;
-		for(int i=0; i < 256; i++){
-			double temp = -(255.0*log(((double)i +1.0)/255.0))/log(255.0);
-			precomp_res.push_back(temp);
-		}
+	return output;
+}
 
-		for(int i=0; i<nr; i++){
-			const unsigned char* data_in = image.ptr<unsigned char>(i);
-			double* data_out = dn.ptr<double>(i);
-				for(int j=0; j<nc; j++){
-					for(int k=0; k<imageChannels; k++){
-//						data_out[j*imageChannels+k] = -(255.0*log(((double)data_in[j*imageChannels+k] +1.0)/255.0))/log(255.0);
-
-						data_out[j*imageChannels+k] = precomp_res[data_in[j*imageChannels+k]];
-					}
-				}
-		}
+vector<float> PixelOperations::ComputeLookupTable() {
+	vector<float> precomp_res;
+	float temp;
+	const float k = -255.0 / log(255.0);
+	for(int i=0; i < 256; i++){
+		//temp = -(255.0* log(((double)i +1.0)/255.0))/log(255.0);
+		temp = k * log((float)i + 1.0) + 255.0;
+		precomp_res.push_back(temp);
 	}
+	return precomp_res;
+}
+
+void PixelOperations::ColorDeconv( const Mat& image, const Mat& Q, const vector<float> &lut, Mat& H, Mat& E, bool BGR2RGB){
+	assert(image.channels() == 3); // Image must have 3 channels for color deconvolution;
+	assert(Q.isContinuous());  // Q should be continuous.  use copyTo to ensure
+	assert(H.rows == image.rows);
+	assert(E.rows == image.rows);
+	assert(H.cols == image.cols);
+	assert(E.cols == image.cols);
+
+	//normalized image
+	long t2 = cci::common::event::timestampInUS();
+
+	int nr = image.rows, nc = image.cols, step1 = image.step1(); // step1: number of channel elements in a row.
+	//Mat dn = Mat::zeros(nr, nc, CV_64FC3);
+	Mat dn = Mat::zeros(nr, nc, CV_32FC3);
+	LUT(image, lut, dn);
+//	for(int i=0; i<nr; i++){
+//		const unsigned char* data_in = image.ptr<unsigned char>(i);
+//		//double* data_out = dn.ptr<double>(i);
+//		float* data_out = dn.ptr<float>(i);
+//		for(int j=0; j<step1; j++){
+//			data_out[j] = (float)lut[data_in[j]];
+//		}
+//	}
 
 	long t1loop = cci::common::event::timestampInUS();
-	cout << "	After first loop = "<< t1loop - t2 <<endl;
+	cout << "  After first loop = "<< t1loop - t2 <<endl;
 
 	//channel deconvolution
-	Mat cn = Mat::zeros(nr, nc, CV_64FC2);
-	int dn_channels = dn.channels();
-	int cn_channels = cn.channels();
-
-	double *Q_ptr = NULL;
-	if(Q.isContinuous()){
-		Q_ptr = Q.ptr<double>(0);
-	}else{
-		Q_ptr = (double *)malloc(sizeof(double) * Q.rows * Q.cols);
-		assert(Q_ptr != NULL);
-
-		for(int i = 0; i < Q.rows; i++){
-			for(int j = 0; j < Q.cols; j++){
-				Q_ptr[i * Q.cols + j ] = Q.at<double>(i,j);
-			}
-		}
+	Mat dn2 = dn.reshape(1, nr*nc);  // col = 3, rows = numpixels;
+	Mat Q4;
+	if (BGR2RGB) {
+		flip(Q.t(), Q4, 0); // flip vertically of the transpose
+	} else {
+		Q4 = Q.t();
 	}
+	Mat cn = dn2 * Q4;  // matrix multiply.  result = col=2, rows=numpixels, channels = 1;
+	Q4.release();
+	dn.release();
 
+////	Mat cn = Mat::zeros(nr, nc, CV_64FC2);
+//	Mat cn = Mat::zeros(nr, nc, CV_32FC2);
+//	int dn_channels = dn.channels();
+//	int cn_channels = cn.channels();
 
-	for(int i=0; i<nr; i++){
-		const double *dn_ptr = dn.ptr<double>(i);
-		double *cn_ptr = cn.ptr<double>(i);
-		for(int j=0; j<nc; j++){
-			if (dn.channels() == 3){
-				for(int k=0; k<dn_channels; k++){
-					for(int Q_i=0; Q_i<Q.rows; Q_i++)
-						if( BGR2RGB ){
-							cn_ptr[j * cn_channels + Q_i] += Q_ptr[Q_i * Q.cols + k]  * dn_ptr[ j * dn_channels + dn_channels-1-k];
-						}else{
-							cn_ptr[j * cn_channels + Q_i] += Q_ptr[Q_i * Q.cols + k]  * dn_ptr[ j * dn_channels + k];
-						}
-				}
-			}
-			else{
-				printf("Image must have 3 channels for color deconvolution \n");
-				exit(-1);
-			}
-		}
-	}
+//	const double *Q_ptr = Q.ptr<double>(0);
+//
+//	for(int i=0; i<nr; i++){
+////		const double *dn_ptr = dn.ptr<double>(i);
+////		double *cn_ptr = cn.ptr<double>(i);
+//		const float *dn_ptr = dn.ptr<float>(i);
+//		float *cn_ptr = cn.ptr<float>(i);
+//
+//		for(int j=0; j<nc; j++){
+//			for(int k=0; k<dn_channels; k++){
+//				for(int Q_i=0; Q_i<Q.rows; Q_i++)
+//					if( BGR2RGB ){
+//						cn_ptr[j * cn_channels + Q_i] += (float)(Q_ptr[Q_i * Q.cols + k]  * (double)dn_ptr[ j * dn_channels + dn_channels-1-k]);
+//					}else{
+//						cn_ptr[j * cn_channels + Q_i] += (float)(Q_ptr[Q_i * Q.cols + k]  * (double)dn_ptr[ j * dn_channels + k]);
+//					}
+//			}
+//		}
+//	}
+//	dn.release();
 
-	if(!Q.isContinuous()){
-		free(Q_ptr);
-	}
 	long t2loop = cci::common::event::timestampInUS();
-	cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
+	cout << "  After 2 loop = "<< t2loop - t1loop <<endl;
 
 	//denormalized H and E channels
-	double temp;
-	for(int i=0; i<nr; i++){
-		unsigned char *E_ptr = E.ptr<unsigned char>(i);
-		unsigned char *H_ptr = H.ptr<unsigned char>(i);
-		const double *cn_ptr = cn.ptr<double>(i);
-		double log255div255 = log(255.0)/255.0;
+	float log255div255 = -log(255.0)/255.0;
+	Mat deconved;
+	exp((cn - (float)255.0) * log255div255, deconved);
+	cn.release();
+	Mat HE;
+	deconved.reshape(2, nr).convertTo(HE, CV_8UC2);  // convert back to a 2D multi channel image
+	deconved.release();
+	vector<Mat> output;
+	split(HE, output);  // split back to H and E.
+	HE.release();
 
-		for(int j=0; j<nc; j++){
-			temp = exp(-(cn_ptr[j * cn_channels]-255.0)*log255div255);
-			H_ptr[j] = cci::common::type::double2uchar(temp);
-
-			temp = exp(-(cn_ptr[j * cn_channels + 1]-255.0)*log255div255);
-
-			E_ptr[j] = cci::common::type::double2uchar(temp);
-		}
-	}
+	output[0].copyTo(H);
+	output[1].copyTo(E);
+	output[0].release();
+	output[1].release();
+//	double temp;
+//	for(int i=0; i<nr; i++){
+//		unsigned char *E_ptr = E.ptr<unsigned char>(i);
+//		unsigned char *H_ptr = H.ptr<unsigned char>(i);
+//		//const double *cn_ptr = cn.ptr<double>(i);
+//		const float *cn_ptr = cn.ptr<float>(i);
+//
+//		for(int j=0; j<nc; j++){
+//			temp = exp(-((double)cn_ptr[j * cn_channels]-255.0)*log255div255);
+//			H_ptr[j] = cci::common::type::double2uchar(temp);
+//
+//			temp = exp(-((double)cn_ptr[j * cn_channels + 1]-255.0)*log255div255);
+//
+//			E_ptr[j] = cci::common::type::double2uchar(temp);
+//		}
+//	}
 
 	long t3 = cci::common::event::timestampInUS();
-	cout << "	Rest = "<< t3-t2loop<<endl;
+	cout << "  Rest = "<< t3-t2loop<<endl;
 }
 
 template <typename T>

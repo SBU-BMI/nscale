@@ -236,7 +236,7 @@ void ColorDeconvOptimizedFloat( const Mat& image, const Mat& M, const Mat& b, Ma
 
 	long t2 = cci::common::event::timestampInUS();
 
-	cout << "	Before normalized = "<< t2-t1 <<endl;
+	//cout << "	Before normalized = "<< t2-t1 <<endl;
 
     	//normalized image
 	int nr = image.rows, nc = image.cols;
@@ -273,7 +273,7 @@ void ColorDeconvOptimizedFloat( const Mat& image, const Mat& M, const Mat& b, Ma
 	}
 
 	long t1loop = cci::common::event::timestampInUS();
-	cout << "	Perf. after 1 loop = "<< t1loop-t2 <<endl;
+	//cout << "	Perf. after 1 loop = "<< t1loop-t2 <<endl;
 
 	//channel deconvolution
 	Mat cn = Mat::zeros(nr, nc, CV_32FC2);
@@ -339,7 +339,7 @@ void ColorDeconvOptimizedFloat( const Mat& image, const Mat& M, const Mat& b, Ma
 	}
 
 	long t3 = cci::common::event::timestampInUS();
-	cout << "	Rest = "<< t3-t1loop<<endl;
+	//cout << "	Rest = "<< t3-t1loop<<endl;
 }
 
 
@@ -398,7 +398,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 
 	long t2 = cci::common::event::timestampInUS();
 
-	cout << "	Before normalized = "<< t2-t1 <<endl;
+	//cout << "	Before normalized = "<< t2-t1 <<endl;
 
     	//normalized image
 	int nr = image.rows, nc = image.cols;
@@ -433,7 +433,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 	}
 
 	long t1loop = cci::common::event::timestampInUS();
-	cout << "	After first loop = "<< t1loop - t2 <<endl;
+	//cout << "	After first loop = "<< t1loop - t2 <<endl;
 
 	//channel deconvolution
 	Mat cn = Mat::zeros(nr, nc, CV_64FC2);
@@ -480,7 +480,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 		free(Q_ptr);
 	}
 	long t2loop = cci::common::event::timestampInUS();
-	cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
+	//cout << "	After 2 loop = "<< t2loop - t1loop <<endl;
 
 	//denormalized H and E channels
 	double temp;
@@ -501,7 +501,7 @@ void ColorDeconvOptimized( const Mat& image, const Mat& M, const Mat& b, Mat& H,
 	}
 
 	long t3 = cci::common::event::timestampInUS();
-	cout << "	Rest = "<< t3-t2loop<<endl;
+	//cout << "	Rest = "<< t3-t2loop<<endl;
 }
 
 //
