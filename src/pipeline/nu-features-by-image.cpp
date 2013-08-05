@@ -315,6 +315,8 @@ void worker_process(const MPI::Intracomm &comm_world, const int manager_rank, co
 
 void compute(const char *dirname, std::string &outdir) {
 
+	printf("processing %s\n", dirname );
+
 	// first get the list of filenames
 	std::vector<std::string> filenames;
 	getFiles(dirname, filenames);

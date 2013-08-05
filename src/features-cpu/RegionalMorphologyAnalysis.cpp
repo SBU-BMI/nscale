@@ -126,10 +126,17 @@ RegionalMorphologyAnalysis::RegionalMorphologyAnalysis(IplImage *originalImageMa
 
 RegionalMorphologyAnalysis::~RegionalMorphologyAnalysis() {
 
+	// Cleanning up blobs structures
 	for(int i = 0; i < internal_blobs.size(); i++){
 		delete internal_blobs[i];
 	}
 	internal_blobs.clear();
+
+	// Cleanning up blobs structures
+	for(int i = 0; i < cytoplasm_blobs.size(); i++){
+		delete cytoplasm_blobs[i];
+	}
+	cytoplasm_blobs.clear();
 
 	if(isImage){
 		if(originalImage){
@@ -179,17 +186,7 @@ RegionalMorphologyAnalysis::~RegionalMorphologyAnalysis() {
 		delete originalImageMaskNucleusBoxesGPU;
 	}
 #endif
-	// Cleanning up blobs structures
-	for(int i = 0; i < internal_blobs.size(); i++){
-		delete internal_blobs[i];
-	}
-	internal_blobs.clear();
 
-	// Cleanning up blobs structures
-	for(int i = 0; i < cytoplasm_blobs.size(); i++){
-		delete cytoplasm_blobs[i];
-	}
-	cytoplasm_blobs.clear();
 
 }
 
@@ -216,6 +213,7 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 //		CV_CHAIN_APPROX_SIMPLE
 		CV_CHAIN_APPROX_NONE
 		);
+	cvReleaseImage(&tempMask);
 
 	int maskSizeElements = 0;
 	// for all components found in the same first level
@@ -268,7 +266,7 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 //				cvSaveImage("blob1.tif", blobMask);
 //			}
 			CvPoint offsetCyto;
-			IplImage *cytoplasmMask = internal_blobs[i]->getCytoplasmMask(cvGetSize(originalImageMask), 8, offsetCyto);
+			IplImage *cytoplasmMask = internal_blobs[i]->getCytoplasmMask(cvGetSize(originalImageMask), 8, offsetCyto);  // a new image is created,  but blob has a refernece and will delete it.
 			// Should be fine til here
 //			if(i == 0){
 //				cvSaveImage("cyto1-0.tif", cytoplasmMask);
@@ -311,6 +309,9 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 //				cvSaveImage("blob-warnning.tif", blobMask);
 //
 //			}
+
+			cvReleaseImage(&tempMaskCytoplasm);
+
 			CvRect *bb = new CvRect();
 			bb->x = 0;
 			bb->y = 0;
@@ -336,7 +337,6 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 			delete bb;
 			// Release images used to calc. cytoplasm
 	//		cvReleaseImage(&cytoplasmMask);
-			cvReleaseImage(&tempMaskCytoplasm);
 //			if(i == 0){
 //				IplImage* cytoMask = cytoBlob->getMask();
 //
@@ -357,7 +357,6 @@ void RegionalMorphologyAnalysis::initializeContours(bool initCytoplasm)
 			//		cvDestroyWindow("CytoMaskComp - Press any key to continue!");
 		}	
 	}
-	cvReleaseImage(&tempMask);
 	cvReleaseMemStorage(&storage);
 }
 

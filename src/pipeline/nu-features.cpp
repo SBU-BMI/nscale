@@ -222,6 +222,7 @@ void compute(const char *input, const char *mask, const char *output, const Mat&
 	bgr[0].release();
 	bgr[1].release();
 	bgr[2].release();
+	bgr.clear();
 	//imwrite("test-g.pgm", grayMat);
 
 	//	cvSaveImage("newGrayScale.png", grayscale);
@@ -236,6 +237,7 @@ void compute(const char *input, const char *mask, const char *output, const Mat&
 	Mat E = Mat::zeros(image.size(), CV_8UC1);
 
 	::nscale::PixelOperations::ColorDeconv(image, Q, lut, H, E);
+	image.release();
 
 	IplImage ipl_image_H(H);
 	IplImage ipl_image_E(E);
@@ -262,7 +264,6 @@ void compute(const char *input, const char *mask, const char *output, const Mat&
 	vector<vector<float> > cytoplasmFeatures_G;
 	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_G, &grayscale);
 
-
 	/////////////// Compute cytoplasm based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
 	// 	0)MeanIntensity; 1) MedianIntensity-MeanIntensity; 2)MaxIntensity; 3)MinIntensity; 4)StdIntensity; 5)EntropyIntensity;
@@ -270,6 +271,7 @@ void compute(const char *input, const char *mask, const char *output, const Mat&
 	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
 	vector<vector<float> > cytoplasmFeatures_H;
 	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_H, &ipl_image_H);
+	H.release();
 
 	/////////////// Compute cytoplasm based features ////////////////////////
 	// Each line vector of features returned corresponds to a given nucleus, and contains the following features (one per column):
@@ -278,15 +280,13 @@ void compute(const char *input, const char *mask, const char *output, const Mat&
 	//	13)SkewnessGrad; 14)KurtosisGrad; 15)CannyArea; 16)MeanCanny;
 	vector<vector<float> > cytoplasmFeatures_E;
 	regional->doCytoplasmPipelineFeatures(cytoplasmFeatures_E, &ipl_image_E);
+	E.release();
 
 	delete regional;
 
-	image.release();
 	maskMat.release();
 	grayMat.release();
 
-	H.release();
-	E.release();
 
 
 

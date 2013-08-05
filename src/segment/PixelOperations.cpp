@@ -86,7 +86,7 @@ Mat PixelOperations::bgr2gray(const ::cv::Mat& img){
 }
 
 Mat PixelOperations::ComputeInverseStainMatrix(const Mat& M, const Mat& b) {
-
+	assert(M.type() == CV_64FC1);
 	assert(b.rows == 1);  // should be a row vector
 
 	long t1 = cci::common::event::timestampInUS();
@@ -145,7 +145,7 @@ Mat PixelOperations::ComputeInverseStainMatrix(const Mat& M, const Mat& b) {
 
 	long t2 = cci::common::event::timestampInUS();
 
-	cout << "  Before normalized = "<< t2-t1 <<endl;
+	//cout << "  Before normalized = "<< t2-t1 <<endl;
 
 	return output;
 }
@@ -187,7 +187,7 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& Q, const vector<
 //	}
 
 	long t1loop = cci::common::event::timestampInUS();
-	cout << "  After first loop = "<< t1loop - t2 <<endl;
+	//cout << "  After first loop = "<< t1loop - t2 <<endl;
 
 	//channel deconvolution
 	Mat dn2 = dn.reshape(1, nr*nc);  // col = 3, rows = numpixels;
@@ -228,14 +228,14 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& Q, const vector<
 //	dn.release();
 
 	long t2loop = cci::common::event::timestampInUS();
-	cout << "  After 2 loop = "<< t2loop - t1loop <<endl;
+	//cout << "  After 2 loop = "<< t2loop - t1loop <<endl;
 
 	//denormalized H and E channels
 	float log255div255 = -log(255.0)/255.0;
-	Mat deconved;
+	Mat deconved(cn.size(), cn.type());
 	exp((cn - (float)255.0) * log255div255, deconved);
 	cn.release();
-	Mat HE;
+	Mat HE(nr, nc, CV_8UC2);
 	deconved.reshape(2, nr).convertTo(HE, CV_8UC2);  // convert back to a 2D multi channel image
 	deconved.release();
 	vector<Mat> output;
@@ -264,7 +264,7 @@ void PixelOperations::ColorDeconv( const Mat& image, const Mat& Q, const vector<
 //	}
 
 	long t3 = cci::common::event::timestampInUS();
-	cout << "  Rest = "<< t3-t2loop<<endl;
+	//cout << "  Rest = "<< t3-t2loop<<endl;
 }
 
 template <typename T>
