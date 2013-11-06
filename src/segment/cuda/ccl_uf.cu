@@ -665,7 +665,7 @@ int areaThreshold(int w, int h, int* d_label, int bgval, int minSize, int maxSiz
 //	STOP_TIME_T;
 //	printf("   uf area flatten: %f\n", ett);
 
-	printf(" inside cu areathreshold: compcount = %d\n", j);
+//	printf(" inside cu areathreshold: compcount = %d\n", j);
 
 
 
@@ -778,7 +778,7 @@ int areaThreshold2(int w, int h, int* d_label, int bgval, int minSize, int maxSi
 //	printf("   uf area flatten: %f\n", ett);
  
 
-	printf(" inside cu areathreshold: compcount = %d\n", j);
+//	printf(" inside cu areathreshold: compcount = %d\n", j);
 
 
 
@@ -966,7 +966,7 @@ int* boundingBox(const int w, const int h, int* d_label, int bgval, int &compcou
 	nl.clear();
 
 	compcount = thrust::distance(minmax2, newend2.second);
-	printf(" inside cu: compcount = %d\n", compcount);
+//	printf(" inside cu: compcount = %d\n", compcount);
 
 	int *bbox;
 	cudaMalloc(&bbox, compcount * 5 * sizeof(int));
@@ -1082,7 +1082,7 @@ int* boundingBox2(const int w, const int h, int* d_label, int bgval, int &compco
     sortedIdx.clear();
 
 	compcount = thrust::distance(minmax, newend.second);
-	printf(" inside cu: compcount = %d\n", compcount);
+//	printf(" inside cu: compcount = %d\n", compcount);
 
 	int *bbox;
 	cudaMalloc(&bbox, compcount * 5 * sizeof(int));
@@ -1093,7 +1093,7 @@ int* boundingBox2(const int w, const int h, int* d_label, int bgval, int &compco
 	cudaMemcpy(bbox+4*compcount, tbox+4*fgcount, compcount * sizeof(int), cudaMemcpyDeviceToDevice);
 
 	cudaFree(tbox);
-
+//printf("bbox adderss inside cu %p\n", bbox);
 
     err = cudaGetLastError();
     if (err != cudaSuccess) {

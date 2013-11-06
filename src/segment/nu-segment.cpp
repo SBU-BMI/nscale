@@ -41,7 +41,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 
 int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 	imageName.assign(argv[1]);
@@ -88,7 +88,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [numThreads] [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 
@@ -504,9 +504,9 @@ int main (int argc, char **argv){
         	printf("omp %d\n", omp_get_max_threads());
 
 #pragma omp parallel
-    	{
-#pragma omp single private(i)
     		{
+#pragma omp single firstprivate(i)
+    			{
     			while (i < total) {
     				int ti = i;
     				// has to use firstprivate - private does not work.
@@ -514,13 +514,13 @@ int main (int argc, char **argv){
     				{
 //        				printf("t i: %d, %d \n", i, ti);
     					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode);
-    	        		printf("processed %s\n", filenames[ti].c_str());
+    		        		printf("processed %s\n", filenames[ti].c_str());
     				}
     				i++;
     			}
-    		}
+    			}	
 #pragma omp taskwait
-    	}
+    		}
     	}
 #else
     	printf("not omp\n");

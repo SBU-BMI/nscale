@@ -188,6 +188,12 @@ int HistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 
 	std::vector<GpuMat> g_bgr;
+
+	cudaError_t error = cudaGetLastError();
+	if (error != cudaSuccess) {
+		printf("CUDA Error: %s \n", cudaGetErrorString(error));
+	}
+	
 	split(g_img, g_bgr, stream);
 	stream.waitForCompletion();
 	if (logger) logger->logTimeSinceLastLog("toRGB");
@@ -222,13 +228,13 @@ int HistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g
 	}
 	if (logger) logger->logTimeSinceLastLog("background");
 
-	std::cout << "background" << std::endl;
+//	std::cout << "background" << std::endl;
 
 	GpuMat g_rbc = ::nscale::gpu::HistologicalEntities::getRBC(g_bgr, stream, logger, iresHandler);
 	stream.waitForCompletion();
 	if (iresHandler) iresHandler->saveIntermediate(g_rbc, 2);
 
-	std::cout << "after rbc" << std::endl;
+//	std::cout << "after rbc" << std::endl;
 
 	if (logger) logger->logTimeSinceLastLog("RBC");
 	int rbcPixelCount = countNonZero(g_rbc);
@@ -261,8 +267,8 @@ int HistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g
 	g_r.release();
 	if (logger) logger->logTimeSinceLastLog("invert");
 
-	std::cout << "debug:invert! g_rc.cols: "<< g_rc.cols << " g_rc.data=" << (g_rc.data==NULL) << std::endl;
-fflush(stdout);
+//	std::cout << "debug:invert! g_rc.cols: "<< g_rc.cols << " g_rc.data=" << (g_rc.data==NULL) << std::endl;
+//	fflush(stdout);
 
 	GpuMat g_rc_open(g_rc.size(), g_rc.type());
 	//Mat disk19 = getStructuringElement(MORPH_ELLIPSE, Size(19,19));
@@ -294,7 +300,7 @@ fflush(stdout);
 //	imwrite("test/out-rcopen-strel.pbm", disk19);
 	// filter doesnot check borders.  so need to create border.
 	g_rc_open = ::nscale::gpu::morphOpen<unsigned char>(g_rc, disk19, stream);
-	std::cout << "debug:after morphOpen" <<std::endl;
+//	std::cout << "debug:after morphOpen" <<std::endl;
 
 //	GpuMat rc_border;
 //	copyMakeBorder(g_rc, rc_border, 9,9,9,9, Scalar(0), stream);
@@ -353,7 +359,7 @@ fflush(stdout);
 
 	if (logger) logger->logTimeSinceLastLog("threshold1");
 
-	std::cout << "debug:beforeFill1" << std::endl;
+//	std::cout << "debug:beforeFill1" << std::endl;
 	GpuMat g_bw1 = ::nscale::gpu::imfillHoles<unsigned char>(g_diffIm2, true, 4, stream);
 	stream.waitForCompletion();
 	if (logger) logger->logTimeSinceLastLog("fillHoles1");
@@ -661,10 +667,30 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	GpuMat g_img;
 	stream.enqueueUpload(img, g_img);
 	stream.waitForCompletion();
+
+	cudaError_t error = cudaGetLastError();
+	if (error != cudaSuccess) {
+		printf("CUDA error : %s\n", cudaGetErrorString(error));		
+	}	
+
 	GpuMat g_output;
-	int *g_bbox;
+	int *g_bbox = NULL;
 
 	int status = ::nscale::gpu::HistologicalEntities::segmentNuclei(g_img, g_output, compcount, g_bbox, str1, logger, iresHandler);
+	
+	if (status == ::nscale::HistologicalEntities::SUCCESS) {
+//		printf("bounding box address after %p \n", g_bbox);
+		bbox = (int *)malloc(sizeof(int) * compcount * 5);
+
+		cudaMemcpy(bbox, g_bbox, sizeof(int) * compcount * 5, cudaMemcpyDeviceToHost);\
+
+		cudaFree(g_bbox);
+	//        printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
+        	error = cudaGetLastError();
+	        if (error != cudaSuccess) {
+        	        printf("CUDA error : %s\n", cudaGetErrorString(error));
+	        }
+	}
 
 	output = cv::Mat::zeros(g_output.size(), g_output.type());
 	stream.enqueueDownload(g_output, output);
@@ -673,10 +699,11 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	g_output.release();
 	g_img.release();
 
-	bbox = (int *)malloc(sizeof(int) * compcount * 5);
-	cudaMemcpy(bbox, g_bbox, sizeof(int) * compcount * 5, cudaMemcpyDeviceToHost);\
-	cudaFree(g_bbox);
-//        printf(" bbox: %d, %d, %d, %d, %d\n", bbox[0], bbox[1], bbox[2], bbox[3], bbox[4]);
+	error = cudaGetLastError();
+	if (error != cudaSuccess) {
+		printf("CUDA error : %s\n", cudaGetErrorString(error));		
+	}	
+ 
 
 	return status;
 
@@ -702,13 +729,13 @@ int HistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 	if (iresHandler) iresHandler->saveIntermediate(g_img, 0);
 
 	GpuMat g_seg_norbc(g_img.size(), CV_8U);
-	std::cout << "debug: beforeFindNucleus "<< std::endl;
+//	std::cout << "debug: beforeFindNucleus "<< std::endl;
 	int findCandidateResult = ::nscale::gpu::HistologicalEntities::plFindNucleusCandidates(g_img, g_seg_norbc, stream, logger, iresHandler);
 	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return findCandidateResult;
 	}
 
-	std::cout << "debug: beforeFillHoles "<< std::endl;
+//	std::cout << "debug: beforeFillHoles "<< std::endl;
 	GpuMat g_seg_nohole = ::nscale::gpu::imfillHoles<unsigned char>(g_seg_norbc, true, 4, stream);
 	stream.waitForCompletion();
 	g_seg_norbc.release();
@@ -832,9 +859,17 @@ int HistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 	g_output = nscale::gpu::bwlabel(g_final, 8, true, stream);
 	g_final.release();
 
+
 	if (logger) logger->logTimeSinceLastLog("bwlabel2");
 	g_bbox = ::nscale::gpu::boundingBox2(g_output.cols, g_output.rows, (int*)g_output.data, 0, compcount, cv::gpu::StreamAccessor::getStream(stream));
+	
 	stream.waitForCompletion();
+
+	cudaError_t error = cudaGetLastError();
+	if (error != cudaSuccess) {
+		printf("CUDA error a1 : %s\n", cudaGetErrorString(error));		
+	}	
+
 
 	if (logger) logger->logTimeSinceLastLog("bounding_box");
 	
@@ -855,6 +890,7 @@ int* boundingBox2(GpuMat g_input, int &compcount, cv::gpu::Stream *str){
 int* boundingBox2(GpuMat g_input, cv::gpu::Stream *str){
 	int compcount;
 	int *g_bbox = ::nscale::gpu::boundingBox2(g_input.cols, g_input.rows, (int*)g_input.data, 0, compcount, cv::gpu::StreamAccessor::getStream(*str));
+
 	return g_bbox;
 };
 void cudaFreeData(char *dataPtr){

@@ -8,9 +8,12 @@
 #ifndef CONTOUR_H_
 #define CONTOUR_H_
 
-#include "highgui.h"
-#include "cv.h"
-#include "cxcore.h"
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/imgproc/imgproc.hpp"
+//#include "opencv/highgui.h"
+//#include "opencv/cv.h"
+//#include "opencv/cxcore.h"
 #include <stdio.h>
 #include <math.h>
 #include <iostream>

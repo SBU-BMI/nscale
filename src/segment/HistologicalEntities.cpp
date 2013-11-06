@@ -158,7 +158,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("invert");
 
 	uint64_t t1 = cci::common::event::timestampInUS();
-	std::cout << "RBC detection: " << t1-t0 << std::endl; 
+//	std::cout << "RBC detection: " << t1-t0 << std::endl; 
 
 
 	Mat rc_open(rc.size(), rc.type());
@@ -194,7 +194,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (iresHandler) iresHandler->saveIntermediate(rc_open, 3);
 
 	uint64_t t2 = cci::common::event::timestampInUS();
-	std::cout << "Morph Open: " << t2-t1 << std::endl; 
+//	std::cout << "Morph Open: " << t2-t1 << std::endl; 
 
 
  
@@ -233,7 +233,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (iresHandler) iresHandler->saveIntermediate(bw1, 7);
 
 	uint64_t t3 = cci::common::event::timestampInUS();
-	std::cout << "ReconToNuclei " << t3-t2 << std::endl; 
+//	std::cout << "ReconToNuclei " << t3-t2 << std::endl; 
 
 
 //	// TODO: change back

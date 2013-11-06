@@ -129,7 +129,7 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream, bool calcDist, int 
 		int *g_queue = nscale::gpu::distQueueBuildCaller(mask.rows, mask.cols, mask, g_nearestNeighbors, g_queue_size, StreamAccessor::getStream(stream));
 
 		uint64_t t2 = cci::common::event::timestampInUS();
-		std::cout << "After Call build queue - queue size = "<< g_queue_size << " elapsedTime:"<<t2-t1 <<std::endl;
+//		std::cout << "After Call build queue - queue size = "<< g_queue_size << " elapsedTime:"<<t2-t1 <<std::endl;
 
 		stream.waitForCompletion();
 
@@ -145,12 +145,12 @@ GpuMat distanceTransform(const GpuMat& mask, Stream& stream, bool calcDist, int 
 		nscale::gpu::distMapCalcCaller(g_nearestNeighbors.rows, g_nearestNeighbors.cols, g_nearestNeighbors, g_distanceMap, StreamAccessor::getStream(stream));
 		stream.waitForCompletion();
 		uint64_t t2 = cci::common::event::timestampInUS();
-		std::cout << "DistMapCalc Time:" << t2-t1 << std::endl;
+//		std::cout << "DistMapCalc Time:" << t2-t1 << std::endl;
 
 		g_nearestNeighbors.release();
 		return g_distanceMap;
 	}else{
-		std::cout << "neighborCalcCaller"<<std::endl;
+//		std::cout << "neighborCalcCaller"<<std::endl;
 		// calc global value of data calculated for this tile
 		::nscale::gpu::neighborCalcCaller(g_nearestNeighbors.rows, g_nearestNeighbors.cols, g_nearestNeighbors, tIdX, tIdY, tileSize, imgCols, StreamAccessor::getStream(stream));
 		return g_nearestNeighbors;
@@ -318,7 +318,7 @@ GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity,
 		// Perform Raster and Anti-Raster passes and build queue used in the queue-based computation phase
 		int *g_queuePixelsGPU;
 		if(binary){
-			std::cout << "Binary queue"<<std::endl;
+//			std::cout << "Binary queue"<<std::endl;
 			g_queuePixelsGPU = ::nscale::gpu::imreconstructBinaryCallerBuildQueue<T>(g_marker.data, g_mask.data, g_mask.cols, g_mask.rows, connectivity, queuePixelsGPUSize, number_raster_passes, StreamAccessor::getStream(stream));
 		}else{
 			g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<T>(g_marker.data, g_mask.data, g_mask.cols, g_mask.rows, connectivity, queuePixelsGPUSize, number_raster_passes, StreamAccessor::getStream(stream));
@@ -398,7 +398,7 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 	GpuMat g_markerInt;
 
 	uint64_t endUpload = cci::common::event::timestampInUS();
-	cout << "	Init+upload = "<< endUpload-t11 <<endl;
+//	cout << "	Init+upload = "<< endUpload-t11 <<endl;
 	float queue_increase_factor =2;
 	int number_raster_passes = nItFirstPass;
 
@@ -410,16 +410,16 @@ GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connecti
 		int *g_queuePixelsGPU;
 
 		g_queuePixelsGPU = ::nscale::gpu::imreconstructIntCallerBuildQueue<int>((int*)g_marker_i.data, (const int*)g_mask_i.data, g_mask_i.cols, g_mask_i.rows, connectivity, queuePixelsGPUSize, number_raster_passes, StreamAccessor::getStream(stream));
-		std::cout << "QueueSize = "<< queuePixelsGPUSize << " numRasters="<< number_raster_passes <<std::endl;
+//		std::cout << "QueueSize = "<< queuePixelsGPUSize << " numRasters="<< number_raster_passes <<std::endl;
 
 		stream.waitForCompletion();
 		uint64_t imreconBuildEnd = cci::common::event::timestampInUS();
-		cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
+//		cout << "	FirstPass+buildqueue = "<< imreconBuildEnd-endUpload <<endl;
 	
 //		// apply morphological reconstruction using the Queue based algorithm
 		morphRetCode = morphReconSpeedupFloat(g_queuePixelsGPU, queuePixelsGPUSize, (int*)g_marker_i.data, (int*)g_mask_i.data, g_mask_i.cols, g_mask_i.rows, connectivity, nBlocks, queue_increase_factor);
 		uint64_t t41 = cci::common::event::timestampInUS();
-		cout << "	queue time = "<< t41-imreconBuildEnd<<" nBlocks="<< nBlocks<<" morphRetCode="<<morphRetCode<<endl;
+//		cout << "	queue time = "<< t41-imreconBuildEnd<<" nBlocks="<< nBlocks<<" morphRetCode="<<morphRetCode<<endl;
 		number_raster_passes = 0;
 
 	 	queue_increase_factor*=2;
@@ -618,7 +618,7 @@ GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connecti
 	uint64_t t21 = cci::common::event::timestampInUS();
 
 	g_markerInt_1.release();
-	std::cout << "    total time = " << t21-t11 << "ms for. ConvertToChar = "<< t21-t41 << std::endl;
+//	std::cout << "    total time = " << t21-t11 << "ms for. ConvertToChar = "<< t21-t41 << std::endl;
 
 
 	return marker;
@@ -782,7 +782,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 	T mx = std::numeric_limits<T>::max();
 
 
-	printf("fillHoles: input.rows:%d\n", image.rows);
+//	printf("fillHoles: input.rows:%d\n", image.rows);
 	// copy the input and pad with -inf.
 	GpuMat mask2;
 	copyMakeBorder(image, mask2, 1, 1, 1, 1, BORDER_CONSTANT, Scalar_<T>(mn), stream);
@@ -804,7 +804,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 	GpuMat output2;
 	if (binary == true) {
 //		output2 = imreconstructBinary<T>(marker, mask, connectivity, stream);
-		std::cout << "Call imrecont binary"<<std::endl;
+//		std::cout << "Call imrecont binary"<<std::endl;
 		if(connectivity == 4){
 			output2 = imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 2, stream, 12, binary);
 		}else{
@@ -994,14 +994,14 @@ GpuMat bwareaopen(const GpuMat& binaryImage, bool labeled, bool flatten, int min
 		GpuMat temp = createContinuous(binaryImage.size(), CV_32SC1);
 		::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)temp.data, -1, connectivity, StreamAccessor::getStream(stream));
 		count = ::nscale::gpu::areaThreshold(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
-		printf("inside bwareaopen: count unlabeled = %d\n", count);
+//		printf("inside bwareaopen: count unlabeled = %d\n", count);
 		if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(temp, 0, true, std::numeric_limits<int>::max(), true, stream);
 		else output = temp;
 		stream.waitForCompletion();
 		temp.release();
 	} else {
 		count = ::nscale::gpu::areaThreshold(input.cols, input.rows, (int*)input.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
-		printf("inside bwareaopen: count labeled = %d\n", count);
+//		printf("inside bwareaopen: count labeled = %d\n", count);
 			if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(input, 0, true, std::numeric_limits<int>::max(), true, stream);
 		else output = input;
 		stream.waitForCompletion();
@@ -1029,13 +1029,13 @@ GpuMat bwareaopen2(const GpuMat& binaryImage, bool labeled, bool flatten, int mi
 		GpuMat temp = createContinuous(binaryImage.size(), CV_32SC1);
 		::nscale::gpu::CCL((unsigned char*)input.data, input.cols, input.rows, (int*)temp.data, -1, connectivity, StreamAccessor::getStream(stream));
 		count = ::nscale::gpu::areaThreshold2(temp.cols, temp.rows, (int*)temp.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
-		printf("inside bwareaopen2: count unlabeled = %d\n", count);
+//		printf("inside bwareaopen2: count unlabeled = %d\n", count);
 		if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(temp, 0, true, std::numeric_limits<int>::max(), true, stream);
 		else output = temp;
 		stream.waitForCompletion();
 	} else {
 		count = ::nscale::gpu::areaThreshold2(input.cols, input.rows, (int*)input.data, -1, minSize, maxSize, StreamAccessor::getStream(stream));
-		printf("inside bwareaopen2: count labeled = %d\n", count);
+//		printf("inside bwareaopen2: count labeled = %d\n", count);
 		if (flatten == true) output = ::nscale::gpu::PixelOperations::threshold(input, 0, true, std::numeric_limits<int>::max(), true, stream);
 		else output = input;
 		stream.waitForCompletion();
@@ -1369,7 +1369,7 @@ GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) {
 	CV_Assert((kernel.cols % 2) == 1 );
 
 	int bw = (kernel.cols - 1) / 2;
-	std::cout << "erodeCopyBorder: Image.cols = "<< image.cols << " bw="<< bw<<" image.data=" << (image.data==NULL) << std::endl;
+//	std::cout << "erodeCopyBorder: Image.cols = "<< image.cols << " bw="<< bw<<" image.data=" << (image.data==NULL) << std::endl;
 	GpuMat t_img;
 	copyMakeBorder(image, t_img, bw, bw+1, bw, bw+1, BORDER_CONSTANT, Scalar(std::numeric_limits<T>::max()), stream);
 	stream.waitForCompletion();

@@ -13,10 +13,10 @@
 #include <iostream>
 
 // Includes used by opencv
-#include "highgui.h"
-#include "cv.h"
-#include "cxcore.h"
-#include "opencv2/opencv.hpp"
+//#include "highgui.h"
+//#include "cv.h"
+//#include "cxcore.h"
+//#include "opencv2/opencv.hpp"
 
 // Opencv GPU includes
 #ifdef	USE_GPU
