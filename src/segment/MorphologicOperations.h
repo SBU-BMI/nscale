@@ -8,7 +8,7 @@
 #ifndef MORPHOLOGICOPERATION_H_
 #define MORPHOLOGICOPERATION_H_
 
-#include "cv.hpp"
+#include "opencv/cv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 
 using namespace cv;
