@@ -11,7 +11,7 @@
 #include <math.h>
 #include <cmath>
 #include <iostream>
-
+#include <opencv2/legacy/compat.hpp>
 // Includes used by opencv
 //#include "highgui.h"
 //#include "cv.h"

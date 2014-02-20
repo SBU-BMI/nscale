@@ -74,7 +74,7 @@ if(NS_FEATURES OR NS_SEGMENT)
 endif(NS_FEATURES OR NS_SEGMENT)
 
 if (NS_FEATURES)
-#    add_subdirectory(features-cpu)
+    add_subdirectory(features-cpu)
     add_subdirectory(features)
 endif(NS_FEATURES)
     

@@ -12,6 +12,9 @@
 #include "DrawAuxiliar.h"
 #include "Constants.h"
 #include "Operators.h"
+#include <opencv2/legacy/legacy.hpp>
+#include <opencv2/legacy/compat.hpp>
+
 #include <list>
 #include <iomanip>
 
