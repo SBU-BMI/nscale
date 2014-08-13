@@ -47,6 +47,8 @@ public:
 	static float* cytoCannyFeatures(const int* boundingBoxesInfo, int compCount, const cv::Mat& grayImage);
 
 	static void calcFeatures(cv::Mat& bgr, const cv::Mat& mask);
+	static float* calcAvgFeatures(cv::Mat& bgr, const cv::Mat& mask);
+
 };
 
 namespace gpu{

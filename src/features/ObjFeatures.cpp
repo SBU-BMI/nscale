@@ -576,6 +576,72 @@ void ObjFeatures::calcFeatures(cv::Mat& color, const cv::Mat& mask){
 
 }
 
+float* ObjFeatures::calcAvgFeatures(cv::Mat& color, const cv::Mat& mask){
+	int *bbox = NULL, compcount;
+	float *result = (float*) calloc((nscale::ObjFeatures::N_INTENSITY_FEATURES+nscale::ObjFeatures::N_GRADIENT_FEATURES+nscale::ObjFeatures::N_CANNY_FEATURES), sizeof(float));
+
+	cv::Mat	output = nscale::bwlabel2(mask, 8, true);
+	::nscale::ConnComponents cc;
+	bbox = cc.boundingBox(output.cols, output.rows, (int *)output.data, 0, compcount);
+	vector<cv::Mat> bgr;
+	split(color, bgr);
+
+	//std::cout << "output.rows: " << output.rows<< " CompCount: " << compcount << std::endl;
+
+	if(compcount > 0){
+		// calculate features
+		float* intensityFeatures0 = nscale::ObjFeatures::intensityFeatures(bbox, compcount, output, bgr[0]);
+		//	float* intensityFeatures1 = nscale::ObjFeatures::intensityFeatures(bbox, compcount, output, bgr[1]);
+		//	float* intensityFeatures2 = nscale::ObjFeatures::intensityFeatures(bbox, compcount, output, bgr[2]);
+		for (int i = 0; i < compcount; i++){
+			for(int j = 0; j < nscale::ObjFeatures::N_INTENSITY_FEATURES; j++){
+				result[j] += intensityFeatures0[i*nscale::ObjFeatures::N_INTENSITY_FEATURES + j];
+			}
+		}
+
+
+		free(intensityFeatures0);
+
+
+		float* h_gradientFeatures0 = nscale::ObjFeatures::gradientFeatures(bbox, compcount, output, bgr[0]);
+		//	float* h_gradientFeatures1 = nscale::ObjFeatures::gradientFeatures(bbox, compcount, output, bgr[1]);
+		//	float* h_gradientFeatures2 = nscale::ObjFeatures::gradientFeatures(bbox, compcount, output, bgr[2]);
+		for (int i = 0; i < compcount; i++){
+			for(int j = 0; j < nscale::ObjFeatures::N_GRADIENT_FEATURES; j++){
+				result[nscale::ObjFeatures::N_INTENSITY_FEATURES+j] += h_gradientFeatures0[i*nscale::ObjFeatures::N_GRADIENT_FEATURES + j];
+			}
+		}
+
+		free(h_gradientFeatures0);
+		//	free(h_gradientFeatures1);
+		//	free(h_gradientFeatures2);
+
+		float* h_cannyFeatures0 = nscale::ObjFeatures::cannyFeatures(bbox, compcount, output, bgr[0]);
+		//	float* h_cannyFeatures1 = nscale::ObjFeatures::cannyFeatures(bbox, compcount, output, bgr[1]);
+		//	float* h_cannyFeatures2 = nscale::ObjFeatures::cannyFeatures(bbox, compcount, output, bgr[2]);
+		for (int i = 0; i < compcount; i++){
+			for(int j = 0; j < nscale::ObjFeatures::N_CANNY_FEATURES; j++){
+				result[nscale::ObjFeatures::N_INTENSITY_FEATURES+nscale::ObjFeatures::N_GRADIENT_FEATURES+j] += h_cannyFeatures0[i*nscale::ObjFeatures::N_CANNY_FEATURES + j];
+			}
+		}
+
+		free(h_cannyFeatures0);
+		//	free(h_cannyFeatures1);
+		//	free(h_cannyFeatures2);
+
+
+		for(int i = 0; i < (nscale::ObjFeatures::N_INTENSITY_FEATURES+nscale::ObjFeatures::N_GRADIENT_FEATURES+nscale::ObjFeatures::N_CANNY_FEATURES); i++){
+			result[i] = result[i]/compcount;
+		}
+	}
+	if(bbox !=  NULL) free(bbox);
+
+	bgr[0].release();
+	bgr[1].release();
+	bgr[2].release();
+	return result;
+
+}
 
 
 }
