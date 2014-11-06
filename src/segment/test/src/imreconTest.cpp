@@ -34,6 +34,24 @@ int main (int argc, char **argv){
 	Mat recon;
 	uint64_t t1, t2;
 
+	t1 = cci::common::event::timestampInUS();
+	recon = nscale::imreconstruct<unsigned char>(marker, mask, 4);
+	t2 = cci::common::event::timestampInUS();
+	std::cout << " cpu recon4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-recon4-cpu.ppm", recon);
+
+	Mat markerUSINT, maskUSINT;
+	marker.convertTo(markerUSINT, CV_16UC1, 1, 0);
+	mask.convertTo(maskUSINT, CV_16UC1, 1, 0);
+
+	t1 = cci::common::event::timestampInUS();
+	recon = nscale::imreconstruct<unsigned short int>(markerUSINT, maskUSINT, 4);
+	t2 = cci::common::event::timestampInUS();
+	std::cout << " cpu recon4 took " << t2-t1 << "ms" << std::endl;
+	imwrite("test/out-recon4-cpu-usint.ppm", recon);
+	recon.convertTo(recon, CV_8UC1, 1, 0);
+	imwrite("test/out-recon4-cpu-usint-char.ppm", recon);
+
 #if defined (WITH_CUDA)
 	Stream stream;
 	GpuMat g_marker;
@@ -65,9 +83,9 @@ int main (int argc, char **argv){
 #endif
 
 
-//	Mat markerInt, maskInt;
-//	marker.convertTo(markerInt, CV_32SC1, 1, 0);
-//	mask.convertTo(maskInt, CV_32SC1, 1, 0);
+//	mat markerint, maskint;
+//	marker.convertto(markerint, cv_32sc1, 1, 0);
+//	mask.convertto(maskint, cv_32sc1, 1, 0);
 //
 //#if defined (WITH_CUDA)
 //	GpuMat g_marker_int, g_mask_int;

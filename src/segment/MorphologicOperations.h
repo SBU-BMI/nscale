@@ -2,7 +2,6 @@
  * MorphologicOperation.h
  *
  *  Created on: Jul 7, 2011
- *      Author: tcpan
  */
 
 #ifndef MORPHOLOGICOPERATION_H_
