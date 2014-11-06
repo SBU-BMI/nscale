@@ -19,8 +19,3 @@ eclipse Linux Tools is recommended for building with autoconf/automake
 
 
 compiling:
-1. need to have LD_LIBRARY_PATH point to the location where the opencv libs are installed
-2. use `pkg-config --cflags --libs opencv` in Makefile.
-
-TODO:
-switch to autoconf and/or CMake
