@@ -202,6 +202,10 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 //	imwrite("test/in-imrecon-gray-marker.pgm", rc_open);
 //	imwrite("test/in-imrecon-gray-mask.pgm", rc);
 //	exit(0);
+
+	imwrite("in-imrecon-gray-marker.pgm", rc_open);
+	imwrite("in-imrecon-gray-mask.pgm", rc);
+
 // END for generating test data
 	Mat rc_recon = ::nscale::imreconstruct<unsigned char>(rc_open, rc, 8);
 	if (iresHandler) iresHandler->saveIntermediate(rc_recon, 4);

@@ -16,7 +16,7 @@ if(OPENMP_FOUND)
  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-set(programs bwareaopenTest diff deconvTest distTransform copyMakeBorder imfillTest imhminTest imreconChunkTest imreconExperiments imreconOptimizeProfiler imreconTest localMaximaTest miscTest nu-segmentChunkTest nu-segmentTest queueTest watershedTest imreconMulticore tiler)
+set(programs bwareaopenTest diff deconvTest distTransform copyMakeBorder imfillTest imhminTest imreconChunkTest imreconExperiments imreconOptimizeProfiler imreconTest localMaximaTest miscTest nu-segmentChunkTest nu-segmentTest queueTest watershedTest watershedTestUint imreconMulticore tiler)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)

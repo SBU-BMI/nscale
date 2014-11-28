@@ -2132,6 +2132,149 @@ Mat imhmin(const Mat& image, T h, int connectivity) {
 	return nscale::PixelOperations::invert<T>(output);
 }
 
+#define UNVISITED 0x808080
+#define BORDER    0x818181
+#define MASK      0x80000000
+#define RIDGE     0
+
+inline int *neighvector(int w, int conn)
+{
+	static int neigh[8];
+	int i = 0;
+	switch(conn) {
+		case 4:
+			neigh[i++] = - w;
+			neigh[i++] = - 1;
+			neigh[i++] =   1;
+			neigh[i++] =   w;
+			break;
+		case 8:
+			neigh[i++] = - w - 1;
+			neigh[i++] = - w;
+			neigh[i++] = - w + 1;
+			neigh[i++] = - 1;
+			neigh[i++] =   1;
+			neigh[i++] =   w - 1;
+			neigh[i++] =   w;
+			neigh[i++] =   w + 1;
+			break;
+		default:
+			exit(1);
+	}
+	return neigh;
+}
+
+// input should have foreground > 0, and 0 for background
+Mat_<int> watershed(const Mat& image, int connectivity) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+	CV_Assert(image.type() ==  CV_16U);
+	CV_Assert(connectivity == 4 || connectivity == 8);
+
+
+	// create copy of the input image w/ border
+	Mat imageB;
+	copyMakeBorder( image, imageB, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<unsigned short int>::max());
+
+	// create image to be labeled: same size as input image w/ border
+	Mat W(image.size(), CV_32S);
+	W = UNVISITED;
+	copyMakeBorder(W, W, 1, 1, 1, 1, BORDER_CONSTANT, BORDER);
+
+	CV_Assert(W.size() ==  imageB.size());
+
+	// build neighbors vector
+	int *neigh = neighvector(W.cols, connectivity);
+
+	// TODO: reshape if not continuous
+	CV_Assert(W.isContinuous() && imageB.isContinuous());
+
+	// queue used for flooding
+	std::list<int> Q;
+	unsigned short int hmin, h;
+	int qmin, q, p, i;
+	int *WPtr = (int*)W.data;
+	unsigned short int *imageBPtr = (unsigned short int*)imageB.data;
+
+	// start in second row and stop before last row
+	for(p = W.cols+1; p < W.cols*(W.rows-1); p++) {
+		if(WPtr[p] == UNVISITED) {
+			hmin = imageBPtr[p];
+			qmin = p;
+			for(i = 0; i < connectivity; i++) {
+				q = p + neigh[i];
+				h = imageBPtr[q];
+				if(h < hmin) {
+					qmin = q;
+					hmin = h;
+				}
+			}
+			if(imageBPtr[p] > hmin) {
+				WPtr[p] = -qmin;
+				Q.push_back(p);
+			}
+		}
+	}
+
+	while(!Q.empty()){
+		p = Q.front();
+		Q.pop_front();
+		h = imageBPtr[p];
+		for(i = 0; i < connectivity; i++) {
+			q = p + neigh[i];
+			// if it is not a peak or plateu
+			if(WPtr[q] != UNVISITED || imageBPtr[q] != h) continue;
+			WPtr[q] = -p;
+			Q.push_back(q);	
+		}
+	}
+	int label, LABEL = 1, p1;
+
+	// start in second row and stop before last row
+	for(p = W.cols+1; p < W.cols*(W.rows-1); p++) {
+		if(WPtr[p] == UNVISITED) {
+			WPtr[p] = label = LABEL++;
+			Q.clear();
+			Q.push_back(p);
+			h = imageBPtr[p];
+			while(!Q.empty()) {
+				p1 = Q.front();
+				Q.pop_front();
+				for(i = 0; i < connectivity; i++) {
+					q = p1 + neigh[i];
+					if(WPtr[q] == UNVISITED) {
+						WPtr[q] = label;
+						Q.push_back(q);
+					}
+				}
+			}
+
+		}
+	}
+	// start in second row and stop before last row
+	for(p = W.cols+1; p < W.cols*(W.rows-1); p++) {
+		label = WPtr[p];
+		if(label == BORDER || label > 0) continue;
+		Q.clear();
+		for(;;) {
+			q = -label;
+			label = WPtr[q];
+			if(label > 0) break;
+			Q.push_back(q);
+		}
+		WPtr[p] = label;
+		while(!Q.empty()) {
+			p1 = Q.front();
+			Q.pop_front();
+			WPtr[p1] = label;
+		}
+
+	}
+	// remove border
+	return W(Rect(1,1, image.cols, image.rows));
+}
+
+
 // input should have foreground > 0, and 0 for background
 Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connectivity) {
 	// only works for intensity images.
