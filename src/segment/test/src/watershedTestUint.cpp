@@ -33,14 +33,12 @@ int main (int argc, char **argv){
 		input = nscale::PixelOperations::bgr2gray(input);
 
 		imwrite("in-cpu-watershed-gray.png", input);
-		Mat auxInput;
+	}
+	Mat auxInput;
 		input.convertTo(auxInput, CV_16U);
 		input = auxInput;
-		auxInput.release();
-		input.convertTo(auxInput, CV_8U);
 
-		imwrite("in-cpu-watershed-gray2.png", auxInput);
-	}
+
 	uint64_t t1, t2;
 
 	std::cout << "Cols: " << input.cols << " Rows: "<< input.rows<< std::endl; 
@@ -52,28 +50,8 @@ int main (int argc, char **argv){
 
 	t2 = cci::common::event::timestampInUS();
 	std::cout << "cpu watershed loop took " << (t2-t1)/1000 << "ms" << std::endl;
-	//imwrite("out-cpu-watershed.", waterResult);
-	Mat intermediate = waterResult;
-	std::stringstream ss;
-	ss << "32SC";
-		ss << intermediate.channels();
 
-
-		std::string filename = "waterresult" ;//getFileName(stage, std::string(RAW), ss.str());
-		FILE* fid = fopen(filename.c_str(), "wb");
-		if (!fid) printf("ERROR: can't open %s to write\n", filename.c_str());
-
-		const unsigned char* imgPtr;
-		int elSize = intermediate.elemSize();
-		for (int j = 0; j < intermediate.rows; ++j) {
-			imgPtr = intermediate.ptr(j);
-
-			fwrite(imgPtr, elSize, intermediate.cols, fid);
-		}
-		fclose(fid);
-
-	//cciutils::cv::imwriteRaw("out-watershed", waterResult);
-
+	imwrite("out-watershed.ppm", waterResult);
 	return 0;
 }
 
