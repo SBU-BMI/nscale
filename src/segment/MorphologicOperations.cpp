@@ -487,7 +487,258 @@ template
 void propagate(const Mat&, Mat&, std::queue<int>&, std::queue<int>&,
 		int, int, float* iPtr, float* oPtr, const float&);
 
+template <typename T>
+inline void propagate3D(std::queue<int>& xQ, std::queue<int>& yQ, std::queue<int>& zQ,
+		int x, int y, int z, T* iPtr, T* oPtr, const T& pval) {
 
+	T qval = oPtr[x];
+	T ival = iPtr[x];
+	if ((qval < pval) && (ival != qval)) {
+		oPtr[x] = min(pval, ival);
+		xQ.push(x);
+		yQ.push(y);
+		zQ.push(z);
+	}
+}
+
+template void propagate3D(std::queue<int>& xQ, std::queue<int>& yQ, std::queue<int>& zQ,
+		int x, int y, int z, unsigned short int* iPtr, unsigned short int* oPtr, const unsigned short int& pval);
+
+template void propagate3D(std::queue<int>& xQ, std::queue<int>& yQ, std::queue<int>& zQ,
+		int x, int y, int z, float* iPtr, float* oPtr, const float& pval);
+
+template <typename T>
+std::vector<cv::Mat> imreconstruct3D(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity){
+
+	CV_Assert(connectivity == 6);// the only one implemented so far
+	CV_Assert(seeds.size() == image.size());// data have same number of layers
+	CV_Assert(seeds.size() > 0);// data have at least one layer
+
+	// TODOD: assert all layers have same dimenson/type;
+	// create a copy of seeds/mask w/ border around data
+	std::vector<Mat> output, mask;
+
+	// The border is meant to avoid conditional commands in the code, which
+	// significantly reduce performance for a number of reasons.
+	// add a top border layer
+	output.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+	mask.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+
+	for(int i = 0; i < seeds.size(); i++){
+		// check type and size of images
+		CV_Assert(seeds[i].size() == image[i].size());
+		CV_Assert(seeds[i].type() == image[i].type());
+		CV_Assert(image[i].channels() == 1);
+		CV_Assert(seeds[i].channels() == 1);
+
+		// copy layers and add a border
+		Mat outputAux(seeds[i].size() + Size(2,2), seeds[i].type());
+		copyMakeBorder(seeds[i], outputAux, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		output.push_back(outputAux);
+
+		Mat inputAux(image[i].size() + Size(2,2), image[i].type());
+		copyMakeBorder(image[i], inputAux, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		mask.push_back(inputAux);
+	}
+	// add bottom border layer
+	output.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+	mask.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+
+	T pval, preval;
+	int xminus, xplus, yminus, yplus;
+	int maxx = output[0].cols - 1;
+	int maxy = output[0].rows - 1;
+	int maxz = output.size() - 1;
+	//std::cout << "cols: "<< output[0].cols << " layers: "<< mask.size()<<" "<< output.size() <<std::endl;
+	//std::cout << "maxx: "<< maxx << " maxy: "<< maxy << " maxz: "<< maxz<< std::endl;
+
+	std::queue<int> xQ;
+	std::queue<int> yQ;
+	std::queue<int> zQ;
+
+	// pointers to pixels in output image
+	T* oPtr; //actual row
+	T* oPtrMinus; // row = actual -1
+	T* oPtrPlus; // row = actual + 1
+	T* oPtrZMinus; // upper pixel
+	T* oPtrZPlus; // down pixel
+
+	// pointers to pixels in input mask image
+	T* iPtr;
+	T* iPtrMinus;
+	T* iPtrPlus;
+	T* iPtrZMinus;
+	T* iPtrZPlus;
+	int count = 0;
+//	uint64_t t1 = cci::common::event::timestampInUS();
+
+
+	// raster scan
+	for(int z = 1; z < maxz; ++z){
+		for (int y = 1; y < maxy; ++y) {
+
+			oPtr = output[z].ptr<T>(y);
+			oPtrMinus = output[z].ptr<T>(y-1);
+			oPtrZMinus = output[z-1].ptr<T>(y);
+
+			iPtr = mask[z].ptr<T>(y);
+
+			preval = oPtr[0];
+			for (int x = 1; x < maxx; ++x) {
+				xminus = x-1;
+				xplus = x+1;
+				pval = oPtr[x];
+
+				// walk through the neighbor pixels, left and up (N+(p)), top layer
+				pval = max(pval, max(preval, max(oPtrMinus[x], oPtrZMinus[x])));
+
+				preval = min(pval, iPtr[x]);
+				oPtr[x] = preval;
+			}
+		}
+	}
+
+	// anti-raster scan
+	for (int z = maxz-1; z > 0; --z){
+		for (int y = maxy-1; y > 0; --y) {
+			oPtr = output[z].ptr<T>(y);
+			oPtrPlus = output[z].ptr<T>(y+1);
+			oPtrZPlus = output[z+1].ptr<T>(y);
+			oPtrMinus = output[z].ptr<T>(y-1);
+
+			iPtr = mask[z].ptr<T>(y);
+			iPtrPlus = mask[z].ptr<T>(y+1);
+			iPtrZPlus = mask[z+1].ptr<T>(y);
+
+			preval = oPtr[maxx];
+			for (int x = maxx-1; x > 0; --x) {
+				xminus = x-1;
+				xplus = x+1;
+
+				pval = oPtr[x];
+
+				// walk through the neighbor pixels, right and down (N-(p)), and layer below
+				pval = max(pval, max(preval, max(oPtrPlus[x], oPtrZPlus[x])));
+
+				preval = min(pval, iPtr[x]);
+
+				oPtr[x] = preval;
+
+				// capture the seeds
+				// walk through the neighbor pixels, right and down (N-(p)) , and layer below
+				pval = oPtr[x];
+
+
+				if ((oPtr[xplus] < min(pval, iPtr[xplus])) ||
+						(oPtrPlus[x] < min(pval, iPtrPlus[x])) || (oPtrZPlus[x] < min(pval, iPtrZPlus[x]))) {
+
+					xQ.push(x);
+					yQ.push(y);
+					zQ.push(z);
+					++count;
+
+				//	continue;
+				}
+			}
+		}
+	}
+
+
+//	uint64_t t2 = cci::common::event::timestampInUS();
+//	std::cout << "    scan time = " << (t2-t1)/1000 << "ms for " << count << " queue entries."<< std::endl;
+
+
+	// now process the queue.
+	//	T qval, ival;
+	int x, y, z;
+	count = 0;
+	while (!(xQ.empty())) {
+		++count;
+		x = xQ.front();
+		y = yQ.front();
+		z = zQ.front();
+		xQ.pop();
+		yQ.pop();
+		zQ.pop();
+
+		xminus = x-1;
+		xplus = x+1;
+		yminus = y-1;
+		yplus = y+1;
+
+		oPtr = output[z].ptr<T>(y);
+		oPtrPlus = output[z].ptr<T>(yplus);
+		oPtrMinus = output[z].ptr<T>(yminus);
+		oPtrZMinus = output[z-1].ptr<T>(y);
+		oPtrZPlus = output[z+1].ptr<T>(y);
+
+		iPtr = mask[z].ptr<T>(y);
+		iPtrPlus = mask[z].ptr<T>(yplus);
+		iPtrMinus = mask[z].ptr<T>(yminus);
+		iPtrZMinus = mask[z-1].ptr<T>(y);
+		iPtrZPlus = mask[z+1].ptr<T>(y);
+
+		pval = oPtr[x];
+
+		// look at the 6 connected components
+		propagate3D<T>(xQ, yQ, zQ, x, yminus, z, iPtrMinus, oPtrMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yplus, z, iPtrPlus, oPtrPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xminus, y, z, iPtr, oPtr, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, y, z, iPtr, oPtr, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, y, z+1, iPtrZPlus, oPtrZPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, y, z-1, iPtrZMinus, oPtrZMinus, pval);
+
+	}
+
+
+//	uint64_t t3 = cci::common::event::timestampInUS();
+//	std::cout << "    queue time = " << (t3-t2)/1000 << "ms for " << count << " queue entries "<< std::endl;
+
+
+	std::vector<Mat> outputRet;
+
+	// [1,size-2] range removes top and botton border layers
+	for(int i = 1; i < output.size()-1; i++){
+		// crop inner part of the layer to remove border
+		Mat aux = output[i](Range(1, maxy), Range(1,maxx));
+		outputRet.push_back(aux);
+
+		output[i].release();
+		mask[i].release();
+	}
+	output[0].release();
+	output[output.size()-1].release();
+	mask[0].release();
+	mask[output.size()-1].release();
+
+	return outputRet;
+}
+
+
+template <typename T>
+std::vector<Mat> imhmax3D(const std::vector<Mat>& image, T h, int connectivity) {
+	// imhmax from Matlab
+	// I2 = imreconstruct(imsubtract(I,H), I, conn);
+
+	CV_Assert(image.size() >0);
+	CV_Assert(connectivity == 6);
+
+	std::vector<Mat> marker;
+	// only works for intensity images.
+	for(int i = 0; i < image.size(); i++){
+		CV_Assert(image[i].channels() == 1);
+		marker.push_back(image[i].clone()-h);
+	}
+
+	std::vector<Mat>  recon = imreconstruct3D<T>(marker, image, connectivity);
+
+	// release Marker
+	for(int i = 0; i < marker.size(); i++){
+		marker[i].release();
+	}
+
+	return recon;
+}
 
 /** slightly optimized serial implementation,
  from Vincent paper on "Morphological Grayscale Reconstruction in Image Analysis: Applicaitons and Efficient Algorithms"
@@ -2506,6 +2757,12 @@ template Mat imreconstructFixTilingEffectsParallel<float>(const Mat& seeds, cons
 template Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<unsigned short int>(const Mat& seeds, const Mat& image, int connectivity);
 template Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
+
+template std::vector<cv::Mat> imreconstruct3D<unsigned short int>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
+template std::vector<cv::Mat> imreconstruct3D<float>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
+
+template std::vector<cv::Mat> imhmax3D(const std::vector<cv::Mat>& input, unsigned short int h, int connectivity);
+template std::vector<cv::Mat> imhmax3D(const std::vector<cv::Mat>& input, float h, int connectivity);
 
 template Mat imreconstructBinary<unsigned char>(const Mat& seeds, const Mat& binaryImage, int connectivity);
 template Mat imfill<unsigned char>(const Mat& image, const Mat& seeds, bool binary, int connectivity);

@@ -21,6 +21,12 @@ template <typename T>
 cv::Mat imreconstruct(const cv::Mat& seeds, const cv::Mat& image, int connectivity);
 
 template <typename T>
+std::vector<cv::Mat> imreconstruct3D(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
+
+template <typename T>
+std::vector<cv::Mat> imhmax3D(const std::vector<cv::Mat>& input, T h, int connectivity);
+
+template <typename T>
 cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize, int nThreads=0);
 
 template <typename T>
@@ -75,6 +81,8 @@ cv::Mat bwareaopen3(const cv::Mat& binaryImage, bool flatten, int minSize, int m
 
 template <typename T>
 cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
+
+
 
 cv::Mat_<int> watershed(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
 cv::Mat_<int> watershed2(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
