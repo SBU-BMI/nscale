@@ -40,19 +40,19 @@ public:
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 
 	static int segmentNuclei(const cv::Mat& img, cv::Mat& mask,
-			int &compcount, int *&bbox,
+			int &compcount, int *&bbox, unsigned char blue=220, unsigned char green=220, unsigned char red=220, double T1=5.0, double T2=4.0, unsigned char G1 = 80, int minSize=11, int maxSize=1000, unsigned char G2 = 45, int minSizePl=30, int minSizeSeg=21, int maxSizeSeg=1000,
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 	static int segmentNuclei(const std::string& input, const std::string& output,
-			int &compcount, int *&bbox,
+			int &compcount, int *&bbox, unsigned char blue=220, unsigned char green=220, unsigned char red=220, double T1=5.0, double T2=4.0, unsigned char G1 = 80, int minSize=11, int maxSize=1000, unsigned char G2 = 45, int minSizePl=30, int minSizeSeg=21, int maxSizeSeg=1000,
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 
-	static int segmentNuclei(const cv::Mat& img, cv::Mat& mask,
+	static int segmentNuclei(const cv::Mat& img, cv::Mat& mask, unsigned char blue=220, unsigned char green=220, unsigned char red=220, double T1=5.0, double T2=4.0, unsigned char G1 = 80, int minSize=11, int maxSize=1000, unsigned char G2 = 45, int minSizePl=30, int minSizeSeg=21, int maxSizeSeg=1000,
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);
 
 	// the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
 	static int plFindNucleusCandidates(const cv::Mat& img, cv::Mat& seg_norbc, unsigned char blue=220, unsigned char green=220, unsigned char red=220, double T1=5.0, double T2=4.0, unsigned char G1 = 80, int minSize=11, int maxSize=1000, unsigned char G2 = 45,
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL);  // S1
-	static int plSeparateNuclei(const cv::Mat& img, const cv::Mat& seg_open, cv::Mat& seg_nonoverlap,
+	static int plSeparateNuclei(const cv::Mat& img, const cv::Mat& seg_open, cv::Mat& seg_nonoverlap, int minSizePl=30,
 			::cciutils::SimpleCSVLogger *logger = NULL, ::cciutils::cv::IntermediateResultHandler *iresHandler = NULL); // A4
 
 };

@@ -141,7 +141,6 @@ void compute(const char *input, const char *mask, const char *output, const int 
     		stages.push_back(stage);
     	}
 
-
     	cci::common::FileUtils fu(".mask.png");
     	std::string fmask(mask);
 
@@ -168,7 +167,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	switch (modecode) {
 	case cci::common::type::DEVICE_CPU :
 	case cci::common::type::DEVICE_MCORE :
-		nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox, logger, iwrite);
+		nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox, 220, 220, 220, 5.0, 4.0, 80, 11, 1000, 45, 30, 21, 1000, logger, iwrite);
 		break;
 	case cci::common::type::DEVICE_GPU :
 		nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox, NULL, logger, iwrite);
