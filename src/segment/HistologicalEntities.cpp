@@ -112,7 +112,7 @@ Mat HistologicalEntities::getBackground(const std::vector<Mat>& bgr, unsigned ch
 
 
 // S1
-int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2,
+int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int fillHolesConnectivity, int reconConnectivity,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	uint64_t t0 = cci::common::event::timestampInUS();
 
@@ -200,15 +200,11 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 
  
 // for generating test data 
-//	imwrite("test/in-imrecon-gray-marker.pgm", rc_open);
-//	imwrite("test/in-imrecon-gray-mask.pgm", rc);
-//	exit(0);
-
 //	imwrite("in-imrecon-gray-marker.pgm", rc_open);
 //	imwrite("in-imrecon-gray-mask.pgm", rc);
+// END  generating test data
 
-// END for generating test data
-	Mat rc_recon = ::nscale::imreconstruct<unsigned char>(rc_open, rc, 8);
+	Mat rc_recon = ::nscale::imreconstruct<unsigned char>(rc_open, rc, reconConnectivity);
 	if (iresHandler) iresHandler->saveIntermediate(rc_recon, 4);
 
 
@@ -233,7 +229,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (iresHandler) iresHandler->saveIntermediate(diffIm2, 6);
 
 //	imwrite("in-fillHolesDump.ppm", diffIm2);
-	Mat bw1 = ::nscale::imfillHoles<unsigned char>(diffIm2, true, 4);
+	Mat bw1 = ::nscale::imfillHoles<unsigned char>(diffIm2, true, fillHolesConnectivity);
 //	imwrite("test/out-rcvalleysfilledholes.ppm", bw1);
 	if (logger) logger->logTimeSinceLastLog("fillHoles1");
 	if (iresHandler) iresHandler->saveIntermediate(bw1, 7);
@@ -309,7 +305,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 
 
 // A4
-int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, Mat& seg_nonoverlap, int minSizePl,
+int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, Mat& seg_nonoverlap, int minSizePl, int watershedConnectivity,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	/*
 	 *
@@ -415,7 +411,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	// watershed in openCV requires labels.  input foreground > 0, 0 is background
 	// critical to use just the nuclei and not the whole image - else get a ring surrounding the regions.
 //#if defined (USE_UF_CCL)
-	Mat watermask = ::nscale::watershed2(nuclei, distance2, 8);
+	Mat watermask = ::nscale::watershed2(nuclei, distance2, watershedConnectivity);
 //#else
 //	Mat watermask = ::nscale::watershed(nuclei, distance2, 8);
 //#endif
@@ -455,7 +451,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 
 
 int HistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
-		int &compcount, int *&bbox, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg,
+		int &compcount, int *&bbox, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg, int fillHolesConnectivity, int reconConnectivity, int watershedConnectivity,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	Mat input = imread(in);
 	if (!input.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
@@ -463,7 +459,7 @@ int HistologicalEntities::segmentNuclei(const std::string& in, const std::string
 	Mat output;
 
 //	printf("input: %d %d %d\n", input.rows, input.cols, input.type());
-	int status = ::nscale::HistologicalEntities::segmentNuclei(input, output, compcount, bbox, blue, green, red, T1, T2, G1, minSize, maxSize, G2, minSizePl, minSizeSeg, maxSizeSeg, logger, iresHandler);
+	int status = ::nscale::HistologicalEntities::segmentNuclei(input, output, compcount, bbox, blue, green, red, T1, T2, G1, minSize, maxSize, G2, minSizePl, minSizeSeg, maxSizeSeg, fillHolesConnectivity, reconConnectivity, watershedConnectivity, logger, iresHandler);
 	input.release();
 
 	if (status == ::nscale::HistologicalEntities::SUCCESS)
@@ -475,7 +471,7 @@ int HistologicalEntities::segmentNuclei(const std::string& in, const std::string
 
 
 int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
-		int &compcount, int *&bbox, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg,
+		int &compcount, int *&bbox, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg, int fillHolesConnectivity, int reconConnectivity, int watershedConnectivity,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	// image in BGR format
 	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
@@ -489,7 +485,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	if (iresHandler) iresHandler->saveIntermediate(img, 0);
 
 	Mat seg_norbc;
-	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, blue, green, red, T1, T2, G1, minSize, maxSize, G2, logger, iresHandler);
+	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, blue, green, red, T1, T2, G1, minSize, maxSize, G2, fillHolesConnectivity, reconConnectivity, logger, iresHandler);
 	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return findCandidateResult;
 	}
@@ -526,7 +522,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 
 	Mat seg_nonoverlap;
-	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, minSizePl, logger, iresHandler);
+	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, minSizePl, watershedConnectivity, logger, iresHandler);
 	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return sepResult;
 	}
@@ -574,7 +570,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	 */
 	// don't worry about bwlabel.
 	// MASK approach
-	Mat final = ::nscale::imfillHoles<unsigned char>(seg, true, 8);
+	Mat final = ::nscale::imfillHoles<unsigned char>(seg, true, fillHolesConnectivity);
 	// LABEL approach - upstream erode does not support 32S
 //	Mat t_seg = ::nscale::PixelOperations::replace(seg, -1, 0);
 //	seg.release();
@@ -601,7 +597,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 }
 
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg,
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg,  int fillHolesConnectivity, int reconConnectivity, int watershedConnectivity,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	// image in BGR format
 	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
@@ -610,7 +606,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, unsigned ch
 	if (iresHandler) iresHandler->saveIntermediate(img, 0);
 
 	Mat seg_norbc;
-	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, blue, green, red, T1, T2, G1, minSize, maxSize, G2, logger, iresHandler);
+	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, blue, green, red, T1, T2, G1, minSize, maxSize, G2,  fillHolesConnectivity, reconConnectivity, logger, iresHandler);
 	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return findCandidateResult;
 	}
@@ -627,7 +623,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, unsigned ch
 
 
 	Mat seg_nonoverlap;
-	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, minSizePl, logger, iresHandler);
+	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, minSizePl, watershedConnectivity, logger, iresHandler);
 	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return sepResult;
 	}
@@ -645,7 +641,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, unsigned ch
 	if (iresHandler) iresHandler->saveIntermediate(seg, 23);
 
 	// MASK approach
-	output = ::nscale::imfillHoles<unsigned char>(seg, true, 8);
+	output = ::nscale::imfillHoles<unsigned char>(seg, true, fillHolesConnectivity);
 	// LABEL approach - upstream erode does not support 32S
 	if (logger) logger->logTimeSinceLastLog("fillHolesLast");
 
