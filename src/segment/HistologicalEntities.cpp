@@ -21,16 +21,16 @@ using namespace cv;
 
 
 
-Mat HistologicalEntities::getRBC(const Mat& img,
+Mat HistologicalEntities::getRBC(const Mat& img,  double T1, double T2,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	CV_Assert(img.channels() == 3);
 
 	std::vector<Mat> bgr;
 	split(img, bgr);
-	return getRBC(bgr, logger, iresHandler);
+	return getRBC(bgr, T1, T2, logger, iresHandler);
 }
 
-Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr,
+Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr,  double T1, double T2,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	CV_Assert(bgr.size() == 3);
 	/*
@@ -49,8 +49,8 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr,
     end
 	 */
 	std::cout.precision(5);
-	double T1 = 5.0;
-	double T2 = 4.0;
+//	double T1 = 5.0;
+//	double T2 = 4.0;
 	Size s = bgr[0].size();
 	Mat bd(s, CV_32FC1);
 	Mat gd(s, bd.type());
@@ -81,16 +81,16 @@ Mat HistologicalEntities::getRBC(const std::vector<Mat>& bgr,
 	return rbc;
 }
 
-Mat HistologicalEntities::getBackground(const Mat& img,
+Mat HistologicalEntities::getBackground(const Mat& img, unsigned char blue, unsigned char green, unsigned char red,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	CV_Assert(img.channels() == 3);
 
 	std::vector<Mat> bgr;
 	split(img, bgr);
-	return getBackground(bgr, logger, iresHandler);
+	return getBackground(bgr, blue, green, red, logger, iresHandler);
 }
 
-Mat HistologicalEntities::getBackground(const std::vector<Mat>& bgr,
+Mat HistologicalEntities::getBackground(const std::vector<Mat>& bgr, unsigned char blue, unsigned char green, unsigned char red,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	/*
 	* this part to decide if the tile is background or foreground
@@ -104,14 +104,15 @@ Mat HistologicalEntities::getBackground(const std::vector<Mat>& bgr,
 	 */
 
 
-	return (bgr[0] > 220) & (bgr[1] > 220) & (bgr[2] > 220);
+	//return (bgr[0] > 220) & (bgr[1] > 220) & (bgr[2] > 220);
+	return (bgr[0] > blue) & (bgr[1] > green) & (bgr[2] > red);
 }
 
 
 
 
 // S1
-int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc,
+int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	uint64_t t0 = cci::common::event::timestampInUS();
 
@@ -119,7 +120,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	split(img, bgr);
 	if (logger) logger->logTimeSinceLastLog("toRGB");
 
-	Mat background = ::nscale::HistologicalEntities::getBackground(bgr, logger, iresHandler);
+	Mat background = ::nscale::HistologicalEntities::getBackground(bgr, blue, green, red,logger, iresHandler);
 
 	int bgArea = countNonZero(background);
 	float ratio = (float)bgArea / (float)(img.size().area());
@@ -139,7 +140,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	if (logger) logger->logTimeSinceLastLog("background");
 	if (iresHandler) iresHandler->saveIntermediate(background, 1);
 
-	Mat rbc = ::nscale::HistologicalEntities::getRBC(bgr, logger, iresHandler);
+	Mat rbc = ::nscale::HistologicalEntities::getRBC(bgr, T1, T2, logger, iresHandler);
 	if (logger) logger->logTimeSinceLastLog("RBC");
 	int rbcPixelCount = countNonZero(rbc);
 	if (logger) logger->log("RBCPixCount", rbcPixelCount);
@@ -203,8 +204,8 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 //	imwrite("test/in-imrecon-gray-mask.pgm", rc);
 //	exit(0);
 
-	imwrite("in-imrecon-gray-marker.pgm", rc_open);
-	imwrite("in-imrecon-gray-mask.pgm", rc);
+//	imwrite("in-imrecon-gray-marker.pgm", rc_open);
+//	imwrite("in-imrecon-gray-mask.pgm", rc);
 
 // END for generating test data
 	Mat rc_recon = ::nscale::imreconstruct<unsigned char>(rc_open, rc, 8);
@@ -225,7 +226,8 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
     bw1 = imfill(diffIm>G1,'holes');
  *
  */
-	unsigned char G1 = 80;
+	// it is now a parameter
+	//unsigned char G1 = 80;
 	Mat diffIm2 = diffIm > G1;
 	if (logger) logger->logTimeSinceLastLog("threshold1");
 	if (iresHandler) iresHandler->saveIntermediate(diffIm2, 6);
@@ -262,7 +264,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	int compcount2;
 
 //#if defined (USE_UF_CCL)
-	Mat bw1_t = ::nscale::bwareaopen2(bw1, false, true, 11, 1000, 8, compcount2);
+	Mat bw1_t = ::nscale::bwareaopen2(bw1, false, true, minSize, maxSize, 8, compcount2);
 //	printf(" cpu compcount 11-1000 = %d\n", compcount2);
 //#else
 //	Mat bw1_t = ::nscale::bwareaopen<unsigned char>(bw1, 11, 1000, 8, compcount);
@@ -276,7 +278,8 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 	}
 
 
-	unsigned char G2 = 45;
+	// It is now a parameter
+	//unsigned char G2 = 45;
 	Mat bw2 = diffIm > G2;
 	if (iresHandler) iresHandler->saveIntermediate(bw2, 9);
 
@@ -306,7 +309,7 @@ int HistologicalEntities::plFindNucleusCandidates(const Mat& img, Mat& seg_norbc
 
 
 // A4
-int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, Mat& seg_nonoverlap,
+int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, Mat& seg_nonoverlap, int minSizePl,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	/*
 	 *
@@ -315,7 +318,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 	// bwareaopen is done as a area threshold.
 	int compcount2;
 //#if defined (USE_UF_CCL)
-	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, false, true, 30, std::numeric_limits<int>::max(), 8, compcount2);
+	Mat seg_big_t = ::nscale::bwareaopen2(seg_open, false, true, minSizePl, std::numeric_limits<int>::max(), 8, compcount2);
 //	printf(" cpu compcount 30-1000 = %d\n", compcount2);
 
 //#else
@@ -452,7 +455,7 @@ int HistologicalEntities::plSeparateNuclei(const Mat& img, const Mat& seg_open, 
 
 
 int HistologicalEntities::segmentNuclei(const std::string& in, const std::string& out,
-		int &compcount, int *&bbox,
+		int &compcount, int *&bbox, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	Mat input = imread(in);
 	if (!input.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
@@ -460,7 +463,7 @@ int HistologicalEntities::segmentNuclei(const std::string& in, const std::string
 	Mat output;
 
 //	printf("input: %d %d %d\n", input.rows, input.cols, input.type());
-	int status = ::nscale::HistologicalEntities::segmentNuclei(input, output, compcount, bbox, logger, iresHandler);
+	int status = ::nscale::HistologicalEntities::segmentNuclei(input, output, compcount, bbox, blue, green, red, T1, T2, G1, minSize, maxSize, G2, minSizePl, minSizeSeg, maxSizeSeg, logger, iresHandler);
 	input.release();
 
 	if (status == ::nscale::HistologicalEntities::SUCCESS)
@@ -472,7 +475,7 @@ int HistologicalEntities::segmentNuclei(const std::string& in, const std::string
 
 
 int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
-		int &compcount, int *&bbox,
+		int &compcount, int *&bbox, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	// image in BGR format
 	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
@@ -486,7 +489,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	if (iresHandler) iresHandler->saveIntermediate(img, 0);
 
 	Mat seg_norbc;
-	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, logger, iresHandler);
+	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, blue, green, red, T1, T2, G1, minSize, maxSize, G2, logger, iresHandler);
 	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return findCandidateResult;
 	}
@@ -523,7 +526,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 
 	Mat seg_nonoverlap;
-	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, logger, iresHandler);
+	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, minSizePl, logger, iresHandler);
 	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return sepResult;
 	}
@@ -546,7 +549,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	int compcount2;
 //#if defined (USE_UF_CCL)
 	// MASK approach
-	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, false, true, 21, 1000, 4, compcount2);
+	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, false, true, minSizeSeg, maxSizeSeg, 4, compcount2);
 	// LABEL approach - erode does not support 32S
 //	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, true, false, 21, 1000, 4, compcount2);
 	// bwareaopen without flattening has -1 for background
@@ -598,7 +601,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 }
 
-int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
+int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output, unsigned char blue, unsigned char green, unsigned char red, double T1, double T2, unsigned char G1, int minSize, int maxSize, unsigned char G2, int minSizePl, int minSizeSeg, int maxSizeSeg,
 		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
 	// image in BGR format
 	if (!img.data) return ::nscale::HistologicalEntities::INVALID_IMAGE;
@@ -607,7 +610,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 	if (iresHandler) iresHandler->saveIntermediate(img, 0);
 
 	Mat seg_norbc;
-	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, logger, iresHandler);
+	int findCandidateResult = ::nscale::HistologicalEntities::plFindNucleusCandidates(img, seg_norbc, blue, green, red, T1, T2, G1, minSize, maxSize, G2, logger, iresHandler);
 	if (findCandidateResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return findCandidateResult;
 	}
@@ -624,7 +627,7 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 
 	Mat seg_nonoverlap;
-	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, logger, iresHandler);
+	int sepResult = ::nscale::HistologicalEntities::plSeparateNuclei(img, seg_open, seg_nonoverlap, minSizePl, logger, iresHandler);
 	if (sepResult != ::nscale::HistologicalEntities::CONTINUE) {
 		return sepResult;
 	}
@@ -632,7 +635,8 @@ int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 
 	int compcount2;
 	// MASK approach
-	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, false, true, 21, 1000, 4, compcount2);
+	Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, false, true, minSizeSeg, maxSizeSeg, 4, compcount2);
+	//Mat seg = ::nscale::bwareaopen2(seg_nonoverlap, false, true, 21, 1000, 4, compcount2);
 
 	if (logger) logger->logTimeSinceLastLog("20To1000");
 	if (compcount2 == 0) {
