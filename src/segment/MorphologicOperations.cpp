@@ -507,18 +507,14 @@ template void propagate3D(std::queue<int>& xQ, std::queue<int>& yQ, std::queue<i
 template void propagate3D(std::queue<int>& xQ, std::queue<int>& yQ, std::queue<int>& zQ,
 		int x, int y, int z, float* iPtr, float* oPtr, const float& pval);
 
+
 template <typename T>
-std::vector<cv::Mat> imreconstruct3D(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity){
-
-	CV_Assert(connectivity == 6);// the only one implemented so far
-	CV_Assert(seeds.size() == image.size());// data have same number of layers
-	CV_Assert(seeds.size() > 0);// data have at least one layer
-
+std::vector<cv::Mat> imreconstruct3D6(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image){
 	// TODOD: assert all layers have same dimenson/type;
 	// create a copy of seeds/mask w/ border around data
 	std::vector<Mat> output, mask;
 
-	// The border is meant to avoid conditional commands in the code, which
+	// The border is meant to avoid conditional branchs in the code, which
 	// significantly reduce performance for a number of reasons.
 	// add a top border layer
 	output.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
@@ -594,6 +590,7 @@ std::vector<cv::Mat> imreconstruct3D(const std::vector<cv::Mat>& seeds, const st
 
 				preval = min(pval, iPtr[x]);
 				oPtr[x] = preval;
+
 			}
 		}
 	}
@@ -712,6 +709,514 @@ std::vector<cv::Mat> imreconstruct3D(const std::vector<cv::Mat>& seeds, const st
 	mask[output.size()-1].release();
 
 	return outputRet;
+}
+
+
+template <typename T>
+std::vector<cv::Mat> imreconstruct3D26(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image){
+	// TODOD: assert all layers have same dimenson/type;
+	// create a copy of seeds/mask w/ border around data
+	std::vector<Mat> output, mask;
+
+	// The border is meant to avoid conditional branchs in the code, which
+	// significantly reduce performance for a number of reasons.
+	// add a top border layer
+	output.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+	mask.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+
+	for(int i = 0; i < seeds.size(); i++){
+		// check type and size of images
+		CV_Assert(seeds[i].size() == image[i].size());
+		CV_Assert(seeds[i].type() == image[i].type());
+		CV_Assert(image[i].channels() == 1);
+		CV_Assert(seeds[i].channels() == 1);
+
+		// copy layers and add a border
+		Mat outputAux(seeds[i].size() + Size(2,2), seeds[i].type());
+		copyMakeBorder(seeds[i], outputAux, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		output.push_back(outputAux);
+
+		Mat inputAux(image[i].size() + Size(2,2), image[i].type());
+		copyMakeBorder(image[i], inputAux, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		mask.push_back(inputAux);
+	}
+	// add bottom border layer
+	output.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+	mask.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+
+	T pval, preval;
+	int xminus, xplus, yminus, yplus, zminus, zplus;
+	int maxx = output[0].cols - 1;
+	int maxy = output[0].rows - 1;
+	int maxz = output.size() - 1;
+	//std::cout << "cols: "<< output[0].cols << " layers: "<< mask.size()<<" "<< output.size() <<std::endl;
+	//std::cout << "maxx: "<< maxx << " maxy: "<< maxy << " maxz: "<< maxz<< std::endl;
+
+	std::queue<int> xQ;
+	std::queue<int> yQ;
+	std::queue<int> zQ;
+
+	// pointers to pixels in output image
+	T* oPtr; //actual row
+	T* oPtrMinus; // row = actual -1
+	T* oPtrPlus; // row = actual + 1
+	T* oPtrZMinus; // upper layer, current row
+	T* oPtrZMinusMinus; // upper layer, current row - 1
+	T* oPtrZMinusPlus; // uppper layer, current row + 1
+	T* oPtrZPlus; // down layer, current row
+	T* oPtrZPlusMinus; // down layer, current row - 1
+	T* oPtrZPlusPlus; // down layer, current row + 1
+
+	// pointers to pixels in input mask image
+	T* iPtr;
+	T* iPtrMinus;
+	T* iPtrPlus;
+	T* iPtrZMinus;
+	T* iPtrZMinusMinus;
+	T* iPtrZMinusPlus;
+	T* iPtrZPlus;
+	T* iPtrZPlusMinus;
+	T* iPtrZPlusPlus;
+
+	int count = 0;
+	uint64_t t1 = cci::common::event::timestampInUS();
+
+
+	// raster scan
+	for(int z = 1; z < maxz; ++z){
+		for (int y = 1; y < maxy; ++y) {
+
+			oPtr = output[z].ptr<T>(y);
+			oPtrMinus = output[z].ptr<T>(y-1);
+			oPtrZMinus = output[z-1].ptr<T>(y);
+			oPtrZMinusMinus = output[z-1].ptr<T>(y-1);
+			oPtrZMinusPlus = output[z-1].ptr<T>(y+1);
+
+			iPtr = mask[z].ptr<T>(y);
+
+			preval = oPtr[0];
+			for (int x = 1; x < maxx; ++x) {
+				xminus = x-1;
+				xplus = x+1;
+				pval = oPtr[x];
+
+				// check top layer, line y -1
+				preval = max(preval, max(oPtrZMinusMinus[xminus], max(oPtrZMinusMinus[x], oPtrZMinusMinus[xplus])));
+				// check top layer, line y
+				preval = max(preval, max(oPtrZMinus[xminus], max(oPtrZMinus[x], oPtrZMinus[xplus])));
+				// check top layer, line y + 1
+				preval = max(preval, max(oPtrZMinusPlus[xminus], max(oPtrZMinusPlus[x], oPtrZMinusPlus[xplus])));
+
+
+				// walk through the neighbor pixels in current layer: left, up, top-left, top-right
+				pval = max(pval, max(preval, max(oPtrMinus[x], max(oPtrMinus[xminus], oPtrMinus[xplus]))));
+
+				preval = min(pval, iPtr[x]);
+				oPtr[x] = preval;
+
+			}
+		}
+	}
+
+	// anti-raster scan
+	for (int z = maxz-1; z > 0; --z){
+		for (int y = maxy-1; y > 0; --y) {
+			oPtr = output[z].ptr<T>(y);
+			oPtrPlus = output[z].ptr<T>(y+1);
+			//oPtrMinus = output[z].ptr<T>(y-1);
+			oPtrZPlus = output[z+1].ptr<T>(y);
+
+			oPtrZPlusPlus = output[z+1].ptr<T>(y+1);
+			oPtrZPlusMinus = output[z+1].ptr<T>(y-1);
+
+			iPtr = mask[z].ptr<T>(y);
+			iPtrPlus = mask[z].ptr<T>(y+1);
+			iPtrZPlus = mask[z+1].ptr<T>(y);
+			iPtrZPlusPlus = mask[z+1].ptr<T>(y+1);
+			iPtrZPlusMinus = mask[z+1].ptr<T>(y-1);
+
+			preval = oPtr[maxx];
+			for (int x = maxx-1; x > 0; --x) {
+				xminus = x-1;
+				xplus = x+1;
+
+				pval = oPtr[x];
+
+				// check down layer, line y -1
+				preval = max(preval, max(oPtrZPlusMinus[xminus], max(oPtrZPlusMinus[x], oPtrZPlusMinus[xplus])));
+				// check down layer, line y
+				preval = max(preval, max(oPtrZPlus[xminus], max(oPtrZPlus[x], oPtrZPlus[xplus])));
+				// check down layer, line y + 1
+				preval = max(preval, max(oPtrZPlusPlus[xminus], max(oPtrZPlusPlus[x], oPtrZPlusPlus[xplus])));
+
+				// walk through the neighbor pixels in current layer, right (preval), down, down-left, down-right
+				pval = max(pval, max(preval, max(oPtrPlus[x], max(oPtrPlus[xminus], oPtrPlus[xplus]))));
+
+				preval = min(pval, iPtr[x]);
+
+				oPtr[x] = preval;
+
+				// capture the seeds
+				// walk through the neighbor pixels, right and down (N-(p)) , and layer below
+				pval = oPtr[x];
+
+				// check anti-raster propagation condition. does it propagate to any of the neighbors?
+				if (	(oPtr[xplus] < min(pval, iPtr[xplus])) || // right
+						(oPtrPlus[x] < min(pval, iPtrPlus[x])) ||  // down
+						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus])) ||  // left-diagonal
+						(oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) ||  // right-diagonal
+						(oPtrZPlusMinus[xminus] < min(pval, iPtrZPlusMinus[xminus])) ||  // down layer
+						(oPtrZPlusMinus[x] < min(pval, iPtrZPlusMinus[x])) ||  // down layer
+						(oPtrZPlusMinus[xplus] < min(pval, iPtrZPlusMinus[xplus])) ||  // down layer
+						(oPtrZPlus[xminus] < min(pval, iPtrZPlus[xminus])) ||  // down layer
+						(oPtrZPlus[x] < min(pval, iPtrZPlus[x])) ||  // down layer
+						(oPtrZPlus[xplus] < min(pval, iPtrZPlus[xplus])) ||  // down layer
+						(oPtrZPlusPlus[xminus] < min(pval, iPtrZPlusPlus[xminus])) ||  // down layer
+						(oPtrZPlusPlus[x] < min(pval, iPtrZPlusPlus[x])) ||  // down layer
+						(oPtrZPlusPlus[xplus] < min(pval, iPtrZPlusPlus[xplus])) ) {
+
+					xQ.push(x);
+					yQ.push(y);
+					zQ.push(z);
+					++count;
+
+				//	continue;
+				}
+			}
+		}
+	}
+
+
+	uint64_t t2 = cci::common::event::timestampInUS();
+	std::cout << "    scan time = " << (t2-t1)/1000 << "ms for " << count << " queue entries."<< std::endl;
+
+
+	// now process the queue.
+	//	T qval, ival;
+	int x, y, z;
+	count = 0;
+	while (!(xQ.empty())) {
+		++count;
+		x = xQ.front();
+		y = yQ.front();
+		z = zQ.front();
+		xQ.pop();
+		yQ.pop();
+		zQ.pop();
+
+		xminus = x-1;
+		xplus = x+1;
+		yminus = y-1;
+		yplus = y+1;
+		zminus = z-1;
+		zplus = z+1;
+
+		oPtr = output[z].ptr<T>(y);
+		oPtrPlus = output[z].ptr<T>(yplus);
+		oPtrMinus = output[z].ptr<T>(yminus);
+		oPtrZMinus = output[z-1].ptr<T>(y);
+		oPtrZMinusMinus = output[z-1].ptr<T>(y-1);
+		oPtrZMinusPlus = output[z-1].ptr<T>(y+1);
+		oPtrZPlus = output[z+1].ptr<T>(y);
+		oPtrZPlusPlus = output[z+1].ptr<T>(y+1);
+		oPtrZPlusMinus = output[z+1].ptr<T>(y-1);
+
+		iPtr = mask[z].ptr<T>(y);
+		iPtrPlus = mask[z].ptr<T>(yplus);
+		iPtrMinus = mask[z].ptr<T>(yminus);
+		iPtrZMinus = mask[z-1].ptr<T>(y);
+		iPtrZMinusMinus = mask[z-1].ptr<T>(y-1);
+		iPtrZMinusPlus = mask[z-1].ptr<T>(y+1);
+		iPtrZPlus = mask[z+1].ptr<T>(y);
+		iPtrZPlusPlus = mask[z+1].ptr<T>(y+1);
+		iPtrZPlusMinus = mask[z+1].ptr<T>(y-1);
+
+		pval = oPtr[x];
+
+		// look at the 8 elements in same layer
+		propagate3D<T>(xQ, yQ, zQ, xminus, yminus, z, iPtrMinus, oPtrMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yminus, z, iPtrMinus, oPtrMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, yminus, z, iPtrMinus, oPtrMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xminus, y, z, iPtr, oPtr, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, y, z, iPtr, oPtr, pval);
+		propagate3D<T>(xQ, yQ, zQ, xminus, yplus, z, iPtrPlus, oPtrPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yplus, z, iPtrPlus, oPtrPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, yplus, z, iPtrPlus, oPtrPlus, pval);
+
+		// look at the 9 elements in the upper layer (z-1)
+		propagate3D<T>(xQ, yQ, zQ, xminus, yminus, zminus, iPtrZMinusMinus, oPtrZMinusMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yminus, zminus, iPtrZMinusMinus, oPtrZMinusMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, yminus, zminus, iPtrZMinusMinus, oPtrZMinusMinus, pval);
+
+		propagate3D<T>(xQ, yQ, zQ, xminus, y, zminus, iPtrZMinus, oPtrZMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, y, zminus, iPtrZMinus, oPtrZMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, y, zminus, iPtrZMinus, oPtrZMinus, pval);
+
+		propagate3D<T>(xQ, yQ, zQ, xminus, yplus, zminus, iPtrZMinusPlus, oPtrZMinusPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yplus, zminus, iPtrZMinusPlus, oPtrZMinusPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, yplus, zminus, iPtrZMinusPlus, oPtrZMinusPlus, pval);
+
+		// look at the 9 elements in the down layer (z+1)
+		propagate3D<T>(xQ, yQ, zQ, xminus, yminus, zplus, iPtrZPlusMinus, oPtrZPlusMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yminus, zplus, iPtrZPlusMinus, oPtrZPlusMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, yminus, zplus, iPtrZPlusMinus, oPtrZPlusMinus, pval);
+
+		propagate3D<T>(xQ, yQ, zQ, xminus, y, zplus, iPtrZPlus, oPtrZPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, y, zplus, iPtrZPlus, oPtrZPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, y, zplus, iPtrZPlus, oPtrZPlus, pval);
+
+		propagate3D<T>(xQ, yQ, zQ, xminus, yplus, zplus, iPtrZPlusPlus, oPtrZPlusPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yplus, zplus, iPtrZPlusPlus, oPtrZPlusPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, yplus, zplus, iPtrZPlusPlus, oPtrZPlusPlus, pval);
+
+
+	}
+
+
+	uint64_t t3 = cci::common::event::timestampInUS();
+	std::cout << "    queue time = " << (t3-t2)/1000 << "ms for " << count << " queue entries "<< std::endl;
+
+
+	std::vector<Mat> outputRet;
+
+	// [1,size-2] range removes top and botton border layers
+	for(int i = 1; i < output.size()-1; i++){
+		// crop inner part of the layer to remove border
+		Mat aux = output[i](Range(1, maxy), Range(1,maxx));
+		outputRet.push_back(aux);
+
+		output[i].release();
+		mask[i].release();
+	}
+	output[0].release();
+	output[output.size()-1].release();
+	mask[0].release();
+	mask[output.size()-1].release();
+
+	return outputRet;
+}
+
+template <typename T>
+std::vector<cv::Mat> imreconstruct3D(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity){
+
+	CV_Assert(connectivity == 6 || connectivity == 26);// the only one implemented so far
+	CV_Assert(seeds.size() == image.size());// data have same number of layers
+	CV_Assert(seeds.size() > 0);// data have at least one layer
+
+	std::vector<Mat> output;
+
+	switch(connectivity){
+		case 6:
+			output = imreconstruct3D6<T>(seeds, image);
+			break;
+		case 26:
+			output = imreconstruct3D26<T>(seeds, image);
+			break;
+		default:
+			std::cout << __FILE__ << ":"<< __LINE__ <<" Unknown connectivity: "<< connectivity << ". Options are: 6, 26, and 74." << std::endl;
+			exit(1);
+	}
+
+	return output;
+	/*// TODOD: assert all layers have same dimenson/type;
+	// create a copy of seeds/mask w/ border around data
+	std::vector<Mat> output, mask;
+
+	// The border is meant to avoid conditional branchs in the code, which
+	// significantly reduce performance for a number of reasons.
+	// add a top border layer
+	output.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+	mask.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+
+	for(int i = 0; i < seeds.size(); i++){
+		// check type and size of images
+		CV_Assert(seeds[i].size() == image[i].size());
+		CV_Assert(seeds[i].type() == image[i].type());
+		CV_Assert(image[i].channels() == 1);
+		CV_Assert(seeds[i].channels() == 1);
+
+		// copy layers and add a border
+		Mat outputAux(seeds[i].size() + Size(2,2), seeds[i].type());
+		copyMakeBorder(seeds[i], outputAux, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		output.push_back(outputAux);
+
+		Mat inputAux(image[i].size() + Size(2,2), image[i].type());
+		copyMakeBorder(image[i], inputAux, 1, 1, 1, 1, BORDER_CONSTANT, 0);
+		mask.push_back(inputAux);
+	}
+	// add bottom border layer
+	output.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+	mask.push_back(Mat::zeros(seeds[0].size() + Size(2,2), seeds[0].type()));
+
+	T pval, preval;
+	int xminus, xplus, yminus, yplus;
+	int maxx = output[0].cols - 1;
+	int maxy = output[0].rows - 1;
+	int maxz = output.size() - 1;
+	//std::cout << "cols: "<< output[0].cols << " layers: "<< mask.size()<<" "<< output.size() <<std::endl;
+	//std::cout << "maxx: "<< maxx << " maxy: "<< maxy << " maxz: "<< maxz<< std::endl;
+
+	std::queue<int> xQ;
+	std::queue<int> yQ;
+	std::queue<int> zQ;
+
+	// pointers to pixels in output image
+	T* oPtr; //actual row
+	T* oPtrMinus; // row = actual -1
+	T* oPtrPlus; // row = actual + 1
+	T* oPtrZMinus; // upper pixel
+	T* oPtrZPlus; // down pixel
+
+	// pointers to pixels in input mask image
+	T* iPtr;
+	T* iPtrMinus;
+	T* iPtrPlus;
+	T* iPtrZMinus;
+	T* iPtrZPlus;
+	int count = 0;
+//	uint64_t t1 = cci::common::event::timestampInUS();
+
+
+	// raster scan
+	for(int z = 1; z < maxz; ++z){
+		for (int y = 1; y < maxy; ++y) {
+
+			oPtr = output[z].ptr<T>(y);
+			oPtrMinus = output[z].ptr<T>(y-1);
+			oPtrZMinus = output[z-1].ptr<T>(y);
+
+			iPtr = mask[z].ptr<T>(y);
+
+			preval = oPtr[0];
+			for (int x = 1; x < maxx; ++x) {
+				xminus = x-1;
+				xplus = x+1;
+				pval = oPtr[x];
+
+				// walk through the neighbor pixels, left and up (N+(p)), top layer
+				pval = max(pval, max(preval, max(oPtrMinus[x], oPtrZMinus[x])));
+
+				preval = min(pval, iPtr[x]);
+				oPtr[x] = preval;
+
+			}
+		}
+	}
+
+	// anti-raster scan
+	for (int z = maxz-1; z > 0; --z){
+		for (int y = maxy-1; y > 0; --y) {
+			oPtr = output[z].ptr<T>(y);
+			oPtrPlus = output[z].ptr<T>(y+1);
+			oPtrZPlus = output[z+1].ptr<T>(y);
+			oPtrMinus = output[z].ptr<T>(y-1);
+
+			iPtr = mask[z].ptr<T>(y);
+			iPtrPlus = mask[z].ptr<T>(y+1);
+			iPtrZPlus = mask[z+1].ptr<T>(y);
+
+			preval = oPtr[maxx];
+			for (int x = maxx-1; x > 0; --x) {
+				xminus = x-1;
+				xplus = x+1;
+
+				pval = oPtr[x];
+
+				// walk through the neighbor pixels, right and down (N-(p)), and layer below
+				pval = max(pval, max(preval, max(oPtrPlus[x], oPtrZPlus[x])));
+
+				preval = min(pval, iPtr[x]);
+
+				oPtr[x] = preval;
+
+				// capture the seeds
+				// walk through the neighbor pixels, right and down (N-(p)) , and layer below
+				pval = oPtr[x];
+
+
+				if ((oPtr[xplus] < min(pval, iPtr[xplus])) ||
+						(oPtrPlus[x] < min(pval, iPtrPlus[x])) || (oPtrZPlus[x] < min(pval, iPtrZPlus[x]))) {
+
+					xQ.push(x);
+					yQ.push(y);
+					zQ.push(z);
+					++count;
+
+				//	continue;
+				}
+			}
+		}
+	}
+
+
+//	uint64_t t2 = cci::common::event::timestampInUS();
+//	std::cout << "    scan time = " << (t2-t1)/1000 << "ms for " << count << " queue entries."<< std::endl;
+
+
+	// now process the queue.
+	//	T qval, ival;
+	int x, y, z;
+	count = 0;
+	while (!(xQ.empty())) {
+		++count;
+		x = xQ.front();
+		y = yQ.front();
+		z = zQ.front();
+		xQ.pop();
+		yQ.pop();
+		zQ.pop();
+
+		xminus = x-1;
+		xplus = x+1;
+		yminus = y-1;
+		yplus = y+1;
+
+		oPtr = output[z].ptr<T>(y);
+		oPtrPlus = output[z].ptr<T>(yplus);
+		oPtrMinus = output[z].ptr<T>(yminus);
+		oPtrZMinus = output[z-1].ptr<T>(y);
+		oPtrZPlus = output[z+1].ptr<T>(y);
+
+		iPtr = mask[z].ptr<T>(y);
+		iPtrPlus = mask[z].ptr<T>(yplus);
+		iPtrMinus = mask[z].ptr<T>(yminus);
+		iPtrZMinus = mask[z-1].ptr<T>(y);
+		iPtrZPlus = mask[z+1].ptr<T>(y);
+
+		pval = oPtr[x];
+
+		// look at the 6 connected components
+		propagate3D<T>(xQ, yQ, zQ, x, yminus, z, iPtrMinus, oPtrMinus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, yplus, z, iPtrPlus, oPtrPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, xminus, y, z, iPtr, oPtr, pval);
+		propagate3D<T>(xQ, yQ, zQ, xplus, y, z, iPtr, oPtr, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, y, z+1, iPtrZPlus, oPtrZPlus, pval);
+		propagate3D<T>(xQ, yQ, zQ, x, y, z-1, iPtrZMinus, oPtrZMinus, pval);
+
+	}
+
+
+//	uint64_t t3 = cci::common::event::timestampInUS();
+//	std::cout << "    queue time = " << (t3-t2)/1000 << "ms for " << count << " queue entries "<< std::endl;
+
+
+	std::vector<Mat> outputRet;
+
+	// [1,size-2] range removes top and botton border layers
+	for(int i = 1; i < output.size()-1; i++){
+		// crop inner part of the layer to remove border
+		Mat aux = output[i](Range(1, maxy), Range(1,maxx));
+		outputRet.push_back(aux);
+
+		output[i].release();
+		mask[i].release();
+	}
+	output[0].release();
+	output[output.size()-1].release();
+	mask[0].release();
+	mask[output.size()-1].release();
+
+	return outputRet;*/
 }
 
 

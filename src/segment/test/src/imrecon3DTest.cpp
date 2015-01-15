@@ -67,9 +67,9 @@ int main (int argc, char **argv){
 	uint64_t t1, t2;
 
 	t1 = cci::common::event::timestampInUS();
-	recon = nscale::imreconstruct3D<unsigned short int>(marker, mask, 6);
+	recon = nscale::imreconstruct3D<unsigned short int>(marker, mask, 26);
 	t2 = cci::common::event::timestampInUS();
-	std::cout << " cpu recon3D-6point took " << (t2-t1)/1000 << "ms" << std::endl;
+	std::cout << " cpu recon3D-26point took " << (t2-t1)/1000 << "ms" << std::endl;
 
 	// dump output
 	for(int i = 0; i < recon.size(); i++){
@@ -81,7 +81,7 @@ int main (int argc, char **argv){
 		imwrite(outFileName, recon[i]);
 	}
 
-	t1 = cci::common::event::timestampInUS();
+/*	t1 = cci::common::event::timestampInUS();
 	imhmax = nscale::imhmax3D<unsigned short int>(mask,12,  6);
 	t2 = cci::common::event::timestampInUS();
 	std::cout << " cpu imhmax3D-6point took " << (t2-t1)/1000 << "ms" << std::endl;
@@ -94,23 +94,7 @@ int main (int argc, char **argv){
 		outFileName.append(ss.str());
 		outFileName.append(".tif");
 		imwrite(outFileName, imhmax[i]);
-	}
-
-/*	imwrite("test/out-recon4-cpu.ppm", recon);
-
-	Mat markerUSINT, maskUSINT;
-	marker.convertTo(markerUSINT, CV_16UC1, 1, 0);
-	mask.convertTo(maskUSINT, CV_16UC1, 1, 0);
-
-	t1 = cci::common::event::timestampInUS();
-	recon = nscale::imreconstruct<unsigned short int>(markerUSINT, maskUSINT, 4);
-	t2 = cci::common::event::timestampInUS();
-	std::cout << " cpu recon4 took " << t2-t1 << "ms" << std::endl;
-	imwrite("test/out-recon4-cpu-usint.ppm", recon);
-	recon.convertTo(recon, CV_8UC1, 1, 0);
-	imwrite("test/out-recon4-cpu-usint-char.ppm", recon);*/
-
-
+	}*/
 
 
 	return 0;
