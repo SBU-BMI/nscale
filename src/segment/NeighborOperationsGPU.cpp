@@ -28,7 +28,7 @@ using namespace cv::gpu;
 
 #if !defined (WITH_CUDA)
 template <typename T>
-GpuMat NeighborOperations::border(const GpuMat& img, T background, int connectivity, Stream& stream) { throw_nogpu(); }
+GpuMat NeighborOperations::border(const GpuMat& img, T background, int connectivity, Stream& stream) { throw_nogpu(); return GpuMat(); }
 
 #else
 

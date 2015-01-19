@@ -1,3 +1,8 @@
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
+
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -8,7 +13,11 @@
 #include <vector>
 #include "Logger.h"
 #include "FileUtils.h"
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
 #include "UtilsLogger.h"
 #include "UtilsCVImageIO.h"
 #include <algorithm>    // std::min
@@ -34,7 +43,7 @@ void getFiles(const std::string &imageName, std::vector<std::string> &filenames,
 
 
 	cci::common::FileUtils futils(exts);
-	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
+	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::getFILE(), true);
 
 	std::string temp, x, y;
 	for(unsigned int i = 0; i < filenames.size(); i++){

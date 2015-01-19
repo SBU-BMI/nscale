@@ -12,20 +12,28 @@
 #include <string.h>
 #include <iostream>
 #include <sys/types.h>
+#ifdef _MSC_VER
+#include "direntWin.h"
+#define NOMINMAX
+#else
 #include <dirent.h>
+#endif
 #include <vector>
 #include <queue>
 #include <sys/stat.h>
 
 
 namespace cci {
-namespace common {
+	namespace common {
 
 
-const int FileUtils::DIRECTORY = 1;
-const int FileUtils::FILE = 2;
-const char *FileUtils::DIR_SEPARATOR = "/";
+		const int FileUtils::DIRECTORY = 1;
+		const int FileUtils::FILE = 2;
+		const char *FileUtils::DIR_SEPARATOR = "/";
 
+
+		int FileUtils::getDIRECTORY(){return DIRECTORY;};
+		int FileUtils::getFILE() { return FILE; };
 
 FileUtils::FileUtils()
 {
@@ -442,6 +450,20 @@ void FileUtils::getDirectoriesInDirectory(const std::string & directory, std::ve
 
 bool FileUtils::mkdirs(const std::string & d)
 {
+
+#if defined(_WIN32) || defined(_WIN64)
+	if (GetFileAttributes(d.c_str()) == INVALID_FILE_ATTRIBUTES)//check if folder exists
+	{
+		printf("dir to create: %s\n", d.c_str());
+		bool errB = CreateDirectory(d.c_str(), NULL);
+		if (errB == false)
+		{
+			return false;
+		}
+	}
+	return true;
+
+#else
 	DIR *dir = opendir(d.c_str());
 	if (dir == 0 && d.size() > 0) {
 		// find the parent
@@ -457,6 +479,7 @@ bool FileUtils::mkdirs(const std::string & d)
 		closedir(dir);
 	}
 	return true;
+#endif
 }
 
 

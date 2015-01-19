@@ -22,6 +22,11 @@ if(UNIX)
 endif()
 
 
+#to avoid confusion with macro in windows.h
+IF( MSVC )
+add_definitions( /DNOMINMAX ) 
+ENDIF()
+
 # --------------------------------------------------------------
 # Indicate CMake 2.7 and above that we don't want to mix relative
 #  and absolute paths in linker lib lists.

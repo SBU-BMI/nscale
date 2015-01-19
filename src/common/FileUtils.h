@@ -13,6 +13,9 @@
 #include <string>
 #include <vector>
 
+#ifndef _GNUC
+	#define __attribute__(A) /* do nothing */
+#endif
 
 namespace cci {
 namespace common {
@@ -23,7 +26,11 @@ namespace common {
  *
  * notes:  stat() follows symlink in reporting.  perfect.
  */
+#ifdef _MSC_VER
+	class	__declspec(dllexport) FileUtils 
+#else
 class FileUtils
+#endif
 {
     public:
         FileUtils();
@@ -34,6 +41,9 @@ class FileUtils
         static const int DIRECTORY;
         static const int FILE;
         static const char *DIR_SEPARATOR;
+
+		static int getDIRECTORY();
+		static int getFILE();
 
         /**
          * get parts of the filename

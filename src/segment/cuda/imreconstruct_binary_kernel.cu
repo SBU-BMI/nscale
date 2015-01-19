@@ -1,7 +1,12 @@
 // adaptation of Pavel's imreconstruction code for openCV
 
 #include "change_kernel.cuh"
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
+
 
 
 #define MAX_THREADS		256

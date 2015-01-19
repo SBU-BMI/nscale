@@ -7,6 +7,11 @@
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
+
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
+
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include <iostream>
@@ -16,10 +21,21 @@
 #include "MorphologicOperations.h"
 #include "Logger.h"
 #include "FileUtils.h"
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
 #include "UtilsLogger.h"
 #include "UtilsCVImageIO.h"
 
+
+#if defined(_WIN32) || defined(_WIN64)
+#define snprintf _snprintf
+#define vsnprintf _vsnprintf
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#endif
 
 using namespace cv;
 
@@ -100,7 +116,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 
 
 	cci::common::FileUtils futils(exts);
-	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
+	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::getFILE(), true);
 	std::string dirname;
 	if (filenames.size() == 1) {
 		dirname = imageName.substr(0, imageName.find_last_of("/\\"));

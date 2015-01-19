@@ -4,10 +4,18 @@
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
+
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include <iostream>
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
 #include <vector>
 #include "HistologicalEntities.h"
 #include "MorphologicOperations.h"

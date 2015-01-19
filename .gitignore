@@ -7,3 +7,4 @@ src/segment/test/out-*.*
 *cmake_install.cmake
 *Makefile
 build
+build_nogpu

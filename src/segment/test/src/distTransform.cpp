@@ -1,7 +1,11 @@
 
 #include "opencv2/opencv.hpp"
 #include <iostream>
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
 #include <vector>
 #include <errno.h>
 #include <time.h>

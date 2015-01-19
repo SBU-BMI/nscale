@@ -13,13 +13,20 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 
+
+#ifdef _MSC_VER
+#define DllExport __declspec(dllexport)
+#else
+#define DllExport //nothing 
+#endif
+
 namespace cciutils {
 
 namespace cv {
 
 #define RAW ".raw"
 
-class IntermediateResultHandler {
+class DllExport IntermediateResultHandler {
 
 public:
 	IntermediateResultHandler() {};
@@ -38,7 +45,7 @@ public:
 };
 
 
-class IntermediateResultWriter : public IntermediateResultHandler {
+class DllExport IntermediateResultWriter : public IntermediateResultHandler {
 private:
     std::string prefix;
     std::string suffix;

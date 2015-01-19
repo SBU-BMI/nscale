@@ -577,9 +577,9 @@ int distTransformPropagation( int *g_InputListPtr, int h_ListSize, PtrStep_<unsi
 
 	// at this moment I should partition the INPUT queue
 
-	int subListsInit[tempNblocks];
-	int subListsSize[tempNblocks];
-//	int queue_increase_factor = 2;
+	int *subListsInit = (int*)malloc(sizeof(int)* tempNblocks);
+	int *subListsSize = (int*)malloc(sizeof(int)* tempNblocks);
+	//	int queue_increase_factor = 2;
 	printf("queue_increase_factor=%d\n", queue_increase_factor);
 
 	// divide gpu input list (propagation frontier) among gpu blocks (sms) 
@@ -593,7 +593,7 @@ int distTransformPropagation( int *g_InputListPtr, int h_ListSize, PtrStep_<unsi
 	}
 
 	// copy input list to sublist computed by different blocks
-	int *blockSubLists[tempNblocks];
+	int **blockSubLists = (int**)malloc(sizeof(int*)* tempNblocks);
 	for(int i = 0; i < tempNblocks; i++){
 		cudaMalloc((void **)&blockSubLists[i], sizeof(int)*(subListsSize[i]) * queue_increase_factor);
 		cudaMemcpy(blockSubLists[i], &g_InputListPtr[subListsInit[i]], subListsSize[i] * sizeof(int), cudaMemcpyDeviceToDevice);
@@ -637,6 +637,9 @@ int distTransformPropagation( int *g_InputListPtr, int h_ListSize, PtrStep_<unsi
 		cudaFree(h_OutQueuePtr[i]);
 	}
 	free(h_OutQueuePtr);
+	free(subListsInit);
+	free(subListsSize);
+	free(blockSubLists);
 	cudaFree(g_InputListPtr);
 	cudaDeviceSynchronize();
 

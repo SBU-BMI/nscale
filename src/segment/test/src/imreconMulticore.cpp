@@ -6,7 +6,11 @@
  */
 #include "opencv2/opencv.hpp"
 #include <iostream>
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
 #include <vector>
 #include <errno.h>
 #include <time.h>
@@ -15,10 +19,19 @@
 #include <stdio.h>
 #include <omp.h>
 
+
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
+
 #include "opencv2/gpu/gpu.hpp"
 
-
+#ifndef _MSC_VER
 pthread_attr_t gomp_thread_attr;
+
+#else
+//TODO: figure out the best rout. Probably to use C++11 threads header so we do not have issues with cross-platform threads code
+#endif
 using namespace cv;
 using namespace cv::gpu;
 using namespace std;

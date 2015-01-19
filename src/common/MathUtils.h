@@ -13,7 +13,11 @@
 namespace cci {
 namespace common {
 
+#ifdef _MSC_VER
+	class	__declspec(dllexport) MathUtils {
+#else
 class MathUtils {
+#endif
 public:
 	static double spare;
 	static bool spareready;

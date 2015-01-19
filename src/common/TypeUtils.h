@@ -9,7 +9,11 @@
 #define UTILS_H_
 
 #include <limits>
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
 #include <cmath>
 #include <algorithm>
 

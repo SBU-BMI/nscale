@@ -450,9 +450,20 @@ inline void propagateAtomic(const Mat& image, Mat& output, std::queue<int>& xQ, 
 			T min_val = min(pval[0], ival);
 			bool success = false;
 			if (std::numeric_limits<T>::is_integer) {
-				success = __sync_val_compare_and_swap((unsigned char*)oPtrP, (unsigned char)qval, (unsigned char)min_val);
+
+#if defined(_MSC_VER)
+				//from http://stackoverflow.com/questions/1158374/portable-compare-and-swap-atomic-operations-c-c-library
+				success = InterlockedCompareExchange16( (short*)oPtrP, (short)min_val, (short)qval );
+#elif
+					success = __sync_val_compare_and_swap((unsigned char*)oPtrP, (unsigned char)qval, (unsigned char)min_val);
+#endif
 			}else{
+#if defined(_MSC_VER)
+				//from http://stackoverflow.com/questions/1158374/portable-compare-and-swap-atomic-operations-c-c-library
+				success = InterlockedCompareExchange((long*)oPtrP, (long)min_val, (long)qval);
+#elif
 				success = __sync_val_compare_and_swap((int*)oPtrP, (int)qval, (int)min_val);
+#endif
 			}
 			// if update did not work, read data again and check the propagation condition
 			if(!success) continue;
@@ -3243,51 +3254,51 @@ Mat morphOpen(const Mat& image, const Mat& kernel) {
 }
 
 // Tiled based version
-template Mat imreconstructParallelTile<unsigned char>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize, int nThreads);
-template Mat imreconstructParallelTile<float>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize, int nThreads);
+template DllExport Mat imreconstructParallelTile<unsigned char>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize, int nThreads);
+template DllExport Mat imreconstructParallelTile<float>(const cv::Mat& seeds, const cv::Mat& image, int connectivity, int tileSize, int nThreads);
 
 
 // Parallel queue
-template Mat imreconstructParallelQueue<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, bool withBorder, int nThreads);
-template Mat imreconstructParallelQueue<float>(const Mat& seeds, const Mat& image, int connectivity, bool withBorder, int nThreads);
+template DllExport Mat imreconstructParallelQueue<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, bool withBorder, int nThreads);
+template DllExport Mat imreconstructParallelQueue<float>(const Mat& seeds, const Mat& image, int connectivity, bool withBorder, int nThreads);
 
 
-template Mat imreconstructFixTilingEffects<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
-template Mat imreconstructFixTilingEffects<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
+template DllExport Mat imreconstructFixTilingEffects<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
+template DllExport Mat imreconstructFixTilingEffects<float>(const Mat& seeds, const Mat& image, int connectivity, int tileIdX, int tileIdY, int tileSize, bool withBorder);
 
-template Mat imreconstructFixTilingEffectsParallel<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileSize, bool withBorder);
-template Mat imreconstructFixTilingEffectsParallel<float>(const Mat& seeds, const Mat& image, int connectivity, int tileSize, bool withBorder);
+template DllExport Mat imreconstructFixTilingEffectsParallel<unsigned char>(const Mat& seeds, const Mat& image, int connectivity, int tileSize, bool withBorder);
+template DllExport Mat imreconstructFixTilingEffectsParallel<float>(const Mat& seeds, const Mat& image, int connectivity, int tileSize, bool withBorder);
 
 //template Mat imreconstructGeorge<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
-template Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
-template Mat imreconstruct<unsigned short int>(const Mat& seeds, const Mat& image, int connectivity);
-template Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
+template DllExport Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat& image, int connectivity);
+template DllExport Mat imreconstruct<unsigned short int>(const Mat& seeds, const Mat& image, int connectivity);
+template DllExport Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
 
-template std::vector<cv::Mat> imreconstruct3D<unsigned short int>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
-template std::vector<cv::Mat> imreconstruct3D<float>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
+template DllExport std::vector<cv::Mat> imreconstruct3D<unsigned short int>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
+template DllExport std::vector<cv::Mat> imreconstruct3D<float>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
 
-template std::vector<cv::Mat> imhmax3D(const std::vector<cv::Mat>& input, unsigned short int h, int connectivity);
-template std::vector<cv::Mat> imhmax3D(const std::vector<cv::Mat>& input, float h, int connectivity);
+template DllExport std::vector<cv::Mat> imhmax3D(const std::vector<cv::Mat>& input, unsigned short int h, int connectivity);
+template DllExport std::vector<cv::Mat> imhmax3D(const std::vector<cv::Mat>& input, float h, int connectivity);
 
-template Mat imreconstructBinary<unsigned char>(const Mat& seeds, const Mat& binaryImage, int connectivity);
-template Mat imfill<unsigned char>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
-template Mat imfillHoles<unsigned char>(const Mat& image, bool binary, int connectivity);
-template Mat imfillHoles<int>(const Mat& image, bool binary, int connectivity);
-template Mat imreconstruct<int>(const Mat& seeds, const Mat& image, int connectivity);
-template Mat imreconstructBinary<int>(const Mat& seeds, const Mat& binaryImage, int connectivity);
+template DllExport Mat imreconstructBinary<unsigned char>(const Mat& seeds, const Mat& binaryImage, int connectivity);
+template DllExport Mat imfill<unsigned char>(const Mat& image, const Mat& seeds, bool binary, int connectivity);
+template DllExport Mat imfillHoles<unsigned char>(const Mat& image, bool binary, int connectivity);
+template DllExport Mat imfillHoles<int>(const Mat& image, bool binary, int connectivity);
+template DllExport Mat imreconstruct<int>(const Mat& seeds, const Mat& image, int connectivity);
+template DllExport Mat imreconstructBinary<int>(const Mat& seeds, const Mat& binaryImage, int connectivity);
 
-template Mat bwselect<unsigned char>(const Mat& image, const Mat& seeds, int connectivity);
-template Mat bwlabelFiltered<unsigned char>(const Mat& image, bool binaryOutput,
+template DllExport Mat bwselect<unsigned char>(const Mat& image, const Mat& seeds, int connectivity);
+template DllExport Mat bwlabelFiltered<unsigned char>(const Mat& image, bool binaryOutput,
 		bool (*contourFilter)(const std::vector<std::vector<Point> >&, const std::vector<Vec4i>&, int),
 		bool contourOnly, int connectivity);
-template Mat bwareaopen<unsigned char>(const Mat& image, int minSize, int maxSize, int connectivity, int& count);
-template Mat imhmin(const Mat& image, unsigned char h, int connectivity);
-template Mat imhmin(const Mat& image, float h, int connectivity);
-template Mat_<unsigned char> localMaxima<float>(const Mat& image, int connectivity);
-template Mat_<unsigned char> localMinima<float>(const Mat& image, int connectivity);
-template Mat_<unsigned char> localMaxima<unsigned char>(const Mat& image, int connectivity);
-template Mat_<unsigned char> localMinima<unsigned char>(const Mat& image, int connectivity);
-template Mat morphOpen<unsigned char>(const Mat& image, const Mat& kernel);
+template DllExport Mat bwareaopen<unsigned char>(const Mat& image, int minSize, int maxSize, int connectivity, int& count);
+template DllExport Mat imhmin(const Mat& image, unsigned char h, int connectivity);
+template DllExport Mat imhmin(const Mat& image, float h, int connectivity);
+template DllExport Mat_<unsigned char> localMaxima<float>(const Mat& image, int connectivity);
+template DllExport Mat_<unsigned char> localMinima<float>(const Mat& image, int connectivity);
+template DllExport Mat_<unsigned char> localMaxima<unsigned char>(const Mat& image, int connectivity);
+template DllExport Mat_<unsigned char> localMinima<unsigned char>(const Mat& image, int connectivity);
+template DllExport Mat morphOpen<unsigned char>(const Mat& image, const Mat& kernel);
 
 }
 

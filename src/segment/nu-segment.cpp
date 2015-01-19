@@ -4,6 +4,12 @@
  *  Created on: Jun 28, 2011
  *      Author: tcpan
  */
+
+
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
+
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include <iostream>
@@ -14,9 +20,23 @@
 #include "MorphologicOperations.h"
 #include "Logger.h"
 #include "FileUtils.h"
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
+
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 using namespace cv;
+
+#if defined(_WIN32) || defined(_WIN64)
+#define snprintf _snprintf
+#define vsnprintf _vsnprintf
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#endif
 
 
 // COMMENT OUT WHEN COMPILE for editing purpose only.

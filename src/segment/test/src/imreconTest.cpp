@@ -6,13 +6,22 @@
  */
 #include "opencv2/opencv.hpp"
 #include <iostream>
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
 #include <vector>
 #include <errno.h>
 #include <time.h>
 #include "MorphologicOperations.h"
 #include "Logger.h"
 #include <stdio.h>
+
+
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
 
 #include "opencv2/gpu/gpu.hpp"
 
@@ -69,7 +78,7 @@ int main (int argc, char **argv){
 	imwrite("test/out-recon4-cpu.ppm", recon);
 
 	t1 = cci::common::event::timestampInUS();
-	GpuMat g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, 4, 8,stream);
+	GpuMat g_recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_marker, g_mask, 4, 8,stream, 14, false);
 	stream.waitForCompletion();
 	t2 = cci::common::event::timestampInUS();
 

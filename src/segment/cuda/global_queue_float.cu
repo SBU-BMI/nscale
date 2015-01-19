@@ -456,8 +456,8 @@ extern "C" int morphReconSpeedupFloat( int *g_InputListPtr, int h_ListSize, int 
 	// at this moment I should partition the INPUT queue
 	int tempNblocks = nBlocks;
 
-	int subListsInit[tempNblocks];
-	int subListsSize[tempNblocks];
+	int *subListsInit = (int*)malloc(sizeof(int)* tempNblocks);
+	int *subListsSize = (int*)malloc(sizeof(int)* tempNblocks);
 
 	for(int i = 0; i < tempNblocks; i++){
 		int curSubListInit = (h_ListSize/tempNblocks)*i;
@@ -470,7 +470,7 @@ extern "C" int morphReconSpeedupFloat( int *g_InputListPtr, int h_ListSize, int 
 
 // Adding code
 	// TODO: free data
-	int *blockSubLists[tempNblocks];
+	int **blockSubLists = (int**)malloc(sizeof(int*)* tempNblocks);
 	for(int i = 0; i < tempNblocks; i++){
 		cudaMalloc((void **)&blockSubLists[i], sizeof(int)*(subListsSize[i]) * queue_increase_factor);
 		cudaMemcpy(blockSubLists[i], &g_InputListPtr[subListsInit[i]], subListsSize[i] * sizeof(int), cudaMemcpyDeviceToDevice);
@@ -517,6 +517,9 @@ extern "C" int morphReconSpeedupFloat( int *g_InputListPtr, int h_ListSize, int 
 		cudaFree(h_OutQueuePtr[i]);
 	}
 	free(h_OutQueuePtr);
+	free(subListsInit);
+	free(subListsSize);
+	free(blockSubLists);
 	cudaFree(g_InputListPtr);
 
 	return resutRet;

@@ -69,43 +69,43 @@ inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::q
 #if !defined (WITH_CUDA)
 
 template <typename T>
-GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
+GpuMat imreconstruct(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu(); return GpuMat(); }
 template <typename T>
-GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu();}
+GpuMat imreconstructQueue(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); return GpuMat(); }
 template <typename T>
-vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) {throw_nogpu();};
+vector<GpuMat> imreconstructQueueThroughput(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream) { throw_nogpu(); return vector<GpuMat>(); };
 template <typename T>
-GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks, bool binary) {throw_nogpu();};
-GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks) {throw_nogpu();};
+GpuMat imreconstructQueueSpeedup(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks, bool binary) { throw_nogpu(); return GpuMat(); };
+GpuMat imreconstructQueueSpeedupFloat(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks) { throw_nogpu(); return GpuMat(); };
 
 template <typename T>
-GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu();}
+GpuMat imreconstructQ(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu(); return GpuMat(); }
 //// Operates on BINARY IMAGES ONLY
 template <typename T>
-GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) { throw_nogpu();}
+GpuMat bwselect(const GpuMat& binaryImage, const GpuMat& seeds, int connectivity, Stream& stream) { throw_nogpu(); return GpuMat(); }
 template <typename T>
-GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) {throw_nogpu();}
+GpuMat imreconstructBinary(const GpuMat& seeds, const GpuMat& image, int connectivity, Stream& stream, unsigned int& iter) { throw_nogpu(); return GpuMat(); }
 template <typename T>
-GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu();}
+GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& stream) { throw_nogpu(); return GpuMat(); }
 
 
-GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& stream) { throw_nogpu(); }
+GpuMat bwlabel(const GpuMat& binaryImage, int connectivity, bool relab, Stream& stream) { throw_nogpu(); return GpuMat(); }
 
 //// input should have foreground > 0, and 0 for background
 //GpuMat watershedCA(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
 // input should have foreground > 0, and 0 for background
-GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); }
+GpuMat watershedDW(const GpuMat& origImage, const GpuMat& image, int connectivity, Stream& stream) { throw_nogpu(); return GpuMat(); }
 // input should have foreground > 0, and 0 for background
 template <typename T>
-GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) { throw_nogpu(); }
+GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) { throw_nogpu(); return GpuMat(); }
 template <typename T>
-GpuMat morphOpen(const GpuMat& image, const Mat& kernel, Stream& stream) {throw_nogpu(); }
+GpuMat morphOpen(const GpuMat& image, const Mat& kernel, Stream& stream) { throw_nogpu(); return GpuMat(); }
 template <typename T>
-GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) {throw_nogpu(); }
+GpuMat morphErode(const GpuMat& image, const Mat& kernel, Stream& stream) { throw_nogpu(); return GpuMat(); }
 template <typename T>
-GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {throw_nogpu(); }
+GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) { throw_nogpu(); return GpuMat(); }
 
-GpuMat distanceTransform(const GpuMat& mask, Stream& stream) {throw_nogpu(); }
+GpuMat distanceTransform(const GpuMat& mask, Stream& stream) { throw_nogpu(); return GpuMat(); }
 
 #else
 
@@ -812,7 +812,7 @@ GpuMat imfillHoles(const GpuMat& image, bool binary, int connectivity, Stream& s
 		}
 	}
 	else if (sizeof(T) == 1 && !(std::numeric_limits<T>::is_signed)) {
-		output2 = imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 1, stream);
+		output2 = imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 1, stream, 14, false);
 
 	} else {
 		output2 = imreconstruct<T>(marker, mask, connectivity, stream);
@@ -1068,7 +1068,7 @@ GpuMat imhmin(const GpuMat& image, T h, int connectivity, Stream& stream) {
 	GpuMat recon;
 	GpuMat recon2;
 	if (sizeof(T) == 1 && !(std::numeric_limits<T>::is_signed)){
-		recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 1, stream);
+		recon = nscale::gpu::imreconstructQueueSpeedup<unsigned char>(marker, mask, connectivity, 1, stream, 14, false);
 	}else{
 		recon = imreconstructQueueSpeedupFloat(marker, mask, connectivity, 1, stream);
 
@@ -1460,34 +1460,38 @@ GpuMat morphDilate(const GpuMat& image, const Mat& kernel, Stream& stream) {
 
 #endif
 
-template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
-template GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
-template GpuMat imreconstructQueue<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
-template vector<GpuMat> imreconstructQueueThroughput<unsigned char>(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
+template DllExport GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template DllExport GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template DllExport GpuMat imreconstruct<float>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport GpuMat imreconstruct<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport GpuMat imreconstructQueue<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport vector<GpuMat> imreconstructQueueThroughput<unsigned char>(vector<GpuMat> & seeds, vector<GpuMat> & image, int connectivity, int nItFirstPass, Stream& stream);
+#ifdef __GNUC__
 template GpuMat imreconstructQueueSpeedup<unsigned char>(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks=14, bool binary=false);
+#else
+template DllExport GpuMat imreconstructQueueSpeedup<unsigned char>(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks, bool binary);
+#endif
 //template GpuMat imreconstructQueueSpeedupFloat>(GpuMat &seeds, GpuMat &image, int connectivity, int nItFirstPass, Stream& stream, int nBlocks=14, bool binary=false);
 
-template GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
-template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
-template GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
+template DllExport GpuMat bwselect<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template DllExport GpuMat imreconstructBinary<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport GpuMat imfillHoles<unsigned char>(const GpuMat&, bool, int, Stream&);
 
-template GpuMat imfillHoles<int>(const GpuMat&, bool, int, Stream&);
-template GpuMat imreconstruct<int>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstruct<int>(const GpuMat&, const GpuMat&, int, Stream&);
-template GpuMat imreconstructBinary<int>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstructBinary<int>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport GpuMat imfillHoles<int>(const GpuMat&, bool, int, Stream&);
+template DllExport GpuMat imreconstruct<int>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template DllExport GpuMat imreconstruct<int>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport GpuMat imreconstructBinary<int>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template DllExport GpuMat imreconstructBinary<int>(const GpuMat&, const GpuMat&, int, Stream&);
 
-template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
-template GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
+template DllExport GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&, unsigned int&);
+template DllExport GpuMat imreconstructQ<unsigned char>(const GpuMat&, const GpuMat&, int, Stream&);
 
-template GpuMat imhmin(const GpuMat& image, unsigned char h, int connectivity, Stream&);
-template GpuMat imhmin(const GpuMat& image, float h, int connectivity, Stream&);
-template GpuMat morphOpen<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
-template GpuMat morphErode<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
-template GpuMat morphDilate<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
+template DllExport GpuMat imhmin(const GpuMat& image, unsigned char h, int connectivity, Stream&);
+template DllExport GpuMat imhmin(const GpuMat& image, float h, int connectivity, Stream&);
+template DllExport GpuMat morphOpen<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
+template DllExport GpuMat morphErode<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
+template DllExport GpuMat morphDilate<unsigned char>(const GpuMat& image, const Mat& kernel, Stream&);
 
 }
 

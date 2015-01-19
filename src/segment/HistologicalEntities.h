@@ -14,9 +14,17 @@
 #include "opencv2/gpu/gpu.hpp"
 #include <string.h>
 
+
+#ifdef _MSC_VER
+#define DllExport __declspec(dllexport)
+#else
+#define DllExport //nothing 
+#endif
+
 namespace nscale {
 
-class HistologicalEntities {
+
+class DllExport HistologicalEntities {
 
 public:
 
@@ -60,7 +68,7 @@ public:
 
 namespace gpu {
 
-class HistologicalEntities {
+class DllExport HistologicalEntities {
 
 public:
 
@@ -88,10 +96,10 @@ public:
 
 };
 
-int* boundingBox2(cv::gpu::GpuMat g_input, cv::gpu::Stream *str);
-int* boundingBox2(cv::gpu::GpuMat g_input, int &compcount, cv::gpu::Stream *str);
-void cudaFreeData(char *dataPtr);
-void cudaDownloadData(char *dest, char *from, int size);
+DllExport int* boundingBox2(cv::gpu::GpuMat g_input, cv::gpu::Stream *str);
+DllExport int* boundingBox2(cv::gpu::GpuMat g_input, int &compcount, cv::gpu::Stream *str);
+DllExport void cudaFreeData(char *dataPtr);
+DllExport void cudaDownloadData(char *dest, char *from, int size);
 
 }
 

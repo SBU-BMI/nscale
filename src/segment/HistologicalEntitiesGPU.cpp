@@ -5,6 +5,10 @@
  *      Author: tcpan
  */
 
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
+
 #include "HistologicalEntities.h"
 #include <iostream>
 #include "MorphologicOperations.h"
@@ -34,28 +38,40 @@ using namespace cv::gpu;
 
 #if !defined (WITH_CUDA)
 GpuMat HistologicalEntities::getRBC(const std::vector<GpuMat>& bgr, Stream& stream,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+	::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	throw_nogpu(); return GpuMat();
+}
 GpuMat HistologicalEntities::getBackground(const std::vector<GpuMat>& g_bgr, Stream& stream,
-				::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+	::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	throw_nogpu(); return GpuMat();
+}
 int HistologicalEntities::segmentNuclei(const GpuMat& g_img, GpuMat& g_output,
 		int &compcount, int *&g_bbox,  cv::gpu::Stream *str,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); return 0; }
 int HistologicalEntities::segmentNuclei(const Mat& img, Mat& output,
 		int &compcount, int *&bbox, cv::gpu::Stream *str,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	throw_nogpu(); return 0;
+}
 int HistologicalEntities::segmentNuclei(const std::string& input, const std::string& output,
 		int &compcount, int *&bbox, cv::gpu::Stream *str,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }
+		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	throw_nogpu(); return 0;
+}
 
 
 // the following are specific to the task based implementation for HPDC paper.  The pipeline is refactoring into this form so we're maintaining one set of code.
 int plFindNucleusCandidates(const cv::gpu::GpuMat& img, cv::gpu::GpuMat& nuclei,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }  // S1
+	::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	throw_nogpu(); return 0;
+}  // S1
 int plSeparateNuclei(const cv::gpu::GpuMat& img, const cv::gpu::GpuMat& seg_open, cv::gpu::GpuMat& seg_nonoverlap,
-		::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) { throw_nogpu(); }// A4
+	::cciutils::SimpleCSVLogger *logger, ::cciutils::cv::IntermediateResultHandler *iresHandler) {
+	throw_nogpu(); return 0;
+}// A4
 
-int* boundingBox2(GpuMat g_input, int&, cv::gpu::Stream *str){ throw_nogpu(); }
-int* boundingBox2(GpuMat g_input, cv::gpu::Stream *str){ throw_nogpu(); }
+int* boundingBox2(GpuMat g_input, int&, cv::gpu::Stream *str){ throw_nogpu(); return NULL; }
+int* boundingBox2(GpuMat g_input, cv::gpu::Stream *str){ throw_nogpu(); return NULL; }
 void cudaFreeData(char *dataPtr){ throw_nogpu(); }
 void cudaDownloadData(char* dest, char *from, int size){ throw_nogpu(); }
 #else
@@ -319,7 +335,7 @@ int HistologicalEntities::plFindNucleusCandidates(const GpuMat& g_img, GpuMat& g
 
 
 	unsigned int iter;
-	GpuMat g_rc_recon = ::nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_rc_open, g_rc, 8, 1, stream);
+	GpuMat g_rc_recon = ::nscale::gpu::imreconstructQueueSpeedup<unsigned char>(g_rc_open, g_rc, 8, 1, stream, 14, false);
 	stream.waitForCompletion();
 //	std::cout << "\tIterations: " << iter << std::endl;
 	if (iresHandler) iresHandler->saveIntermediate(g_rc_recon, 4);

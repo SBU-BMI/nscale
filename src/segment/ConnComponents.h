@@ -10,8 +10,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#if( _MSC_VER == 1800 )
+#include <unordered_map>
+#else
 #include <tr1/unordered_map>
-
+#endif
 namespace nscale {
 
 
@@ -23,7 +26,11 @@ struct box {
 };
 
 
+#ifdef _MSC_VER
+class	__declspec(dllexport) ConnComponents {
+#else
 class ConnComponents {
+#endif
 public:
 	ConnComponents();
 	virtual ~ConnComponents();

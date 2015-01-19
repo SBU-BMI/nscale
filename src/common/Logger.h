@@ -8,8 +8,17 @@
 #ifndef _UTILS_LOGGER_H_
 #define _UTILS_LOGGER_H_
 
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
-#include <tr1/unordered_map>
+#endif
+
+#if( _MSC_VER == 1800 )//MSV2013 has deprecated tr1 namespace
+	#include <unordered_map>
+#else
+	#include <tr1/unordered_map>
+#endif
 #include <vector>
 #include <cmath>
 #include <string>

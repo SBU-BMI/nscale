@@ -5,7 +5,12 @@
  *      Author: tcpan
  */
 #include "stdio.h"
-#include <sys/time.h>
+
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
+	#include <sys/time.h>
+#endif
 
 #if defined (WITH_CUDA)
 

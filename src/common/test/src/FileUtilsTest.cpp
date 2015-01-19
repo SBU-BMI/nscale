@@ -13,7 +13,14 @@
 #include <vector>
 #include <iostream>
 #include <sys/stat.h>
+
+#ifdef _MSC_VER
+#include "direntWin.h"
+#define long long long
+
+#else
 #include <dirent.h>
+#endif
 #include <stdio.h>
 
 
@@ -42,7 +49,7 @@ void testTraverseDirectory(const std::string &d1, cci::common::FileUtils &fu) {
 	std::ostream_iterator<std::string> out_it (std::cout,"\n");
 
 	std::cout << "TRAVERSE DIR, DIRECTORY only, no recursion : ";
-	fu.traverseDirectory(d1, v1, cci::common::FileUtils::DIRECTORY, false);
+	fu.traverseDirectory(d1, v1, cci::common::FileUtils::getDIRECTORY(), false);
 //	copy ( v1.begin(), v1.end(), out_it );
 	std::cout << v1.size() << " entries" << std::endl;
 	v1.clear();
@@ -56,7 +63,7 @@ void testTraverseDirectory(const std::string &d1, cci::common::FileUtils &fu) {
 
 
 	std::cout << "TRAVERSE DIR, FILE only, no recursion : ";
-	fu.traverseDirectory(d1, v1, cci::common::FileUtils::FILE, false);
+	fu.traverseDirectory(d1, v1, cci::common::FileUtils::getFILE(), false);
 	//copy ( v1.begin(), v1.end(), out_it );
 	std::cout << v1.size() << " entries" << std::endl;
 	v1.clear();
@@ -71,19 +78,19 @@ void testTraverseDirectory(const std::string &d1, cci::common::FileUtils &fu) {
 
 
 	std::cout << "TRAVERSE DIR, BOTH, no recursion : ";
-	fu.traverseDirectory(d1, v1, cci::common::FileUtils::FILE | cci::common::FileUtils::DIRECTORY, false);
+	fu.traverseDirectory(d1, v1, cci::common::FileUtils::getFILE() | cci::common::FileUtils::getDIRECTORY(), false);
 //	copy ( v1.begin(), v1.end(), out_it );
 	std::cout << v1.size() << " entries" << std::endl;
 	v1.clear();
 
 	std::cout << "TRAVERSE DIR, DIRECTORY only, recursion : ";
-	fu.traverseDirectory(d1, v1, cci::common::FileUtils::DIRECTORY, true);
+	fu.traverseDirectory(d1, v1, cci::common::FileUtils::getDIRECTORY(), true);
 //	copy ( v1.begin(), v1.end(), out_it );
 	std::cout << v1.size() << " entries" << std::endl;
 	v1.clear();
 
 	std::cout << "TRAVERSE DIR, FILE only, recursion : ";
-	fu.traverseDirectory(d1, v1, cci::common::FileUtils::FILE, true);
+	fu.traverseDirectory(d1, v1, cci::common::FileUtils::getFILE(), true);
 //	copy ( v1.begin(), v1.end(), out_it );
 	std::cout << v1.size() << " entries" << std::endl;
 	v1.clear();
@@ -97,7 +104,7 @@ void testTraverseDirectory(const std::string &d1, cci::common::FileUtils &fu) {
 
 
 	std::cout << "TRAVERSE DIR, BOTH, recursion : ";
-	fu.traverseDirectory(d1, v1, cci::common::FileUtils::FILE | cci::common::FileUtils::DIRECTORY, true);
+	fu.traverseDirectory(d1, v1, cci::common::FileUtils::getFILE() | cci::common::FileUtils::getDIRECTORY(), true);
 //	copy ( v1.begin(), v1.end(), out_it );
 	std::cout << v1.size() << " entries" << std::endl;
 

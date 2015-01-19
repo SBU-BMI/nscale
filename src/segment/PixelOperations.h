@@ -13,14 +13,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _MSC_VER
+#define DllExport __declspec(dllexport)
+#else
+#define DllExport //nothing 
+#endif
+
+
 using namespace cv;
 using namespace cv::gpu;
 using namespace std;
 
+
 namespace nscale {
 
-class PixelOperations {
 
+
+	class DllExport PixelOperations {
 public:
 
 	template <typename T>
@@ -33,7 +42,7 @@ public:
 	static ::cv::Mat ComputeInverseStainMatrix(const Mat& M, const Mat& b);
 	static ::std::vector<float> ComputeLookupTable();
 
-	static void ColorDeconv( const Mat& image, const Mat& Q, const vector<float>& lut, Mat& H, Mat& E, bool BGR2RGB=true);
+	static void ColorDeconv(const Mat& image, const Mat& Q, const vector<float>& lut, Mat& H, Mat& E, bool BGR2RGB = true);
 	static ::cv::Mat bgr2gray(const ::cv::Mat& img);
 
 	template <typename T>
@@ -41,7 +50,7 @@ public:
 };
 
 namespace gpu {
-class PixelOperations {
+	class DllExport PixelOperations {
 
 public:
 

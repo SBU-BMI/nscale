@@ -6,13 +6,21 @@
  */
 #include "opencv2/opencv.hpp"
 #include <iostream>
+#ifdef _MSC_VER
+#include "direntWin.h"
+#else
 #include <dirent.h>
+#endif
 #include <vector>
 #include <errno.h>
 #include <time.h>
 #include "PixelOperations.h"
 #include "Logger.h"
 #include <stdio.h>
+
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif
 
 #include "opencv2/gpu/gpu.hpp"
 
