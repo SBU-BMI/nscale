@@ -14,7 +14,6 @@
 #include <sys/types.h>
 #ifdef _MSC_VER
 #include "direntWin.h"
-#define NOMINMAX
 #else
 #include <dirent.h>
 #endif

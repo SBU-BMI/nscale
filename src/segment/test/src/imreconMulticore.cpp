@@ -20,10 +20,6 @@
 #include <omp.h>
 
 
-#ifdef _MSC_VER
-#define NOMINMAX
-#endif
-
 #include "opencv2/gpu/gpu.hpp"
 
 #ifndef _MSC_VER

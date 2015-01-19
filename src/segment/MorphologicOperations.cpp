@@ -1467,7 +1467,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 
 	std::cout << "Copy time="<< cci::common::event::timestampInUS()-t1<<std::endl;
 
-	T pval, preval;
+	T pval;
 	int xminus, xplus, yminus, yplus;
 	int maxx = output.cols - 1;
 	int maxy = output.rows - 1;
@@ -1649,7 +1649,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	}
 
 	std::cout << "nThreads = "<< nThreads << std::endl;
-	T pval, preval;
+	T pval;
 	int xminus, xplus, yminus, yplus;
 	int maxx = output.cols - 1;
 	int maxy = output.rows - 1;
@@ -3055,7 +3055,6 @@ Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connecti
 
 	 */
 
-	long long int t1, t2;
 //	t1 = ::cci::common::event::timestampInUS();
 	Mat minima = localMinima<float>(image, connectivity);
 //	t2 = ::cci::common::event::timestampInUS();

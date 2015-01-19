@@ -19,9 +19,6 @@
 #include <stdio.h>
 
 
-#ifdef _MSC_VER
-#define NOMINMAX
-#endif
 
 #include "opencv2/gpu/gpu.hpp"
 
@@ -46,11 +43,14 @@ int main (int argc, char **argv){
 	std::vector<Mat> marker;
 	// assuming that input-path contains prefix of file
 	// name. We add slice number and ".tif" extension to that name.
-	for(int i = 1; i <= nSlices; i++){
+	for(int i = 0; i < nSlices; i++){
 		std::string sliceFilename = inputPathName;
-		stringstream ss;
-		ss << i;
-		sliceFilename.append(ss.str());
+		//stringstream ss;
+		//ss << i;
+		//sliceFilename.append(ss.str());
+		char ss[256];
+		sprintf(ss, "%.4d", i);
+		sliceFilename.append(ss);
 		sliceFilename.append(".tif");
 		Mat aux = imread(sliceFilename, -1);
 	/*	std::cout << "FileName: "<< sliceFilename << std::endl;
@@ -76,13 +76,13 @@ int main (int argc, char **argv){
 	uint64_t t1, t2;
 
 	t1 = cci::common::event::timestampInUS();
-	recon = nscale::imreconstruct3D<unsigned short int>(marker, mask, 26);
+	recon = nscale::imreconstruct3D<unsigned short int>(marker, mask, 6);
 	t2 = cci::common::event::timestampInUS();
 	std::cout << " cpu recon3D-26point took " << (t2-t1)/1000 << "ms" << std::endl;
 
 	// dump output
 	for(int i = 0; i < recon.size(); i++){
-		std::string outFileName = "output";
+		std::string outFileName = inputPathName + "_output";
 		stringstream ss;
 		ss << (i+1);
 		outFileName.append(ss.str());

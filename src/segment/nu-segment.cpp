@@ -6,10 +6,6 @@
  */
 
 
-#ifdef _MSC_VER
-#define NOMINMAX
-#endif
-
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include <iostream>
@@ -126,7 +122,7 @@ void getFiles(const std::string &imageName, const std::string &outDir, std::vect
 	exts.push_back(std::string(".png"));
 
 	cci::common::FileUtils futils(exts);
-	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::FILE, true);
+	futils.traverseDirectory(imageName, filenames, cci::common::FileUtils::getFILE(), true);
 
 	std::string dirname = imageName;
 	if (filenames.size() == 1) {
@@ -530,7 +526,10 @@ int main (int argc, char **argv){
     			while (i < total) {
     				int ti = i;
     				// has to use firstprivate - private does not work.
+#ifndef _MSC_VER
+					//MSVC does not support tasks. They were incorporated in OMP 3.0 and MSVC only supports up to 2.0 http://stackoverflow.com/questions/23545930/openmp-tasks-in-visual-studio
 #pragma omp task firstprivate(ti) shared(filenames, seg_output, bounds_output, modecode)
+#endif
     				{
 //        				printf("t i: %d, %d \n", i, ti);
     					compute(filenames[ti].c_str(), seg_output[ti].c_str(), bounds_output[ti].c_str(), modecode);
@@ -539,7 +538,9 @@ int main (int argc, char **argv){
     				i++;
     			}
     			}	
+#ifndef _MSC_VER
 #pragma omp taskwait
+#endif
     		}
     	}
 #else

@@ -18,11 +18,14 @@
 #include "Logger.h"
 #include <stdio.h>
 
-#ifdef _MSC_VER
-#define NOMINMAX
-#endif
 
 #include "opencv2/gpu/gpu.hpp"
+
+
+#ifdef _MSC_VER
+#define long long long
+#endif
+
 
 using namespace cv;
 using namespace cv::gpu;

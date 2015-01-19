@@ -6,9 +6,6 @@
  */
 
 
-#ifdef _MSC_VER
-#define NOMINMAX
-#endif
 
 #include "opencv2/opencv.hpp"
 #include <iostream>

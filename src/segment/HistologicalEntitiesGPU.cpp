@@ -5,9 +5,6 @@
  *      Author: tcpan
  */
 
-#ifdef _MSC_VER
-#define NOMINMAX
-#endif
 
 #include "HistologicalEntities.h"
 #include <iostream>

@@ -1,6 +1,3 @@
-#ifdef _MSC_VER
-#define NOMINMAX
-#endif
 
 
 #include <opencv2/core/core.hpp>

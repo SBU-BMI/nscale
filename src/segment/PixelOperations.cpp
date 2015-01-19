@@ -10,6 +10,10 @@
 #include "Logger.h"
 #include "TypeUtils.h"
 
+#ifdef _MSC_VER
+#define long long long
+#endif
+
 namespace nscale {
 
 using namespace cv;
