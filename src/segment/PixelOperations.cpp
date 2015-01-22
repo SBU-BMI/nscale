@@ -296,7 +296,7 @@ Mat PixelOperations::replace(const Mat& img, T oldval, T newval) {
 template Mat PixelOperations::invert<unsigned char>(const Mat&);
 template Mat PixelOperations::invert<float>(const Mat&);
 template Mat PixelOperations::invert<int>(const Mat&);  // for imfillholes
-
+template Mat PixelOperations::invert<unsigned short int>(const Mat&);
 
 template Mat PixelOperations::mod<unsigned char>(Mat&, unsigned char mod);
 template Mat PixelOperations::mod<int>(Mat&, int mod);

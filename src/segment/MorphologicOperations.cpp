@@ -3273,6 +3273,7 @@ template DllExport Mat imreconstruct<unsigned char>(const Mat& seeds, const Mat&
 template DllExport Mat imreconstruct<unsigned short int>(const Mat& seeds, const Mat& image, int connectivity);
 template DllExport Mat imreconstruct<float>(const Mat& seeds, const Mat& image, int connectivity);
 
+
 template DllExport std::vector<cv::Mat> imreconstruct3D<unsigned short int>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
 template DllExport std::vector<cv::Mat> imreconstruct3D<float>(const std::vector<cv::Mat>& seeds, const std::vector<cv::Mat>& image, int connectivity);
 
@@ -3293,6 +3294,7 @@ template DllExport Mat bwlabelFiltered<unsigned char>(const Mat& image, bool bin
 template DllExport Mat bwareaopen<unsigned char>(const Mat& image, int minSize, int maxSize, int connectivity, int& count);
 template DllExport Mat imhmin(const Mat& image, unsigned char h, int connectivity);
 template DllExport Mat imhmin(const Mat& image, float h, int connectivity);
+template DllExport Mat imhmin(const Mat& image, unsigned short int h, int connectivity);
 template DllExport Mat_<unsigned char> localMaxima<float>(const Mat& image, int connectivity);
 template DllExport Mat_<unsigned char> localMinima<float>(const Mat& image, int connectivity);
 template DllExport Mat_<unsigned char> localMaxima<unsigned char>(const Mat& image, int connectivity);
