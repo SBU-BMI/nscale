@@ -454,14 +454,14 @@ inline void propagateAtomic(const Mat& image, Mat& output, std::queue<int>& xQ, 
 #if defined(_MSC_VER)
 				//from http://stackoverflow.com/questions/1158374/portable-compare-and-swap-atomic-operations-c-c-library
 				success = InterlockedCompareExchange16( (short*)oPtrP, (short)min_val, (short)qval );
-#elif
+#else
 					success = __sync_val_compare_and_swap((unsigned char*)oPtrP, (unsigned char)qval, (unsigned char)min_val);
 #endif
 			}else{
 #if defined(_MSC_VER)
 				//from http://stackoverflow.com/questions/1158374/portable-compare-and-swap-atomic-operations-c-c-library
 				success = InterlockedCompareExchange((long*)oPtrP, (long)min_val, (long)qval);
-#elif
+#else
 				success = __sync_val_compare_and_swap((int*)oPtrP, (int)qval, (int)min_val);
 #endif
 			}
