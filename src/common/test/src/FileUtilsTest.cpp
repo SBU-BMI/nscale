@@ -17,10 +17,10 @@
 #ifdef _MSC_VER
 #include "direntWin.h"
 #define long long long
-
 #else
 #include <dirent.h>
 #endif
+
 #include <stdio.h>
 
 

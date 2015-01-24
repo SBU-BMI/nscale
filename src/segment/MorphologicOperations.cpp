@@ -2982,7 +2982,7 @@ Mat_<int> watershed(const Mat& image, int connectivity) {
 			}
 		}
 	}
-
+	//imwrite("before.png", W);
 	while(!Q.empty()){
 		p = Q.front();
 		Q.pop_front();
@@ -3041,6 +3041,166 @@ Mat_<int> watershed(const Mat& image, int connectivity) {
 	return W(Rect(1,1, image.cols, image.rows));
 }
 
+
+#define MASK1 	-2
+#define PLATEAU -1
+int find(int p, int*adrPtr){
+	int q = p;
+	// find root
+	while(adrPtr[q] != q){
+		q = adrPtr[q];
+	}
+	int u = p;
+	int v;
+	while(adrPtr[u] != q){
+		v = adrPtr[u];
+		adrPtr[u] = q;
+		u = v;
+	}
+	return q;
+}
+
+
+// "An efficient watershed algorithm based on connected components" Pattern Recognition, 2000.
+Mat_<int> watershedCC(const Mat& image, int connectivity) {
+	// only works for intensity images.
+	CV_Assert(image.channels() == 1);
+	CV_Assert(image.type() ==  CV_16U);
+	CV_Assert(connectivity == 4 || connectivity == 8);
+
+
+	// create copy of the input image w/ border
+	Mat imageB;
+	copyMakeBorder( image, imageB, 1, 1, 1, 1, BORDER_CONSTANT, std::numeric_limits<unsigned short int>::max());
+
+	// create image to be labeled: same size as input image w/ border
+	Mat lab(image.size(), CV_32S);
+	copyMakeBorder(lab, lab, 1, 1, 1, 1, BORDER_CONSTANT, BORDER);
+	lab = MASK;
+
+	Mat adr = Mat::zeros(lab.size(), lab.type());
+
+	CV_Assert(lab.size() ==  imageB.size());
+
+	// build neighbors vector
+	int *neigh = neighvector(lab.cols, connectivity);
+	//std::cout<< "lab.cols: " << lab.cols << std::endl;
+	// TODO: reshape if not continuous
+	CV_Assert(lab.isContinuous() && imageB.isContinuous());
+
+	// queue used for flooding
+	std::list<int> Q;
+
+	unsigned short int hmin, h;
+	int qmin, q, u, v, p, i, r;
+	//int *WPtr = (int*)W.data;
+	int *adrPtr = (int *)adr.data;
+	int *labPtr = (int *)lab.data;
+	unsigned short int *imageBPtr = (unsigned short int*)imageB.data;
+
+	// start in second row and stop before last row
+	for(p = lab.cols+1; p < lab.cols*(lab.rows-1); p++) {
+		q = p;
+
+		// for each neighbor of p, get neighbor w/ smaller value
+		for(i = 0; i < connectivity; i++) {
+				u = p + neigh[i];
+				// che
+				if(imageBPtr[u] < imageBPtr[q]){
+					q = u;
+				}
+		}
+		if(q != p){
+			adrPtr[p] = q;
+		}else{
+			adrPtr[p] = PLATEAU;
+		}
+
+	}
+
+
+	//std::cout << "adrPtr[18]: "<< adrPtr[18] <<std::endl;
+	//imwrite("out1.ppm", adr);
+	// #step 2
+	for(p = lab.cols+1; p < lab.cols*(lab.rows-1); p++) {
+		if( adrPtr[p] != PLATEAU){
+			continue;
+		}
+		// for each neighbor of p, get neighbor w/ smaller value
+		for(i = 0; i < connectivity; i++) {
+			q = p + neigh[i];
+			if(adrPtr[q] ==  PLATEAU || imageBPtr[q] != imageBPtr[p]){
+				continue;
+			}
+			Q.push_back(q);
+		}
+
+	}
+	while(!Q.empty()){
+		p = Q.front();
+		Q.pop_front();
+		h = imageBPtr[p];
+		for(i = 0; i < connectivity; i++) {
+			q = p + neigh[i];
+			// if it is not a peak or plateu
+			if(adrPtr[q] != PLATEAU || imageBPtr[q] != imageBPtr[p]) {
+				continue;
+			}
+
+			adrPtr[q] = p;
+			Q.push_back(q);
+		}
+	}
+
+	// step 3
+	// start in second row and stop before last row
+	for(p = lab.cols+1; p < lab.cols*(lab.rows-1); p++) {
+		if(adrPtr[p] != PLATEAU) {
+			continue;
+		}
+		adrPtr[p] = p;
+
+		for(i = 0; i < connectivity; i++) {
+			q = p + neigh[i];
+			if(q > p || imageBPtr[q] != imageBPtr[p]) {
+				continue;
+			}
+			u = find(p, adrPtr);
+			v = find(q, adrPtr);
+
+			adrPtr[u] = adrPtr[v] = std::min(u,v);
+		}
+	}
+
+	int basins =1;
+	// start in second row and stop before last row
+	for(p = lab.cols+1; p < lab.cols*(lab.rows-1); p++) {
+		r = find(p, adrPtr);
+		adrPtr[p] = r;
+		if(labPtr[r] == MASK){
+			labPtr[r] = basins;
+			basins++;
+		}
+		labPtr[p] = labPtr[r];
+	}
+
+/*	for(i = 0; i < 11; i++){
+		for(int j = 0; j < 10; j++ ){
+				std::cout << adrPtr[(i+1)*12+j+1] << " ";
+
+		}
+		std::cout <<endl;
+	}*/
+/*	for(i = 0; i < 11; i++){
+		for(int j = 0; j < 10; j++ ){
+				std::cout << labPtr[(i+1)*12+j+1] << " ";
+
+		}
+		std::cout <<endl;
+	}*/
+	// remove border
+	return lab(Rect(1,1, image.cols, image.rows));
+}
 
 // input should have foreground > 0, and 0 for background
 Mat_<int> watershed(const Mat& origImage, const Mat_<float>& image, int connectivity) {
