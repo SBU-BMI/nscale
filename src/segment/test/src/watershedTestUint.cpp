@@ -77,6 +77,8 @@ int main (int argc, char **argv){
 
 	uint64_t t1, t2;
 
+	imwrite(string(argv[1]) + "in_watershed.png", input);
+
 	std::cout << "Cols: " << input.cols << " Rows: "<< input.rows<< std::endl; 
 	t1 = cci::common::event::timestampInUS();
 
@@ -98,19 +100,11 @@ int main (int argc, char **argv){
 	std::ofstream fout(fileout2.c_str(), std::ios::binary);
 	fout.write((char*)(waterResult.data), sizeof(int) * waterResult.cols * waterResult.rows);
 	fout.close();
-			{11,10,11,9,7,7,9,9,10,8},
-			{11,10,11,9,11,9,10,10,8,10},
-			{11,11,11,8,8,8,8,8,10,10},
-			{11,11,11,11,10,10,10,10,10,10},
-			{10,10,10,10,10,10,10,10,10,10},
-			{11,11,11,11,10,10,10,10,10,10}
-	};
-	cv::Mat testInMat = Mat(11,10, CV_16U, &testIn);
 
-	Mat waterResultCCIn = nscale::watershedCC(testInMat, connectivity);
-	imwrite("out-watershedCC-test.ppm", waterResultCCIn);
+	
+	
+	
 
-	exit(1);*/
 	t1 = cci::common::event::timestampInUS();
 
 	//imwrite("in-cpu-watershed.png", input);
@@ -119,8 +113,17 @@ int main (int argc, char **argv){
 
 	t2 = cci::common::event::timestampInUS();
 	std::cout << "cpu watershedCC loop took " << (t2-t1)/1000 << "ms" << std::endl;
+	
+	fileout = string(argv[1]);
+	fileout.append("out_watershedCC.ppm");
+	imwrite(fileout.c_str(), waterResultCC);
 
-	imwrite("out-watershedCC.ppm", waterResultCC);
+	fileout2 = string(argv[1]);
+	fileout2.append("out_watershedCC.raw");
+	fout.open(fileout2.c_str(), std::ios::binary);
+	fout.write((char*)(waterResultCC.data), sizeof(int)* waterResult.cols * waterResult.rows);
+	fout.close();
+
 	return 0;
 }
 
