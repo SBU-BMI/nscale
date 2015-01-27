@@ -94,6 +94,7 @@ cv::Mat imhmin(const cv::Mat& image, T h, int connectivity);
 DllExport cv::Mat_<int> watershed(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
 DllExport cv::Mat_<int> watershed2(const cv::Mat& origImage, const cv::Mat_<float>& image, int connectivity);
 DllExport cv::Mat_<int> watershed(const cv::Mat& image, int connectivity);
+DllExport cv::Mat_<int> watershedCC(const Mat& image, int connectivity);
 
 template <typename T>
 cv::Mat_<unsigned char> localMaxima(const cv::Mat& image, int connectivity);
