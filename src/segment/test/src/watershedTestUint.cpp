@@ -101,7 +101,7 @@ int main (int argc, char **argv){
 	fout.write((char*)(waterResult.data), sizeof(int) * waterResult.cols * waterResult.rows);
 	fout.close();
 
-	
+	imwrite(string(argv[1]) + "out_watershed.png", waterResult);	
 	
 	
 
@@ -123,6 +123,8 @@ int main (int argc, char **argv){
 	fout.open(fileout2.c_str(), std::ios::binary);
 	fout.write((char*)(waterResultCC.data), sizeof(int)* waterResult.cols * waterResult.rows);
 	fout.close();
+
+	imwrite(string(argv[1]) + "out_watershedCC.png", waterResultCC);
 
 	return 0;
 }
