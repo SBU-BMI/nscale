@@ -9,6 +9,8 @@
 #include <vector>
 #include <errno.h>
 #include <time.h>
+#include <string>
+#include <fstream>
 #include "MorphologicOperations.h"
 #include "PixelOperations.h"
 #include "NeighborOperations.h"
@@ -82,7 +84,15 @@ int main (int argc, char **argv){
 	//check http://stackoverflow.com/questions/10167534/how-to-find-out-what-type-of-a-mat-object-is-with-mattype-in-opencv to interpret type
 	std::cout << "cpu watershed loop took " << (t2-t1)/1000 << "ms. Output type is "<<type2str( waterResult.type() )<< ". Depth = "<<waterResult.depth()<<". Channels = "<<waterResult.channels()<< std::endl;
 
-	imwrite("out-watershed.ppm", waterResult);
+	std::string fileout(argv[1]);
+	fileout.append("out_watershed.ppm");
+	imwrite(fileout.c_str(), waterResult);
+
+	std::string fileout2(argv[1]);
+	fileout2.append("out_watershed.raw");
+	std::ofstream fout(fileout2.c_str(), std::ios::binary);
+	fout.write((char*)(waterResult.data), sizeof(int) * waterResult.cols * waterResult.rows);
+	fout.close();
 	return 0;
 }
 
