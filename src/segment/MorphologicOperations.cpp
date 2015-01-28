@@ -3038,7 +3038,11 @@ Mat_<int> watershed(const Mat& image, int connectivity) {
 
 	}
 	// remove border
-	return W(Rect(1,1, image.cols, image.rows));
+	//return W(Rect(1,1, image.cols, image.rows));
+	Mat resultNoBorder;
+	W(Rect(1,1, image.cols, image.rows)).copyTo(resultNoBorder);
+
+	return resultNoBorder;
 }
 
 
@@ -3119,8 +3123,6 @@ Mat_<int> watershedCC(const Mat& image, int connectivity) {
 	}
 
 
-	//std::cout << "adrPtr[18]: "<< adrPtr[18] <<std::endl;
-	//imwrite("out1.ppm", adr);
 	// #step 2
 	for(p = lab.cols+1; p < lab.cols*(lab.rows-1); p++) {
 		if( adrPtr[p] != PLATEAU){
@@ -3199,7 +3201,10 @@ Mat_<int> watershedCC(const Mat& image, int connectivity) {
 		std::cout <<endl;
 	}*/
 	// remove border
-	return lab(Rect(1,1, image.cols, image.rows));
+	Mat resultNoBorder;
+	lab(Rect(1,1, image.cols, image.rows)).copyTo(resultNoBorder);
+
+	return resultNoBorder;
 }
 
 // input should have foreground > 0, and 0 for background

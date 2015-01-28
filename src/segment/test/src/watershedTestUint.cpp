@@ -59,7 +59,7 @@ int main (int argc, char **argv){
 	waterResult = nscale::watershed(input, connectivity);
 
 	t2 = cci::common::event::timestampInUS();
-	std::cout << "cpu watershed loop took " << (t2-t1)/1000 << "ms" << std::endl;
+	std::cout << "cpu watershed loop took " << (t2-t1)/1000 << "ms. Continuous? "<< waterResult.isContinuous() << std::endl;
 
 	imwrite("out-watershed.ppm", waterResult);
 
@@ -90,7 +90,7 @@ int main (int argc, char **argv){
 	Mat waterResultCC = nscale::watershedCC(input, connectivity);
 
 	t2 = cci::common::event::timestampInUS();
-	std::cout << "cpu watershedCC loop took " << (t2-t1)/1000 << "ms" << std::endl;
+	std::cout << "cpu watershedCC loop took " << (t2-t1)/1000 << std::endl;
 
 	imwrite("out-watershedCC.ppm", waterResultCC);
 	return 0;
