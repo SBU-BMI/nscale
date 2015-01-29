@@ -98,7 +98,14 @@ int main (int argc, char **argv){
 	std::string fileout2(argv[1]);
 	fileout2.append("out_watershed.raw");
 	std::ofstream fout(fileout2.c_str(), std::ios::binary);
-	fout.write((char*)(waterResult.data), sizeof(int) * waterResult.cols * waterResult.rows);
+
+	vector<int> img;
+	img.reserve(input.cols*input.rows);
+	for (int i = 0; i < waterResult.rows; ++i)
+		for (int j = 0; j < waterResult.cols; ++j)
+			img.push_back(waterResult.at<int>(i, j));
+	//fout.write((char*)(waterResult.data), sizeof(int) * waterResult.cols * waterResult.rows);
+	fout.write((char*)(&(img[0])), sizeof(int)* img.size());
 	fout.close();
 
 	imwrite(string(argv[1]) + "out_watershed.png", waterResult);	
@@ -121,7 +128,13 @@ int main (int argc, char **argv){
 	fileout2 = string(argv[1]);
 	fileout2.append("out_watershedCC.raw");
 	fout.open(fileout2.c_str(), std::ios::binary);
-	fout.write((char*)(waterResultCC.data), sizeof(int)* waterResult.cols * waterResult.rows);
+
+	img.clear();
+	for (int i = 0; i < waterResultCC.rows; ++i)
+		for (int j = 0; j < waterResultCC.cols; ++j)
+			img.push_back(waterResultCC.at<int>(i, j));
+	//fout.write((char*)(waterResultCC.data), sizeof(int)* waterResult.cols * waterResult.rows);
+	fout.write((char*)(&(img[0])), sizeof(int)* img.size());
 	fout.close();
 
 	imwrite(string(argv[1]) + "out_watershedCC.png", waterResultCC);
