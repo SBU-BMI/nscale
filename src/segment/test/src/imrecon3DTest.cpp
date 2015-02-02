@@ -76,7 +76,7 @@ int main (int argc, char **argv){
 	uint64_t t1, t2;
 
 	t1 = cci::common::event::timestampInUS();
-	recon = nscale::imreconstruct3D<unsigned short int>(marker, mask, 6);
+	recon = nscale::imreconstruct3D<unsigned short int>(marker, mask, 74);
 	t2 = cci::common::event::timestampInUS();
 	std::cout << " cpu recon3D-26point took " << (t2-t1)/1000 << "ms" << std::endl;
 
