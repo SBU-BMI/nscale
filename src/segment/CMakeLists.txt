@@ -14,6 +14,8 @@ include_directories(${Segmentation_SOURCE_DIR}/cuda)
 include_directories(${cci_common_SOURCE_DIR})
 link_directories(${cci_common_BINARY_DIR})
 
+
+
 set(libname segment)
 
 # Add rule to generate execution engine, as a shared library (.so)

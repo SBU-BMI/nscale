@@ -8,6 +8,7 @@ include_directories(${Segmentation_SOURCE_DIR})
 link_directories(${Segmentation_BINARY_DIR})
 include_directories(${cci_common_SOURCE_DIR})
 link_directories(${cci_common_BINARY_DIR})
+include_directories(${Normalization_SOURCE_DIR}/)
 
 
 if(OPENMP_FOUND)
@@ -22,7 +23,7 @@ foreach(program ${programs})
 	add_executable(${program} ${program}.cpp)
 
 	# Link the executable to the Segmentation library
-	target_link_libraries(${program} segment)
+	target_link_libraries(${program} segment normalization)
 	target_link_libraries(${program} cci_common)
 endforeach(program)
 

@@ -1,6 +1,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/gpu/gpu.hpp"
 #include <iostream>
+#include <iomanip>
 #include <stdio.h>
 #include <vector>
 #include <string.h>
@@ -38,7 +39,7 @@ int main (int argc, char **argv){
 
 	nscale::Normalization::targetParameters(inputImg, meanT, stdT);
 	for(int i=0; i < 3; i++){
-		std::cout << "Mean["<<i<<"]="<< meanT[i] << "std["<<i<<"]="<< stdT[i] <<std::endl;
+		std::cout << std::setprecision(12) << "Mean["<<i<<"]="<< meanT[i] << "std["<<i<<"]="<< stdT[i] <<std::endl;
 	}
 	inputImg.release();
 	normalized.release();
