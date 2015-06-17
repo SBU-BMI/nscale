@@ -57,7 +57,7 @@ void compute(const char *input, const char *mask, const char *output, const int 
 
 int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std::string &outDir) {
 	if (argc < 4) {
-		std::cout << "Usage:  " << argv[0] << " <image_filename | image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+		std::cout << "Usage:  " << argv[0] << " <image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 	imageName.assign(argv[1]);
@@ -104,7 +104,8 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
 	} else {
-		std::cout << "Usage:  " << argv[0] << " <mask_filename | mask_dir> image_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
+
+		std::cout << "Usage:  " << argv[0] << " <image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
 		return -1;
 	}
 
