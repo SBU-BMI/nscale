@@ -177,8 +177,11 @@ void compute(const char *input, const char *mask, const char *output, const int 
 	int compcount;
 
 	printf("processing %s\n", input);
-	float meanT[3] = {-0.451225340366, -0.0219714958221, 0.0335194170475};
-	float stdT[3] = {0.148816049099, 0.0257016178221, 0.00884802173823};
+//	float meanT[3] = {-0.451225340366, -0.0219714958221, 0.0335194170475};
+	float meanT[3] = {-0.632356, -0.0516004, 0.0376543};
+//	float stdT[3] = {0.148816049099, 0.0257016178221, 0.00884802173823};
+	float stdT[3] =  {0.26235, 0.0514831, 0.0114217};
+
 	cv::Mat maskMat, inputImg, normalized;
 
 	switch (modecode) {
@@ -195,7 +198,11 @@ void compute(const char *input, const char *mask, const char *output, const int 
 		imwrite("normalized.tiff", normalized);
 		t1 = cci::common::event::timestampInUS();
 		std::cout << "time normalization: "<< t1 -t0 << std::endl;
-		nscale::HistologicalEntities::segmentNuclei(normalized, maskMat, 220, 220, 220, 5.0, 4.0, 80, 11, 1000, 45, 30, 21, 1000, 4, 8, 8, logger, iwrite);
+//	 default	nscale::HistologicalEntities::segmentNuclei(normalized, maskMat, 220, 220, 220, 5.0, 4.0, 80, 11, 1000, 45, 30, 21, 1000, 4, 8, 8, logger, iwrite);
+// ga img3		
+		nscale::HistologicalEntities::segmentNuclei(normalized, maskMat, 220, 220, 220, 4.0, 3.5, 44, 5, 9000, 31, 20, 5, 1150, 4, 4, 4, logger, iwrite);
+
+		std::cout << " mask : "<< std::string(mask) << std::endl; 
 		imwrite(std::string(mask), maskMat);
 		break;
 	case cci::common::type::DEVICE_GPU :
