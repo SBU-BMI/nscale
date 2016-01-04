@@ -17,14 +17,14 @@ namespace nscale {
 			__shared__ int thread_area[32];
 			//Zero out the thread_area array
 			thread_area[threadIdx.x] = 0;
-			//Pointer to a row of the image (I NEED TO CHANGE THIS.SHOULD I MAKE THIS SHARED?)
+			//Pointer to a row of the image 
 			const int *labeledImgPtr;
 			//Label of this current component
 			int label = boundingBoxInfo[blockIdx.x];
 			int maxX = boundingBoxInfo[2 * compCount + blockIdx.x];
 			int maxY = boundingBoxInfo[4 * compCount + blockIdx.x];
 
-			for(int x = boundingBoxInfo[compCount + blockIdx.x] +threadIdx.x; x <= maxX ; x+=gridDim.x)
+			for(int x = boundingBoxInfo[compCount + blockIdx.x] +threadIdx.x; x <= maxX ; x+=blockDim.x)
 			{
 				for(int y = boundingBoxInfo[3 * compCount + blockIdx.x] ; y <= maxY ; y++)
 				{
@@ -255,7 +255,7 @@ namespace nscale {
 				float delta = sqrtf((mxx-myy)*(mxx-myy) + 4.0 * mxy * mxy); //discriminant = sqrt(b*b-4*a*c)
 				majorAxis[blockIdx.x] = root*sqrtf(mxx+myy+delta);
 				minorAxis[blockIdx.x] = root*sqrtf(mxx+myy-delta);
-				ecc[blockIdx.x] = sqrtf(majorAxis[blockIdx.x] * majorAxis[blockIdx.x] - minorAxis[blockIdx.x] * minorAxis[blockIdx.x])/majorAxis[blockIdx.x];
+				ecc[blockIdx.x] = sqrtf(fabsf(majorAxis[blockIdx.x] * majorAxis[blockIdx.x] - minorAxis[blockIdx.x] * minorAxis[blockIdx.x]))/majorAxis[blockIdx.x];
 				
 			}
 	

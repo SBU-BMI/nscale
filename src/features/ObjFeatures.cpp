@@ -109,7 +109,7 @@ void ObjFeatures::ellipse(const int* boundingBoxesInfo,const int* areaRes, const
 			delta = sqrt((mxx-myy)*(mxx-myy) + 4.0 * mxy * mxy); //discriminant = sqrt(b*b-4*a*c)
 			majorAxis[i] = root*sqrt(mxx+myy+delta);
 			minorAxis[i] = root*sqrt(mxx+myy-delta);
-			ecc[i] = (2.0 * sqrt((majorAxis[i] * majorAxis[i] - minorAxis[i] * minorAxis[i])/4.0))/majorAxis[i];
+			ecc[i] = (2.0 * sqrt(fabs(majorAxis[i] * majorAxis[i] - minorAxis[i] * minorAxis[i])/4.0))/majorAxis[i];
 		}
 	}
 	return;
@@ -126,8 +126,8 @@ double *ObjFeatures::extent_ratio(const int* boundingBoxesInfo, const int compCo
 		int height;
 		for(int i = 0; i <compCount ; i++)
 		{
-			width = boundingBoxesInfo[compCount * 2 + i] - boundingBoxesInfo[compCount + i];
-			height = boundingBoxesInfo[compCount * 4 + i] - boundingBoxesInfo[compCount * 3 + i];
+			width = boundingBoxesInfo[compCount * 2 + i] - boundingBoxesInfo[compCount + i] + 1;
+			height = boundingBoxesInfo[compCount * 4 + i] - boundingBoxesInfo[compCount * 3 + i] + 1;
 			extent_ratio[i] = (double)areaRes[i] / (double)(width * height);
 		}
 		
@@ -163,6 +163,8 @@ double *ObjFeatures::perimeter(const int* boundingBoxesInfo, const int compCount
 		lookup[14] = 0.70710678118;
 		lookup[10] = SQRT2;
 		lookup[5] = SQRT2;
+		lookup[0] = 0.0;
+		lookup[15] = 0.0;
 		const int* labeledImgPtr_ybot;
 		const int* labeledImgPtr_ytop;
                 int label;
