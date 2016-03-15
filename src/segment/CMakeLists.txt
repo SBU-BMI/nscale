@@ -47,6 +47,8 @@ foreach(program ${programs})
 	
 endforeach(program)
 
+set(BUILD_TEST_APPLICATIONS OFF CACHE BOOL "Building Testing examples that uses the nscale library")
+
 # if build test applications is set, than build them: currently just one
 if(BUILD_TEST_APPLICATIONS)
 	add_subdirectory("test/src")

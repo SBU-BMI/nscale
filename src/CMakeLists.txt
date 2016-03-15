@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+
 add_subdirectory(common)
 
 set(NS_MPI_Runtime OFF CACHE BOOL "Building MPI runtime")
@@ -120,6 +122,8 @@ endif(NS_AdvIO)
 #    endif(SEGMENT AND FEATURES AND HDF5_FOUND)
 #endif(NS_Tasks)
 #
+
+set(BUILD_EXAMPLE_APPLICATIONS OFF CACHE BOOL "Building Examples from pipeline stages seletected")
 
 if(BUILD_EXAMPLE_APPLICATIONS)
     if(NS_AdvIO AND NS_MPI_Runtime AND NS_SEGMENT) 
