@@ -4,10 +4,10 @@ project( FeaturesAll )
 set(FeaturesAll_VERSION_MAJOR 1)
 set(FeaturesAll_VERSION_MINOR 0)
 
-
 # Source files used by Segmentation
-set(libsrcs ObjFeatures.cpp Operators.cpp CytoplasmCalc.cpp)
-set(gpulibsrcs ObjFeaturesGPU.cpp)
+set(libsrcs ObjFeatures.cpp Operators.cpp CytoplasmCalc.cpp
+ImageRegionNucleiData.cpp ImageRegionNucleiDataIO.cpp)
+set(gpulibsrcs ObjFeaturesGPU.cpp ImageRegionNucleiDataGPU.cpp)
 set(cudalibsrcs cuda/hist-ops.cu cuda/gradient.cu cuda/features.cu)
 
 include_directories(${FeaturesAll_SOURCE_DIR})
@@ -20,7 +20,8 @@ if(CUDA_FOUND)
 	cuda_add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs} ${cudalibsrcs})
 	set_target_properties(${libname} PROPERTIES COMPILE_DEFINITIONS "WITH_CUDA") 
 else(CUDA_FOUND)
-	add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
+	# add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
+	add_library("${libname}" SHARED ${libsrcs} )
 endif(CUDA_FOUND)
 
 # Link opencv stuff to opencv
