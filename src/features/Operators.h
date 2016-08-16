@@ -19,7 +19,10 @@
 
 // Opencv GPU includes
 #include "opencv2/opencv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 
 using namespace std;
 
@@ -46,7 +49,10 @@ public:
 	//Histogram related operators
 	static unsigned int *buildHistogram256CPU(IplImage *inputImage, IplImage *inputImageMask=NULL);
 
+#ifdef WITH_CUDA
 	static unsigned int *buildHistogram256GPU(cv::gpu::GpuMat *inputImage, cv::gpu::GpuMat *inputImageMask=NULL);
+#endif 
+
 	static double calcMeanFromHistogram(int *hist, int numBins);
 	static double calcStdFromHistogram( int *hist,  int numBins);
 	static int calcMedianFromHistogram( int *hist,  int numBins);

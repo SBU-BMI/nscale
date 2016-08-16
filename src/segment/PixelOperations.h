@@ -9,7 +9,11 @@
 #define PIXELOPERATIONS_H_
 
 #include "opencv2/opencv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif 
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -21,7 +25,9 @@
 
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 using namespace std;
 
 
@@ -49,6 +55,7 @@ public:
 	static ::cv::Mat replace(const ::cv::Mat &img, T oldval, T newval);
 };
 
+#ifdef WITH_CUDA
 namespace gpu {
 	class DllExport PixelOperations {
 
@@ -78,6 +85,7 @@ public:
 };
 
 }
+#endif
 
 }
 

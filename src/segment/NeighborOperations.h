@@ -9,7 +9,10 @@
 #define NEIGHBOROPERATIONS_H_
 
 #include "cv.h"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 
 namespace nscale {
 
@@ -23,6 +26,7 @@ public:
 
 };
 
+#ifdef WITH_CUDA
 namespace gpu {
 class NeighborOperations {
 
@@ -34,6 +38,7 @@ public:
 };
 
 }
+#endif
 
 }
 

@@ -10,7 +10,11 @@
 
 // Includes to use opencv2/GPU
 #include "opencv2/opencv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif 
+
 #include <sys/time.h>
 #include "Operators.h"
 
@@ -22,6 +26,7 @@ public:
 
 };
 
+#ifdef WITH_CUDA
 namespace gpu{
 class CytoplasmCalc {
 public:
@@ -29,5 +34,7 @@ public:
 };
 
 }
+#endif 
+
 }// end nscale
 #endif /* CYTOPLASMCALC_H_ */

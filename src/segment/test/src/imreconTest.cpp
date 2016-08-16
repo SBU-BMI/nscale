@@ -19,12 +19,16 @@
 #include <stdio.h>
 
 
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 
 
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 using namespace std;
 
 int main (int argc, char **argv){

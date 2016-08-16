@@ -2,7 +2,10 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+
+#ifdef WITH_CUDA
 #include "gpu_utils.h"
+#endif
 
 namespace cciutils {
 
@@ -111,8 +114,8 @@ namespace cv {
 		output.release();
 	}
 #else
-	void IntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
-			const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) { throw_nogpu(); }
+	// void IntermediateResultWriter::saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
+	// 		const char *_image_name, const int _offsetX, const int _offsetY, const char* _source_tile_file_name) { throw_nogpu(); }
 #endif
 
 

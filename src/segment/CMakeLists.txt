@@ -6,8 +6,8 @@ set(Segmentation_VERSION_MINOR 0)
 
 
 # Source files used by Segmentation
-set(libsrcs HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp NeighborOperations.cpp ConnComponents.cpp )
-set(gpulibsrcs HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperationsGPU.cpp NeighborOperationsGPU.cpp UtilsCVImageIO.cpp)
+set(libsrcs HistologicalEntities.cpp MorphologicOperations.cpp PixelOperations.cpp NeighborOperations.cpp ConnComponents.cpp UtilsCVImageIO.cpp)
+set(gpulibsrcs HistologicalEntitiesGPU.cpp MorphologicOperationsGPU.cpp PixelOperationsGPU.cpp NeighborOperationsGPU.cpp )
 set(cudalibsrcs cuda/ccl_uf.cu cuda/global_queue.cu cuda/global_queue_dist.cu cuda/global_queue_float.cu cuda/neighbor-ops.cu cuda/watershed-dw-korbes.cu cuda/queue.cu cuda/imrecon_queue_int_kernel.cu cuda/pixel-ops.cu cuda/change_kernel.cu cuda/imreconstruct_binary_kernel.cu cuda/imreconstruct_int_kernel.cu cuda/imreconstruct_float_kernel.cu )
 
 include_directories(${Segmentation_SOURCE_DIR}/cuda)
@@ -24,7 +24,7 @@ if(CUDA_FOUND)
 	cuda_add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs} ${cudalibsrcs})
 	set_target_properties(${libname} PROPERTIES COMPILE_DEFINITIONS "WITH_CUDA") 
 else(CUDA_FOUND)
-	add_library("${libname}" SHARED ${libsrcs} ${gpulibsrcs})
+	add_library("${libname}" SHARED ${libsrcs})
 endif(CUDA_FOUND)
 
 # Link opencv stuff to the execution engine

@@ -20,12 +20,15 @@
 
 
 
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
-
+#endif
 
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 
 void runTest(const char* markerName, const char* maskName, bool binary, int w=-1, int b=0) {
 	Mat marker, mask, recon;
@@ -37,6 +40,7 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 //	std::cout << "testing with " << markerName << " + " << maskName << " " << (binary ? "binary" : "grayscale") << std::endl;
 	std::cout << "hw,algo,binary,conn,chunk,border,time(us)" << std::endl;
 	
+#ifdef WITH_CUDA
 	Stream stream;
 	GpuMat g_marker, g_mask, g_recon;
 
@@ -159,7 +163,7 @@ void runTest(const char* markerName, const char* maskName, bool binary, int w=-1
 
 	g_marker.release();
 	g_mask.release();
-
+#endif
 
 	
 }

@@ -18,12 +18,16 @@
 #include <stdio.h>
 
 
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 
 
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 using namespace std;
 
 int main (int argc, char **argv){
@@ -31,6 +35,8 @@ int main (int argc, char **argv){
 		printf("Usage: ./imreconTest <numImages> <numFirstPasses> <connectivity(4,8)> <marker> <mask>");
 		exit(1);
 	}
+
+#ifdef WITH_CUDA
 	gpu::setDevice(0);
 	// Used to get store timestamp and calc. exec. times
 	uint64_t t1, t2;
@@ -43,6 +49,7 @@ int main (int argc, char **argv){
 
 	// Store the reconstructed image in the GPU
 	GpuMat g_recon;
+#endif
 
 	// Store the reconstructed image for the CPU case
 	Mat recon;
@@ -91,6 +98,7 @@ int main (int argc, char **argv){
 	}
 
 
+#ifdef WITH_CUDA
 	stream.enqueueUpload(marker, g_marker);
 	stream.enqueueUpload(mask, g_mask);
 	stream.waitForCompletion();
@@ -143,6 +151,8 @@ int main (int argc, char **argv){
 
 	g_marker.release();
 	g_mask.release();
+#endif 
+
 	marker.release();
 	mask.release();
 

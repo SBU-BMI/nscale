@@ -197,6 +197,7 @@ unsigned int *Operators::buildHistogram256CPU(IplImage *inputImage, IplImage * i
 	return hist;
 }
 
+#ifdef WITH_CUDA
 // inputImage		-> The grayscale image from where the histogram should be calculated
 // inputImageMaks 	-> The mask describing the point from the input image that should be
 //					   considered when calculating the histogram
@@ -275,6 +276,7 @@ unsigned int *Operators::buildHistogram256GPU(cv::gpu::GpuMat *inputImage, cv::g
 
 	return hist;
 }
+#endif // WITH_CUDA
 
 double Operators::calcMeanFromHistogram( int *hist,  int numBins)
 {

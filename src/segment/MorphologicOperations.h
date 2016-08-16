@@ -15,10 +15,15 @@
 #endif
 
 #include "opencv/cv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 
 
 namespace nscale {
@@ -109,6 +114,7 @@ DllExport cv::Mat distanceTransform(const cv::Mat& mask, bool calcDist = true);
 DllExport cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nThreads, bool calcDist = true);
 DllExport cv::Mat distTransformFixTilingEffects(cv::Mat& nearestNeighbor, int tileSize, bool calcDist = true);
 
+#ifdef WITH_CUDA
 namespace gpu {
 // GPU versions of the same functions.
 
@@ -204,6 +210,7 @@ cv::gpu::GpuMat morphDilate(const cv::gpu::GpuMat& image, const cv::Mat& kernel,
 DllExport cv::gpu::GpuMat distanceTransform(const cv::gpu::GpuMat& mask, cv::gpu::Stream& stream, bool calcDist = true, int tIdX = 0, int tIdY = 0, int tileSize = 0, int imgCols = 0);
 
 }
+#endif
 
 
 }

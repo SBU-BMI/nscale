@@ -1,5 +1,9 @@
 #include "opencv2/opencv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif 
+
 #include <iostream>
 #include <stdio.h>
 #include <vector>
@@ -12,7 +16,9 @@
 #include "Logger.h"
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 
 
 int main (int argc, char **argv){

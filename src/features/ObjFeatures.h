@@ -10,7 +10,11 @@
 
 // Includes to use opencv2/GPU
 #include "opencv2/opencv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif 
+
 #include <sys/time.h>
 #include "Operators.h"
 
@@ -51,6 +55,7 @@ public:
 
 };
 
+#ifdef WITH_CUDA
 namespace gpu{
 class ObjFeatures {
 public:
@@ -78,5 +83,7 @@ void cudaUploadCaller(void *dest, void *source, int size);
 void cudaDownloadCaller(void *dest, void *source, int size);
 
 }
+#endif 
+
 }// end nscale
 #endif /* OBJFEATURES_H_ */

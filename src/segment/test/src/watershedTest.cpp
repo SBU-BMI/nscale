@@ -31,7 +31,9 @@
 #endif
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 
 
 int main(int argc, char **argv){
@@ -48,7 +50,9 @@ int main(int argc, char **argv){
 		Mat seg_big = imread(segfiles[i].c_str(), -1);
 		Mat img = imread(imgfiles[i].c_str(), -1);
 		// original
+#ifdef WITH_CUDA
 		Stream stream;
+#endif
 
 		uint64_t t1, t2;
 

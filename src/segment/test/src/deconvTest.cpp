@@ -19,7 +19,9 @@
 #include <stdio.h>
 
 
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif 
 
 
 #ifdef _MSC_VER
@@ -28,7 +30,9 @@
 
 
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 using namespace std;
 
 int main(int argc, char** argv) {
@@ -63,6 +67,7 @@ int main(int argc, char** argv) {
 	long t2 = cci::common::event::timestampInUS();
 	cout << "Conv original = "<< t2-t1<<endl;
 
+#ifdef WITH_CUDA
 	Stream stream;
 	GpuMat g_image = GpuMat(image.size(), image.type());
 	GpuMat g_H = GpuMat(image.size(), CV_8UC1);
@@ -88,12 +93,14 @@ int main(int argc, char** argv) {
 
 	Mat c_H(g_H);
 	Mat c_E(g_E);
+#endif
 
 	long t3 = cci::common::event::timestampInUS();
 	Mat gray = nscale::PixelOperations::bgr2gray(image);
 	long t4 = cci::common::event::timestampInUS();
 
 
+#ifdef WITH_CUDA
 	GpuMat g_gray = nscale::gpu::PixelOperations::bgr2gray(g_image, stream);
 	stream.waitForCompletion();
 	long t5 = cci::common::event::timestampInUS();
@@ -108,6 +115,7 @@ int main(int argc, char** argv) {
 	}else{
 		cout <<"Success: Grayscale Images computed by CPU and GPU are the same!" <<endl;
 	}
+#endif
 
 //	imwrite("image_gray.ppm", gray);
 //	cout << "Writing images"<<endl;
@@ -119,6 +127,7 @@ int main(int argc, char** argv) {
 
 	printf("H rows: %d, cols: %d, channels %d, depth %d\n", H.rows, H.cols, H.channels(), H.depth());
 	printf("E rows: %d, cols: %d, channels %d, depth %d\n", E.rows, E.cols, E.channels(), E.depth());
+#ifdef WITH_CUDA
 	printf("c_H rows: %d, cols: %d, channels %d, depth %d\n", c_H.rows, c_H.cols, c_H.channels(), c_H.depth());
 	printf("c_E rows: %d, cols: %d, channels %d, depth %d\n", c_E.rows, c_E.cols, c_E.channels(), c_E.depth());
 
@@ -130,6 +139,7 @@ int main(int argc, char** argv) {
 	}
 	// release GPU memory
 	g_image.release();
+#endif
 
 	//release CPU memory
 	H.release();

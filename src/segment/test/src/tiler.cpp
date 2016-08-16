@@ -4,7 +4,9 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include "opencv2/opencv.hpp"
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 #include <iostream>
 #include <stdio.h>
 #include <vector>

@@ -6,7 +6,9 @@
  */
 
 #include "opencv2/opencv.hpp"
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 #include <iostream>
 #ifdef _MSC_VER
 #include "direntWin.h"

@@ -11,7 +11,9 @@
 #include "UtilsCVImageIO.h"
 #include "UtilsLogger.h"
 #include "opencv2/opencv.hpp"
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 #include <string.h>
 
 
@@ -66,6 +68,7 @@ public:
 };
 
 
+#ifdef WITH_CUDA
 namespace gpu {
 
 class DllExport HistologicalEntities {
@@ -102,6 +105,7 @@ DllExport void cudaFreeData(char *dataPtr);
 DllExport void cudaDownloadData(char *dest, char *from, int size);
 
 }
+#endif
 
 }
 #endif /* HistologicalEntities_H_ */

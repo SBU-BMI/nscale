@@ -48,7 +48,10 @@ int main (int argc, char **argv){
 
 
 	
+#ifdef WITH_CUDA
 	gpu::setDevice(2);
+#endif 
+
 	Mat point(10,10, CV_8UC1);
 	point.ones(10,10, CV_8UC1);
 

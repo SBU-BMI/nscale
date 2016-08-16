@@ -39,6 +39,7 @@ int main (int argc, char **argv){
 	std::cout << "imhmin holes took " << t2-t1 << "ms" << std::endl;
 	imwrite("out-imhmin CPU.pbm", imhminout);
 
+#ifdef WITH_CUDA
 	GpuMat input(imfilldata);
 	Stream stream;
 	t1 = cci::common::event::timestampInUS();
@@ -54,6 +55,7 @@ int main (int argc, char **argv){
 	stream.waitForCompletion();
 
 	imwrite("out-imhminGPU.pbm", imhminout_gpu);
+#endif 
 
 //	t1 = cci::common::event::timestampInUS();
 //	filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 4);

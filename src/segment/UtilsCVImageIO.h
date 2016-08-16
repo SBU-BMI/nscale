@@ -11,7 +11,10 @@
 #define UTILS_CV_IMAGEIO_H_
 
 #include "opencv2/opencv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 
 
 #ifdef _MSC_VER
@@ -39,8 +42,11 @@ public:
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
 			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL) = 0;
 
+
+#ifdef WITH_CUDA
 	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
 			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL) = 0;
+#endif
 
 };
 
@@ -66,8 +72,10 @@ public:
 	virtual void saveIntermediate(const ::cv::Mat& intermediate, const int stage,
 			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL);
 
+#ifdef WITH_CUDA
 	virtual void saveIntermediate(const ::cv::gpu::GpuMat& intermediate, const int stage,
 			const char *_image_name = NULL, const int _offsetX = 0, const int _offsetY = 0, const char* _source_tile_file_name = NULL);
+#endif
 
 };
 

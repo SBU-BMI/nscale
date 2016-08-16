@@ -72,6 +72,7 @@ int main (int argc, char **argv){
 	std::cout << "imfill holes took " << t2-t1 << "ms" << std::endl;
 	imwrite("out-holesfilledCPU.pbm", filled);
 
+#ifdef WITH_CUDA
 	GpuMat input(imfilldata);
 	Stream stream;
 	t1 = cci::common::event::timestampInUS();
@@ -87,6 +88,7 @@ int main (int argc, char **argv){
 	stream.waitForCompletion();
 
 	imwrite("out-holesfilledGPU.pbm", filledGPU);
+#endif
 
 //	t1 = cci::common::event::timestampInUS();
 //	filled = nscale::imfill<unsigned char>(imfillinput, imfillseeds, true, 4);

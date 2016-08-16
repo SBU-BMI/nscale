@@ -7,7 +7,11 @@
 
 
 #include "opencv2/opencv.hpp"
+
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif 
+
 #include <iostream>
 #include <stdio.h>
 #include <vector>
@@ -88,6 +92,7 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 		// get core count
 
 
+#ifdef WITH_CUDA
 	} else if (strcasecmp(mode, "gpu") == 0) {
 		modecode = cci::common::type::DEVICE_GPU;
 		// get device count
@@ -103,6 +108,8 @@ int parseInput(int argc, char **argv, int &modecode, std::string &imageName, std
 			gpu::setDevice(atoi(argv[6]));
 		}
 		printf(" number of cuda enabled devices = %d\n", gpu::getCudaEnabledDeviceCount());
+#endif // WITH_CUDA
+
 	} else {
 
 		std::cout << "Usage:  " << argv[0] << " <image_dir> mask_dir " << "run-id [cpu [numThreads] | mcore [numThreads] | gpu [id]]" << std::endl;
@@ -168,9 +175,13 @@ void compute(const char *input, const char *mask, const char *output, const int 
 		status = nscale::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox);
 
 		break;
+
+#ifdef WITH_CUDA
 	case cci::common::type::DEVICE_GPU :
 		status = nscale::gpu::HistologicalEntities::segmentNuclei(std::string(input), std::string(mask), compcount, bbox);
 		break;
+#endif 
+
 	default :
 		break;
 	}

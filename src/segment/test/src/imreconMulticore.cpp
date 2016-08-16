@@ -20,7 +20,9 @@
 #include <omp.h>
 
 
+#ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
+#endif
 
 #ifndef _MSC_VER
 pthread_attr_t gomp_thread_attr;
@@ -29,7 +31,9 @@ pthread_attr_t gomp_thread_attr;
 //TODO: figure out the best rout. Probably to use C++11 threads header so we do not have issues with cross-platform threads code
 #endif
 using namespace cv;
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 using namespace std;
 
 int main (int argc, char **argv){
