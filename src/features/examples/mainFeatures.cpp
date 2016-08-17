@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 		nucleiData.extractCytoplasmRegions(labeledMask);
 		nucleiData.computeShapeFeatures(labeledMask);
 		nucleiData.computeRedBlueChannelTextureFeatures(inpImage,labeledMask);
-		writeTSVFile(outFile, nucleiData);
+		writeU24CSVFile(outFile, nucleiData);
 	}
 
 	return 0;

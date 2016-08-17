@@ -138,6 +138,141 @@ int writeCSVFile(char *outFile, ShapeFeatureList& shapeList, TextureFeatureList*
 }
 
 
+int writeU24CSVFile(char *outFile, ImageRegionNucleiData& nucleiData)
+{  
+	std::ofstream outfile;
+	outfile.open(outFile);
+	int compCount = nucleiData.getNumberOfNuclei();
+
+	outfile << "AreaInPixels,"  
+			<< "Perimeter,MajorAxis,MinorAxis,Eccentricity,ExtentRatio,Circularity,"
+			<< "r_IntensityMean,r_IntensityMax,r_IntensityMin,r_IntensityStd,"
+			<< "r_IntensityEntropy,r_IntensityEnergy,r_IntensitySkewness,r_IntensityKurtosis,"
+			<< "r_GradientMean,r_GradientStd,r_GradientEntropy,r_GradientEnergy,"
+			<< "r_GradientSkewness,r_GradientKurtosis,"
+			<< "r_CannyNonZero,r_CannyMean,"
+			<< "r_cytoIntensityMean,r_cytoIntensityMax,r_cytoIntensityMin,r_cytoIntensityStd,"
+			<< "r_cytoIntensityEntropy,r_cytoIntensityEnergy,r_cytoIntensitySkewness,r_cytoIntensityKurtosis,"
+			<< "r_cytoGradientMean,r_cytoGradientStd,r_cytoGradientEntropy,r_cytoGradientEnergy,"
+			<< "r_cytoGradientSkewness,r_cytoGradientKurtosis,"
+			<< "r_cytoCannyNonZero,r_cytoCannyMean,"
+			<< "b_IntensityMean,b_IntensityMax,b_IntensityMin,b_IntensityStd,"
+			<< "b_IntensityEntropy,b_IntensityEnergy,b_IntensitySkewness,b_IntensityKurtosis,"
+			<< "b_GradientMean,b_GradientStd,b_GradientEntropy,b_GradientEnergy,"
+			<< "b_GradientSkewness,b_GradientKurtosis,"
+			<< "b_CannyNonZero,b_CannyMean,"
+			<< "b_cytoIntensityMean,b_cytoIntensityMax,b_cytoIntensityMin,b_cytoIntensityStd,"
+			<< "b_cytoIntensityEntropy,b_cytoIntensityEnergy,b_cytoIntensitySkewness,b_cytoIntensityKurtosis,"
+			<< "b_cytoGradientMean,b_cytoGradientStd,b_cytoGradientEntropy,b_cytoGradientEnergy,"
+			<< "b_cytoGradientSkewness,b_cytoGradientKurtosis,"
+			<< "b_cytoCannyNonZero,b_cytoCannyMean,"
+			<< "Polygon\n";
+
+	PolygonList *contours = nucleiData.getPolygons(); // contours representing nucleus boundaries
+	int locX = nucleiData.getImageRegionMinx();
+	int locY = nucleiData.getImageRegionMiny();
+
+	for (int i=0;i<compCount;i++) {
+
+		int *bbox = nucleiData.getBoundingBoxes();
+
+		outfile  	<< nucleiData.getShapeList().cpuArea[i] << ","; 
+
+		// Shape features
+		outfile  	<< nucleiData.getShapeList().cpuPerimeter[i] << "," 
+					<< nucleiData.getShapeList().cpuMajorAxis[i] << "," 
+					<< nucleiData.getShapeList().cpuMinorAxis[i] << "," 
+					<< nucleiData.getShapeList().cpuEccentricity[i] << "," 
+					<< nucleiData.getShapeList().cpuExtentRatio[i] << "," 
+					<< nucleiData.getShapeList().cpuCircularity[i] << ",";
+
+		// Red channel texture features
+		outfile 	<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[0 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[1 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[2 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[3 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[4 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[5 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[6 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_intensityFeatures[7 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_gradientFeatures[0 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_gradientFeatures[1 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_gradientFeatures[2 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_gradientFeatures[3 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_gradientFeatures[4 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_gradientFeatures[5 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cannyFeatures[0 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cannyFeatures[1 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ","; 
+		outfile 	<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[0 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[1 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[2 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[3 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[4 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[5 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[6 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoIntensityFeatures[7 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoGradientFeatures[0 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoGradientFeatures[1 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoGradientFeatures[2 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoGradientFeatures[3 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoGradientFeatures[4 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoGradientFeatures[5 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoCannyFeatures[0 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[RED_CHANNEL].h_cytoCannyFeatures[1 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ",";
+
+		// Blue channel texture features
+		outfile 	<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[0 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[1 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[2 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[3 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[4 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[5 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[6 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_intensityFeatures[7 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_gradientFeatures[0 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_gradientFeatures[1 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_gradientFeatures[2 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_gradientFeatures[3 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_gradientFeatures[4 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_gradientFeatures[5 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cannyFeatures[0 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cannyFeatures[1 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ","; 
+		outfile 	<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[0 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[1 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[2 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[3 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[4 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[5 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[6 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoIntensityFeatures[7 + nscale::ObjFeatures::N_INTENSITY_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoGradientFeatures[0 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoGradientFeatures[1 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoGradientFeatures[2 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoGradientFeatures[3 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoGradientFeatures[4 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << "," 
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoGradientFeatures[5 + nscale::ObjFeatures::N_GRADIENT_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoCannyFeatures[0 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ","
+					<< nucleiData.getTextureList()[BLUE_CHANNEL].h_cytoCannyFeatures[1 + nscale::ObjFeatures::N_CANNY_FEATURES * i] << ",";
+
+		std::cout << "Polygons: " << contours[i].size() << std::endl;
+		outfile << "[";
+		unsigned int ptc;
+		for (ptc = 0; ptc < contours[i][0].size()-1; ++ptc) {
+			outfile << (contours[i][0][ptc].x + locX) << ":";
+			outfile << (contours[i][0][ptc].y + locY) << ":";
+		}
+		outfile << (contours[i][0][ptc].x + locX) << ":";
+		outfile << (contours[i][0][ptc].y + locY) << "]";
+
+		outfile	<< "\n";
+	} 
+
+	outfile.close();
+	return 0;
+}
+
+
+
 int writeTSVFile(char *outFile, ImageRegionNucleiData& nucleiData)
 {  
 	std::ofstream outfile;
