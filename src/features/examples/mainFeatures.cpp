@@ -22,16 +22,14 @@ int main(int argc, char **argv)
 	int   isBinary = atoi(argv[3]);
 	char* outFile  = argv[4];
 
-	cv::Mat inpImage;
-	cv::Mat inpMask;
+	cv::Mat inpImage = imread(imgFile,CV_LOAD_IMAGE_COLOR);
+	cv::Mat inpMask = imread(maskFile,-1);
 
-	inpImage = imread(imgFile,CV_LOAD_IMAGE_COLOR);
 	ImageRegionNucleiData nucleiData(0,0,inpImage.cols-1,inpImage.rows-1);
 	cv::Mat_<int> labeledMask = cv::Mat_<int>::zeros(inpImage.size());
 
-	inpMask = imread(maskFile,-1);
 	if (isBinary) {
-		printf("Depth: %d\n",inpMask.depth());
+		printf("BinaryMask --> Mask depth (# channels): %d\n",inpMask.depth());
 		cv::Mat binaryMask = Mat::zeros(inpMask.size(),CV_8U);
 		if (inpMask.depth()==2) {
 			for(int y=0;y<inpMask.rows;y++) {
@@ -41,15 +39,16 @@ int main(int argc, char **argv)
 			}
 		} else if (inpMask.depth()==1) {
 			binaryMask = inpMask;
+		} else { 
+			fprintf(stderr, "Binary Mask file has more than 2 channels.\n");
+			return 1;
 		}
 		labeledMask = nscale::bwlabel2(binaryMask, 8, true);
 	} else {
-		printf("Depth: %d\n",inpMask.depth());
-		cv::Mat inpMask = imread(maskFile,CV_LOAD_IMAGE_COLOR);
+		printf("Labeled Mask --> Mask depth (# channels): %d\n",inpMask.depth());
 		for(int y=0;y<inpMask.rows;y++) {
 			for(int x=0;x<inpMask.cols;x++) {
 				Vec3b color = inpMask.at<Vec3b>(Point(x,y));
-				printf("Color: %d %d %d\n",color[0],color[1],color[2]);
 			    labeledMask.at<int>(Point(x,y)) = (int)(color[0]*256*256+color[1]*256+color[2]);	
 			}
 		}
