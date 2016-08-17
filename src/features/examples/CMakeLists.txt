@@ -14,7 +14,7 @@ link_directories(${cci_common_BINARY_DIR})
 
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
-set(programs featuresTest featuresTest2)
+set(programs featuresTest featuresTest2 mainFeatures)
 foreach(program ${programs})
 	# Add an executable to be built from the files listed
 	add_executable(${program} ${program}.cpp)
