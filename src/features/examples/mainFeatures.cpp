@@ -13,7 +13,7 @@
 int main(int argc, char **argv) 
 {
 	if (argc < 4) {
-		std::cerr<<"Parameters: imageFile maskFile <binary:1/labeled:2> outputFile\n";
+		std::cerr<<"Parameters: imageFile maskFile <1 (for binary mask) or 0 (for labeled mask image)> outputFile\n";
 		exit(-1);
 	}
 
