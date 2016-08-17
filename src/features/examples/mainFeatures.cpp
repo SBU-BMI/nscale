@@ -23,19 +23,33 @@ int main(int argc, char **argv)
 	char* outFile  = argv[4];
 
 	cv::Mat inpImage;
-	cv::Mat binaryMask;
+	cv::Mat inpMask;
 
 	inpImage = imread(imgFile,CV_LOAD_IMAGE_COLOR);
 	ImageRegionNucleiData nucleiData(0,0,inpImage.cols-1,inpImage.rows-1);
 	cv::Mat_<int> labeledMask = cv::Mat_<int>::zeros(inpImage.size());
+
+	inpMask = imread(maskFile,-1);
 	if (isBinary) {
-		binaryMask  = imread(maskFile,CV_LOAD_IMAGE_GRAYSCALE);
+		printf("Depth: %d\n",inpMask.depth());
+		cv::Mat binaryMask = Mat::zeros(inpMask.size(),CV_8U);
+		if (inpMask.depth()==2) {
+			for(int y=0;y<inpMask.rows;y++) {
+				for(int x=0;x<inpMask.cols;x++) {
+					binaryMask.at<unsigned char>(Point(x,y)) = (unsigned char) inpMask.at<short>(Point(x,y));
+				}
+			}
+		} else if (inpMask.depth()==1) {
+			binaryMask = inpMask;
+		}
 		labeledMask = nscale::bwlabel2(binaryMask, 8, true);
 	} else {
+		printf("Depth: %d\n",inpMask.depth());
 		cv::Mat inpMask = imread(maskFile,CV_LOAD_IMAGE_COLOR);
 		for(int y=0;y<inpMask.rows;y++) {
 			for(int x=0;x<inpMask.cols;x++) {
 				Vec3b color = inpMask.at<Vec3b>(Point(x,y));
+				printf("Color: %d %d %d\n",color[0],color[1],color[2]);
 			    labeledMask.at<int>(Point(x,y)) = (int)(color[0]*256*256+color[1]*256+color[2]);	
 			}
 		}
