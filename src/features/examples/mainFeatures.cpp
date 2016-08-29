@@ -29,15 +29,15 @@ int main(int argc, char **argv)
 	cv::Mat_<int> labeledMask = cv::Mat_<int>::zeros(inpImage.size());
 
 	if (isBinary) {
-		printf("BinaryMask --> Mask depth (# channels): %d\n",inpMask.depth());
+		printf("BinaryMask --> Mask depth (# channels): %d\n",inpMask.channels());
 		cv::Mat binaryMask = Mat::zeros(inpMask.size(),CV_8U);
-		if (inpMask.depth()==2) {
+		if (inpMask.channels()==2) {
 			for(int y=0;y<inpMask.rows;y++) {
 				for(int x=0;x<inpMask.cols;x++) {
 					binaryMask.at<unsigned char>(Point(x,y)) = (unsigned char) inpMask.at<short>(Point(x,y));
 				}
 			}
-		} else if (inpMask.depth()==1) {
+		} else if (inpMask.channels()==1) {
 			binaryMask = inpMask;
 		} else { 
 			fprintf(stderr, "Binary Mask file has more than 2 channels.\n");
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 		}
 		labeledMask = nscale::bwlabel2(binaryMask, 8, true);
 	} else {
-		printf("Labeled Mask --> Mask depth (# channels): %d\n",inpMask.depth());
+		printf("Labeled Mask --> Mask depth (# channels): %d\n",inpMask.channels());
 		for(int y=0;y<inpMask.rows;y++) {
 			for(int x=0;x<inpMask.cols;x++) {
 				Vec3b color = inpMask.at<Vec3b>(Point(x,y));
