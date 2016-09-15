@@ -7,6 +7,7 @@ int writeCSVFile(char *outFile, ShapeFeatureList& shapeList, TextureFeatureList*
 				int* bbox, int compCount, int locX, int locY);
 int writeTSVFile(char *outFile, ImageRegionNucleiData& nucleiData);
 int writeU24CSVFile(char *outFile, ImageRegionNucleiData& nucleiData);
+int writeU24CSVFileFromVector(char *outFile, ImageRegionNucleiData& nucleiData);
 int updateFCSFileHeaderTextSegment(FILE *outfile, int dataOffset, int64_t dataLen, 
 									int compCount, int numFeatures, char *featureNames[]);
 int initFCSFileHeaderTextSegment(FILE *outfile, int numFeatures, char *featureNames[]);

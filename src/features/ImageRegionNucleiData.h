@@ -46,6 +46,8 @@ typedef struct _ShapeFeatureList {
 		double  *cpuCircularity; 
 } ShapeFeatureList;
 
+typedef std::vector<double> FeatureValues;
+
 class ImageRegionNucleiData {
 	private: 
 		// Region bounding box
@@ -194,6 +196,12 @@ class ImageRegionNucleiData {
 
 		int computeRedBlueChannelTextureFeatures(cv::Mat& imgTile, cv::Mat& labeledMask);
 		TextureFeatureList *getTextureList() { return textureList; }
+
+
+		// Convert to vector<vector> data for output
+		std::vector<std::string> getFeatureNamesVector();
+		std::vector<FeatureValues> getFeaturesVector();
+			
 };
 
 #if defined (WITH_CUDA)

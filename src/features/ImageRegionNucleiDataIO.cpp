@@ -545,4 +545,27 @@ int64_t writeFCSDataSegment(FILE *outfile, ShapeFeatureList& shapeList, TextureF
 	return data_len;
 }
 
+int writeU24CSVFileFromVector(char *outFile, ImageRegionNucleiData& nucleiData)
+{  
+	std::ofstream outfile;
+	outfile.open(outFile);
+	int compCount = nucleiData.getNumberOfNuclei();
+
+	std::vector<std::string> featureNames = nucleiData.getFeatureNamesVector();
+	for (int i=0;i<featureNames.size()-1;i++) 
+		outfile << featureNames[i] << ",";
+	outfile << featureNames[featureNames.size()-1] << std::endl;
+
+	std::vector<std::vector<double> > featureValueVector = nucleiData.getFeaturesVector();
+	int featSize = featureNames.size();
+	for (int i=0;i<featureValueVector.size();i++) {
+		for (int j=0;j<featSize-1;j++) {
+			outfile << featureValueVector[i][j] << ",";
+		}
+		outfile << featureValueVector[i][featSize-1] << std::endl;
+	}
+	outfile.close();
+	return 0;
+}
+
 
