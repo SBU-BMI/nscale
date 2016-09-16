@@ -556,7 +556,7 @@ int writeU24CSVFileFromVector(char *outFile, ImageRegionNucleiData& nucleiData)
 		outfile << featureNames[i] << ",";
 	outfile << featureNames[featureNames.size()-1] << std::endl;
 
-	std::vector<std::vector<double> > featureValueVector = nucleiData.getFeaturesVector();
+	std::vector<std::vector<double> > featureValueVector = nucleiData.getFeatureValuesVector();
 	int featSize = featureNames.size();
 	for (int i=0;i<featureValueVector.size();i++) {
 		for (int j=0;j<featSize-1;j++) {

@@ -22,6 +22,7 @@ int main(int argc, char **argv)
 	int   isBinary = atoi(argv[3]);
 	char* outFile  = argv[4];
 
+
 	cv::Mat inpImage = imread(imgFile,CV_LOAD_IMAGE_COLOR);
 	cv::Mat inpMask = imread(maskFile,-1);
 

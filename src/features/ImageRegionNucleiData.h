@@ -83,6 +83,17 @@ class ImageRegionNucleiData {
 		// object texture features -- arrays of objCount elements
 		TextureFeatureList textureList[NUM_CHANNELS]; // RGB channels
 
+		// Vector arrays for features 
+		int numFeatureNames;
+		std::vector<std::string> featureNames;
+		std::vector<std::vector<double> > featureValuesVector;
+		void setFeatureNamesVector();
+		void clearFeatureValuesVector() {
+			for (int i=0;i<featureValuesVector.size();i++) 
+				featureValuesVector[i].clear();
+			featureValuesVector.clear();
+		}
+
 	public:
 		ImageRegionNucleiData() {
 			rgnMinx = rgnMiny = rgnMaxx = rgnMaxy = 0;
@@ -111,6 +122,7 @@ class ImageRegionNucleiData {
 				textureList[i].h_cytoGradientFeatures = NULL;
 				textureList[i].h_cytoCannyFeatures = NULL;
 			}
+			setFeatureNamesVector();
 		}	
 
 		ImageRegionNucleiData(int rgnMinx, int rgnMiny, int rgnMaxx, int rgnMaxy) {
@@ -143,6 +155,7 @@ class ImageRegionNucleiData {
 				textureList[i].h_cytoGradientFeatures = NULL;
 				textureList[i].h_cytoCannyFeatures = NULL;
 			}
+			setFeatureNamesVector();
 		}	
 	
 		~ImageRegionNucleiData() {
@@ -166,6 +179,10 @@ class ImageRegionNucleiData {
 				if (textureList[i].h_cytoGradientFeatures!=NULL) free(textureList[i].h_cytoGradientFeatures);
 				if (textureList[i].h_cytoCannyFeatures!=NULL) free(textureList[i].h_cytoCannyFeatures);
 			}
+
+			// clear the featurenames vector
+			featureNames.clear();
+			clearFeatureValuesVector();
 		}
 
 		int getImageRegionMinx() { return rgnMinx; }
@@ -197,11 +214,9 @@ class ImageRegionNucleiData {
 		int computeRedBlueChannelTextureFeatures(cv::Mat& imgTile, cv::Mat& labeledMask);
 		TextureFeatureList *getTextureList() { return textureList; }
 
-
 		// Convert to vector<vector> data for output
-		std::vector<std::string> getFeatureNamesVector();
-		std::vector<FeatureValues> getFeaturesVector();
-			
+		std::vector<std::string>& getFeatureNamesVector() { return featureNames; }
+		std::vector<std::vector<double> >& getFeatureValuesVector();
 };
 
 #if defined (WITH_CUDA)
