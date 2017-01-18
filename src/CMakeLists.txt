@@ -81,18 +81,15 @@ if (NS_NORMALIZATION)
     add_subdirectory(normalization)
 endif(NS_NORMALIZATION)
 
+if (NS_SEGMENT)
+    add_subdirectory(segment)
+endif(NS_SEGMENT)
+
 if (NS_FEATURES)
     add_subdirectory(features-cpu)
     add_subdirectory(features)
 endif(NS_FEATURES)
     
-
-if (NS_SEGMENT)
-    add_subdirectory(segment)
-endif(NS_SEGMENT)
-
-
-
 ### set to compile the pipeline directory
 
 if (NS_PIPELINE)

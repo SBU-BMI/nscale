@@ -17,7 +17,7 @@
 
 #include <sys/time.h>
 
-#include "PixelOperations.h"
+#include "../segment/PixelOperations.h"
 
 
 

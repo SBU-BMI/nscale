@@ -18,9 +18,9 @@
 #include <sys/time.h>
 #include "Operators.h"
 
-#include "HistologicalEntities.h"
-#include "PixelOperations.h"
-#include "MorphologicOperations.h"
+#include "../segment/HistologicalEntities.h"
+#include "../segment/PixelOperations.h"
+#include "../segment/MorphologicOperations.h"
 #include "FileUtils.h"
 #include "ObjFeatures.h"
 #include "ConnComponents.h"
