@@ -9,6 +9,7 @@
 #include <queue>
 #include <iostream>
 #include <limits>
+#include <list>
 #include <omp.h>
 #include "highgui.h"
 
@@ -22,7 +23,9 @@
 
 using namespace cv;
 
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
 using namespace std;
 
 
