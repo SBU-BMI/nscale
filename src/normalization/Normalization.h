@@ -13,9 +13,13 @@
 
 #ifdef WITH_CUDA
 #include "opencv2/gpu/gpu.hpp"
-#endif 
+#endif
 
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
 
 #include "../segment/PixelOperations.h"
 
