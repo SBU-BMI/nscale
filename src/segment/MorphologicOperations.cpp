@@ -2,13 +2,14 @@
  * MorphologicOperation.cpp
  *
  *  Created on: Jul 7, 2011
- *    
+ *
  */
 
 #include <algorithm>
 #include <queue>
 #include <iostream>
 #include <limits>
+#include <list>
 #include <omp.h>
 #include "highgui.h"
 
@@ -22,7 +23,10 @@
 
 using namespace cv;
 
+#ifdef WITH_CUDA
 using namespace cv::gpu;
+#endif
+
 using namespace std;
 
 
@@ -196,7 +200,7 @@ void propagateDist8(int x, int y, Mat &nearestNeighbor, std::queue<int> &xQ, std
 Mat distanceTransform(const Mat& mask, bool calcDist) {
 	CV_Assert(mask.channels() == 1);
 	CV_Assert(mask.type() ==  CV_8UC1);
-	
+
 	// create nearest neighbors map
 	Mat nearestNeighbor(mask.size(), CV_32S);
 
@@ -241,7 +245,7 @@ Mat distanceTransform(const Mat& mask, bool calcDist) {
 
 	}
 
-	
+
 	// Print nearest neighbors matrix
 //        for(int x = 0; x < nearestNeighbor.rows; x++){
 //                int* ptr = nearestNeighbor.ptr<int>(x);
@@ -279,7 +283,7 @@ Mat distTransformFixTilingEffects(Mat& nearestNeighbor, int tileSize, bool calcD
 	CV_Assert(nearestNeighbor.channels() == 1);
 
 	int nTiles = nearestNeighbor.cols/tileSize;
-	
+
 	// save x and y dimension of pixel to be propagated
 	std::queue<int> xQ;
 	std::queue<int> yQ;
@@ -368,8 +372,8 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 	int tileHeight=tileSize;
 	int nTilesX=mask.cols/tileWidth;
 	int nTilesY=mask.rows/tileHeight;
-	uint64_t t1, t2; 
-	
+	uint64_t t1, t2;
+
 	uint64_t t1_tiled = cci::common::event::timestampInUS();
 	Mat nearestNeighbor(mask.size(), CV_32S);
 
@@ -378,9 +382,9 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 #pragma omp parallel for  schedule(dynamic,1)
 		for(int tileX=0; tileX < nTilesX; tileX++){
 			Mat roiMask(mask, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
-			Mat roiNeighborMap(nearestNeighbor, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));	
+			Mat roiNeighborMap(nearestNeighbor, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
 			t1 = cci::common::event::timestampInUS();
-        
+
 /*			Stream stream;
 			GpuMat g_mask(roiMask);
 			GpuMat g_distance = nscale::gpu::distanceTransform(g_mask, stream, false, tileX, tileY, tileSize, nearestNeighbor.cols);
@@ -399,12 +403,12 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 					int rowId = NMTPtr[x] / neighborMapTile.cols + tileY * tileSize;
 					NMTPtr[x] = rowId*nearestNeighbor.cols + colId;
 
-				} 
+				}
 			}
 //			uint64_t t1_copy = cci::common::event::timestampInUS();
 			neighborMapTile.copyTo(roiNeighborMap);
 //			uint64_t t2_copy = cci::common::event::timestampInUS();
-//			std::cout << "copyDataInCPUMemory" << t2_copy-t1_copy << "ms" << std::endl;			
+//			std::cout << "copyDataInCPUMemory" << t2_copy-t1_copy << "ms" << std::endl;
 
 			uint64_t t2 = cci::common::event::timestampInUS();
 
@@ -426,7 +430,7 @@ cv::Mat distanceTransformParallelTile(const cv::Mat& mask, int tileSize, int nTh
 template <typename T>
 inline void propagate(const Mat& image, Mat& output, std::queue<int>& xQ, std::queue<int>& yQ,
 		int x, int y, T* iPtr, T* oPtr, const T& pval) {
-	
+
 	T qval = oPtr[x];
 	T ival = iPtr[x];
 	if ((qval < pval) && (ival != qval)) {
@@ -1909,7 +1913,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 	Mat input, output;
 
 	int nTiles = seeds.cols/tileSize;
-	
+
 	if(withBorder){
 		output = seeds;
 		input = image;
@@ -1967,7 +1971,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 					(oPtr[xminus] < min(pval, iPtr[xminus]))|| // left
 					(oPtrMinus[x] < min(pval, iPtrMinus[x]))   // up
 					) {
-				
+
 
 				xQ.push(x);
 				yQ.push(y);
@@ -1978,7 +1982,7 @@ Mat imreconstructFixTilingEffects(const Mat& seeds, const Mat& image, int connec
 			if (connectivity == 8 && !candidateFound) {
 				if ((oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) || // right/down corner
 						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus])) || // left/down corner
-						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up 
+						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up
 						(oPtrMinus[xminus] < min(pval, iPtrMinus[xminus])) // left/up
 				) {
 					xQ.push(x);
@@ -2080,7 +2084,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	Mat input, output;
 
 	int nTiles;
-	
+
 	if(withBorder){
 		output = seeds;
 		input = image;
@@ -2131,7 +2135,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 	// pass over entire image image
 	int tid = 0;
 //	int tid = omp_get_thread_num();
-//#pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static) 
+//#pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static)
 	for (int y = 1; y <= maxy-1; ++y) {
 //		int tid = omp_get_thread_num();
 			oPtr = output.ptr<T>(y);
@@ -2155,7 +2159,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 					(oPtr[xminus] < min(pval, iPtr[xminus]))|| // left
 					(oPtrMinus[x] < min(pval, iPtrMinus[x]))   // up
 					) {
-				
+
 
 				xQ[tid].push(x);
 				yQ[tid].push(y);
@@ -2171,7 +2175,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 			if (connectivity == 8 && !candidateFound) {
 				if ((oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) || // right/down corner
 						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus])) || // left/down corner
-						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up 
+						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up
 						(oPtrMinus[xminus] < min(pval, iPtrMinus[xminus])) // left/up
 				) {
 					xQ[tid].push(x);
@@ -2190,7 +2194,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 			}else{
 				xIncrement=tileSize-1;
 			}
-		
+
 		}
 	}
 
@@ -2253,10 +2257,10 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 				//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,ppval);
 				propagate<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,pval);
 			}
-			
+
 					// now 8 connected
 			if (connectivity == 8) {
-			
+
 				if (y > 0) {
 					if (x > 0) {
 						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, ppval);
@@ -2266,7 +2270,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, ppval);
 						propagate<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, pval);
 					}
-			
+
 				}
 				if (y < maxy) {
 					if (x > 0) {
@@ -2278,7 +2282,7 @@ Mat imreconstructFixTilingEffectsParallel(const Mat& seeds, const Mat& image, in
 						//propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,ppval);
 						propagate<T>(input, output, xQ[tid], yQ[tid], xplus, yplus, iPtrPlus, oPtrPlus,pval);
 					}
-			
+
 				}
 			}
 		}
@@ -2409,7 +2413,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 
 	// pass over entire image image
 
-#pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static) 
+#pragma omp parallel for private(oPtr,oPtrPlus,oPtrMinus,iPtr,iPtrPlus,iPtrMinus,xminus,xplus,pval) //schedule(static)
 	for (int y = 1; y <= maxy-1; ++y) {
 #if defined (_OPENMP)
 		int tid = omp_get_thread_num();
@@ -2438,7 +2442,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 					(oPtr[xminus] < min(pval, iPtr[xminus]))|| // left
 					(oPtrMinus[x] < min(pval, iPtrMinus[x]))   // up
 					) {
-				
+
 
 				xQ[tid].push(x);
 				yQ[tid].push(y);
@@ -2449,7 +2453,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 			if (connectivity == 8 && !candidateFound) {
 				if ((oPtrPlus[xplus] < min(pval, iPtrPlus[xplus])) || // right/down corner
 						(oPtrPlus[xminus] < min(pval, iPtrPlus[xminus])) || // left/down corner
-						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up 
+						(oPtrMinus[xplus] < min(pval, iPtrMinus[xplus])) || // right/up
 						(oPtrMinus[xminus] < min(pval, iPtrMinus[xminus])) // left/up
 				) {
 					xQ[tid].push(x);
@@ -2508,10 +2512,10 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 			if (x < maxx) {
 				propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, y, iPtr, oPtr,ppval);
 			}
-			
+
 					// now 8 connected
 			if (connectivity == 8) {
-			
+
 				if (y > 0) {
 					if (x > 0) {
 						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xminus, yminus, iPtrMinus, oPtrMinus, ppval);
@@ -2519,7 +2523,7 @@ Mat imreconstructParallelQueue(const Mat& seeds, const Mat& image, int connectiv
 					if (x < maxx) {
 						propagateAtomic<T>(input, output, xQ[tid], yQ[tid], xplus, yminus, iPtrMinus, oPtrMinus, ppval);
 					}
-			
+
 				}
 				if (y < maxy) {
 					if (x > 0) {
@@ -2554,7 +2558,7 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 	int tileHeight=tileSize;
 	int nTilesX=seeds.cols/tileWidth;
 	int nTilesY=seeds.rows/tileHeight;
-	uint64_t t1, t2; 
+	uint64_t t1, t2;
 	uint64_t t1_tiled = cci::common::event::timestampInUS();
 
 	Mat marker_copy(seeds);
@@ -2565,7 +2569,7 @@ cv::Mat imreconstructParallelTile(const cv::Mat& seeds, const cv::Mat& image, in
 		for(int tileX=0; tileX < nTilesX; tileX++){
 			Mat roiMarker(marker_copy, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight ));
 			Mat roiMask(image, Rect(tileX*tileWidth, tileY*tileHeight , tileWidth, tileHeight));
-		
+
 			t1 = cci::common::event::timestampInUS();
 
 			Mat reconTile = nscale::imreconstruct<T>(roiMarker, roiMask, 8);
@@ -3205,7 +3209,7 @@ int getContourArea(const std::vector<std::vector<Point> >& contours, const std::
 	CV_Assert(idx >= 0);
 
 	std::vector<Point> contour = contours[idx];
-	if (contour.size() == 0) return 0;	
+	if (contour.size() == 0) return 0;
 
 	Rect box = boundingRect(Mat(contour));
 	Mat canvas = Mat::zeros(box.height, box.width, CV_8U);
@@ -3224,7 +3228,7 @@ bool contourAreaFilter2(const std::vector<std::vector<Point> >& contours, const 
 
 	// using scanline operation's getContourArea does not work correctly.  There are a lot of special cases that cause problems.
 	//uint64_t area = ScanlineOperations::getContourArea(contours, hierarchy, idx);
-	int area = getContourArea(contours, hierarchy, idx);	
+	int area = getContourArea(contours, hierarchy, idx);
 
 	//std::cout << idx << " total area = " << area << std::endl;
 
@@ -3450,7 +3454,7 @@ Mat_<int> watershed(const Mat& image, int connectivity) {
 			// if it is not a peak or plateu
 			if(WPtr[q] != UNVISITED || imageBPtr[q] != h) continue;
 			WPtr[q] = -p;
-			Q.push_back(q);	
+			Q.push_back(q);
 		}
 	}
 	int label, LABEL = 1, p1;
@@ -3925,4 +3929,3 @@ template DllExport Mat_<unsigned char> localMinima<unsigned char>(const Mat& ima
 template DllExport Mat morphOpen<unsigned char>(const Mat& image, const Mat& kernel);
 
 }
-
