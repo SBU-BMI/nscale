@@ -9,6 +9,7 @@
 #include <queue>
 #include <iostream>
 #include <limits>
+#include <list>
 #include <omp.h>
 #include "highgui.h"
 
