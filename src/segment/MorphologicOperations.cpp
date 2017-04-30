@@ -3102,12 +3102,14 @@ Mat_<int> bwlabel2(const Mat& binaryImage, int connectivity, bool relab) {
 	Mat_<int> output = Mat_<int>::zeros(input.size());
 	cc.label((unsigned char*) input.data, input.cols, input.rows, (int *)output.data, -1, connectivity);
 
-	// relabel if requested
+  // Relabel if requested
+  /*
+  // VAR J IS SET BUT NOT USED.
 	int j = 0;
 	if (relab == true) {
 		j = cc.relabel(output.cols, output.rows, (int *)output.data, -1);
 //		printf("%d number of components\n", j);
-	}
+	}*/
 
 	input.release();
 

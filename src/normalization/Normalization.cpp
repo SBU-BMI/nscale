@@ -209,20 +209,33 @@ cv::Mat Normalization::lab2BGR(cv::Mat LAB){
 	/*	% conver back from log space to linear space
 		LMS = 10.^log_LMS; */
 	cv::Mat LMS(LAB.size(), CV_32FC3);
+	float base = 10.0;
+
 	for (int i=0; i<LMS.rows; i++){
 		// get pointer to beginning of each line
 		float *LMS_ptr = LMS.ptr<float>(i);
 		float *log_LMS_ptr = log_LMS.ptr<float>(i);
 
 		for (int j=0; j<LMS.cols; j++){
-			LMS_ptr[j*3] = pow(10.0, log_LMS_ptr[j*3]);
-			LMS_ptr[j*3+1] = pow(10.0, log_LMS_ptr[j*3+1]);
-			LMS_ptr[j*3+2] = pow(10.0, log_LMS_ptr[j*3+2]);
-//			if(i==0  && j <2 ){
-//				std::cout << "pow: " << pow(10.0, log_LMS_ptr[j*3+2]) << std::endl;
-//				std::cout << "lab2BGR: log_LMS(0,0): "<< log_LMS_ptr[j*3] <<" (0,1):"<<  log_LMS_ptr[j*3+1] <<" (0,2):"<< log_LMS_ptr[j*3+2] << std::endl;
-//				std::cout << "lab2BGR: LMS(0,0): "<< LMS_ptr[j*3] <<" (0,1):"<<  LMS_ptr[j*3+1] <<" (0,2):"<< LMS_ptr[j*3+2] << std::endl;
-//			}
+			float l = log_LMS_ptr[j * 3];
+			float m = log_LMS_ptr[j * 3 + 1];
+			float s = log_LMS_ptr[j * 3 + 2];
+
+			LMS_ptr[j * 3] = pow(base, l);
+			LMS_ptr[j * 3 + 1] = pow(base, m);
+			LMS_ptr[j * 3 + 2] = pow(base, s);
+
+			/*
+			if (i == 0 && j < 2) {
+				std::cout << "\nl: " << l << std::endl;
+				std::cout << "m: " << m << std::endl;
+				std::cout << "s: " << s << "\n" << std::endl;
+				//std::cout << "pow: " << pow(10.0, log_LMS_ptr[j * 3 + 2]) << std::endl;
+        std::cout << "lab2BGR lms: log_LMS(0,0): " << log_LMS_ptr[j * 3] << " (0,1):" << log_LMS_ptr[j * 3 + 1] << " (0,2):" << log_LMS_ptr[j * 3 + 2] << std::endl;
+        std::cout << "lab2BGR pow: LMS(0,0): " << LMS_ptr[j * 3] << " (0,1):" << LMS_ptr[j * 3 + 1] << " (0,2):" << LMS_ptr[j * 3 + 2] << std::endl;
+      }
+			*/
+
 		}
 	}
 
@@ -246,7 +259,7 @@ cv::Mat Normalization::lab2BGR(cv::Mat LAB){
 	RGB = [Matrix2 * LMS']';*/
 	// OpenCV stores RGB as BGR, so we have the channels inverted as compared to Matlab
 	cv::Mat BGRF(LMS.size(), LMS.type());
-	float Matrix2[9] = {4.4687, -3.5887, 0.1196, -1.2197, 2.3831, -0.1626, 0.0585, -0.2611, 1.2057};
+	float Matrix2[9] = {4.4687f, -3.5887f, 0.1196f, -1.2197f, 2.3831f, -0.1626f, 0.0585f, -0.2611f, 1.2057f};
 	m11 = Matrix2[0], m12 = Matrix2[1], m13 = Matrix2[2],
 	m21 = Matrix2[3], m22 = Matrix2[4], m23 = Matrix2[5],
 	m31 = Matrix2[6], m32 = Matrix2[7], m33 = Matrix2[8];
@@ -440,7 +453,7 @@ cv::Mat Normalization::normalization(const cv::Mat& originalI,
 	assert(d == 3);
 
 	//% M =[-0.154 0.035 0.549 -45.718; -0.057 -0.817 1.170 -49.887];
-	float mData[8] = {-0.154, 0.035, 0.549, -45.718, -0.057, -0.817, 1.170, -49.887};
+	float mData[8] = {-0.154f, 0.035f, 0.549f, -45.718f, -0.057f, -0.817f, 1.170f, -49.887f};
 	cv::Mat M = cv::Mat(2, 4, CV_32FC1, &mData);
 
 
@@ -498,8 +511,8 @@ cv::Mat Normalization::normalization(const cv::Mat& originalI,
 %Std - scalar variance parameter for mapping.*/
 void Normalization::targetParameters(const cv::Mat& originalI, float (&targetMean)[3], float (&targetStd)[3]){
 	for(int i = 0; i < 3; i++){
-		targetMean[i] = i;
-		targetStd[i] = i;
+		targetMean[i] = static_cast< float > (i);
+		targetStd[i] = static_cast< float > (i);
 	}
 	int r = originalI.rows;
 	int c = originalI.cols;
@@ -511,7 +524,7 @@ void Normalization::targetParameters(const cv::Mat& originalI, float (&targetMea
     if nargin == 1
         M =[-0.154 0.035 0.549 -45.718; -0.057 -0.817 1.170 -49.887];*/
 
-	float mData[8] = {-0.154, 0.035, 0.549, -45.718, -0.057, -0.817, 1.170, -49.887};
+	float mData[8] = {-0.154f, 0.035f, 0.549f, -45.718f, -0.057f, -0.817f, 1.170f, -49.887f};
 	cv::Mat M = cv::Mat(2, 4, CV_32FC1, &mData);
 
 	/*
@@ -569,5 +582,3 @@ void Normalization::targetParameters(const cv::Mat& originalI, float (&targetMea
 }
 
 }// nscale namespace
-
-
