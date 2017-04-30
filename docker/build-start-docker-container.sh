@@ -2,7 +2,8 @@
 
 #
 # Assumes you have Docker installed on your system, and wish to build
-# your project in a Docker container
+# your project in a Docker container.
+# Note! Dockerfile (and this script) need to be in top level directory.
 #
 
 echo
