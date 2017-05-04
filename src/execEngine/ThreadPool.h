@@ -13,7 +13,11 @@
 #include <vector>
 #include <pthread.h>
 #include <semaphore.h>
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
 
 #include "ExecEngineConstants.h"
 #include "TasksQueue.h"
