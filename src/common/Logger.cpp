@@ -1,5 +1,5 @@
 /*
- * utils.h
+ * Logger.cpp
  *
  *  Created on: Jul 15, 2011
  *      Author: tcpan
@@ -99,7 +99,7 @@ void LogSession::toString(std::string &header, std::string &value) {
 	ss1 << "pid,hostName,group,sessionName,";
 	ss2 << id << "," << name << "," << group << "," << session_name << "," << std::fixed;
 
-	for (int i = 0; i < events.size(); ++i) {
+    for (std::size_t i = 0; i < events.size(); ++i) {
 		ss1 << events[i].getName() << "," << events[i].getType() << ",";
 		ss2 << (events[i].getStart() - start + 1) << "," << (events[i].getEnd() - start + 1) << ",";
 	}
@@ -111,7 +111,7 @@ void LogSession::toOneLineString(std::string &value) {
 	std::stringstream ss1;
 	ss1 << "pid," << id << ",hostName," << name << ",group," << group << ",sessionName," << session_name << "," << std::fixed;
 
-	for (int i = 0; i < events.size(); ++i) {
+    for (std::size_t i = 0; i < events.size(); ++i) {
 		ss1 << events[i].getName() << "," << events[i].getType() << "," << (events[i].getStart() - start + 1) << "," << (events[i].getEnd() - start + 1) << "," << events[i].getAnnotation() << ",";
 	}
 	value.assign(ss1.str());
@@ -221,7 +221,7 @@ std::vector<std::string> Logger::toSummaryStringsByType() {
 void Logger::write(const std::string &prefix) {
 	std::vector<std::string> timings = this->toOneLineStrings();
 	std::stringstream ss;
-	for (int i = 0; i < timings.size(); i++) {
+    for (std::size_t i = 0; i < timings.size(); i++) {
 			ss << timings[i] << std::endl;
 	}
 
