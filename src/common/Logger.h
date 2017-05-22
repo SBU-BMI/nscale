@@ -1,5 +1,5 @@
 /*
- * utils.h
+ * Logger.h
  *
  *  Created on: Jul 15, 2011
  *      Author: tcpan
@@ -113,12 +113,12 @@ public:
 
 
 private:
-	int id;
-	std::string name;
-	long long starttime;
-	long long endtime;
-	int eventtype;
-	std::string annotation;
+    int id;
+    std::string name;
+    long long starttime;
+    long long endtime;
+    std::string annotation;
+    int eventtype;
 };
 
 
