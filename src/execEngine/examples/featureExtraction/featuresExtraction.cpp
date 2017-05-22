@@ -1,7 +1,11 @@
 
 
 #include <stdio.h>
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
 #include "TaskFeature.h"
 #include "ExecutionEngine.h"
 

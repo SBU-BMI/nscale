@@ -14,7 +14,11 @@
 #include "Constants.h"
 
 #include <iomanip>
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
 
 // Includes used by opencv
 #include "highgui.h"

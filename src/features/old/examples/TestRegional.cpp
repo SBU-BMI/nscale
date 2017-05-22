@@ -4,7 +4,11 @@
  *  Created on: Jun 21, 2011
  *      Author: george
  */
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
 #include "RegionalMorphologyAnalysis.h"
 #include "Blob.h"
 #include "Contour.h"

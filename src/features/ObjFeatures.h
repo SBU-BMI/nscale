@@ -15,7 +15,11 @@
 #include "opencv2/gpu/gpu.hpp"
 #endif 
 
+#ifdef _MSC_VER
+#include "time_win.h"
+#else
 #include <sys/time.h>
+#endif
 #include "Operators.h"
 
 #include "../segment/HistologicalEntities.h"
