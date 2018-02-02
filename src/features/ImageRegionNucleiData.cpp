@@ -86,7 +86,7 @@ int ImageRegionNucleiData::computeRedBlueChannelTextureFeatures(cv::Mat& imgTile
 void ImageRegionNucleiData::setFeatureNamesVector() 
 {
 	featureNames.push_back("AreaInPixels");
-	featureNames.push_back("Perimeter");
+	// Computed in Yi's code -- featureNames.push_back("Perimeter");
 	featureNames.push_back("MajorAxis");
 	featureNames.push_back("MinorAxis");
 	featureNames.push_back("Eccentricity");
@@ -164,89 +164,6 @@ void ImageRegionNucleiData::setFeatureNamesVector()
 	numFeatureNames = featureNames.size();
 }
 
-#if 0
-std::vector<std::string> ImageRegionNucleiData::getFeatureNamesVector() {
-
-	std::vector<std::string> featureNames;
-
-	featureNames.push_back("AreaInPixels");
-	featureNames.push_back("Perimeter");
-	featureNames.push_back("MajorAxis");
-	featureNames.push_back("MinorAxis");
-	featureNames.push_back("Eccentricity");
-	featureNames.push_back("ExtentRatio");
-	featureNames.push_back("Circularity");
-
-	featureNames.push_back("r_IntensityMean");
-	featureNames.push_back("r_IntensityMax");
-	featureNames.push_back("r_IntensityMin");
-	featureNames.push_back("r_IntensityStd");
-	featureNames.push_back("r_IntensityEntropy");
-	featureNames.push_back("r_IntensityEnergy");
-	featureNames.push_back("r_IntensitySkewness");
-	featureNames.push_back("r_IntensityKurtosis");
-	featureNames.push_back("r_GradientMean");
-	featureNames.push_back("r_GradientStd");
-	featureNames.push_back("r_GradientEntropy");
-	featureNames.push_back("r_GradientEnergy");
-	featureNames.push_back("r_GradientSkewness");
-	featureNames.push_back("r_GradientKurtosis");
-	featureNames.push_back("r_CannyNonZero");
-	featureNames.push_back("r_CannyMean");
-	featureNames.push_back("r_cytoIntensityMean");
-	featureNames.push_back("r_cytoIntensityMax");
-	featureNames.push_back("r_cytoIntensityMin");
-	featureNames.push_back("r_cytoIntensityStd");
-	featureNames.push_back("r_cytoIntensityEntropy");
-	featureNames.push_back("r_cytoIntensityEnergy");
-	featureNames.push_back("r_cytoIntensitySkewness");
-	featureNames.push_back("r_cytoIntensityKurtosis");
-	featureNames.push_back("r_cytoGradientMean");
-	featureNames.push_back("r_cytoGradientStd");
-	featureNames.push_back("r_cytoGradientEntropy");
-	featureNames.push_back("r_cytoGradientEnergy");
-	featureNames.push_back("r_cytoGradientSkewness");
-	featureNames.push_back("r_cytoGradientKurtosis");
-	featureNames.push_back("r_cytoCannyNonZero");
-	featureNames.push_back("r_cytoCannyMean");
-
-	featureNames.push_back("b_IntensityMean");
-	featureNames.push_back("b_IntensityMax");
-	featureNames.push_back("b_IntensityMin");
-	featureNames.push_back("b_IntensityStd");
-	featureNames.push_back("b_IntensityEntropy");
-	featureNames.push_back("b_IntensityEnergy");
-	featureNames.push_back("b_IntensitySkewness");
-	featureNames.push_back("b_IntensityKurtosis");
-	featureNames.push_back("b_GradientMean");
-	featureNames.push_back("b_GradientStd");
-	featureNames.push_back("b_GradientEntropy");
-	featureNames.push_back("b_GradientEnergy");
-	featureNames.push_back("b_GradientSkewness");
-	featureNames.push_back("b_GradientKurtosis");
-	featureNames.push_back("b_CannyNonZero");
-	featureNames.push_back("b_CannyMean");
-	featureNames.push_back("b_cytoIntensityMean");
-	featureNames.push_back("b_cytoIntensityMax");
-	featureNames.push_back("b_cytoIntensityMin");
-	featureNames.push_back("b_cytoIntensityStd");
-	featureNames.push_back("b_cytoIntensityEntropy");
-	featureNames.push_back("b_cytoIntensityEnergy");
-	featureNames.push_back("b_cytoIntensitySkewness");
-	featureNames.push_back("b_cytoIntensityKurtosis");
-	featureNames.push_back("b_cytoGradientMean");
-	featureNames.push_back("b_cytoGradientStd");
-	featureNames.push_back("b_cytoGradientEntropy");
-	featureNames.push_back("b_cytoGradientEnergy");
-	featureNames.push_back("b_cytoGradientSkewness");
-	featureNames.push_back("b_cytoGradientKurtosis");
-	featureNames.push_back("b_cytoCannyNonZero");
-	featureNames.push_back("b_cytoCannyMean");
-
-	return featureNames;	
-}
-#endif 
-
 std::vector<std::vector<double> >& ImageRegionNucleiData::getFeatureValuesVector() {
 	
 	clearFeatureValuesVector();
@@ -270,7 +187,7 @@ std::vector<std::vector<double> >& ImageRegionNucleiData::getFeatureValuesVector
 		featureValues.push_back(getShapeList().cpuArea[i]); 
 
 		// Shape features
-		featureValues.push_back(getShapeList().cpuPerimeter[i]); 
+		// Computed in Yi's code -- featureValues.push_back(getShapeList().cpuPerimeter[i]); 
 		featureValues.push_back(getShapeList().cpuMajorAxis[i]); 
 		featureValues.push_back(getShapeList().cpuMinorAxis[i]); 
 		featureValues.push_back(getShapeList().cpuEccentricity[i]); 
