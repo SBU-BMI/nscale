@@ -19,3 +19,38 @@ eclipse Linux Tools is recommended for building with autoconf/automake
 
 
 compiling:
+
+=====================================================================================
+
+Instructions for building as a Region Templates dependency, without CUDA support.
+Tested for gcc 7 and 9 on ubuntu 20.04.
+Some other libs may be required for different systems
+
+# libs required
+sudo apt-get install libavformat-dev libavcodec-dev
+
+# opencv 2.7
+git clone https://github.com/opencv/opencv.git
+mv opencv opencv-2.4.9
+cd opencv-2.4.9
+git checkout 2.4.9.1
+sed -i 's/dumpversion/dumpfullversion/g' cmake/OpenCVDetectCXXCompiler.cmake
+sed -i '1111,1130d' modules/contrib/src/chamfermatching.cpp
+sed -i '1016,1019d' modules/contrib/src/chamfermatching.cpp
+sed -i '969,972d' modules/contrib/src/chamfermatching.cpp
+sed -i '225d' modules/highgui/src/cap_v4l.cpp
+sed -i '245,250d' modules/highgui/src/cap_libv4l.cpp
+sed -i '131,132d' cmake/OpenCVFindLibsVideo.cmake
+mkdir build
+cd build
+cmake ../ -D WITH_LIBV4L=OFF -D WITH_V4L=OFF -D WITH_FFMPEG=OFF -DWITH_CUDA=OFF -D ENABLE_PRECOMPILED_HEADERS=OFF
+make -j8
+
+# nscale
+cd ../../
+git clone https://github.com/SBU-BMI/nscale.git
+cd nscale
+mkdir build
+cd build
+cmake ../ -D OpenCV_DIR=../../opencv-2.4.9/build/
+make -j8
